@@ -1,0 +1,97 @@
+"use client";
+
+import { AnimatedItem } from "@/components/motion/AnimatedItem";
+
+const courses = [
+  {
+    code: "MATH 151",
+    title: "Algebra",
+    status: "Available Now",
+    description: "Number systems, complex numbers, and vector algebra from first principles.",
+    available: true,
+  },
+  {
+    code: "MATH 152",
+    title: "Calculus I",
+    status: "Coming Semester 2",
+    description: "Limits, continuity, differentiation, and the fundamental theorem of calculus.",
+    available: false,
+  },
+  {
+    code: "STAT 101",
+    title: "Probability & Statistics",
+    status: "In Development",
+    description: "Distributions, hypothesis testing, and foundational data science.",
+    available: false,
+  },
+  {
+    code: "MATH 231",
+    title: "Linear Algebra",
+    status: "In Development",
+    description: "Vector spaces, matrices, eigenvalues, and linear transformations.",
+    available: false,
+  },
+];
+
+export function CourseDiscovery() {
+  return (
+    <section className="py-32 bg-[#F7F7F8] border-t border-[#E5E5E5]">
+      <div className="max-w-[1440px] mx-auto px-8 md:px-16">
+        
+        <AnimatedItem className="mb-16 flex flex-col items-center text-center">
+          <span className="text-[10px] font-sans uppercase tracking-[0.2em] text-[#666666] mb-4">
+            The Platform
+          </span>
+          <h2 className="editorial-heading text-4xl sm:text-5xl max-w-2xl">
+            Beyond Algebra.
+          </h2>
+          <p className="editorial-body max-w-xl mt-6">
+            MATH 151 is just the beginning. We are actively building the complete core curriculum for university mathematics.
+          </p>
+        </AnimatedItem>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {courses.map((course, index) => (
+            <AnimatedItem key={course.code} index={index} delay={0.2} direction="up" distance={20}>
+              <div 
+                className={`p-6 rounded-2xl border transition-all duration-300 h-full flex flex-col ${
+                  course.available 
+                    ? "bg-white border-[#2563EB]/20 shadow-sm hover:border-[#2563EB] cursor-pointer group" 
+                    : "bg-[#F7F7F8] border-[#E5E5E5] opacity-70"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <span 
+                    className={`font-sans text-[10px] font-bold tracking-widest uppercase ${
+                      course.available ? "text-[#2563EB]" : "text-[#666666]"
+                    }`}
+                  >
+                    {course.code}
+                  </span>
+                  <span className="font-sans text-[10px] text-[#111111] bg-[#E5E5E5] px-2 py-1 rounded-md">
+                    {course.status}
+                  </span>
+                </div>
+
+                <h3 className={`font-serif text-2xl mb-3 ${course.available ? "text-[#111111]" : "text-[#666666]"}`}>
+                  {course.title}
+                </h3>
+                
+                <p className="font-sans text-sm text-[#666666] leading-relaxed flex-grow">
+                  {course.description}
+                </p>
+
+                {course.available && (
+                  <div className="mt-8 font-sans text-xs font-semibold text-[#2563EB] group-hover:translate-x-1 transition-transform">
+                    Explore Course →
+                  </div>
+                )}
+              </div>
+            </AnimatedItem>
+          ))}
+        </div>
+
+      </div>
+    </section>
+  );
+}
