@@ -54,7 +54,7 @@ export function InteractiveDemo() {
   }, []);
 
   return (
-    <section className="py-32 bg-white border-t border-[#E5E5E5] overflow-hidden">
+    <section id="interactive-systems" className="py-32 bg-white border-t border-[#E5E5E5] overflow-hidden">
       <div className="max-w-[1440px] mx-auto px-8 md:px-16">
         
         {/* Header */}

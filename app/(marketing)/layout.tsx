@@ -44,25 +44,30 @@ export default function MarketingLayout({
             : "bg-transparent border-b border-white/10"
         }`}
       >
-        <div className="flex items-center gap-3">
-          <div className={`w-6 h-6 rounded-sm flex items-center justify-center transition-colors duration-500 ${isSolid ? "bg-[#111111]" : "bg-white"}`}>
+        <div className="flex min-w-0 items-center gap-3">
+          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-sm transition-colors duration-500 ${isSolid ? "bg-[#111111]" : "bg-white"}`}>
             <span className={`text-[10px] font-black transition-colors duration-500 ${isSolid ? "text-white" : "text-[#111111]"}`}>FP</span>
           </div>
-          <span className={`font-serif text-lg font-medium tracking-tight transition-colors duration-500 ${isSolid ? "text-[#111111]" : "text-white"}`}>
+          <span className={`whitespace-nowrap font-serif text-lg font-medium tracking-tight transition-colors duration-500 ${isSolid ? "text-[#111111]" : "text-white"}`}>
             Kwamina&apos;s Study Support
           </span>
         </div>
 
-        <nav className="hidden md:flex items-center gap-8">
-          {["Philosophy", "MATH 151", "Platform"].map((item) => (
+        <nav className="hidden items-center gap-7 md:flex">
+          {[
+            { label: "Math 151", href: "#interactive-systems" },
+            { label: "Learn", href: "#lesson-environment" },
+            { label: "Practice", href: "#practice" },
+            { label: "Resources", href: "#platform" },
+          ].map((item) => (
             <a
-              key={item}
-              href="#"
+              key={item.label}
+              href={item.href}
               className={`text-xs font-sans font-medium transition-colors duration-500 ${
                 isSolid ? "text-[#666666] hover:text-[#111111]" : "text-white/70 hover:text-white"
               }`}
             >
-              {item}
+              {item.label}
             </a>
           ))}
         </nav>

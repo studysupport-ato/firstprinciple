@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 
 export function LessonExperience() {
   return (
-    <section className="py-32 bg-white overflow-hidden">
+    <section id="lesson-environment" className="py-32 bg-white overflow-hidden">
       <div className="max-w-[1440px] mx-auto px-8 md:px-16">
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">

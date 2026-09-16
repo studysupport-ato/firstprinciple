@@ -168,7 +168,7 @@ export function Hero() {
             <span className="text-[#111111] text-[8px] font-black">FP</span>
           </div>
           <span className="font-sans text-[11px] tracking-[0.22em] uppercase text-white/70 font-semibold">
-            First Principles — KNUST Freshers
+            FIRST PRINCIPLES · MATH 151
           </span>
         </motion.div>
 
@@ -196,7 +196,7 @@ export function Hero() {
             Get Started
           </button>
           <p className="font-sans text-sm text-white/60 max-w-xs leading-relaxed">
-            A premium interactive learning platform for the modern university curriculum.
+            Interactive lessons, worked examples, and guided practice built around MATH 151
           </p>
         </motion.div>
 
