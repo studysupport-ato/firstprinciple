@@ -151,8 +151,9 @@ export function Hero() {
       </AnimatePresence>
 
       {/* ── OVERLAYS ── */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/85 via-black/35 to-black/20" />
-      <div className="absolute inset-0 z-10 bg-gradient-to-r from-black/30 via-transparent to-transparent" />
+      <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/45 to-black/25" />
+      <div className="absolute inset-0 z-10 bg-gradient-to-r from-black/75 via-black/35 to-transparent" />
+      <div className="absolute inset-y-0 left-0 z-10 w-full max-w-[760px] bg-[radial-gradient(ellipse_at_20%_70%,rgba(0,0,0,0.46),transparent_72%)]" />
 
       {/* ── HERO CONTENT ── */}
       <div className="hero-content relative z-20 w-full max-w-[1440px] mx-auto px-8 md:px-16 pb-10 md:pb-14 lg:pb-16 flex flex-col items-start">

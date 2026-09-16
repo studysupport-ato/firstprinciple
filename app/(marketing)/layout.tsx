@@ -49,7 +49,7 @@ export default function MarketingLayout({
             <span className={`text-[10px] font-black transition-colors duration-500 ${isSolid ? "text-white" : "text-[#111111]"}`}>FP</span>
           </div>
           <span className={`font-serif text-lg font-medium tracking-tight transition-colors duration-500 ${isSolid ? "text-[#111111]" : "text-white"}`}>
-            First Principles
+            Kwamina&apos;s Study Support
           </span>
         </div>
 
