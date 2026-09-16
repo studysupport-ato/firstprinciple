@@ -130,7 +130,7 @@ export default function LeaderboardPage() {
         ))}
       </motion.div>
 
-      <div className="flex items-center justify-center gap-2 font-sans text-[10px] font-semibold uppercase tracking-[0.18em] text-[#777777]">
+      <div className="mb-12 flex items-center justify-center gap-2 font-sans text-[10px] font-semibold uppercase tracking-[0.18em] text-[#777777]">
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#10B981]" />
         Live standings
       </div>

@@ -3,86 +3,20 @@
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowRight } from "lucide-react";
-
-type Intensity = "LIGHT" | "MODERATE" | "INTENSE" | "PRACTICE" | "REVIEW";
-
-interface DayBlock {
-  days: string;
-  intensity: Intensity;
-  title: string;
-  note: string;
-}
-
-const weeks = [
-  { week: 1, days: [
-    { days: "DAY 1", intensity: "LIGHT" as Intensity, title: "Real numbers: N, Z, Q, R", note: "Nested-set picture, closure, and order properties." },
-    { days: "DAYS 2-3", intensity: "INTENSE" as Intensity, title: "Mathematical induction", note: "The four cases and the proof structure behind them." },
-    { days: "DAY 4", intensity: "LIGHT" as Intensity, title: "Well-ordered sets", note: "One definition, one principle, and one equivalence to remember." },
-    { days: "DAY 5", intensity: "PRACTICE" as Intensity, title: "Induction problem set", note: "Work through the exercises before checking the solutions." },
-  ]},
-  { week: 2, days: [
-    { days: "DAY 1", intensity: "LIGHT" as Intensity, title: "Where complex numbers come from", note: "Addition and subtraction, made tangible first." },
-    { days: "DAY 2", intensity: "MODERATE" as Intensity, title: "Unit circle, modulus, and argument", note: "Build the Argand diagram as your main tool." },
-    { days: "DAY 3", intensity: "MODERATE" as Intensity, title: "Conjugate, multiplication, and division", note: "Rationalising denominators, using the same trick as surds." },
-    { days: "DAYS 4-5", intensity: "INTENSE" as Intensity, title: "Polar representation", note: "A careful build-up from rectangular form to polar form." },
-  ]},
-  { week: 3, days: [
-    { days: "DAY 1", intensity: "MODERATE" as Intensity, title: "De Moivre's theorem", note: "The engine behind the rest of this chapter." },
-    { days: "DAY 2", intensity: "MODERATE" as Intensity, title: "Multiplying and dividing in polar form", note: "Angles add while moduli multiply." },
-    { days: "DAY 3", intensity: "INTENSE" as Intensity, title: "Cosine identities", note: "Expand, then separate the real and imaginary parts." },
-    { days: "DAY 4", intensity: "INTENSE" as Intensity, title: "Nth roots of unity", note: "One formula gives answers evenly spaced around a circle." },
-    { days: "DAY 5", intensity: "INTENSE" as Intensity, title: "Polynomial roots and complex powers", note: "Close the chapter with mixed problems." },
-  ]},
-  { week: 4, days: [
-    { days: "DAY 1", intensity: "LIGHT" as Intensity, title: "Vector basics", note: "Magnitude, direction, and displacement." },
-    { days: "DAY 2", intensity: "MODERATE" as Intensity, title: "Components and unit vectors", note: "The laws of algebra, now for arrows instead of numbers." },
-    { days: "DAY 3", intensity: "MODERATE" as Intensity, title: "Dot product and projection", note: "How much of one vector points along another." },
-    { days: "DAYS 4-5", intensity: "INTENSE" as Intensity, title: "Cross product", note: "Perpendicular vectors, triangle areas, and direction." },
-  ]},
-  { week: 5, days: [
-    { days: "DAYS 1-2", intensity: "INTENSE" as Intensity, title: "Linear dependence and independence", note: "Collinear, coplanar, and two ways to test for them." },
-    { days: "DAYS 3-4", intensity: "INTENSE" as Intensity, title: "Lines and planes in space", note: "Vector, parametric, and symmetric equations." },
-    { days: "DAY 5", intensity: "REVIEW" as Intensity, title: "Half-semester review set", note: "A mixed problem from each of the three chapters." },
-  ]},
-];
-
-const chapters = [
-  { title: "Real Number Theory", description: "Number systems, order, and mathematical induction.", slug: "real-number-theory" },
-  { title: "Complex Numbers I", description: "The complex plane, modulus, argument, and polar form.", slug: "complex-numbers" },
-  { title: "Complex Numbers II", description: "De Moivre's theorem, roots of unity, and polynomial roots.", slug: "complex-numbers" },
-  { title: "Vector Algebra I", description: "Vectors, components, dot products, projections, and cross products.", slug: "vector-algebra" },
-  { title: "Vector Algebra II", description: "Linear dependence, lines, planes, and mixed review.", slug: "vector-algebra" },
-];
-
-function lessonSlug(title: string) {
-  return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
-
-function intensityLabel(intensity: Intensity) {
-  return intensity.charAt(0) + intensity.slice(1).toLowerCase();
-}
-
-function intensityClasses(intensity: Intensity) {
-  switch (intensity) {
-    case "LIGHT":
-      return "bg-[#E7F5EC] text-[#2E7D57]";
-    case "MODERATE":
-      return "bg-[#F8EFD5] text-[#8A6A1A]";
-    case "INTENSE":
-      return "bg-[#FDE5E5] text-[#B23A3A]";
-    case "PRACTICE":
-      return "bg-[#F0E9FF] text-[#6750A4]";
-    case "REVIEW":
-      return "bg-[#E7F0FF] text-[#345FC7]";
-    default:
-      return "bg-[#F5F5F5] text-[#4B5563]";
-  }
-}
+import { ArrowRight, Check, LockKeyhole } from "lucide-react";
+import { useEffect, useState } from "react";
+import { getCompletedLessons } from "@/lib/courseProgress";
+import { chapters, lessonSlug, weeks } from "@/lib/roadmapData";
 
 export default function RoadmapPage() {
   const params = useParams();
   const courseId = params.courseId as string;
+  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
+  const [previewWeek, setPreviewWeek] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCompletedLessons(getCompletedLessons(courseId));
+  }, [courseId]);
 
   return (
     <div className="mx-auto max-w-[1260px] px-5 py-8 md:px-10 md:py-12 xl:px-12">
@@ -114,66 +48,38 @@ export default function RoadmapPage() {
         </AnimatedItem>
       </div>
 
-      <div className="space-y-12">
+      <div className="grid gap-5 md:grid-cols-2">
         {weeks.map((week, index) => {
           const chapter = chapters[index];
+          const completedCount = week.days.filter((day) => completedLessons.includes(lessonSlug(day.title))).length;
+          const isCurrent = index === 0 || weeks[index - 1].days.every((day) => completedLessons.includes(lessonSlug(day.title)));
           return (
-            <AnimatedItem key={week.week} delay={index * 0.04}>
-              <section>
-                <div className="mb-5 flex items-end justify-between gap-4 pb-2">
+            <AnimatedItem key={week.week} delay={index * 0.06}>
+              <Link href={`/courses/${courseId}/roadmap/week/${week.week}`} onClick={(event) => { if (!isCurrent) { event.preventDefault(); setPreviewWeek(week.week); } }} className="group block h-full rounded-[26px] border border-[#E7E5E2] bg-[#F7F6F3] p-6 transition-all hover:-translate-y-1 hover:border-[#DAD5CE] hover:bg-white hover:shadow-[0_16px_36px_rgba(17,17,17,0.06)] md:p-8">
+                <div className="mb-10 flex items-start justify-between gap-4">
                   <div>
-                    <span className="mb-2 block font-sans text-[10px] font-bold uppercase tracking-[0.24em] text-[#2563EB]">
-                      Week {week.week}
-                    </span>
-                    <h3 className="font-serif text-[2rem] leading-tight text-[#111111] md:text-[2.5rem]">
-                      {chapter.title}
-                    </h3>
-                    <p className="mt-2 max-w-2xl font-sans text-sm leading-relaxed text-[#666666] md:text-[0.96rem]">
-                      {chapter.description}
-                    </p>
+                    <span className="mb-3 block font-sans text-[10px] font-bold uppercase tracking-[0.24em] text-[#2563EB]">Week {week.week}</span>
+                    <h2 className="font-serif text-3xl leading-tight text-[#111111] transition-colors group-hover:text-[#2563EB] md:text-4xl">{chapter.title}</h2>
                   </div>
-                  <span className="hidden font-sans text-sm text-[#666666] md:block">{week.days.length} sessions</span>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E5E5] bg-white text-[#111111] transition-all group-hover:border-[#2563EB] group-hover:bg-[#2563EB] group-hover:text-white"><ArrowRight size={15} /></span>
                 </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  {week.days.map((day: DayBlock) => (
-                    <Link
-                      key={`${week.week}-${day.title}`}
-                      href={`/courses/${courseId}/chapter/${chapter.slug}/lesson/${lessonSlug(day.title)}`}
-                      className="group flex items-center justify-between gap-6 rounded-[24px] border border-[#E7E5E2] bg-[#F7F6F3] p-5 transition-all duration-200 hover:border-[#DAD5CE] hover:bg-white hover:shadow-[0_12px_32px_rgba(17,17,17,0.04)] md:p-6"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="mb-3 flex items-center gap-3">
-                          <span className="font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-[#666666]">
-                            {day.days}
-                          </span>
-                          <span
-                            className={`inline-flex rounded-full border border-current/10 px-2 py-1 font-sans text-[9px] font-semibold uppercase tracking-[0.12em] ${intensityClasses(day.intensity)}`}
-                          >
-                            {intensityLabel(day.intensity)}
-                          </span>
-                        </div>
-
-                        <h4 className="font-serif text-[1.8rem] leading-[1.1] text-[#111111] transition-colors group-hover:text-[#2563EB] md:text-[2.1rem]">
-                          {day.title}
-                        </h4>
-
-                        <p className="mt-2 max-w-xl font-sans text-sm leading-relaxed text-[#666666] md:text-[0.96rem]">
-                          {day.note}
-                        </p>
-                      </div>
-
-                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[#E5E5E5] bg-white text-[#111111] transition-all duration-200 group-hover:border-[#2563EB] group-hover:bg-[#2563EB] group-hover:text-white">
-                        <ArrowRight size={15} />
-                      </div>
-                    </Link>
-                  ))}
+                <p className="max-w-lg font-sans text-sm leading-relaxed text-[#666666]">{chapter.description}</p>
+                <div className="mt-8 border-t border-[#E5E5E5] pt-5">
+                  <div className="mb-3 flex items-center justify-between font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[#777777]"><span>{completedCount} of {week.days.length} sessions</span><span className="inline-flex items-center gap-1">{isCurrent ? "Available" : <><LockKeyhole size={11} /> Upcoming</>}</span></div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-white"><div className="h-full rounded-full bg-[#2563EB] transition-all" style={{ width: `${(completedCount / week.days.length) * 100}%` }} /></div>
                 </div>
-              </section>
+                {completedCount === week.days.length ? <div className="mt-4 inline-flex items-center gap-1 font-sans text-xs font-semibold text-[#059669]"><Check size={14} /> Week complete</div> : null}
+              </Link>
             </AnimatedItem>
           );
         })}
       </div>
+
+      {previewWeek ? (
+        <div className="fixed left-1/2 top-1/2 z-50 w-[min(420px,calc(100vw-3rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[#F5D48A] bg-[#FFFBEB] p-5 shadow-[0_20px_50px_rgba(17,17,17,0.16)]" role="alert">
+          <div className="flex items-start justify-between gap-4"><div><div className="font-sans text-sm font-semibold text-[#92400E]">Finish the previous week first</div><p className="mt-1 font-sans text-xs leading-relaxed text-[#A16207]">Complete the current week to keep the course progression clear.</p></div><button type="button" onClick={() => setPreviewWeek(null)} className="font-sans text-xs font-semibold text-[#A16207]">Dismiss</button></div>
+        </div>
+      ) : null}
     </div>
   );
 }

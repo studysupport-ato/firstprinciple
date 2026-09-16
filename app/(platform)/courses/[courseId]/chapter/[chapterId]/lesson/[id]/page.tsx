@@ -4,9 +4,10 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { ArgandPlane } from "@/components/math-viz/ArgandPlane";
 import katex from "katex";
+import { markLessonComplete } from "@/lib/courseProgress";
 
 // Helper for rendering KaTeX safely
 function MathText({ math, block = false }: { math: string; block?: boolean }) {
@@ -54,10 +55,15 @@ const lessonSteps = [
 
 export default function LessonPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(0);
 
   const step = lessonSteps[currentStep];
   const isComplete = currentStep === lessonSteps.length - 1;
+  const week = searchParams.get("week");
+  const roadmapHref = week
+    ? `/courses/${params.courseId}/roadmap/week/${week}`
+    : `/courses/${params.courseId}/roadmap`;
 
   const nextStep = () => {
     if (currentStep < lessonSteps.length - 1) setCurrentStep(curr => curr + 1);
@@ -73,7 +79,7 @@ export default function LessonPage() {
       {/* Lesson Header */}
       <header className="flex-shrink-0 h-16 border-b border-[#E5E5E5] flex items-center justify-between px-8 bg-white z-20">
         <div className="flex items-center gap-4">
-          <Link href={`/courses/${params.courseId}/roadmap`} className="text-[#666666] hover:text-[#111111] transition-colors">
+          <Link href={roadmapHref} className="text-[#666666] hover:text-[#111111] transition-colors">
             <ChevronLeft size={20} />
           </Link>
           <div className="flex items-center gap-2">
@@ -159,7 +165,10 @@ export default function LessonPage() {
                 Continue <ChevronRight size={16} />
               </button>
             ) : (
-              <Link href={`/courses/${params.courseId}/roadmap`}>
+              <Link
+                href={roadmapHref}
+                onClick={() => markLessonComplete(params.courseId as string, params.id as string)}
+              >
                 <button className="flex items-center gap-2 px-6 py-3 bg-[#059669] text-white rounded-full text-sm font-semibold hover:scale-105 transition-transform shadow-sm">
                   Complete Lesson <CheckCircle2 size={16} />
                 </button>
