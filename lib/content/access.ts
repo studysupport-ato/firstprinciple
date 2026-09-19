@@ -119,14 +119,22 @@ export function getChapter(chapterId: string) {
 
 export function getWeeks(courseId?: string, chapterId?: string) {
   const local = getLocalWeeks();
-  let results = weeks.map((week) => local.find((item) => item.id === week.id) ?? week).concat(local.filter((week) => !weeks.some((baseWeek) => baseWeek.id === week.id)));
+  const localById = new Map(local.map((week) => [week.id, week]));
+  let results = weeks
+    .map((week) => {
+      const localWeek = localById.get(week.id);
+      if (!localWeek) return week;
+      const validSessionIds = (localWeek.sessionIds ?? []).filter((sessionId) => getLessons().some((lesson) => lesson.id === sessionId));
+      return { ...week, ...localWeek, sessionIds: validSessionIds.length ? validSessionIds : localWeek.sessionIds ?? week.sessionIds };
+    })
+    .concat(local.filter((week) => !weeks.some((baseWeek) => baseWeek.id === week.id)));
 
   if (courseId) {
-    results = results.filter((week) => week.courseId === courseId);
+    results = results.filter((week) => week.courseId === courseId || getLessons(courseId).some((lesson) => lesson.weekId === week.id));
   }
 
   if (chapterId) {
-    results = results.filter((week) => week.chapterIds.includes(chapterId));
+    results = results.filter((week) => week.chapterIds.includes(chapterId) || getLessons(undefined, chapterId).some((lesson) => lesson.weekId === week.id));
   }
 
   return results;
@@ -145,15 +153,27 @@ export function getLessons(courseId?: string, chapterId?: string, weekId?: strin
   let results = lessons.map((lesson) => local.find((item) => item.id === lesson.id) ?? lesson).concat(local.filter((lesson) => !lessons.some((baseLesson) => baseLesson.id === lesson.id)));
 
   if (courseId) {
-    results = results.filter((lesson) => lesson.courseId === courseId);
+    results = results.filter((lesson) => {
+      if (lesson.courseId === courseId) return true;
+      const mappedWeek = getWeek(lesson.weekId);
+      const mappedChapter = getChapter(lesson.chapterId);
+      return mappedWeek?.courseId === courseId || mappedChapter?.courseId === courseId;
+    });
   }
 
   if (chapterId) {
-    results = results.filter((lesson) => lesson.chapterId === chapterId);
+    results = results.filter((lesson) => {
+      if (lesson.chapterId === chapterId) return true;
+      const mappedChapter = getChapter(lesson.chapterId);
+      return mappedChapter?.id === chapterId || getWeek(lesson.weekId)?.chapterIds.includes(chapterId);
+    });
   }
 
   if (weekId) {
-    results = results.filter((lesson) => lesson.weekId === weekId);
+    results = results.filter((lesson) => {
+      if (lesson.weekId === weekId) return true;
+      return getWeek(lesson.weekId)?.id === weekId || lesson.weekId === weekId;
+    });
   }
 
   return results.sort((a, b) => a.order - b.order);

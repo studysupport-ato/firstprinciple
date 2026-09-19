@@ -1,5 +1,6 @@
 "use client";
 
+import { Canvas } from "@react-three/fiber";
 import type { GeoGebraInteractiveConfig, InteractiveBlock as InteractiveBlockData } from "@/lib/content/types/lesson";
 import { ArgandPlane } from "@/components/math-viz/ArgandPlane";
 import { CrossProductScene } from "@/components/3d/CrossProductScene";
@@ -40,7 +41,9 @@ export function InteractiveBlock({ provider, config }: InteractiveBlockData) {
           <span className="font-sans text-[10px] text-[#666666]">{showResult ? "Orthogonality visible" : "Vector setup"}</span>
         </div>
         <div className="h-[420px] w-full overflow-hidden rounded-2xl border border-[#E5E5E5] bg-[#FAFAFA]">
-          <CrossProductScene v1={v1} v2={v2} showResult={showResult} />
+          <Canvas camera={{ position: [3, 4, 8], fov: 45 }} className="h-full w-full">
+            <CrossProductScene v1={v1} v2={v2} showResult={showResult} />
+          </Canvas>
         </div>
       </div>
     );

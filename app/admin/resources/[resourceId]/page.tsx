@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { Archive, ArchiveRestore, ArrowLeft, ExternalLink, Link2, Minus, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -11,7 +12,15 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { getCourse, getCourses, getLesson, getWeek, getWeeks } from "@/lib/content/access";
 import { getWeekDays } from "@/lib/curriculum";
-import { getYouTubeSourceLabel, getYouTubeThumbnailUrl } from "@/lib/content/resourcePresentation";
+import {
+  getGeoGebraEmbedConfig,
+  getGeoGebraSourceLabel,
+  getYouTubeSourceLabel,
+  getYouTubeThumbnailUrl,
+  resolveGeoGebraEmbed,
+  type GeoGebraAppName,
+  type GeoGebraEmbedResolution,
+} from "@/lib/content/resourcePresentation";
 import {
   archiveResource,
   attachResource,
@@ -49,7 +58,7 @@ type ResourceForm = {
   youtubeThumbnailUrl: string;
   geoMaterialId: string;
   geoSourceUrl: string;
-  geoAppName: NonNullable<GeoGebraInteractiveConfig["appName"]>;
+  geoAppName: GeoGebraAppName | "";
   geoHeight: string;
   geoShowToolbar: boolean;
   geoShowAlgebraInput: boolean;
@@ -74,7 +83,7 @@ function emptyForm(type: LearningResourceType = "youtube"): ResourceForm {
     youtubeThumbnailUrl: "",
     geoMaterialId: "",
     geoSourceUrl: "",
-    geoAppName: "graphing",
+    geoAppName: "",
     geoHeight: "420",
     geoShowToolbar: false,
     geoShowAlgebraInput: false,
@@ -115,7 +124,7 @@ function formFromResource(resource: LearningResource): ResourceForm {
   if (resource.type === "geogebra") {
     form.geoMaterialId = resource.data.materialId ?? resource.data.config.materialId ?? "";
     form.geoSourceUrl = resource.data.sourceUrl ?? "";
-    form.geoAppName = resource.data.appName ?? resource.data.config.appName ?? "graphing";
+    form.geoAppName = resource.data.appName ?? resource.data.config.appName ?? "";
     form.geoHeight = String(resource.data.config.height ?? 420);
     form.geoShowToolbar = Boolean(resource.data.config.showToolbar);
     form.geoShowAlgebraInput = Boolean(resource.data.config.showAlgebraInput);
@@ -158,10 +167,11 @@ function buildInput(form: ResourceForm): LearningResourceInput {
   if (form.type === "geogebra") {
     const materialId = form.geoMaterialId.trim() || undefined;
     const sourceUrl = form.geoSourceUrl.trim() || undefined;
+    const appName = form.geoAppName || undefined;
     const height = Number(form.geoHeight);
     const config: GeoGebraInteractiveConfig = {
       visualizer: "geogebra",
-      appName: form.geoAppName,
+      appName,
       materialId,
       height: Number.isFinite(height) && height > 0 ? height : undefined,
       showToolbar: form.geoShowToolbar,
@@ -169,7 +179,7 @@ function buildInput(form: ResourceForm): LearningResourceInput {
       showMenuBar: form.geoShowMenuBar,
       showResetIcon: form.geoShowResetIcon,
     };
-    return { ...common, type: "geogebra", data: { materialId, sourceUrl, appName: form.geoAppName, config } };
+    return { ...common, type: "geogebra", data: { materialId, sourceUrl, appName, config } };
   }
 
   return {
@@ -200,8 +210,10 @@ function placementLabel(placement: ResourcePlacement) {
   return getCourse(placement.courseId ?? "")?.title ?? placement.courseId ?? "Course";
 }
 
-export default function AdminResourceEditorPage({ params }: { params: { resourceId: string } }) {
-  const isNew = params.resourceId === "new";
+export default function AdminResourceEditorPage() {
+  const params = useParams();
+  const resourceId = Array.isArray(params.resourceId) ? params.resourceId[0] : (params.resourceId as string | undefined) ?? "";
+  const isNew = resourceId === "new";
   const [resource, setResource] = useState<LearningResource | null>(null);
   const [form, setForm] = useState<ResourceForm>(() => emptyForm());
   const [loading, setLoading] = useState(!isNew);
@@ -228,7 +240,7 @@ export default function AdminResourceEditorPage({ params }: { params: { resource
       return;
     }
     try {
-      const found = getResourceById(params.resourceId);
+      const found = getResourceById(resourceId);
       if (!found) setError("This resource does not exist in the local resource store.");
       else {
         setResource(found);
@@ -239,7 +251,7 @@ export default function AdminResourceEditorPage({ params }: { params: { resource
     } finally {
       setLoading(false);
     }
-  }, [isNew, params.resourceId]);
+  }, [isNew, resourceId]);
 
   function updateForm<K extends keyof ResourceForm>(field: K, value: ResourceForm[K]) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -323,7 +335,8 @@ export default function AdminResourceEditorPage({ params }: { params: { resource
 
   const previewInput = buildInput(form);
   const youtubePreviewId = previewInput.type === "youtube" ? previewInput.data.videoId : "";
-  const geoPreviewConfig = previewInput.type === "geogebra" ? previewInput.data.config : null;
+  const geoPreviewConfig = previewInput.type === "geogebra" ? getGeoGebraEmbedConfig(previewInput.data) : null;
+  const geoResolution: GeoGebraEmbedResolution | null = geoPreviewConfig ? resolveGeoGebraEmbed(geoPreviewConfig) : null;
 
   return (
     <div>
@@ -385,7 +398,7 @@ function YouTubeFields({ form, updateForm }: { form: ResourceForm; updateForm: <
 }
 
 function GeoGebraFields({ form, updateForm }: { form: ResourceForm; updateForm: <K extends keyof ResourceForm>(field: K, value: ResourceForm[K]) => void }) {
-  return <div className="space-y-5"><div className="grid gap-5 md:grid-cols-2"><label className="space-y-2 text-sm">{fieldLabel("Material ID (optional)")}<input value={form.geoMaterialId} onChange={(event) => updateForm("geoMaterialId", event.target.value)} className="admin-input" placeholder="e.g. abcdefgh" /></label><label className="space-y-2 text-sm">{fieldLabel("Source URL (optional)")}<input value={form.geoSourceUrl} onChange={(event) => updateForm("geoSourceUrl", event.target.value)} className="admin-input" placeholder="https://www.geogebra.org/..." /></label><label className="space-y-2 text-sm">{fieldLabel("App type")}<select value={form.geoAppName} onChange={(event) => updateForm("geoAppName", event.target.value as ResourceForm["geoAppName"])} className="admin-input"><option value="graphing">Graphing</option><option value="geometry">Geometry</option><option value="3d">3D</option><option value="classic">Classic</option></select></label><label className="space-y-2 text-sm">{fieldLabel("Embed height (px)")}<input type="number" min="280" value={form.geoHeight} onChange={(event) => updateForm("geoHeight", event.target.value)} className="admin-input" /></label></div><div className="grid gap-3 sm:grid-cols-2">{([["geoShowToolbar", "Show toolbar"], ["geoShowAlgebraInput", "Show algebra input"], ["geoShowMenuBar", "Show menu bar"], ["geoShowResetIcon", "Show reset icon"]] as const).map(([field, label]) => <label key={field} className="flex items-center gap-3 text-sm text-[#111111]"><input type="checkbox" checked={form[field]} onChange={(event) => updateForm(field, event.target.checked)} className="h-4 w-4 accent-[#111111]" />{label}</label>)}</div></div>;
+  return <div className="space-y-5"><div className="grid gap-5 md:grid-cols-2"><label className="space-y-2 text-sm">{fieldLabel("Material ID")}<input value={form.geoMaterialId} onChange={(event) => updateForm("geoMaterialId", event.target.value)} className="admin-input" placeholder="e.g. RHYH3UQ8" /><span className="block text-xs leading-5 text-[#666666]">Required unless a calculator app is chosen. Copy the short code from the activity link, for example the RHYH3UQ8 in geogebra.org/m/RHYH3UQ8.</span></label><label className="space-y-2 text-sm">{fieldLabel("Source URL (optional)")}<input value={form.geoSourceUrl} onChange={(event) => updateForm("geoSourceUrl", event.target.value)} className="admin-input" placeholder="https://www.geogebra.org/..." /></label><label className="space-y-2 text-sm">{fieldLabel("App type")}<select value={form.geoAppName} onChange={(event) => updateForm("geoAppName", event.target.value as ResourceForm["geoAppName"])} className="admin-input"><option value="graphing">Graphing</option><option value="geometry">Geometry</option><option value="3d">3D</option><option value="classic">Classic</option></select></label><label className="space-y-2 text-sm">{fieldLabel("Embed height (px)")}<input type="number" min="280" value={form.geoHeight} onChange={(event) => updateForm("geoHeight", event.target.value)} className="admin-input" /></label></div><div className="grid gap-3 sm:grid-cols-2">{([["geoShowToolbar", "Show toolbar"], ["geoShowAlgebraInput", "Show algebra input"], ["geoShowMenuBar", "Show menu bar"], ["geoShowResetIcon", "Show reset icon"]] as const).map(([field, label]) => <label key={field} className="flex items-center gap-3 text-sm text-[#111111]"><input type="checkbox" checked={form[field]} onChange={(event) => updateForm(field, event.target.checked)} className="h-4 w-4 accent-[#111111]" />{label}</label>)}</div></div>;
 }
 
 function ExternalFields({ form, updateForm }: { form: ResourceForm; updateForm: <K extends keyof ResourceForm>(field: K, value: ResourceForm[K]) => void }) {

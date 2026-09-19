@@ -4,63 +4,50 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { ArgandPlane } from "@/components/math-viz/ArgandPlane";
 import { completeDay, startDay } from "@/lib/progress";
 import { getLesson, getLessonForRoute } from "@/lib/content/access";
 import { LessonRenderer } from "@/components/learning/LessonRenderer";
+import { GeoGebraProvider } from "@/components/learning/GeoGebraProvider";
 import { SupplementaryResources } from "@/components/learning/SupplementaryResources";
 import { getResourcesForDay } from "@/lib/content/resources";
-
-const visualStates = [
-  { z: null, showYAxis: false, showModulus: false, showAngle: false },
-  { z: null, showYAxis: true, showModulus: false, showAngle: false },
-  { z: { re: 3, im: 4 }, showYAxis: true, showModulus: false, showAngle: false },
-  { z: { re: 3, im: 4 }, showYAxis: true, showModulus: true, showAngle: false },
-  { z: { re: 3, im: 4 }, showYAxis: true, showModulus: true, showAngle: true },
-];
-
-function buildLessonSteps(structuredLesson: ReturnType<typeof getLessonForRoute>) {
-  return structuredLesson
-  ? Array.from({ length: structuredLesson.blocks.reduce((highest, block) => Math.max(highest, block.step ?? 0), 0) }, (_, index) => {
-      const stepId = index + 1;
-      const blocks = structuredLesson.blocks.filter((block) => block.step === stepId);
-      const heading = blocks.find((block) => block.type === "heading");
-      const text = blocks.find((block) => block.type === "text");
-      const math = blocks.find((block) => block.type === "math");
-
-      return {
-        id: stepId,
-        title: heading?.type === "heading" ? heading.text : "Lesson step",
-        content: text?.type === "text" ? text.body : "",
-        math: math?.type === "math" ? math.expression : null,
-        vizState: visualStates[index],
-      };
-    })
-  : [];
-}
+import { getGeoGebraEmbedConfig } from "@/lib/content/resourcePresentation";
 
 export default function LessonPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(0);
+  const [isHydrated, setIsHydrated] = useState(false);
   const preview = searchParams.get("preview") === "1";
 
-  const lesson =
-    getLessonForRoute(
-      params.courseId as string,
-      params.chapterId as string,
-      params.id as string,
-      { includeDraft: preview },
-    ) ?? getLesson("math151-argand-plane");
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  const defaultLesson = getLesson("math151-argand-plane");
+
+  const lesson = useMemo(() => {
+    if (!isHydrated) return defaultLesson;
+
+    return (
+      getLessonForRoute(
+        params.courseId as string,
+        params.chapterId as string,
+        params.id as string,
+        { includeDraft: preview },
+      ) ?? defaultLesson
+    );
+  }, [defaultLesson, isHydrated, params.courseId, params.chapterId, params.id, preview]);
 
   const supplementaryResources = useMemo(() => {
-    if (!lesson) return [];
+    if (!lesson || !isHydrated) return [];
     try {
       return getResourcesForDay(lesson.id, { includeDraft: preview });
     } catch {
       return [];
     }
-  }, [lesson?.id, preview]);
+  }, [isHydrated, lesson, preview]);
+
+  const geoResource = useMemo(() => supplementaryResources.find((resource) => resource.type === "geogebra"), [supplementaryResources]);
 
   useEffect(() => {
     if (lesson && !preview) startDay(lesson.courseId, lesson.weekId, lesson.id);
@@ -87,7 +74,6 @@ export default function LessonPage() {
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
-  const visualizationState = visualStates[Math.min(currentStep, visualStates.length - 1)];
 
   const nextStep = () => {
     if (currentStep < totalSteps - 1) setCurrentStep(curr => curr + 1);
@@ -173,9 +159,17 @@ export default function LessonPage() {
           </div>
         </div>
 
-        {/* Right Side: The Interactive Visualizer */}
-        <div className="hidden lg:flex w-[55%] items-center justify-center p-12 bg-[#FFFFFF]">
-          <ArgandPlane {...visualizationState} />
+        {/* Right Side: configured GeoGebra resource for this Day */}
+        <div className="hidden lg:flex w-[55%] items-center justify-center bg-[#FFFFFF] p-8">
+          {geoResource ? (
+            <div className="w-full max-w-[960px]">
+              <GeoGebraProvider config={getGeoGebraEmbedConfig(geoResource.data)} title={geoResource.title} />
+            </div>
+          ) : (
+            <div className="flex h-full w-full items-center justify-center rounded-[28px] border border-dashed border-[#E5E5E5] bg-[#F7F7F8] p-8 text-center text-sm text-[#666666]">
+              No interactive visualization configured for this lesson.
+            </div>
+          )}
         </div>
 
       </div>

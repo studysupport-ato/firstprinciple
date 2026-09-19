@@ -16,7 +16,8 @@ const ROW_HEIGHT = 76; // px — height of each row + gap
 
 export function LeaderboardTeaser() {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-15%" });
+  const isInView = useInView(ref, { once: true, margin: "0px 0px -15% 0px" });
+  const [hasTriggered, setHasTriggered] = useState(false);
 
   // Displayed XP (counts up)
   const [kwameXp, setKwameXp] = useState(0);
@@ -29,7 +30,8 @@ export function LeaderboardTeaser() {
   const [overtaken, setOvertaken] = useState(false);
 
   useEffect(() => {
-    if (!isInView) return;
+    if (!isInView || hasTriggered) return;
+    setHasTriggered(true);
 
     // Phase 1 (0.8s): Count up Kwame's XP
     const t1 = setTimeout(() => {

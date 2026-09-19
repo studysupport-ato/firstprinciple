@@ -84,7 +84,16 @@ export function getLocalChapters(): Chapter[] {
 }
 
 export function getLocalWeeks(): Week[] {
-  return Object.values(readRecords<Week>(WEEK_STORAGE_KEY)).map(({ record }) => record);
+  return Object.values(readRecords<Week>(WEEK_STORAGE_KEY))
+    .map(({ record }) => record)
+    .map((week) => {
+      const validIds = new Set<string>([
+        ...math151Lessons.map((lesson) => lesson.id),
+        ...Object.values(readRecords<Lesson>(LESSON_RECORD_STORAGE_KEY)).map(({ record }) => record.id),
+      ]);
+      const sessionIds = (week.sessionIds ?? []).filter((id) => typeof id === "string" && id.trim().length > 0 && validIds.has(id));
+      return { ...week, sessionIds: Array.from(new Set(sessionIds)) };
+    });
 }
 
 export function getLocalLessons(): Lesson[] {
@@ -103,8 +112,27 @@ export function saveChapterRecord(chapter: Chapter) {
   saveRecord(CHAPTER_STORAGE_KEY, chapter);
 }
 
+function normalizeSessionIds(sessionIds: string[] | undefined): string[] {
+  const validIds = new Set<string>([
+    ...math151Lessons.map((lesson) => lesson.id),
+    ...getLocalLessons().map((lesson) => lesson.id),
+  ]);
+
+  return Array.from(
+    new Set(
+      (sessionIds ?? [])
+        .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+        .filter((id) => validIds.has(id)),
+    ),
+  );
+}
+
 export function saveWeekRecord(week: Week) {
-  saveRecord(WEEK_STORAGE_KEY, week);
+  const normalized: Week = {
+    ...week,
+    sessionIds: normalizeSessionIds(week.sessionIds),
+  };
+  saveRecord(WEEK_STORAGE_KEY, normalized);
 }
 
 export function saveLessonRecord(lesson: Lesson) {
@@ -115,12 +143,67 @@ export function saveQuestionRecord(question: Question) {
   saveRecord(QUESTION_RECORD_STORAGE_KEY, question);
 }
 
+export function removeQuestionRecord(questionId: string) {
+  const storage = readStorage();
+  if (!storage) return;
+
+  const records = readRecords<Question>(QUESTION_RECORD_STORAGE_KEY);
+  delete records[questionId];
+  storage.setItem(QUESTION_RECORD_STORAGE_KEY, JSON.stringify(records));
+}
+
 export function removeLessonRecord(lessonId: string) {
   const storage = readStorage();
   if (!storage) return;
   const records = readRecords<Lesson>(LESSON_RECORD_STORAGE_KEY);
   delete records[lessonId];
   storage.setItem(LESSON_RECORD_STORAGE_KEY, JSON.stringify(records));
+}
+
+export function removeWeekRecord(weekId: string) {
+  const storage = readStorage();
+  if (!storage) return;
+
+  const weekRecords = readRecords<Week>(WEEK_STORAGE_KEY);
+  delete weekRecords[weekId];
+  storage.setItem(WEEK_STORAGE_KEY, JSON.stringify(weekRecords));
+
+  const courseRecords = readRecords<Course>(COURSE_STORAGE_KEY);
+  for (const [courseId, entry] of Object.entries(courseRecords)) {
+    const nextWeekIds = (entry.record.weekIds ?? []).filter((id) => id !== weekId);
+    if (nextWeekIds.length !== (entry.record.weekIds ?? []).length) {
+      courseRecords[courseId] = {
+        ...entry,
+        record: {
+          ...entry.record,
+          weekIds: nextWeekIds,
+        },
+      };
+    }
+  }
+  storage.setItem(COURSE_STORAGE_KEY, JSON.stringify(courseRecords));
+}
+
+export function removeLessonFromWeek(lessonId: string, weekId?: string) {
+  const storage = readStorage();
+  if (!storage) return;
+
+  const weekRecords = readRecords<Week>(WEEK_STORAGE_KEY);
+  const targetWeekIds = weekId ? [weekId] : Object.keys(weekRecords);
+
+  for (const id of targetWeekIds) {
+    const existing = weekRecords[id]?.record;
+    if (!existing) continue;
+
+    const nextSessionIds = normalizeSessionIds((existing.sessionIds ?? []).filter((sessionId) => sessionId !== lessonId));
+    if (nextSessionIds !== existing.sessionIds) {
+      weekRecords[id] = { ...weekRecords[id], record: { ...existing, sessionIds: nextSessionIds } };
+    }
+  }
+
+  storage.setItem(WEEK_STORAGE_KEY, JSON.stringify(weekRecords));
+  removeLessonRecord(lessonId);
+  removeLessonOverride(lessonId);
 }
 
 export function getBaseQuestion(questionId: string) {

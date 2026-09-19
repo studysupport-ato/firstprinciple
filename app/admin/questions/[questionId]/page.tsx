@@ -3,12 +3,13 @@
 import { ArrowLeft, Check, Copy, Eye, RefreshCcw, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { getQuestion, validateQuestion } from "@/lib/content/access";
-import { getLocalQuestionOverride, removeQuestionOverride, saveQuestionOverride } from "@/lib/content/overrides";
+import { getLocalQuestionOverride, removeQuestionOverride, removeQuestionRecord, saveQuestionOverride } from "@/lib/content/overrides";
 import type { Question, QuestionOption, QuestionStatus, QuestionType } from "@/lib/content/types/question";
 import { createStableId } from "@/lib/ids";
 
@@ -52,20 +53,23 @@ function buildDraft(questionId: string): Question {
   return localOverride?.question ?? cloneData(baseQuestion ?? createBlankQuestion());
 }
 
-export default function AdminQuestionEditorPage({ params }: { params: { questionId: string } }) {
+export default function AdminQuestionEditorPage() {
   const router = useRouter();
-  const isNew = params.questionId === "new";
+  const params = useParams();
+  const questionId = Array.isArray(params.questionId) ? params.questionId[0] : (params.questionId as string | undefined) ?? "";
+  const isNew = questionId === "new";
   const baseQuestion = useMemo(() => {
     if (isNew) {
       return createBlankQuestion();
     }
 
-    return getQuestion(params.questionId) ?? createBlankQuestion();
-  }, [isNew, params.questionId]);
+    return getQuestion(questionId) ?? createBlankQuestion();
+  }, [isNew, questionId]);
 
-  const [draft, setDraft] = useState<Question>(() => buildDraft(params.questionId));
+  const [draft, setDraft] = useState<Question>(() => buildDraft(questionId));
   const [message, setMessage] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const localOverrideExists = !!getLocalQuestionOverride(draft.id);
 
@@ -156,6 +160,23 @@ export default function AdminQuestionEditorPage({ params }: { params: { question
     saveDraft("archived");
   }
 
+  function deleteDraft() {
+    if (isNew) {
+      router.push("/admin/questions");
+      return;
+    }
+
+    setConfirmDelete(true);
+  }
+
+  function confirmDeleteDraft() {
+    removeQuestionOverride(draft.id);
+    removeQuestionRecord(draft.id);
+    setConfirmDelete(false);
+    triggerMessage("Question deleted.");
+    router.push("/admin/questions");
+  }
+
   const questionTypeOptions: QuestionType[] = ["multiple-choice", "numerical", "true-false", "short-answer"];
 
   return (
@@ -165,6 +186,8 @@ export default function AdminQuestionEditorPage({ params }: { params: { question
         description="Keep this authoring flow local to the browser and preserve the single shared question model used by teaching and assessment."
         breadcrumbs={[{ label: "Admin", href: "/admin" }, { label: "Questions", href: "/admin/questions" }, { label: isNew ? "New" : draft.id }]}
       />
+
+      <ConfirmDialog open={confirmDelete} title="Delete question" description="Delete this question from the course bank?" confirmLabel="Delete" onConfirm={confirmDeleteDraft} onCancel={() => setConfirmDelete(false)} />
 
       <div className="flex flex-wrap items-center gap-3">
         <Link href="/admin/questions" className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2 text-sm font-medium text-[#111111] hover:border-[#111111]">
@@ -185,6 +208,11 @@ export default function AdminQuestionEditorPage({ params }: { params: { question
         <button type="button" onClick={archiveDraft} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2 text-sm font-medium text-[#111111] hover:border-[#111111]">
           <Trash2 size={15} />
           Archive
+        </button>
+
+        <button type="button" onClick={deleteDraft} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2 text-sm font-medium text-[#111111] hover:border-[#111111] hover:text-[#E11D48]">
+          <Trash2 size={15} />
+          Delete
         </button>
 
         <button type="button" onClick={revertDraft} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2 text-sm font-medium text-[#111111] hover:border-[#111111]">

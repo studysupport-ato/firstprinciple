@@ -6,8 +6,8 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
-import { createDefaultBlock, saveLessonRecord, saveWeekRecord } from "@/lib/content/overrides";
-import { getChapters, getCourse, getCourses, getWeek, getWeeks } from "@/lib/content/access";
+import { createDefaultBlock, saveChapterRecord, saveCourseRecord, saveLessonRecord, saveWeekRecord } from "@/lib/content/overrides";
+import { getChapters, getCourse, getCourses, getLesson, getLessons, getWeek, getWeeks } from "@/lib/content/access";
 import type { ContentBlock, Lesson } from "@/lib/content/types";
 import { createStableId } from "@/lib/ids";
 
@@ -16,9 +16,12 @@ const blockTypes: ContentBlock["type"][] = ["heading", "text", "markdown", "math
 export default function AdminNewLessonPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [courseId, setCourseId] = useState(searchParams.get("courseId") ?? "math-151");
+  const defaultCourseId = searchParams.get("courseId") ?? getCourses()[0]?.id ?? "";
+  const [courseId, setCourseId] = useState(defaultCourseId);
   const [chapterId, setChapterId] = useState(searchParams.get("chapterId") ?? "");
+  const [chapterName, setChapterName] = useState("");
   const [weekId, setWeekId] = useState(searchParams.get("weekId") ?? "");
+  const [weekName, setWeekName] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [blocks, setBlocks] = useState<ContentBlock[]>([]);
@@ -28,10 +31,61 @@ export default function AdminNewLessonPage() {
   const chapters = getChapters(courseId);
   const weeks = getWeeks(courseId, chapterId || undefined);
 
+  const chapterMatch = chapters.find((item) => item.id === chapterId || item.title.trim().toLowerCase() === chapterName.trim().toLowerCase());
+  const weekMatch = weeks.find((item) => item.id === weekId || item.title.trim().toLowerCase() === weekName.trim().toLowerCase());
+
   useEffect(() => {
-    if (!chapterId && chapters[0]) setChapterId(chapters[0].id);
-    if (!weekId && weeks[0]) setWeekId(weeks[0].id);
-  }, [chapterId, chapters, weekId, weeks]);
+    if (!courseId) {
+      const firstCourse = getCourses()[0];
+      if (firstCourse) {
+        setCourseId(firstCourse.id);
+      }
+      setChapterId("");
+      setChapterName("");
+      setWeekId("");
+      setWeekName("");
+      return;
+    }
+
+    if (!chapterId && !chapterName.trim()) {
+      const nextChapter = chapters[0];
+      setChapterId(nextChapter?.id ?? "");
+      setChapterName(nextChapter?.title ?? "");
+      return;
+    }
+
+    if (chapterId && !chapters.some((item) => item.id === chapterId)) {
+      setChapterId("");
+      return;
+    }
+
+    const nextChapter = chapters.find((item) => item.id === chapterId);
+    if (nextChapter && nextChapter.title !== chapterName) {
+      setChapterName(nextChapter.title);
+    }
+  }, [chapterId, chapterName, chapters, courseId]);
+
+  useEffect(() => {
+    if (!courseId) return;
+
+    const nextWeeks = getWeeks(courseId, chapterId || undefined);
+    if (!weekId && !weekName.trim()) {
+      const nextWeek = nextWeeks[0];
+      setWeekId(nextWeek?.id ?? "");
+      setWeekName(nextWeek?.title ?? "");
+      return;
+    }
+
+    if (weekId && !nextWeeks.some((item) => item.id === weekId)) {
+      setWeekId("");
+      return;
+    }
+
+    const nextWeek = nextWeeks.find((item) => item.id === weekId);
+    if (nextWeek && nextWeek.title !== weekName) {
+      setWeekName(nextWeek.title);
+    }
+  }, [chapterId, courseId, weekId, weekName]);
 
   function addBlock(type: ContentBlock["type"]) {
     setBlocks((current) => [...current, createDefaultBlock(type, current.length + 1)]);
@@ -42,28 +96,77 @@ export default function AdminNewLessonPage() {
   }
 
   function saveLesson() {
-    if (!course || !chapterId || !weekId || !title.trim() || !description.trim()) {
-      setError("Course, chapter, week, title, and description are required.");
+    if (!course) {
+      setError("Select a course before creating a lesson.");
       return;
     }
 
+    const trimmedChapterName = chapterName.trim();
+    const trimmedWeekName = weekName.trim();
+
+    if (!trimmedChapterName) {
+      setError("Type a chapter name before creating a day.");
+      return;
+    }
+
+    if (!trimmedWeekName) {
+      setError("Type a week name before creating a day.");
+      return;
+    }
+
+    if (!title.trim() || !description.trim()) {
+      setError("Title and description are required.");
+      return;
+    }
+
+    let resolvedChapterId = chapterMatch?.id ?? chapterId;
+    if (!resolvedChapterId || !chapters.some((item) => item.id === resolvedChapterId)) {
+      resolvedChapterId = createStableId(course.id, trimmedChapterName);
+      saveChapterRecord({
+        id: resolvedChapterId,
+        courseId: course.id,
+        title: trimmedChapterName,
+        description: `${trimmedChapterName} in ${course.title}.`,
+        order: chapters.length + 1,
+      });
+      saveCourseRecord({ ...course, chapterIds: [...new Set([...course.chapterIds, resolvedChapterId])] });
+      setChapterId(resolvedChapterId);
+    }
+
+    let resolvedWeekId = weekMatch?.id ?? weekId;
+    if (!resolvedWeekId || !weeks.some((item) => item.id === resolvedWeekId)) {
+      resolvedWeekId = createStableId(course.id, trimmedWeekName);
+      const nextWeek = {
+        id: resolvedWeekId,
+        courseId: course.id,
+        chapterIds: [resolvedChapterId],
+        title: trimmedWeekName,
+        description: `${trimmedWeekName} for ${course.title}.`,
+        weekNumber: Math.max(1, ...getWeeks(course.id).map((item) => item.weekNumber)) + 1,
+        sessionIds: [],
+      };
+      saveWeekRecord(nextWeek);
+      saveCourseRecord({ ...course, weekIds: [...new Set([...course.weekIds, resolvedWeekId])] });
+      setWeekId(resolvedWeekId);
+    }
+
+    const existingLessonOrders = getLessons(course.id, resolvedChapterId, resolvedWeekId).map((item) => item.order ?? 0);
     const id = createStableId(course.id, title);
-    const existingLessonCount = getChapters(course.id).length;
     const lesson: Lesson = {
       id,
       courseId: course.id,
-      chapterId,
-      weekId,
+      chapterId: resolvedChapterId,
+      weekId: resolvedWeekId,
       title: title.trim(),
       description: description.trim(),
-      order: existingLessonCount + 1,
+      order: Math.max(1, ...existingLessonOrders) + 1,
       estimatedMinutes: 20,
       objectives: [],
       blocks,
     };
 
     saveLessonRecord(lesson);
-    const week = getWeek(weekId);
+    const week = getWeek(resolvedWeekId);
     if (week && !week.sessionIds.includes(lesson.id)) {
       saveWeekRecord({ ...week, sessionIds: [...week.sessionIds, lesson.id] });
     }
@@ -77,17 +180,16 @@ export default function AdminNewLessonPage() {
         <div className="grid gap-5">
           <div className="grid gap-4 md:grid-cols-3">
             <label className="space-y-2"><span className="field-label">Course</span><select value={courseId} onChange={(event) => setCourseId(event.target.value)} className="admin-input">{getCourses().map((item) => <option key={item.id} value={item.id}>{item.code} · {item.title}</option>)}</select></label>
-            <label className="space-y-2"><span className="field-label">Chapter</span><select value={chapterId} onChange={(event) => setChapterId(event.target.value)} className="admin-input">{chapters.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
-            <label className="space-y-2"><span className="field-label">Week</span><select value={weekId} onChange={(event) => setWeekId(event.target.value)} className="admin-input">{weeks.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
+            <label className="space-y-2"><span className="field-label">Chapter</span><input value={chapterName} onChange={(event) => { const next = event.target.value; setChapterName(next); const matchingChapter = chapters.find((item) => item.title.trim().toLowerCase() === next.trim().toLowerCase()); setChapterId(matchingChapter?.id ?? ""); }} className="admin-input" placeholder="Type a chapter name" /></label>
+            <label className="space-y-2"><span className="field-label">Week</span><input value={weekName} onChange={(event) => { const next = event.target.value; setWeekName(next); const matchingWeek = weeks.find((item) => item.title.trim().toLowerCase() === next.trim().toLowerCase()); setWeekId(matchingWeek?.id ?? ""); }} className="admin-input" placeholder="Type a week name" /></label>
           </div>
           <label className="space-y-2"><span className="field-label">Lesson title</span><input value={title} onChange={(event) => setTitle(event.target.value)} className="admin-input" placeholder="Lesson title" /></label>
           <label className="space-y-2"><span className="field-label">Description</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} className="admin-input" placeholder="What will students learn?" /></label>
 
           <div className="border-t border-[#E5E5E5] pt-5">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><div className="field-label">Content blocks</div><p className="mt-1 text-sm text-[#666666]">These are the canonical Lesson content blocks.</p></div><div className="flex flex-wrap gap-2">{blockTypes.map((type) => <button key={type} type="button" onClick={() => addBlock(type)} className="inline-flex items-center gap-1 rounded-full border border-[#E5E5E5] px-3 py-1.5 text-xs font-semibold capitalize text-[#111111]"><Plus size={12} />{type}</button>)}</div></div>
             <div className="space-y-3">
               {blocks.map((block) => <BlockEditor key={block.id} block={block} onChange={(patch) => updateBlock(block.id, patch)} onRemove={() => setBlocks((current) => current.filter((item) => item.id !== block.id))} />)}
-              {!blocks.length ? <div className="rounded-2xl border border-dashed border-[#E5E5E5] p-8 text-center text-sm text-[#666666]">Add a heading, text, math, example, callout, or question block.</div> : null}
+              {!blocks.length ? <div className="rounded-2xl border border-dashed border-[#E5E5E5] p-8 text-center text-sm text-[#666666]">Add a lesson block from the detailed editor below.</div> : null}
             </div>
           </div>
         </div>

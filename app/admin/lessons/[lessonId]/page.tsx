@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ArrowLeft, ArrowUpDown, Check, Eye, RefreshCcw, Save, Trash2, Upload, X } from "lucide-react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { LessonRenderer } from "@/components/learning/LessonRenderer";
 import { getLesson } from "@/lib/content/access";
 import { createDefaultBlock, getLocalLessonOverride, getResolvedLesson, removeLessonOverride, saveLessonOverride, validateLessonForOverride } from "@/lib/content/overrides";
@@ -73,25 +75,36 @@ function buildLessonDraft(baseLesson: Lesson): Lesson {
   };
 }
 
-export default function AdminLessonEditorPage({ params }: { params: { lessonId: string } }) {
-  const baseLesson = getLesson(params.lessonId) ?? {
-    id: params.lessonId,
-    courseId: "math-151",
-    chapterId: "real-number-theory",
-    weekId: "math151-week-1",
-    title: "Lesson",
-    description: "Lesson content",
-    order: 1,
-    estimatedMinutes: 10,
-    objectives: [],
-    blocks: [],
-  };
+export default function AdminLessonEditorPage() {
+  const params = useParams();
+  const lessonId = Array.isArray(params.lessonId) ? params.lessonId[0] : (params.lessonId as string | undefined) ?? "";
+
+  const canonicalLesson =
+    getLesson(lessonId) ??
+    getResolvedLesson(lessonId) ??
+    null;
+
+  if (!canonicalLesson) {
+    return (
+      <div className="mx-auto max-w-2xl px-6 py-16">
+        <div className="rounded-[28px] border border-[#E5E5E5] bg-white p-8 shadow-[0_8px_24px_rgba(17,17,17,0.02)]">
+          <div className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">Lesson unavailable</div>
+          <h1 className="mt-3 font-serif text-3xl text-[#111111]">This lesson could not be found.</h1>
+          <p className="mt-3 text-sm leading-6 text-[#666666]">The editor can only modify a canonical existing lesson. Open the lesson from the curriculum or create a new lesson from the admin lesson list.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const baseLesson = canonicalLesson;
 
   const [draft, setDraft] = useState<Lesson>(() => buildLessonDraft(baseLesson));
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [deleteBlockId, setDeleteBlockId] = useState<string | null>(null);
+  const [revertTarget, setRevertTarget] = useState(false);
 
   useEffect(() => {
     setDraft(buildLessonDraft(baseLesson));
@@ -150,17 +163,22 @@ export default function AdminLessonEditorPage({ params }: { params: { lessonId: 
 
     if (!target) return;
 
-    const shouldDelete = window.confirm("Delete this block from the local override?");
-    if (!shouldDelete) return;
+    setDeleteBlockId(blockId);
+  }
+
+  function confirmRemoveBlock() {
+    if (!deleteBlockId) return;
 
     setDraft((current) => ({
       ...current,
-      blocks: current.blocks.filter((block) => block.id !== blockId),
+      blocks: current.blocks.filter((block) => block.id !== deleteBlockId),
     }));
 
-    if (selectedBlockId === blockId) {
+    if (selectedBlockId === deleteBlockId) {
       setSelectedBlockId(null);
     }
+
+    setDeleteBlockId(null);
   }
 
   function handleSave(status: "draft" | "published" = "draft") {
@@ -189,12 +207,14 @@ export default function AdminLessonEditorPage({ params }: { params: { lessonId: 
   }
 
   function handleRevert() {
-    const confirmed = window.confirm("Revert this lesson to the base content?");
-    if (!confirmed) return;
+    setRevertTarget(true);
+  }
 
+  function confirmRevert() {
     removeLessonOverride(baseLesson.id);
     setDraft(buildLessonDraft(baseLesson));
     setMessage("Local override removed.");
+    setRevertTarget(false);
   }
 
   function renderBlockEditor(block: ContentBlock) {

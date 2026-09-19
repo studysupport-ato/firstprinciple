@@ -10,6 +10,7 @@ import { AdminErrorState } from "@/components/admin/AdminErrorState";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AdminTable } from "@/components/admin/AdminTable";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import {
   archiveDepartment,
   getCourseMaterialsDirectory,
@@ -28,6 +29,7 @@ export default function AdminCourseMaterialsPage() {
   const [draft, setDraft] = useState({ name: "", shortName: "", description: "", status: "draft" as CourseMaterialsStatus });
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [confirmDepartment, setConfirmDepartment] = useState<CourseMaterialsDepartment | null>(null);
   const searchParams = useSearchParams();
 
   function refresh() {
@@ -67,11 +69,28 @@ export default function AdminCourseMaterialsPage() {
   }
 
   function toggleArchive(department: CourseMaterialsDepartment) {
+    if (department.status === "archived") {
+      try {
+        restoreDepartment(department.id);
+        refresh();
+        setNotice("Department restored as a draft.");
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "The department status could not be saved.");
+      }
+      return;
+    }
+
+    setConfirmDepartment(department);
+  }
+
+  function confirmArchiveDepartment() {
+    if (!confirmDepartment) return;
+
     try {
-      if (department.status === "archived") restoreDepartment(department.id);
-      else if (window.confirm(`Archive ${department.name}? Its materials will remain stored but hidden from students.`)) archiveDepartment(department.id);
+      archiveDepartment(confirmDepartment.id);
+      setNotice("Department archived.");
+      setConfirmDepartment(null);
       refresh();
-      setNotice(department.status === "archived" ? "Department restored as a draft." : "Department archived.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The department status could not be saved.");
     }
@@ -94,6 +113,7 @@ export default function AdminCourseMaterialsPage() {
       <AdminPageHeader title="Course Materials" description="Organize external academic material links by department. Back2Basics with Kwamina stores metadata and links only." actionLabel="Create department" actionHref="/admin/course-materials?create=1" actionIcon={<Plus size={15} />} />
       {notice ? <div className="mb-6 rounded-2xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm text-[#15803D]">{notice}</div> : null}
       {error ? <div className="mb-6 rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm text-[#B91C1C]">{error}</div> : null}
+      <ConfirmDialog open={!!confirmDepartment} title="Archive department" description={confirmDepartment ? `Archive "${confirmDepartment.name}"? Its materials will remain stored but hidden from students.` : "Archive this department?"} confirmLabel="Archive" onConfirm={confirmArchiveDepartment} onCancel={() => setConfirmDepartment(null)} />
 
       {showCreate ? <section id="create-department" className="mb-8 rounded-[24px] border border-[#E5E5E5] bg-white p-6"><div className="mb-5 flex items-center gap-3"><Library size={18} /><div><div className="field-label">New department</div><h2 className="mt-1 font-serif text-2xl">Department details</h2></div></div><div className="grid gap-4 md:grid-cols-2"><label className="space-y-2"><span className="field-label">Name</span><input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} className="admin-input" placeholder="Department name" /></label><label className="space-y-2"><span className="field-label">Short name or code</span><input value={draft.shortName} onChange={(event) => setDraft({ ...draft, shortName: event.target.value })} className="admin-input" placeholder="Optional" /></label><label className="space-y-2 md:col-span-2"><span className="field-label">Description</span><textarea value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} rows={3} className="admin-input" /></label><label className="space-y-2"><span className="field-label">Status</span><select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as CourseMaterialsStatus })} className="admin-input">{statuses.map((status) => <option key={status} value={status}>{status}</option>)}</select></label></div><button type="button" onClick={create} className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#111111] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#2563EB]"><Save size={15} />Create department</button></section> : null}
 

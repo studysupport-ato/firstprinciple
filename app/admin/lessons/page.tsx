@@ -1,23 +1,38 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AdminTable } from "@/components/admin/AdminTable";
-import { getLessons } from "@/lib/content/access";
+import { getChapter, getChapters, getCourse, getLessons, getWeek, getWeeks } from "@/lib/content/access";
 import { hasLessonOverride } from "@/lib/content/overrides";
 import Link from "next/link";
 
 export default function AdminLessonsPage() {
-  const rows = getLessons().map((lesson) => {
-    const hasOverrideValue = hasLessonOverride(lesson.id);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-    return {
-      id: lesson.id,
-      title: lesson.title,
-      chapter: lesson.chapterId,
-      week: lesson.weekId,
-      status: hasOverrideValue ? "Local changes" : "Published",
-      hasOverride: hasOverrideValue,
-    };
-  });
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  const rows = isHydrated
+    ? getLessons().map((lesson) => {
+        const hasOverrideValue = hasLessonOverride(lesson.id);
+        const week = getWeek(lesson.weekId) ?? getWeeks().find((entry) => entry.sessionIds.includes(lesson.id));
+        const chapter = getChapter(lesson.chapterId) ?? (week ? getChapters(week.courseId).find((entry) => week.chapterIds.includes(entry.id)) : undefined) ?? getChapters().find((entry) => entry.id === lesson.chapterId);
+        const course = getCourse(lesson.courseId) ?? (week ? getCourse(week.courseId) : undefined);
+
+        return {
+          id: lesson.id,
+          title: lesson.title,
+          chapter: chapter?.title ?? lesson.chapterId,
+          week: week ? `Week ${week.weekNumber}` : lesson.weekId,
+          course: course?.title ?? lesson.courseId,
+          status: hasOverrideValue ? "Local changes" : "Published",
+          hasOverride: hasOverrideValue,
+        };
+      })
+    : [];
   return (
     <div>
       <AdminPageHeader

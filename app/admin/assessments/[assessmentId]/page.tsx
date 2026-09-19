@@ -3,7 +3,7 @@
 import { ArrowLeft, Check, Copy, Eye, Plus, RefreshCcw, Save, Trash2, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
@@ -40,11 +40,13 @@ function buildDraft(assessmentId: string) {
   return cloneAssessment(local?.assessment ?? getAssessment(assessmentId) ?? createBlankAssessment());
 }
 
-export default function AdminAssessmentEditorPage({ params }: { params: { assessmentId: string } }) {
+export default function AdminAssessmentEditorPage() {
   const router = useRouter();
-  const isNew = params.assessmentId === "new";
-  const baseAssessment = useMemo(() => getBaseAssessment(params.assessmentId) ?? createBlankAssessment(), [params.assessmentId]);
-  const [draft, setDraft] = useState<Assessment>(() => buildDraft(params.assessmentId));
+  const params = useParams();
+  const assessmentId = Array.isArray(params.assessmentId) ? params.assessmentId[0] : (params.assessmentId as string | undefined) ?? "";
+  const isNew = assessmentId === "new";
+  const baseAssessment = useMemo(() => getBaseAssessment(assessmentId) ?? createBlankAssessment(), [assessmentId]);
+  const [draft, setDraft] = useState<Assessment>(() => buildDraft(assessmentId));
   const [message, setMessage] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
   const [previewQuestionIds, setPreviewQuestionIds] = useState<string[]>([]);
@@ -93,7 +95,7 @@ export default function AdminAssessmentEditorPage({ params }: { params: { assess
     saveAssessmentOverride({ assessmentId: normalized.id, updatedAt: new Date().toISOString(), assessment: normalized });
     setDraft(normalized);
     notify("Assessment saved locally.");
-    if (isNew || normalized.id !== params.assessmentId) {
+    if (isNew || normalized.id !== assessmentId) {
       router.replace(`/admin/assessments/${normalized.id}`);
     } else {
       router.refresh();

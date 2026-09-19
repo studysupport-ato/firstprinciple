@@ -19,8 +19,9 @@ export function getCourseWeek(courseId: string, weekNumber: number): Week | unde
 
 export function getWeekDays(courseId: string, week: Week): CurriculumDay[] {
   const lessons = getLessons(courseId, undefined, week.id);
+  const uniqueSessionIds = Array.from(new Set(week.sessionIds ?? []));
 
-  return week.sessionIds.map((sessionId, index) => {
+  return uniqueSessionIds.map((sessionId, index) => {
     const lesson = lessons.find((candidate) => candidate.id === sessionId);
     return {
       dayNumber: index + 1,

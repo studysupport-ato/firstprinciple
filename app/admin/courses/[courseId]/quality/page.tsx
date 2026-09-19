@@ -7,12 +7,14 @@ import { useState } from "react";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { analyzeCourseQuality, type CurriculumIssue } from "@/lib/content/quality";
 import { saveCourseLifecycleState } from "@/lib/content/publishing";
 
 export default function CourseQualityPage() {
   const { courseId } = useParams<{ courseId: string }>();
   const [refreshKey, setRefreshKey] = useState(0);
+  const [confirmPublish, setConfirmPublish] = useState(false);
   const report = analyzeCourseQuality(courseId);
 
   if (!report) return <div className="p-8 text-sm text-[#666666]">Course not found in the local curriculum.</div>;
@@ -23,14 +25,20 @@ export default function CourseQualityPage() {
 
   function publish() {
     if (!canPublish) return;
-    if (!window.confirm("Publish this course locally? This is a content lifecycle state, not an access-control permission.")) return;
+    setConfirmPublish(true);
+  }
+
+  function confirmPublishCourse() {
     saveCourseLifecycleState(courseId, "published");
+    setConfirmPublish(false);
     setRefreshKey((value) => value + 1);
   }
 
   return (
     <div key={refreshKey}>
       <AdminPageHeader title="Course quality" description={`Inspect ${report.course.code} before making its local content state ready or published.`} breadcrumbs={[{ label: "Courses", href: "/admin/courses" }, { label: report.course.code, href: `/admin/courses/${courseId}` }, { label: "Quality" }]} />
+      <ConfirmDialog open={confirmPublish} title="Publish course" description="Publish this course locally? This is a content lifecycle state, not an access-control permission." confirmLabel="Publish" onConfirm={confirmPublishCourse} onCancel={() => setConfirmPublish(false)} />
+
       <div className="mb-6 flex flex-wrap items-center gap-3"><Link href={`/admin/courses/${courseId}`} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2 text-sm font-medium text-[#111111]"><ArrowLeft size={15} />Course command center</Link><Link href={`/courses/${courseId}/roadmap?preview=1`} target="_blank" className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2 text-sm font-medium text-[#111111]"><ExternalLink size={15} />Preview as student</Link><AdminStatusBadge status={report.readiness} />{canPublish ? <button type="button" onClick={publish} className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2563EB]"><Send size={15} />Publish locally</button> : null}</div>
 
       <section className="grid gap-4 md:grid-cols-4"><Metric label="Weeks ready" value={`${report.metrics.completeWeeks} / ${report.metrics.weeks}`} /><Metric label="Days with content" value={`${report.metrics.daysWithContent} / ${report.metrics.days}`} /><Metric label="Content blocks" value={String(report.metrics.contentBlocks)} /><Metric label="Issues" value={String(report.issues.length)} /></section>

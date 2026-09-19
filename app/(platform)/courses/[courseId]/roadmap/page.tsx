@@ -17,7 +17,6 @@ export default function RoadmapPage() {
   const course = getCourse(courseId);
   const weeks = getCourseWeeks(courseId);
   const courseRoadmap = getCourseRoadmap(courseId);
-  const [previewWeek, setPreviewWeek] = useState<number | null>(null);
 
   const totalDays = weeks.reduce((total, week) => total + week.sessionIds.length, 0);
 
@@ -57,10 +56,9 @@ export default function RoadmapPage() {
           const days = entry.days;
           const chapter = getChapter(week.chapterIds[0] ?? "");
           const completedCount = days.filter((day) => day.state === "completed").length;
-          const isCurrent = entry.available;
           return (
             <AnimatedItem key={week.id} delay={index * 0.06}>
-              <Link href={`/courses/${courseId}/roadmap/week/${week.weekNumber}${previewSuffix}`} onClick={(event) => { if (!isCurrent) { event.preventDefault(); setPreviewWeek(week.weekNumber); } }} className="group block h-full rounded-[26px] border border-[#E7E5E2] bg-[#F7F6F3] p-6 transition-all hover:-translate-y-1 hover:border-[#DAD5CE] hover:bg-white hover:shadow-[0_16px_36px_rgba(17,17,17,0.06)] md:p-8">
+              <Link href={`/courses/${courseId}/roadmap/week/${week.weekNumber}${previewSuffix}`} className="group block h-full rounded-[26px] border border-[#E7E5E2] bg-[#F7F6F3] p-6 transition-all hover:-translate-y-1 hover:border-[#DAD5CE] hover:bg-white hover:shadow-[0_16px_36px_rgba(17,17,17,0.06)] md:p-8">
                 <div className="mb-10 flex items-start justify-between gap-4">
                   <div>
                     <span className="mb-3 block font-sans text-[10px] font-bold uppercase tracking-[0.24em] text-[#2563EB]">Week {week.weekNumber}</span>
@@ -70,7 +68,7 @@ export default function RoadmapPage() {
                 </div>
                 <p className="max-w-lg font-sans text-sm leading-relaxed text-[#666666]">{chapter?.description ?? week.description}</p>
                 <div className="mt-8 border-t border-[#E5E5E5] pt-5">
-                  <div className="mb-3 flex items-center justify-between font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[#777777]"><span>{completedCount} of {days.length} days</span><span className="inline-flex items-center gap-1">{isCurrent ? "Available" : <><LockKeyhole size={11} /> Upcoming</>}</span></div>
+                  <div className="mb-3 flex items-center justify-between font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[#777777]"><span>{completedCount} of {days.length} days</span><span className="inline-flex items-center gap-1">Available</span></div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-white"><div className="h-full rounded-full bg-[#2563EB] transition-all" style={{ width: `${days.length ? (completedCount / days.length) * 100 : 0}%` }} /></div>
                 </div>
                 {days.length > 0 && completedCount === days.length ? <div className="mt-4 inline-flex items-center gap-1 font-sans text-xs font-semibold text-[#059669]"><Check size={14} /> Week complete</div> : null}
@@ -79,12 +77,6 @@ export default function RoadmapPage() {
           );
         })}
       </div>
-
-      {previewWeek ? (
-        <div className="fixed left-1/2 top-1/2 z-50 w-[min(420px,calc(100vw-3rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[#F5D48A] bg-[#FFFBEB] p-5 shadow-[0_20px_50px_rgba(17,17,17,0.16)]" role="alert">
-          <div className="flex items-start justify-between gap-4"><div><div className="font-sans text-sm font-semibold text-[#92400E]">Finish the previous week first</div><p className="mt-1 font-sans text-xs leading-relaxed text-[#A16207]">Complete the current week to keep the course progression clear.</p></div><button type="button" onClick={() => setPreviewWeek(null)} className="font-sans text-xs font-semibold text-[#A16207]">Dismiss</button></div>
-        </div>
-      ) : null}
     </div>
   );
 }

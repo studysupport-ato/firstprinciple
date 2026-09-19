@@ -10,6 +10,7 @@ import { AdminLoadingState } from "@/components/admin/AdminLoadingState";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AdminTable } from "@/components/admin/AdminTable";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { archiveResource, getResourcePlacementCounts, getResources, restoreResource } from "@/lib/content/resources";
 import type { LearningResource, LearningResourceStatus, LearningResourceType } from "@/lib/content/types/resource";
 
@@ -40,6 +41,7 @@ export default function AdminResourcesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [confirmResource, setConfirmResource] = useState<LearningResource | null>(null);
 
   function refresh() {
     try {
@@ -65,15 +67,21 @@ export default function AdminResourcesPage() {
   );
 
   function changeLifecycle(resource: LearningResource) {
+    setConfirmResource(resource);
+  }
+
+  function confirmLifecycleChange() {
+    if (!confirmResource) return;
+
     try {
-      if (resource.status === "archived") {
-        restoreResource(resource.id);
+      if (confirmResource.status === "archived") {
+        restoreResource(confirmResource.id);
         setNotice("Resource restored as a draft.");
       } else {
-        if (!window.confirm(`Archive ${resource.title}? Existing placements will remain attached.`)) return;
-        archiveResource(resource.id);
+        archiveResource(confirmResource.id);
         setNotice("Resource archived. Existing placements remain available for review.");
       }
+      setConfirmResource(null);
       refresh();
     } catch {
       setError("The resource lifecycle change could not be saved.");
@@ -106,6 +114,7 @@ export default function AdminResourcesPage() {
       />
 
       {notice ? <div className="mb-6 rounded-2xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm text-[#15803D]">{notice}</div> : null}
+      <ConfirmDialog open={!!confirmResource} title={confirmResource?.status === "archived" ? "Restore resource" : "Archive resource"} description={confirmResource ? `${confirmResource.status === "archived" ? "Restore" : "Archive"} "${confirmResource.title}"? ${confirmResource.status === "archived" ? "This brings the resource back to the draft set." : "Existing placements will remain attached."}` : "Archive this resource?"} confirmLabel={confirmResource?.status === "archived" ? "Restore" : "Archive"} onConfirm={confirmLifecycleChange} onCancel={() => setConfirmResource(null)} />
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, description or tag" className="admin-input max-w-sm" />

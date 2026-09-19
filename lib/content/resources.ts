@@ -1,6 +1,7 @@
 import { getCourse, getLesson, getWeek } from "./access";
 import { createStableId } from "../ids";
 import { isPreviewVisible } from "./lifecycle";
+import { getGeoGebraEmbedConfig, resolveGeoGebraEmbed } from "./resourcePresentation";
 import type {
   LearningResource,
   LearningResourceInput,
@@ -70,9 +71,22 @@ export function validateLearningResource(resource: LearningResourceInput | Learn
   }
 
   if (resource.type === "geogebra") {
-    const { materialId, sourceUrl, appName, config } = resource.data;
-    if (!materialId && !sourceUrl && !appName && !config.materialId && !config.appName) errors.push(`Resource ${label} needs GeoGebra material, source, or app information.`);
+    const { sourceUrl } = resource.data;
     if (sourceUrl && !isHttpUrl(sourceUrl)) errors.push(`Resource ${label} must have a valid GeoGebra source URL.`);
+
+    // Reuse the resolver that the renderer uses, so "savable" and "renderable"
+    // can never drift apart. A resource with no material id and no app name would
+    // otherwise silently fall back to GeoGebra's raw (403-forbidden) app path.
+    const resolution = resolveGeoGebraEmbed(getGeoGebraEmbedConfig(resource.data));
+    if (!resolution.ok) {
+      if (resolution.reason === "not-configured") {
+        errors.push(`Resource ${label} needs a GeoGebra material ID (e.g. RHYH3UQ8) or a supported app (graphing, geometry, 3d, classic).`);
+      } else if (resolution.reason === "invalid-material-id") {
+        errors.push(`Resource ${label} has an invalid GeoGebra material ID "${resolution.detail}". Use the id from the activity URL, e.g. https://www.geogebra.org/m/RHYH3UQ8.`);
+      } else {
+        errors.push(`Resource ${label} has an unsupported GeoGebra app "${resolution.detail}". Supported apps: graphing, geometry, 3d, classic.`);
+      }
+    }
   }
 
   if (resource.type === "external" && !isHttpUrl(resource.data.url)) errors.push(`Resource ${label} must have a valid external URL.`);

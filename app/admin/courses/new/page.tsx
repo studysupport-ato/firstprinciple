@@ -7,8 +7,8 @@ import { useRouter } from "next/navigation";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { getCourses } from "@/lib/content/access";
-import { saveCourseRecord } from "@/lib/content/overrides";
-import type { Course } from "@/lib/content/types/course";
+import { saveChapterRecord, saveCourseRecord, saveWeekRecord } from "@/lib/content/overrides";
+import type { Chapter, Course, Week } from "@/lib/content/types/course";
 
 export default function AdminNewCoursePage() {
   const router = useRouter();
@@ -34,6 +34,27 @@ export default function AdminNewCoursePage() {
       return;
     }
 
+    const chapterId = `${id}-chapter-1`;
+    const weekId = `${id}-week-1`;
+
+    const chapter: Chapter = {
+      id: chapterId,
+      courseId: id,
+      title: "Chapter 1",
+      description: "Course overview and opening content.",
+      order: 1,
+    };
+
+    const week: Week = {
+      id: weekId,
+      courseId: id,
+      chapterIds: [chapterId],
+      title: "Week 1",
+      description: "Opening week for this course.",
+      weekNumber: 1,
+      sessionIds: [],
+    };
+
     const course: Course = {
       id,
       code,
@@ -41,11 +62,13 @@ export default function AdminNewCoursePage() {
       shortTitle: draft.shortTitle.trim() || title,
       description: draft.description.trim(),
       department: draft.department.trim() || undefined,
-      chapterIds: [],
-      weekIds: [],
+      chapterIds: [chapter.id],
+      weekIds: [week.id],
     };
 
     saveCourseRecord(course);
+    saveChapterRecord(chapter);
+    saveWeekRecord(week);
     router.push(`/admin/courses/${course.id}`);
   }
 

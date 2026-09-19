@@ -47,40 +47,30 @@ export interface RoadmapWeek {
 }
 
 /**
- * Full course roadmap with lock states derived centrally.
- * Lock rules mirror the original product: week 1 unlocked, week N unlocked
- * only when every previous week's days are complete; within a week, day N is
- * locked until day N-1 is complete.
+ * Full course roadmap derived from progress without enforcing sequential access
+ * restrictions. Progress continues to be tracked for started/completed states,
+ * but completion of one Day or Week is not treated as a prerequisite for
+ * opening another published Day.
  */
 export function getCourseRoadmap(courseId: string): RoadmapWeek[] {
   const progress = getStudentProgress();
   const weeks = getCourseWeeks(courseId);
-  const result: RoadmapWeek[] = [];
 
-  weeks.forEach((week, weekIndex) => {
+  return weeks.map((week) => {
     const days = getWeekDays(courseId, week);
-    const previousWeek = weeks[weekIndex - 1];
-    const previousWeekComplete = !previousWeek || getWeekDays(courseId, previousWeek).every((day) => isDayCompleteFrom(progress, courseId, previousWeek.id, day.lessonId));
-    const available = weekIndex === 0 || previousWeekComplete;
-
-    const roadmapDays: RoadmapDay[] = days.map((day, dayIndex) => {
+    const roadmapDays: RoadmapDay[] = days.map((day) => {
       const status = progress.courseProgress[courseId]?.weeks[week.id]?.days[day.lessonId]?.status;
-      if (!available) {
-        return { day, state: "locked" };
-      }
       if (status === "completed") {
         return { day, state: "completed" };
       }
-      const previousDay = days[dayIndex - 1];
-      const previousComplete = !previousDay || isDayCompleteFrom(progress, courseId, week.id, previousDay.lessonId);
-      const state: DayRoadmapState = previousComplete ? (status === "in_progress" ? "in_progress" : "not_started") : "locked";
-      return { day, state };
+      if (status === "in_progress") {
+        return { day, state: "in_progress" };
+      }
+      return { day, state: "not_started" };
     });
 
-    result.push({ week, available, days: roadmapDays });
+    return { week, available: true, days: roadmapDays };
   });
-
-  return result;
 }
 
 export interface CourseCompletion {

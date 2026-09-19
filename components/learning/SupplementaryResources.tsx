@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ArrowUpRight, ExternalLink, Play, Sparkles } from "lucide-react";
 
 import { GeoGebraProvider } from "@/components/learning/GeoGebraProvider";
-import { getYouTubeSourceLabel, getYouTubeThumbnailUrl } from "@/lib/content/resourcePresentation";
+import { getGeoGebraEmbedConfig, getYouTubeSourceLabel, getYouTubeThumbnailUrl } from "@/lib/content/resourcePresentation";
 import type { LearningResource } from "@/lib/content/types/resource";
 
 function ResourceEyebrow({ children }: { children: string }) {
@@ -48,7 +48,7 @@ function GeoGebraResourceCard({ resource }: { resource: Extract<LearningResource
           <Sparkles size={14} />{open ? "Close interactive" : "Open inside lesson"}
         </button>
       </div>
-      {open ? <div className="mt-5"><GeoGebraProvider config={resource.data.config} /></div> : null}
+      {open ? <div className="mt-5"><GeoGebraProvider config={getGeoGebraEmbedConfig(resource.data)} /></div> : null}
     </article>
   );
 }
