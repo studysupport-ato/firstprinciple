@@ -49,7 +49,7 @@ export default function MarketingLayout({
             <span className={`text-[10px] font-black transition-colors duration-500 ${isSolid ? "text-white" : "text-[#111111]"}`}>B2</span>
           </div>
           <span className={`whitespace-nowrap font-serif text-lg font-medium tracking-tight transition-colors duration-500 ${isSolid ? "text-[#111111]" : "text-white"}`}>
-            Kwamina&apos;s Study Support
+            Back2Basics with Kwamina
           </span>
         </div>
 
