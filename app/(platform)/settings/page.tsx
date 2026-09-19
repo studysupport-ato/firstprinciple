@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { User, Bell, Shield, Monitor, LogOut, Check, Save, ChevronDown, Sparkles } from "lucide-react";
+import { resetStudentProgress } from "@/lib/progress";
 
 const tabs = [
   { id: "account", label: "Account", icon: User },
@@ -246,6 +247,7 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between rounded-2xl border border-[#E5E5E5] p-5"><div><div className="font-sans text-sm font-semibold">Password</div><div className="mt-1 font-sans text-xs text-[#777777]">Last updated 24 days ago</div></div><button type="button" onClick={() => showNotice("Password reset link sent.")} className="rounded-full border border-[#E5E5E5] px-4 py-2 font-sans text-xs font-semibold text-[#111111] hover:border-[#111111]">Change password</button></div>
                 <div className="flex items-center justify-between rounded-2xl border border-[#E5E5E5] p-5"><div><div className="font-sans text-sm font-semibold">Active sessions</div><div className="mt-1 font-sans text-xs text-[#777777]">1 active session on Chrome for Windows</div></div><button type="button" onClick={() => showNotice("All other sessions have been signed out.")} className="inline-flex items-center gap-2 rounded-full px-4 py-2 font-sans text-xs font-semibold text-[#E11D48] hover:bg-[#FFF1F2]"><LogOut size={13} /> Sign out all</button></div>
+                <div className="flex items-center justify-between rounded-2xl border border-[#E5E5E5] p-5"><div><div className="font-sans text-sm font-semibold">Local development data</div><div className="mt-1 font-sans text-xs text-[#777777]">Clears student progress only — content, question bank, assessments, and assets are not affected.</div></div><button type="button" onClick={() => { resetStudentProgress(); showNotice("Local progress cleared."); }} className="inline-flex items-center gap-2 rounded-full px-4 py-2 font-sans text-xs font-semibold text-[#E11D48] hover:bg-[#FFF1F2]"><LogOut size={13} /> Reset local progress</button></div>
               </div>
             </div>
           )}

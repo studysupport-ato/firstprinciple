@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Trophy, Medal, ArrowUp, ArrowDown, Minus, Flame, Zap, Sparkles, TrendingUp } from "lucide-react";
+import { getCourseCompletion, getCurrentStreak, getProblemsSolved } from "@/lib/progress";
 
 type Trend = "up" | "down" | "flat";
 
@@ -56,6 +57,14 @@ function trendClass(trend: Trend) {
 
 export default function LeaderboardPage() {
   const [rankedStudents, setRankedStudents] = useState(leaderboardData);
+
+  useEffect(() => {
+    // The sample cohort stays prototype data, but the current user's row must
+    // reflect real local progress. Display-only XP formula (prototype).
+    const xp = getProblemsSolved("math-151") * 10 + getCourseCompletion("math-151").completedDays * 50;
+    const streak = getCurrentStreak();
+    setRankedStudents((current) => current.map((student) => (student.isCurrentUser ? { ...student, xp, streak } : student)));
+  }, []);
 
   useEffect(() => {
     const movements = [

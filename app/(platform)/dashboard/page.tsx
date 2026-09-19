@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -8,36 +8,48 @@ import { AnimatedItem } from "@/components/motion/AnimatedItem";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowUpRight, ArrowRight, Flame, Target, CheckCircle2, BookOpen, TrendingUp, UserRound } from "lucide-react";
+import {
+  getContinueLearning,
+  getCurrentStreak,
+  getDailyActivity,
+  getOverallMastery,
+  getProblemsSolved,
+  getRecentActivity,
+  type ActivityDisplay,
+  type ContinueLearning,
+  type DailyActivityPoint,
+} from "@/lib/progress";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-const weekActivity = [
-  { day: "Mon", problems: 8, active: false },
-  { day: "Tue", problems: 14, active: false },
-  { day: "Wed", problems: 6, active: false },
-  { day: "Thu", problems: 20, active: false },
-  { day: "Fri", problems: 12, active: false },
-  { day: "Sat", problems: 0, active: false },
-  { day: "Sun", problems: 16, active: true },
-];
-
-const recentActivity = [
-  { title: "The Argand Plane", type: "Lesson", time: "2h ago", status: "In Progress" },
-  { title: "The Imaginary Unit", type: "Lesson", time: "Yesterday", status: "Completed" },
-  { title: "Complex Numbers Practice", type: "Practice", time: "Yesterday", status: "Completed" },
-  { title: "Quadratic Theory", type: "Lesson", time: "2 days ago", status: "Completed" },
-];
-
 export default function DashboardPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const countersRef = useRef<(HTMLSpanElement | null)[]>([]);
+  const [mastery, setMastery] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [solved, setSolved] = useState(0);
+  const [weekActivity, setWeekActivity] = useState<DailyActivityPoint[]>([]);
+  const [recentActivity, setRecentActivity] = useState<ActivityDisplay[]>([]);
+  const [continueLearning, setContinueLearning] = useState<ContinueLearning | null>(null);
+
+  useEffect(() => {
+    setMastery(getOverallMastery("math-151"));
+    setStreak(getCurrentStreak());
+    setSolved(getProblemsSolved("math-151"));
+    setWeekActivity(getDailyActivity("math-151", 7));
+    setRecentActivity(getRecentActivity("math-151", 4));
+    setContinueLearning(getContinueLearning("math-151"));
+  }, []);
+
+  const hasActivity = weekActivity.some((point) => point.count > 0);
+  const maxCount = Math.max(...weekActivity.map((point) => point.count), 1);
 
   const stats = [
-    { label: "Overall Mastery", value: 42, suffix: "%", icon: Target, color: "#2563EB" },
-    { label: "Day Streak", value: 12, suffix: " days", icon: Flame, color: "#E11D48" },
-    { label: "Problems Solved", value: 342, suffix: "", icon: CheckCircle2, color: "#059669" },
+    { label: "Overall Mastery", value: mastery, suffix: "%", icon: Target, color: "#2563EB" },
+    { label: "Day Streak", value: streak, suffix: " days", icon: Flame, color: "#E11D48" },
+    { label: "Problems Solved", value: solved, suffix: "", icon: CheckCircle2, color: "#059669" },
   ];
 
   useGSAP(() => {
@@ -58,8 +70,6 @@ export default function DashboardPage() {
       );
     });
   }, { scope: containerRef });
-
-  const maxProblems = Math.max(...weekActivity.map(d => d.problems), 1);
 
   return (
     <div ref={containerRef} className="min-h-screen bg-[#FBFBFA] px-6 py-6 md:px-12 md:py-8">
@@ -98,21 +108,24 @@ export default function DashboardPage() {
           </AnimatedItem>
 
           <AnimatedItem delay={0.12} direction="up" distance={18}>
-            <Link href="/courses/math-151/chapter/complex-numbers/lesson/argand-plane" className="group relative block overflow-hidden rounded-[22px] bg-[#111111] p-6 text-white shadow-[0_18px_40px_rgba(17,17,17,0.12)] transition-transform hover:-translate-y-1">
+            <Link href={continueLearning ? `/courses/math-151/chapter/${continueLearning.chapterId}/lesson/${continueLearning.lessonId}?week=${continueLearning.weekNumber}` : "/courses/math-151/roadmap"} className="group relative block overflow-hidden rounded-[22px] bg-[#111111] p-6 text-white shadow-[0_18px_40px_rgba(17,17,17,0.12)] transition-transform hover:-translate-y-1">
               <div className="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full border border-white/10" />
               <div className="relative">
                 <div className="mb-8 flex items-center justify-between">
                   <span className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-white/55">Continue learning</span>
                   <ArrowRight size={17} className="text-white/70 transition-transform group-hover:translate-x-1" />
                 </div>
-                <p className="font-sans text-xs text-white/55">Complex Numbers</p>
-                <h2 className="mt-1 font-serif text-2xl">The Argand Plane</h2>
+                <p className="font-sans text-xs text-white/55">{continueLearning ? continueLearning.weekTitle : "MATH 151"}</p>
+                <h2 className="mt-1 font-serif text-2xl">{continueLearning ? continueLearning.lessonTitle : "Start Week 1, Day 1"}</h2>
                 <div className="mt-5 flex items-center gap-3">
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/15">
-                    <div className="h-full w-[68%] rounded-full bg-[#93C5FD]" />
+                    <div className="h-full rounded-full bg-[#93C5FD]" style={{ width: `${continueLearning ? continueLearning.percent : 0}%` }} />
                   </div>
-                  <span className="font-sans text-xs font-semibold text-white/70">68%</span>
+                  <span className="font-sans text-xs font-semibold text-white/70">{continueLearning ? `${continueLearning.percent}%` : "0%"}</span>
                 </div>
+                {mastery === 0 && solved === 0 ? (
+                  <p className="mt-3 font-sans text-[11px] text-white/50">Start learning to build mastery</p>
+                ) : null}
               </div>
             </Link>
           </AnimatedItem>
@@ -156,20 +169,22 @@ export default function DashboardPage() {
               <TrendingUp size={16} className="text-[#666666]" />
             </div>
             <div className="flex items-end justify-between gap-2 h-32">
-              {weekActivity.map((day) => (
-                <div key={day.day} className="flex flex-col items-center gap-3 flex-1">
+              {hasActivity ? weekActivity.map((day) => (
+                <div key={day.date} className="flex flex-col items-center gap-3 flex-1">
                   <motion.div
-                    className={`w-full rounded-lg ${day.active ? "bg-[#111111]" : "bg-[#F7F7F8] border border-[#E5E5E5]"}`}
+                    className={`w-full rounded-lg ${day.count > 0 ? "bg-[#111111]" : "bg-[#F7F7F8] border border-[#E5E5E5]"}`}
                     initial={{ height: 0 }}
-                    whileInView={{ height: `${(day.problems / maxProblems) * 100}%` }}
+                    whileInView={{ height: `${Math.max((day.count / maxCount) * 100, day.count > 0 ? 12 : 6)}%` }}
                     transition={{ duration: 0.8, delay: 0.05, ease: "easeOut" }}
                     viewport={{ once: true }}
                   />
-                  <span className={`font-sans text-[10px] ${day.active ? "text-[#111111] font-bold" : "text-[#666666]"}`}>
-                    {day.day}
+                  <span className={`font-sans text-[10px] ${day.count > 0 ? "text-[#111111] font-bold" : "text-[#666666]"}`}>
+                    {day.label}
                   </span>
                 </div>
-              ))}
+              )) : (
+                <p className="w-full py-8 text-center font-sans text-sm text-[#666666]">No activity yet. Complete a day or answer a question to get started.</p>
+              )}
             </div>
           </div>
         </AnimatedItem>
@@ -184,9 +199,11 @@ export default function DashboardPage() {
               </Link>
             </div>
             <div className="flex flex-col divide-y divide-[#F7F7F8]">
-              {recentActivity.map((item, i) => (
+              {recentActivity.length === 0 ? (
+                <p className="py-6 text-center font-sans text-sm text-[#666666]">No recent activity yet. Start learning to build your history.</p>
+              ) : recentActivity.map((item, i) => (
                 <motion.div
-                  key={i}
+                  key={item.id || i}
                   initial={{ opacity: 0, x: -8 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.08, duration: 0.4 }}
@@ -195,7 +212,7 @@ export default function DashboardPage() {
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      item.type === "Lesson" ? "bg-[#2563EB]/10 text-[#2563EB]" : "bg-[#4F46E5]/10 text-[#4F46E5]"
+                      item.type === "Lesson" ? "bg-[#2563EB]/10 text-[#2563EB]" : item.type === "Assessment" ? "bg-[#4F46E5]/10 text-[#4F46E5]" : "bg-[#059669]/10 text-[#059669]"
                     }`}>
                       {item.type === "Lesson" ? <BookOpen size={15} /> : <Target size={15} />}
                     </div>

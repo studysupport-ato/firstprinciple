@@ -1,72 +1,96 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { ArgandPlane } from "@/components/math-viz/ArgandPlane";
-import katex from "katex";
-import { markLessonComplete } from "@/lib/courseProgress";
+import { completeDay, startDay } from "@/lib/progress";
+import { getLesson, getLessonForRoute } from "@/lib/content/access";
+import { LessonRenderer } from "@/components/learning/LessonRenderer";
+import { SupplementaryResources } from "@/components/learning/SupplementaryResources";
+import { getResourcesForDay } from "@/lib/content/resources";
 
-// Helper for rendering KaTeX safely
-function MathText({ math, block = false }: { math: string; block?: boolean }) {
-  const html = katex.renderToString(math, { displayMode: block, throwOnError: false });
-  return <span dangerouslySetInnerHTML={{ __html: html }} className={`font-serif ${block ? "block text-center my-6 text-xl" : "inline"}`} />;
-}
-
-const lessonSteps = [
-  {
-    id: 1,
-    title: "The 1D Number Line",
-    content: "Until now, numbers have existed on a single, one-dimensional line. The Real Numbers ($\\mathbb{R}$) stretch infinitely left and right.",
-    math: null,
-    vizState: { z: null, showYAxis: false, showModulus: false, showAngle: false }
-  },
-  {
-    id: 2,
-    title: "The Imaginary Unit",
-    content: "To solve equations like $x^2 = -1$, we introduce the imaginary unit $i$. This creates a completely new axis, perpendicular to the real numbers.",
-    math: "i^2 = -1 \\implies i = \\sqrt{-1}",
-    vizState: { z: null, showYAxis: true, showModulus: false, showAngle: false }
-  },
-  {
-    id: 3,
-    title: "The Complex Plane",
-    content: "A complex number has a real part and an imaginary part. It exists as a specific coordinate $(a, b)$ in this 2D space, which we call the Argand Plane.",
-    math: "z = a + bi",
-    vizState: { z: { re: 3, im: 4 }, showYAxis: true, showModulus: false, showAngle: false }
-  },
-  {
-    id: 4,
-    title: "The Modulus",
-    content: "The modulus $|z|$ is simply the distance from the origin to the point $z$. By the Pythagorean theorem, this is $\\sqrt{a^2 + b^2}$.",
-    math: "|z| = \\sqrt{3^2 + 4^2} = 5",
-    vizState: { z: { re: 3, im: 4 }, showYAxis: true, showModulus: true, showAngle: false }
-  },
-  {
-    id: 5,
-    title: "The Argument",
-    content: "The argument $\\theta$ is the angle the vector makes with the positive real axis. Together, the modulus and argument give us the Polar Form.",
-    math: "\\theta = \\tan^{-1}\\left(\\frac{4}{3}\\right) \\approx 53.1^\\circ",
-    vizState: { z: { re: 3, im: 4 }, showYAxis: true, showModulus: true, showAngle: true }
-  }
+const visualStates = [
+  { z: null, showYAxis: false, showModulus: false, showAngle: false },
+  { z: null, showYAxis: true, showModulus: false, showAngle: false },
+  { z: { re: 3, im: 4 }, showYAxis: true, showModulus: false, showAngle: false },
+  { z: { re: 3, im: 4 }, showYAxis: true, showModulus: true, showAngle: false },
+  { z: { re: 3, im: 4 }, showYAxis: true, showModulus: true, showAngle: true },
 ];
+
+function buildLessonSteps(structuredLesson: ReturnType<typeof getLessonForRoute>) {
+  return structuredLesson
+  ? Array.from({ length: structuredLesson.blocks.reduce((highest, block) => Math.max(highest, block.step ?? 0), 0) }, (_, index) => {
+      const stepId = index + 1;
+      const blocks = structuredLesson.blocks.filter((block) => block.step === stepId);
+      const heading = blocks.find((block) => block.type === "heading");
+      const text = blocks.find((block) => block.type === "text");
+      const math = blocks.find((block) => block.type === "math");
+
+      return {
+        id: stepId,
+        title: heading?.type === "heading" ? heading.text : "Lesson step",
+        content: text?.type === "text" ? text.body : "",
+        math: math?.type === "math" ? math.expression : null,
+        vizState: visualStates[index],
+      };
+    })
+  : [];
+}
 
 export default function LessonPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState(0);
+  const preview = searchParams.get("preview") === "1";
 
-  const step = lessonSteps[currentStep];
-  const isComplete = currentStep === lessonSteps.length - 1;
+  const lesson =
+    getLessonForRoute(
+      params.courseId as string,
+      params.chapterId as string,
+      params.id as string,
+      { includeDraft: preview },
+    ) ?? getLesson("math151-argand-plane");
+
+  const supplementaryResources = useMemo(() => {
+    if (!lesson) return [];
+    try {
+      return getResourcesForDay(lesson.id, { includeDraft: preview });
+    } catch {
+      return [];
+    }
+  }, [lesson?.id, preview]);
+
+  useEffect(() => {
+    if (lesson && !preview) startDay(lesson.courseId, lesson.weekId, lesson.id);
+  }, [lesson, preview]);
+
+  if (!lesson) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-white px-6 text-center">
+        <div className="max-w-md">
+          <p className="font-sans text-xs font-semibold uppercase tracking-[0.28em] text-[#666666]">Lesson unavailable</p>
+          <h1 className="mt-3 font-serif text-3xl text-[#111111]">This lesson could not be loaded.</h1>
+        </div>
+      </div>
+    );
+  }
+
+  const totalSteps = lesson.blocks.reduce((highest, block) => Math.max(highest, block.step ?? 0), 0);
+  const isComplete = currentStep === totalSteps - 1;
   const week = searchParams.get("week");
   const roadmapHref = week
-    ? `/courses/${params.courseId}/roadmap/week/${week}`
-    : `/courses/${params.courseId}/roadmap`;
+    ? `/courses/${params.courseId}/roadmap/week/${week}${preview ? "?preview=1" : ""}`
+    : `/courses/${params.courseId}/roadmap${preview ? "?preview=1" : ""}`;
+  const chapterLabel = lesson.chapterId
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+  const visualizationState = visualStates[Math.min(currentStep, visualStates.length - 1)];
 
   const nextStep = () => {
-    if (currentStep < lessonSteps.length - 1) setCurrentStep(curr => curr + 1);
+    if (currentStep < totalSteps - 1) setCurrentStep(curr => curr + 1);
   };
 
   const prevStep = () => {
@@ -84,18 +108,18 @@ export default function LessonPage() {
           </Link>
           <div className="flex items-center gap-2">
             <span className="font-sans text-[10px] font-bold tracking-widest uppercase text-[#666666]">
-              Complex Numbers
+              {chapterLabel}
             </span>
             <span className="text-[#E5E5E5]">/</span>
             <span className="font-sans text-[10px] font-bold tracking-widest uppercase text-[#111111]">
-              The Argand Plane
+              {lesson.title}
             </span>
           </div>
         </div>
 
         {/* Progress Dots */}
         <div className="flex items-center gap-2">
-          {lessonSteps.map((_, idx) => (
+          {Array.from({ length: totalSteps }).map((_, idx) => (
             <div 
               key={idx}
               className={`w-2 h-2 rounded-full transition-colors duration-300 ${
@@ -113,38 +137,8 @@ export default function LessonPage() {
         <div className="w-full lg:w-[45%] flex flex-col justify-between border-r border-[#E5E5E5] bg-white relative z-10">
           
           <div className="p-12 lg:p-16 overflow-y-auto">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={step.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.4 }}
-                className="flex flex-col gap-6"
-              >
-                <span className="font-sans text-xs font-semibold text-[#2563EB] uppercase tracking-wider">
-                  Step {step.id} of {lessonSteps.length}
-                </span>
-                
-                <h1 className="editorial-heading text-4xl mb-2">
-                  {step.title}
-                </h1>
-                
-                <div className="editorial-body text-[#111111]">
-                  {/* Note: In a real DB setup, we'd parse markdown here. For the demo, we split by $ for basic inline KaTeX. */}
-                  {step.content.split(/(\$.*?\$)/g).map((part, i) => {
-                    if (part.startsWith("$") && part.endsWith("$")) {
-                      return <MathText key={i} math={part.slice(1, -1)} />;
-                    }
-                    return <span key={i}>{part}</span>;
-                  })}
-                </div>
-
-                {step.math && (
-                  <MathText math={step.math} block={true} />
-                )}
-              </motion.div>
-            </AnimatePresence>
+            <LessonRenderer lesson={lesson} step={currentStep + 1} />
+            {isComplete ? <SupplementaryResources resources={supplementaryResources} /> : null}
           </div>
 
           {/* Navigation Controls */}
@@ -167,7 +161,9 @@ export default function LessonPage() {
             ) : (
               <Link
                 href={roadmapHref}
-                onClick={() => markLessonComplete(params.courseId as string, params.id as string)}
+                onClick={() => {
+                  if (!preview) completeDay(lesson.courseId, lesson.weekId, lesson.id);
+                }}
               >
                 <button className="flex items-center gap-2 px-6 py-3 bg-[#059669] text-white rounded-full text-sm font-semibold hover:scale-105 transition-transform shadow-sm">
                   Complete Lesson <CheckCircle2 size={16} />
@@ -179,7 +175,7 @@ export default function LessonPage() {
 
         {/* Right Side: The Interactive Visualizer */}
         <div className="hidden lg:flex w-[55%] items-center justify-center p-12 bg-[#FFFFFF]">
-          <ArgandPlane {...step.vizState} />
+          <ArgandPlane {...visualizationState} />
         </div>
 
       </div>

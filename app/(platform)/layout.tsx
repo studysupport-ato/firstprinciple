@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sidebar } from "@/components/platform/Sidebar";
+import { PreviewToolbar } from "@/components/platform/PreviewToolbar";
 
 export default function PlatformLayout({
   children,
@@ -20,6 +21,7 @@ export default function PlatformLayout({
       <main
         className={`flex-1 ${sidebarCollapsed ? "ml-20" : "ml-64"} min-h-screen transition-[margin] duration-200`}
       >
+        <PreviewToolbar />
         {children}
       </main>
     </div>

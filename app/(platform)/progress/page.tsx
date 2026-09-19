@@ -1,43 +1,18 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { motion, type Variants } from "framer-motion";
 import { Target, Flame, Clock, Trophy, ChevronRight, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-
-const stats = [
-  { label: "Overall Accuracy", value: "92%", icon: Target, tint: "bg-[#EAF3FF] text-[#2563EB]" },
-  { label: "Current Streak", value: "14 Days", icon: Flame, tint: "bg-[#FEE7EC] text-[#E11D48]" },
-  { label: "Hours Studied", value: "38.5h", icon: Clock, tint: "bg-[#EAF8F2] text-[#059669]" },
-];
-
-const topics = [
-  { name: "Real Number Theory", mastery: 100, color: "bg-[#111111]" },
-  { name: "Complex Numbers", mastery: 85, color: "bg-[#2563EB]" },
-  { name: "Vector Algebra", mastery: 60, color: "bg-[#E11D48]" },
-  { name: "Matrices & Systems", mastery: 20, color: "bg-[#D97706]" },
-];
-
-const recentTests = [
-  { title: "Complex Plane & Modulus", date: "Today", score: 100, total: 5 },
-  { title: "Vector Cross Products", date: "Yesterday", score: 80, total: 5 },
-  { title: "De Moivre's Theorem", date: "Oct 12", score: 100, total: 10 },
-];
-
-const generateHeatmap = () => {
-  const weeks = [] as number[][];
-  for (let w = 0; w < 16; w++) {
-    const days = [] as number[];
-    for (let d = 0; d < 7; d++) {
-      const isActive = Math.random() > (0.8 - w * 0.03);
-      const intensity = isActive ? Math.floor(Math.random() * 3) + 1 : 0;
-      days.push(intensity);
-    }
-    weeks.push(days);
-  }
-  return weeks;
-};
-
-const heatmapData = generateHeatmap();
+import {
+  getAssessmentSummaries,
+  getCurrentStreak,
+  getOverallMastery,
+  getPracticeStats,
+  getStudentProgress,
+  getTopicProgress,
+  type PracticeStats,
+} from "@/lib/progress";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -53,6 +28,53 @@ const itemVariants: Variants = {
 };
 
 export default function ProgressPage() {
+  const [ready, setReady] = useState(false);
+  const [mastery, setMastery] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [practice, setPractice] = useState<PracticeStats>({ totalAttempts: 0, correctAttempts: 0, distinctAnswered: 0, distinctCorrect: 0, accuracy: 0, problemsSolved: 0 });
+  const [topics, setTopics] = useState<ReturnType<typeof getTopicProgress>>([]);
+  const [assessments, setAssessments] = useState<ReturnType<typeof getAssessmentSummaries>>([]);
+
+  useEffect(() => {
+    setMastery(getOverallMastery("math-151"));
+    setStreak(getCurrentStreak());
+    setPractice(getPracticeStats("math-151"));
+    setTopics(getTopicProgress("math-151"));
+    setAssessments(getAssessmentSummaries("math-151"));
+    setReady(true);
+  }, []);
+
+  const stats = [
+    { label: "Overall Accuracy", value: practice.totalAttempts > 0 ? `${practice.accuracy}%` : "—", sub: practice.totalAttempts > 0 ? `${practice.correctAttempts} of ${practice.totalAttempts} correct` : "Not enough data yet", icon: Target, tint: "bg-[#EAF3FF] text-[#2563EB]" },
+    { label: "Current Streak", value: `${streak} Days`, sub: streak > 0 ? "Consecutive learning days" : "No streak yet", icon: Flame, tint: "bg-[#FEE7EC] text-[#E11D48]" },
+    { label: "Overall Mastery", value: `${mastery}%`, sub: practice.totalAttempts > 0 ? "From practice evidence" : "Not enough data yet", icon: Clock, tint: "bg-[#EAF8F2] text-[#059669]" },
+  ];
+
+  const heatmapData = useMemo(() => {
+    const counts = new Map<string, number>();
+    if (ready) {
+      for (const event of getStudentProgress().activity) {
+        const key = event.occurredAt.slice(0, 10);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cells: string[] = [];
+    for (let offset = 111; offset >= 0; offset -= 1) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - offset);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      cells.push(key);
+    }
+    const weeks: number[][] = [];
+    for (let w = 0; w < 16; w += 1) {
+      weeks.push(cells.slice(w * 7, w * 7 + 7).map((key) => Math.min(3, counts.get(key) ?? 0)));
+    }
+    return weeks;
+  }, [ready]);
+
+const topicColors = ["bg-[#111111]", "bg-[#2563EB]", "bg-[#E11D48]", "bg-[#D97706]"];
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-10 px-5 py-8 md:px-10 md:py-12">
       <header className="pt-2">
@@ -99,7 +121,11 @@ export default function ProgressPage() {
             </div>
 
             <div className="space-y-6">
-              {topics.map((topic, index) => (
+              {topics.length === 0 ? (
+                <p className="rounded-[18px] border border-dashed border-[#E5E5E5] bg-[#FAFAFA] p-6 text-center font-sans text-sm text-[#666666]">
+                  Not enough data yet. Answer practice questions to build topic mastery.
+                </p>
+              ) : topics.map((topic, index) => (
                 <div key={topic.name} className="group">
                   <div className="mb-2 flex items-center justify-between gap-4">
                     <span className="font-sans text-[15px] font-medium text-[#111111]">{topic.name}</span>
@@ -110,7 +136,7 @@ export default function ProgressPage() {
                       initial={{ width: 0 }}
                       animate={{ width: `${topic.mastery}%` }}
                       transition={{ duration: 0.9, ease: "easeOut", delay: 0.15 + index * 0.1 }}
-                      className={`h-full rounded-full ${topic.color}`}
+                      className={`h-full rounded-full ${topicColors[index % topicColors.length]}`}
                     />
                   </div>
                 </div>
@@ -187,19 +213,24 @@ export default function ProgressPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-            {recentTests.map((test, index) => {
+            {assessments.length === 0 ? (
+              <p className="col-span-full rounded-[22px] border border-dashed border-[#E5E5E5] bg-[#FAFAFA] p-6 text-center font-sans text-sm text-[#666666]">
+                No assessments yet. Submit an assessment and your score will appear here.
+              </p>
+            ) : (
+            assessments.slice(0, 3).map((test) => {
               const isPerfect = test.score === 100;
 
               return (
                 <div
-                  key={test.title}
+                  key={test.id}
                   className="group rounded-[22px] border border-[#E5E5E5] bg-[#F9F9F7] p-5 transition-all duration-200 hover:border-[#D1D5DB] hover:bg-white hover:shadow-[0_12px_30px_rgba(17,17,17,0.03)]"
                 >
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${isPerfect ? "bg-[#EAF8F2] text-[#059669]" : "bg-[#F3F4F6] text-[#111111]"}`}>
                       <Trophy size={20} />
                     </div>
-                    <span className="font-sans text-[11px] font-medium text-[#666666]">{test.date}</span>
+                    <span className="font-sans text-[11px] font-medium text-[#666666]">{test.date.slice(0, 10)}</span>
                   </div>
 
                   <h3 className="font-sans text-[1.05rem] font-bold leading-snug text-[#111111] transition-colors group-hover:text-[#2563EB]">
@@ -210,18 +241,21 @@ export default function ProgressPage() {
                     <span className={`font-sans text-[2rem] font-black leading-none ${isPerfect ? "text-[#059669]" : "text-[#111111]"}`}>
                       {test.score}%
                     </span>
-                    <span className="mb-1 font-sans text-xs text-[#666666]">({test.total} questions)</span>
+                    <span className="mb-1 font-sans text-xs text-[#666666]">
+                      ({test.total > 0 ? `${test.total} questions` : `${test.marksEarned}/${test.marksAvailable} marks`})
+                    </span>
                   </div>
 
                   <div className="mt-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#666666]">
                     <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 ring-1 ring-[#E5E5E5]">
-                      {index === 0 ? "Focus" : index === 1 ? "Applied" : "Theory"}
+                      {test.marksEarned}/{test.marksAvailable} marks
                     </span>
                     <ArrowUpRight size={12} className="text-[#2563EB]" />
                   </div>
                 </div>
               );
-            })}
+            })
+            )}
           </div>
         </motion.section>
       </motion.div>

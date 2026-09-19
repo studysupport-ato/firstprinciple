@@ -53,6 +53,14 @@
 }
 
 @layer utilities {
+  .field-label {
+    @apply block text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666];
+  }
+
+  .admin-input {
+    @apply w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2.5 text-sm text-[#111111] outline-none transition focus:border-[#2563EB];
+  }
+
   .editorial-heading {
     @apply font-serif tracking-tight text-foreground leading-[1.1];
   }

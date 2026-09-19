@@ -3,50 +3,38 @@
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
 import Link from "next/link";
 import { ArrowRight, BookOpen } from "lucide-react";
-
-const activeCourses = [
-  {
-    id: "math-151",
-    code: "MATH 151",
-    title: "Algebra",
-    description: "Number systems, complex numbers, polynomials, and vector algebra from first principles.",
-    progress: 42,
-    resumeLesson: "Resume Lesson: Complex Numbers",
-  },
-  {
-    id: "basic-mechanics",
-    code: "PHYS 151",
-    title: "Basic Mechanics",
-    description: "Motion, forces, energy, and momentum developed from the fundamental principles of mechanics.",
-    progress: 0,
-    resumeLesson: "Begin Course: Basic Mechanics",
-  },
-  {
-    id: "applied-electricity",
-    code: "EE 151",
-    title: "Applied Electricity",
-    description: "Electrical quantities, circuits, and systems introduced through practical first-principles reasoning.",
-    progress: 0,
-    resumeLesson: "Begin Course: Applied Electricity",
-  },
-];
-
-const upcomingCourses = [
-  {
-    code: "MATH 152",
-    title: "Calculus I",
-    semester: "Semester 2",
-    description: "Limits, continuity, differentiation, and the fundamental theorem of calculus.",
-  },
-  {
-    code: "STAT 101",
-    title: "Probability & Statistics",
-    semester: "Semester 2",
-    description: "Distributions, hypothesis testing, and foundational data science.",
-  },
-];
+import { useEffect, useState } from "react";
+import { getCourses } from "@/lib/content/access";
+import { getContinueLearning, getCourseCompletion } from "@/lib/progress";
 
 export default function CourseLibraryPage() {
+  const courses = getCourses();
+  const [completedLessons, setCompletedLessons] = useState<Record<string, { percent: number; resumeLesson: string }>>({});
+
+  useEffect(() => {
+    setCompletedLessons(Object.fromEntries(courses.map((course) => {
+      const completion = getCourseCompletion(course.id);
+      const next = getContinueLearning(course.id);
+      return [course.id, {
+        percent: completion.percent,
+        resumeLesson: next
+          ? `${next.status === "in_progress" ? "Resume" : "Begin"}: ${next.lessonTitle}`
+          : "Course content coming soon",
+      }];
+    })));
+  }, []);
+
+  const activeCourses = courses.map((course) => {
+    const info = completedLessons[course.id] ?? { percent: 0, resumeLesson: "Loading…" };
+
+    return {
+      ...course,
+      progress: info.percent,
+      resumeLesson: info.resumeLesson,
+      href: `/courses/${course.id}/roadmap`,
+    };
+  });
+
   return (
     <div className="p-8 md:p-16 max-w-[1200px] mx-auto">
       
@@ -72,7 +60,7 @@ export default function CourseLibraryPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {activeCourses.map((course, index) => (
             <AnimatedItem key={course.id} index={index} delay={0.2} direction="up" distance={20}>
-              <Link href={course.id === "math-151" ? "/courses/math-151/roadmap" : `/courses/${course.id}`} className="block group">
+              <Link href={course.href} className="block group">
                 <div className="bg-white border border-[#E5E5E5] rounded-2xl p-8 shadow-sm transition-all duration-300 hover:border-[#2563EB] hover:shadow-md">
                   
                   <div className="flex items-center justify-between mb-6">
@@ -116,6 +104,8 @@ export default function CourseLibraryPage() {
         </div>
       </div>
 
+      {activeCourses.length === 0 ? <div className="rounded-2xl border border-dashed border-[#E5E5E5] p-8 text-sm text-[#666666]">No courses are available in the local curriculum yet.</div> : null}
+
       {/* Upcoming Curriculum */}
       <div>
         <AnimatedItem delay={0.3}>
@@ -124,28 +114,7 @@ export default function CourseLibraryPage() {
           </div>
         </AnimatedItem>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {upcomingCourses.map((course, index) => (
-            <AnimatedItem key={course.code} index={index} delay={0.4} direction="up" distance={20}>
-              <div className="bg-[#F7F7F8] border border-[#E5E5E5] rounded-2xl p-6 h-full flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="font-sans text-[10px] font-bold tracking-widest uppercase text-[#666666]">
-                    {course.code}
-                  </span>
-                  <span className="font-sans text-[10px] font-medium text-[#111111] bg-[#E5E5E5] px-2 py-1 rounded-md">
-                    {course.semester}
-                  </span>
-                </div>
-                <h3 className="font-serif text-xl text-[#111111] mb-3">
-                  {course.title}
-                </h3>
-                <p className="font-sans text-xs text-[#666666] leading-relaxed flex-grow">
-                  {course.description}
-                </p>
-              </div>
-            </AnimatedItem>
-          ))}
-        </div>
+        <div className="rounded-2xl border border-dashed border-[#E5E5E5] p-6 text-sm text-[#666666]">Additional curriculum will appear here when it is added to the shared local content model.</div>
       </div>
 
     </div>

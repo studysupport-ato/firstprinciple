@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import {
   BookOpen,
   Compass,
+  Library,
+  CircleHelp,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -75,6 +77,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <Link href="/courses" className={navItemClass("/courses")}>
           <BookOpen size={16} />
           {!collapsed && "Courses"}
+        </Link>
+
+        <Link href="/course-materials" className={navItemClass("/course-materials")}>
+          <Library size={16} />
+          {!collapsed && "Course Materials"}
+        </Link>
+
+        <Link href="/questions" className={navItemClass("/questions")}>
+          <CircleHelp size={16} />
+          {!collapsed && "Questions"}
         </Link>
 
         <Link href="/leaderboard" className={navItemClass("/leaderboard")}>

@@ -4,74 +4,66 @@ import { AnimatedItem } from "@/components/motion/AnimatedItem";
 import Link from "next/link";
 import { Play, Map, BarChart, Clock, CheckCircle2 } from "lucide-react";
 import { useParams } from "next/navigation";
-
-const courses = {
-  "math-151": {
-    id: "math-151",
-    code: "MATH 151",
-    title: "Algebra",
-    description: "A foundational approach to mathematical structures. We strip away memorized formulas and rebuild the number system, complex plane, and vector spaces from absolute first principles.",
-    progress: 42,
-    nextLesson: {
-      chapter: "Complex Numbers",
-      title: "The Argand Plane",
-      duration: "15 min",
-      href: "/courses/math-151/chapter/complex-numbers/lesson/argand-plane",
-    },
-    stats: [
-      { label: "Lessons Completed", value: "14/32" },
-      { label: "Problems Solved", value: "128" },
-      { label: "Current Streak", value: "3 Days" },
-    ],
-    hasRoadmap: true,
-  },
-  "basic-mechanics": {
-    id: "basic-mechanics",
-    code: "PHYS 151",
-    title: "Basic Mechanics",
-    description: "Motion, forces, energy, and momentum developed from the fundamental principles of mechanics.",
-    progress: 0,
-    nextLesson: null,
-    stats: [
-      { label: "Lessons Completed", value: "0/0" },
-      { label: "Problems Solved", value: "0" },
-      { label: "Current Streak", value: "0 Days" },
-    ],
-    hasRoadmap: false,
-  },
-  "applied-electricity": {
-    id: "applied-electricity",
-    code: "EE 151",
-    title: "Applied Electricity",
-    description: "Electrical quantities, circuits, and systems introduced through practical first-principles reasoning.",
-    progress: 0,
-    nextLesson: null,
-    stats: [
-      { label: "Lessons Completed", value: "0/0" },
-      { label: "Problems Solved", value: "0" },
-      { label: "Current Streak", value: "0 Days" },
-    ],
-    hasRoadmap: false,
-  },
-} as const;
+import { useEffect, useState } from "react";
+import { getChapter, getCourse, getLessons } from "@/lib/content/access";
+import { getContinueLearning, getCourseCompletion, getCourseRoadmap, getProblemsSolved, getCurrentStreak } from "@/lib/progress";
 
 export default function CourseOverviewPage() {
   const params = useParams();
   const courseId = params.courseId as string;
-  const courseData = courses[courseId as keyof typeof courses] ?? {
-    id: courseId,
-    code: "COURSE",
-    title: "Course",
-    description: "This course is being prepared. Lessons and practice materials will appear here soon.",
-    progress: 0,
-    nextLesson: null,
-    stats: [
-      { label: "Lessons Completed", value: "0/0" },
-      { label: "Problems Solved", value: "0" },
-      { label: "Current Streak", value: "0 Days" },
-    ],
-    hasRoadmap: false,
-  };
+  const course = getCourse(courseId);
+  const lessons = course ? getLessons(course.id) : [];
+  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
+  const [problemsSolved, setProblemsSolved] = useState<number | null>(null);
+  const [streak, setStreak] = useState<number | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [nextLessonId, setNextLessonId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const completion = getCourseCompletion(courseId);
+    const next = getContinueLearning(courseId);
+    setProgress(completion.percent);
+    setNextLessonId(next?.lessonId);
+    setProblemsSolved(getProblemsSolved(courseId));
+    setStreak(getCurrentStreak());
+    const roadmap = getCourseRoadmap(courseId).flatMap((entry) => entry.days);
+    setCompletedLessons(roadmap.filter((entry) => entry.state === "completed").map((entry) => entry.day.lessonId));
+  }, [courseId]);
+
+  const nextLesson = lessons.find((lesson) => lesson.id === nextLessonId) ?? lessons[0];
+  const courseData = course
+    ? {
+        ...course,
+        progress,
+        nextLesson: nextLesson
+          ? {
+              chapter: getChapter(nextLesson.chapterId)?.title ?? nextLesson.chapterId,
+              title: nextLesson.title,
+              duration: `${nextLesson.estimatedMinutes} min`,
+              href: `/courses/${course.id}/chapter/${nextLesson.chapterId}/lesson/${nextLesson.id}`,
+            }
+          : null,
+        stats: [
+          { label: "Days Completed", value: `${completedLessons.length}/${getCourseCompletion(courseId).totalDays}` },
+          { label: "Problems Solved", value: problemsSolved === null ? "—" : String(problemsSolved) },
+          { label: "Current Streak", value: streak === null ? "—" : `${streak} ${streak === 1 ? "day" : "days"}` },
+        ],
+        hasRoadmap: course.weekIds.length > 0,
+      }
+    : {
+        id: courseId,
+        code: "COURSE",
+        title: "Course",
+        description: "This course is not present in the shared local curriculum.",
+        progress: 0,
+        nextLesson: null,
+        stats: [
+          { label: "Lessons Completed", value: "0/0" },
+          { label: "Problems Solved", value: "0" },
+          { label: "Current Streak", value: "0" },
+        ],
+        hasRoadmap: false,
+      };
   
   return (
     <div className="p-8 md:p-16 max-w-[1200px] mx-auto">
