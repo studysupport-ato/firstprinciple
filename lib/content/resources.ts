@@ -31,7 +31,7 @@ function readStore(): ResourceStore {
       placements: Array.isArray(parsed.placements) ? parsed.placements : [],
     };
   } catch {
-    console.warn(`[First Principles] Ignoring malformed resource store: ${STORAGE_KEY}`);
+    console.warn(`[Back2Basics with Kwamina] Ignoring malformed resource store: ${STORAGE_KEY}`);
     return EMPTY_STORE;
   }
 }

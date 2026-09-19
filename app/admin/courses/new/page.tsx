@@ -51,7 +51,7 @@ export default function AdminNewCoursePage() {
 
   return (
     <div>
-      <AdminPageHeader title="Create course" description="Add a course to the local First Principles curriculum." breadcrumbs={[{ label: "Courses", href: "/admin/courses" }, { label: "New course" }]} />
+      <AdminPageHeader title="Create course" description="Add a course to the local Back2Basics with Kwamina curriculum." breadcrumbs={[{ label: "Courses", href: "/admin/courses" }, { label: "New course" }]} />
       <section className="max-w-3xl rounded-[28px] border border-[#E5E5E5] bg-white p-6 shadow-[0_8px_24px_rgba(17,17,17,0.02)]">
         <div className="grid gap-5">
           <div className="grid gap-5 md:grid-cols-2">

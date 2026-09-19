@@ -208,7 +208,7 @@ export default function SettingsPage() {
                 <div className="mb-8">
                   <div className="mb-2 flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#4F46E5]"><Monitor size={13} /> Learning environment</div>
                   <h2 className="font-serif text-3xl tracking-tight">Appearance</h2>
-                  <p className={`mt-2 font-sans text-sm ${theme === "Dark" ? "text-white/55" : "text-[#777777]"}`}>Tune the way First Principles feels while you study.</p>
+                  <p className={`mt-2 font-sans text-sm ${theme === "Dark" ? "text-white/55" : "text-[#777777]"}`}>Tune the way Back2Basics with Kwamina feels while you study.</p>
                 </div>
                 <div className="space-y-6">
                   <div>

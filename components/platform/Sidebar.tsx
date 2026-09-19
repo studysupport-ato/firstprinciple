@@ -40,13 +40,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       className={`fixed inset-y-0 left-0 ${collapsed ? "w-20" : "w-64"} border-r border-[#E5E5E5] bg-white flex flex-col z-20 transition-[width] duration-200`}
     >
       <div className={`h-20 flex items-center ${collapsed ? "justify-center px-3" : "px-8"} border-b border-[#E5E5E5]`}>
-        <Link href="/" className="flex items-center gap-3 group" title="First Principles">
+        <Link href="/" className="flex items-center gap-3 group" title="Back2Basics with Kwamina">
           <div className="w-6 h-6 bg-[#111111] rounded-sm flex items-center justify-center transition-transform group-hover:scale-105">
-            <span className="text-white text-[10px] font-bold font-sans">FP</span>
+            <span className="text-white text-[10px] font-bold font-sans">B2</span>
           </div>
           {!collapsed && (
             <span className="font-serif text-lg font-medium tracking-tight text-[#111111]">
-              First Principles
+              Back2Basics with Kwamina
             </span>
           )}
         </Link>

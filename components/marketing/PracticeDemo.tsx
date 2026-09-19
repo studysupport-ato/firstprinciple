@@ -121,7 +121,7 @@ export function PracticeDemo() {
             
             <AnimatedItem delay={0.2}>
               <p className="editorial-body max-w-md mb-6">
-                Waiting until the end of a chapter to test your knowledge is too late. First Principles interleaves practice questions immediately after concepts are introduced.
+                Waiting until the end of a chapter to test your knowledge is too late. Back2Basics with Kwamina interleaves practice questions immediately after concepts are introduced.
               </p>
               <p className="editorial-body max-w-md">
                 Every wrong answer is treated as a teaching moment. Detailed explanations help resolve misconceptions in real-time, closing the loop between seeing and knowing.

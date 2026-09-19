@@ -42,7 +42,7 @@ export default function AdminDashboardPage() {
     <div>
       <AdminPageHeader
         title="Admin overview"
-        description="A calm operational view of the First Principles learning platform and its local academic content."
+        description="A calm operational view of the Back2Basics with Kwamina learning platform and its local academic content."
         actionLabel="Create content"
         actionHref="/admin/courses"
         actionIcon={<Sparkles size={15} />}

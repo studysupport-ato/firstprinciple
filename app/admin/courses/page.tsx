@@ -25,7 +25,7 @@ export default function AdminCoursesPage() {
     <div>
       <AdminPageHeader
         title="Courses"
-        description="Manage the academic programs and introductory course architecture behind First Principles."
+        description="Manage the academic programs and introductory course architecture behind Back2Basics with Kwamina."
         actionLabel="Create course"
         actionHref="/admin/courses/new"
       />

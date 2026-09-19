@@ -18,7 +18,7 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: "First Principles | University Mathematics",
+  title: "Back2Basics with Kwamina | University Mathematics",
   description: "A premium interactive university learning platform.",
 };
 

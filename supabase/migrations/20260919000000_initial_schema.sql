@@ -1,5 +1,5 @@
 -- ============================================================================
--- First Principles — initial schema (Task 25)
+-- Back2Basics with Kwamina — initial schema (Task 25)
 -- Implements the approved Task 24 design (docs/task-24-backend-readiness-audit.md)
 --
 -- Scope of this migration:

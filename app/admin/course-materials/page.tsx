@@ -91,7 +91,7 @@ export default function AdminCourseMaterialsPage() {
 
   return (
     <div>
-      <AdminPageHeader title="Course Materials" description="Organize external academic material links by department. First Principles stores metadata and links only." actionLabel="Create department" actionHref="/admin/course-materials?create=1" actionIcon={<Plus size={15} />} />
+      <AdminPageHeader title="Course Materials" description="Organize external academic material links by department. Back2Basics with Kwamina stores metadata and links only." actionLabel="Create department" actionHref="/admin/course-materials?create=1" actionIcon={<Plus size={15} />} />
       {notice ? <div className="mb-6 rounded-2xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm text-[#15803D]">{notice}</div> : null}
       {error ? <div className="mb-6 rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm text-[#B91C1C]">{error}</div> : null}
 

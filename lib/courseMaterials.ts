@@ -49,7 +49,7 @@ function readDirectory(): CourseMaterialsDirectory {
       entries: Array.isArray(parsed.entries) ? parsed.entries : [],
     };
   } catch {
-    console.warn(`[First Principles] Ignoring malformed course materials store: ${STORAGE_KEY}`);
+    console.warn(`[Back2Basics with Kwamina] Ignoring malformed course materials store: ${STORAGE_KEY}`);
     return EMPTY_DIRECTORY;
   }
 }

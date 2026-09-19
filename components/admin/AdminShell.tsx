@@ -57,12 +57,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           ].join(" ")}
         >
           <div className="flex h-20 items-center justify-between border-b border-[#E5E5E5] px-6">
-            <Link href="/admin" className="flex items-center gap-3" aria-label="First Principles admin home">
+            <Link href="/admin" className="flex items-center gap-3" aria-label="Back2Basics with Kwamina admin home">
               <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#111111] text-[10px] font-bold text-white">
                 FP
               </div>
               <div>
-                <div className="font-serif text-lg tracking-tight text-[#111111]">First Principles</div>
+                <div className="font-serif text-lg tracking-tight text-[#111111]">Back2Basics with Kwamina</div>
                 <div className="text-[10px] font-sans uppercase tracking-[0.2em] text-[#666666]">Admin</div>
               </div>
             </Link>

@@ -25,7 +25,7 @@ export function LessonExperience() {
             
             <AnimatedItem delay={0.2}>
               <p className="editorial-body max-w-md mb-6">
-                A lesson in First Principles is not a static wall of text. It is a structured sequence that breaks complex proofs into digestible, interactive steps.
+                A lesson in Back2Basics with Kwamina is not a static wall of text. It is a structured sequence that breaks complex proofs into digestible, interactive steps.
               </p>
               <ul className="flex flex-col gap-4 mt-4">
                 {[

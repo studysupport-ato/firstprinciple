@@ -57,7 +57,7 @@ function readRecords<T>(key: string): Record<string, LocalRecord<T>> {
     const raw = storage.getItem(key);
     return raw ? (JSON.parse(raw) as Record<string, LocalRecord<T>>) : {};
   } catch {
-    console.warn(`[First Principles] Ignoring malformed content records: ${key}`);
+    console.warn(`[Back2Basics with Kwamina] Ignoring malformed content records: ${key}`);
     return {};
   }
 }

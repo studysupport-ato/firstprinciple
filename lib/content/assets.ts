@@ -62,7 +62,7 @@ function readLocalAssets(): Asset[] {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     return raw ? (JSON.parse(raw) as Asset[]) : [];
   } catch {
-    console.warn(`[First Principles] Asset storage is malformed; using local seed assets: ${STORAGE_KEY}`);
+    console.warn(`[Back2Basics with Kwamina] Asset storage is malformed; using local seed assets: ${STORAGE_KEY}`);
     return [];
   }
 }
@@ -78,7 +78,7 @@ function readDeletedIds(): string[] {
     const parsed = raw ? JSON.parse(raw) : null;
     return parsed && Array.isArray(parsed.ids) ? parsed.ids : [];
   } catch {
-    console.warn(`[First Principles] Asset deletion index is malformed: ${DELETED_KEY}`);
+    console.warn(`[Back2Basics with Kwamina] Asset deletion index is malformed: ${DELETED_KEY}`);
     return [];
   }
 }

@@ -91,7 +91,7 @@ export function validateQuestionBank(questionBank: Question[] = questions): { va
 
 const questionBankValidation = validateQuestionBank();
 if (!questionBankValidation.valid) {
-  console.warn("[First Principles] Question bank validation issues:", questionBankValidation.errors);
+  console.warn("[Back2Basics with Kwamina] Question bank validation issues:", questionBankValidation.errors);
 }
 
 export function getCourses() {

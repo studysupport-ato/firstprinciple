@@ -91,7 +91,7 @@ export function ProgressDemo() {
             
             <AnimatedItem delay={0.2}>
               <p className="editorial-body max-w-md">
-                We abandon the arbitrary grading scales of traditional LMS platforms. Progress in First Principles is a direct reflection of conceptual mastery and consistent practice.
+                We abandon the arbitrary grading scales of traditional LMS platforms. Progress in Back2Basics with Kwamina is a direct reflection of conceptual mastery and consistent practice.
               </p>
             </AnimatedItem>
           </div>

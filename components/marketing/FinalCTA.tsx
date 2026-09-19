@@ -46,7 +46,7 @@ export function FinalCTA() {
         
         <AnimatedItem direction="up" distance={20}>
           <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-8 mx-auto shadow-2xl">
-            <span className="text-[#111111] text-[18px] font-black tracking-tighter">FP</span>
+            <span className="text-[#111111] text-[18px] font-black tracking-tighter">B2</span>
           </div>
         </AnimatedItem>
 

@@ -164,7 +164,7 @@ export function readProgress(): StudentProgress {
     if (!raw) return createEmptyProgress();
     return normalizeProgress(JSON.parse(raw));
   } catch {
-    console.warn(`[First Principles] Progress storage is malformed; using an empty progress state: ${PROGRESS_STORAGE_KEY}`);
+    console.warn(`[Back2Basics with Kwamina] Progress storage is malformed; using an empty progress state: ${PROGRESS_STORAGE_KEY}`);
     return createEmptyProgress();
   }
 }

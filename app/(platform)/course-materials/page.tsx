@@ -29,7 +29,7 @@ export default function CourseMaterialsPage() {
         <header className="mb-10 border-b border-[#E5E5E5] pb-8">
           <div className="mb-4 flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#111111] text-white"><Library size={18} /></div><span className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#666666]">Academic directory</span></div>
           <h1 className="font-serif text-5xl tracking-tight text-[#111111] md:text-6xl">Course Materials</h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-[#666666]">Browse external course-material links organized by department. First Principles provides the directory; each link opens at its original destination.</p>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-[#666666]">Browse external course-material links organized by department. Back2Basics with Kwamina provides the directory; each link opens at its original destination.</p>
         </header>
 
         <div className="mb-8 flex max-w-xl items-center gap-3 rounded-2xl border border-[#E5E5E5] bg-white px-4 py-3 shadow-[0_8px_24px_rgba(17,17,17,0.02)]"><Search size={17} className="shrink-0 text-[#666666]" /><input value={query} onChange={(event) => setQuery(event.target.value)} className="w-full bg-transparent text-sm text-[#111111] outline-none placeholder:text-[#999999]" placeholder="Search departments, course codes, titles or sources" aria-label="Search course materials" /></div>

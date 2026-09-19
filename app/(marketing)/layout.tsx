@@ -46,7 +46,7 @@ export default function MarketingLayout({
       >
         <div className="flex min-w-0 items-center gap-3">
           <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-sm transition-colors duration-500 ${isSolid ? "bg-[#111111]" : "bg-white"}`}>
-            <span className={`text-[10px] font-black transition-colors duration-500 ${isSolid ? "text-white" : "text-[#111111]"}`}>FP</span>
+            <span className={`text-[10px] font-black transition-colors duration-500 ${isSolid ? "text-white" : "text-[#111111]"}`}>B2</span>
           </div>
           <span className={`whitespace-nowrap font-serif text-lg font-medium tracking-tight transition-colors duration-500 ${isSolid ? "text-[#111111]" : "text-white"}`}>
             Kwamina&apos;s Study Support
@@ -97,7 +97,7 @@ export default function MarketingLayout({
       {/* Footer */}
       <footer className="border-t border-[#E5E5E5] py-6 px-8 md:px-16 flex items-center justify-between bg-white">
         <span className="font-sans text-xs text-[#666666]">
-          © 2026 First Principles. All rights reserved.
+          © 2026 Back2Basics with Kwamina. All rights reserved.
         </span>
         <BuiltByKxy />
       </footer>

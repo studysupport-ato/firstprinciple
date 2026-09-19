@@ -8,8 +8,8 @@ import { setAdminAuthenticated } from "@/lib/adminAuth";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@firstprinciples.app");
-  const [password, setPassword] = useState("firstprinciples");
+  const [email, setEmail] = useState("admin@back2basics.app");
+  const [password, setPassword] = useState("back2basics");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +24,7 @@ export default function AdminLoginPage() {
       return;
     }
 
-    if (trimmedEmail === "admin@firstprinciples.app" && trimmedPassword === "firstprinciples") {
+    if (trimmedEmail === "admin@back2basics.app" && trimmedPassword === "back2basics") {
       setAdminAuthenticated(true);
       router.replace("/admin");
       return;
@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
                   FP
                 </div>
                 <div>
-                  <div className="font-serif text-[28px] tracking-[-0.04em]">First Principles</div>
+                  <div className="font-serif text-[28px] tracking-[-0.04em]">Back2Basics with Kwamina</div>
                   <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.24em] text-[#d7d7d7]">Admin portal</div>
                 </div>
               </div>
@@ -64,7 +64,7 @@ export default function AdminLoginPage() {
                 </h1>
 
                 <p className="max-w-[420px] text-[15px] leading-7 text-[#d6d3d1]">
-                  Manage content, assessments, and academic structure for the First Principles learning experience.
+                  Manage content, assessments, and academic structure for the Back2Basics with Kwamina learning experience.
                 </p>
               </div>
 
@@ -116,7 +116,7 @@ export default function AdminLoginPage() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     className="w-full rounded-xl border border-[#d8d5d1] bg-white/80 py-2.5 pl-10 pr-3 text-[16px] text-[#111111] outline-none placeholder:text-[#8a847d]"
-                    placeholder="admin@firstprinciples.app"
+                    placeholder="admin@back2basics.app"
                   />
                 </div>
               </div>
@@ -160,7 +160,7 @@ export default function AdminLoginPage() {
               <div className="rounded-2xl border border-[#dfe0df] bg-white/55 px-3 py-3 text-[12px] text-[#666666]">
                 <div className="flex items-center justify-center gap-2">
                   <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#c7c3bf] text-[10px]">i</span>
-                  <span>Demo credentials: admin@firstprinciples.app / firstprinciples</span>
+                  <span>Demo credentials: admin@back2basics.app / back2basics</span>
                 </div>
               </div>
             </form>

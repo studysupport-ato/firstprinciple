@@ -22,7 +22,7 @@ export const math151Questions: Question[] = [
     difficulty: "easy",
     marks: 1,
     tags: ["modulus", "complex-plane", "pythagorean-theorem"],
-    metadata: { source: "authored", status: "published", author: "First Principles" },
+    metadata: { source: "authored", status: "published", author: "Back2Basics with Kwamina" },
   },
   {
     id: "math151-argand-argument-location",

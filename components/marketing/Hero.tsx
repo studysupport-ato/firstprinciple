@@ -61,7 +61,7 @@ function SlideImage({ src, fallback, position }: { src: string; fallback: string
   return (
     <img
       src={imgSrc}
-      alt="First Principles campus"
+      alt="Back2Basics with Kwamina campus"
       className="w-full h-full object-cover"
       style={{ objectPosition: position }}
       onError={handleError}
@@ -165,10 +165,10 @@ export function Hero() {
           className="mb-5 flex items-center gap-3"
         >
           <div className="w-5 h-5 bg-white rounded-sm flex items-center justify-center">
-            <span className="text-[#111111] text-[8px] font-black">FP</span>
+            <span className="text-[#111111] text-[8px] font-black">B2</span>
           </div>
           <span className="font-sans text-[11px] tracking-[0.22em] uppercase text-white/70 font-semibold">
-            FIRST PRINCIPLES · MATH 151
+            BACK2BASICS WITH KWAMINA · MATH 151
           </span>
         </motion.div>
 

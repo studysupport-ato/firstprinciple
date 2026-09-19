@@ -18,7 +18,7 @@ import type { Database } from "./types";
 
 export function createSupabaseBrowserClient(): SupabaseClient<Database> {
   const config: SupabaseEnv | null = getSupabasePublicConfig();
-  if (!config) throw new Error("[First Principles] Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL / publishable key).");
+  if (!config) throw new Error("[Back2Basics with Kwamina] Supabase is not configured (missing NEXT_PUBLIC_SUPABASE_URL / publishable key).");
   return createClient<Database>(config.url, config.publishableKey, {
     auth: {
       persistSession: true,

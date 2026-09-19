@@ -93,7 +93,7 @@ function getSubheading(view: AuthView) {
     case "signin":
       return "Continue your learning journey.";
     case "signup":
-      return "Start building your First Principles learning journey.";
+      return "Start building your Back2Basics with Kwamina learning journey.";
     case "forgot":
       return "Enter your email and we'll help you get back in.";
     case "success":
@@ -282,7 +282,7 @@ export function AuthModal({
                         </div>
                         <div>
                           <div className="text-sm font-serif font-medium tracking-tight text-white">
-                            First Principles
+                            Back2Basics with Kwamina
                           </div>
                           <div className="text-[10px] font-sans font-semibold uppercase tracking-[0.28em] text-white/40">
                             Mathematics
@@ -385,7 +385,7 @@ export function AuthModal({
                               Access granted
                             </p>
                             <h2 id="auth-modal-title" className="font-serif text-4xl tracking-tight text-[#111111]">
-                              Welcome to First Principles.
+                              Welcome to Back2Basics with Kwamina.
                             </h2>
                           </div>
 
@@ -439,7 +439,7 @@ export function AuthModal({
                               </button>
                             ) : (
                               <span className="text-[11px] font-sans font-semibold uppercase tracking-[0.24em] text-[#9a9a9a]">
-                                First Principles
+                                Back2Basics with Kwamina
                               </span>
                             )}
                           </div>
@@ -484,7 +484,7 @@ export function AuthModal({
                             error={errors.email}
                             icon={<Mail size={16} />}
                             autoComplete="email"
-                            placeholder="you@firstprinciples.edu"
+                            placeholder="you@back2basics.edu"
                           />
 
                           {showPasswordField ? (
@@ -608,7 +608,7 @@ export function AuthModal({
 
                           <div className="flex items-center justify-center gap-1.5 pt-2 text-xs text-[#9a9a9a]">
                             <ShieldCheck size={13} className="text-[#666666]" />
-                            Protected by First Principles security
+                            Protected by Back2Basics with Kwamina security
                           </div>
                         </form>
                       )}

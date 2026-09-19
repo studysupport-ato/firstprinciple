@@ -50,12 +50,12 @@ export function isSupabaseConfigured(): boolean {
 /** Server-only secret configuration. Throws inside any browser bundle. */
 export function getSupabaseAdminConfig(): SupabaseEnv & { secretKey: string } {
   if (typeof window !== "undefined") {
-    throw new Error("[First Principles] The Supabase secret key must never be used in client code.");
+    throw new Error("[Back2Basics with Kwamina] The Supabase secret key must never be used in client code.");
   }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const secretKey = (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY)?.trim();
   if (!url || !secretKey) {
-    throw new Error("[First Principles] Server Supabase configuration is missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SECRET_KEY.");
+    throw new Error("[Back2Basics with Kwamina] Server Supabase configuration is missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SECRET_KEY.");
   }
   return { url, publishableKey: secretKey, secretKey };
 }

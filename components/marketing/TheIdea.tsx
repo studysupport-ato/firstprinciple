@@ -44,7 +44,7 @@ export function TheIdea() {
                 The traditional university portal hands you a PDF and a deadline. We believe educational software should actually teach. 
               </p>
               <p className="editorial-body mt-6 max-w-xl">
-                First Principles rebuilds the university curriculum from the ground up as a series of interactive, dimensional environments. You don't just read about mathematical concepts—you manipulate them.
+                Back2Basics with Kwamina rebuilds the university curriculum from the ground up as a series of interactive, dimensional environments. You don't just read about mathematical concepts—you manipulate them.
               </p>
             </AnimatedItem>
           </div>
