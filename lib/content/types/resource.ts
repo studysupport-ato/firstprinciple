@@ -74,5 +74,6 @@ export interface ResourcePlacementTarget {
 export type ResourcePlacement = ResourcePlacementTarget & {
   id: string;
   resourceId: string;
+  order?: number;
   createdAt: string;
 };

@@ -1,7 +1,7 @@
 import { getStudentQuestions } from "@/lib/content/access";
-import type { Difficulty } from "@/lib/content/types/question";
+import type { Difficulty, Question } from "@/lib/content/types/question";
+import { createQuestionRepository } from "@/lib/questions/repository";
 import { createStableId } from "@/lib/ids";
-import type { Question } from "@/lib/content/types/question";
 
 export type PracticeValue = string | number | boolean | string[] | null;
 
@@ -50,6 +50,32 @@ export function getPracticeQuestions({ courseId, chapterId, lessonId, topic, sub
   }
 
   return [...questions];
+}
+
+export async function getPracticeQuestionsFromSupabase({
+  courseId,
+  chapterId,
+  lessonId,
+  topic,
+  subtopic,
+  difficulty,
+  limit,
+  includeDraft,
+}: PracticeSelectionOptions = {}): Promise<Question[]> {
+  const repository = createQuestionRepository("supabase");
+  const questions = await repository.listQuestions({
+    courseId,
+    chapterId,
+    lessonId,
+    topic,
+    subtopic,
+    difficulty,
+    limit,
+    visibility: "student",
+    includeDraft,
+  });
+
+  return questions;
 }
 
 export function createPracticeSession(questionIds: string[]): PracticeSession {

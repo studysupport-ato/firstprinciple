@@ -14,7 +14,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import { getPublishedCourseMaterialsDirectory, type CourseMaterialEntry, type CourseMaterialsDirectory } from "@/lib/courseMaterials";
+import { createCourseMaterialsRepository, type CourseMaterialsRepository } from "@/lib/courseMaterialsRepository";
+import { type CourseMaterialEntry, type CourseMaterialsDepartment, type CourseMaterialsDirectory } from "@/lib/courseMaterials";
 
 type MaterialType = "PDF Document" | "Lecture Slides" | "Past Questions" | "Video Lecture" | "External Link";
 
@@ -77,10 +78,38 @@ export default function CourseMaterialsPage() {
   const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialRow | null>(null);
   const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const repository: CourseMaterialsRepository = useMemo(() => createCourseMaterialsRepository("supabase"), []);
 
   useEffect(() => {
-    const nextDirectory = getPublishedCourseMaterialsDirectory();
-    setDirectory(nextDirectory);
+    let active = true;
+
+    async function loadDirectory() {
+      try {
+        const [departments, entries] = await Promise.all([
+          repository.listDepartments({ visibility: "student" }),
+          repository.listCourseMaterials({ visibility: "student" }),
+        ]);
+
+        if (!active) return;
+
+        setDirectory({ departments, entries });
+        setError(null);
+      } catch (loadError) {
+        console.error("[Back2Basics with Kwamina] Failed to load course materials from Supabase", loadError);
+        if (active) {
+          setDirectory({ departments: [], entries: [] });
+          setError(loadError instanceof Error ? loadError.message : "The course materials directory could not be loaded.");
+        }
+      } finally {
+        if (active) {
+          setReady(true);
+        }
+      }
+    }
+
+    void loadDirectory();
 
     try {
       const saved = JSON.parse(window.localStorage.getItem(BOOKMARK_STORAGE_KEY) ?? "[]");
@@ -89,8 +118,10 @@ export default function CourseMaterialsPage() {
       setBookmarks([]);
     }
 
-    setReady(true);
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [repository]);
 
   useEffect(() => {
     if (!ready) return;
@@ -273,6 +304,11 @@ export default function CourseMaterialsPage() {
 
             {!ready ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">Loading course materials...</div>
+            ) : error ? (
+              <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-sm text-red-700">
+                <h3 className="text-base font-bold">Course materials unavailable</h3>
+                <p className="mt-2">{error}</p>
+              </div>
             ) : filteredDepartments.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-400">

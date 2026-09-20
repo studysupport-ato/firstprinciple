@@ -1,26 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { AdminErrorState } from "@/components/admin/AdminErrorState";
+import { AdminLoadingState } from "@/components/admin/AdminLoadingState";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
-import { getCourses } from "@/lib/content/access";
+import { getAdminCoursesAction } from "@/lib/adminContentActions";
+import type { AdminCourseListRow } from "@/lib/content/adminContract";
 
 export default function AdminCoursesPage() {
-  const [courses, setCourses] = useState(() => getCourses());
+  const [courses, setCourses] = useState<AdminCourseListRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setCourses(getCourses());
+  const load = useCallback(async () => {
+    setLoading(true);
+    const result = await getAdminCoursesAction();
+    if (result.ok) {
+      setCourses(result.data);
+      setError(null);
+    } else {
+      setError(result.error);
+    }
+    setLoading(false);
   }, []);
 
-  const rows = courses.map((course) => ({
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const rows = courses.map(({ course, weekCount }) => ({
     id: course.id,
     code: course.code,
     title: course.title,
-    status: "Published",
-    weeks: course.weekIds.length,
+    status: course.status ?? "draft",
+    weeks: weekCount,
   }));
+
   return (
     <div>
       <AdminPageHeader
@@ -30,17 +48,23 @@ export default function AdminCoursesPage() {
         actionHref="/admin/courses/new"
       />
 
-      <AdminTable
-        columns={[
-          { key: "code", label: "Code", render: (row) => <Link href={`/admin/courses/${row.id}`} className="font-medium text-[#111111] hover:text-[#2563EB]">{row.code}</Link> },
-          { key: "title", label: "Course title", render: (row) => <Link href={`/admin/courses/${row.id}`} className="text-[#111111] hover:text-[#2563EB]">{row.title}</Link> },
-          { key: "weeks", label: "Weeks" },
-          { key: "status", label: "Status", render: (row) => <AdminStatusBadge status={row.status} /> },
-        ]}
-        rows={rows}
-        emptyMessage="No courses yet"
-        emptyDescription="Course records will appear here once an academic program is added."
-      />
+      {loading ? <AdminLoadingState /> : null}
+      {!loading && error ? <AdminErrorState title="Courses unavailable" description={error} onRetry={() => void load()} /> : null}
+
+      {!loading && !error ? (
+        <AdminTable
+          columns={[
+            { key: "code", label: "Code", render: (row) => <Link href={`/admin/courses/${row.id}`} className="font-medium text-[#111111] hover:text-[#2563EB]">{row.code}</Link> },
+            { key: "title", label: "Course title", render: (row) => <Link href={`/admin/courses/${row.id}`} className="text-[#111111] hover:text-[#2563EB]">{row.title}</Link> },
+            { key: "weeks", label: "Weeks" },
+            { key: "status", label: "Status", render: (row) => <AdminStatusBadge status={row.status} /> },
+          ]}
+          rows={rows}
+          emptyMessage="No courses yet"
+          emptyDescription="Course records will appear here once an academic program is added."
+        />
+      ) : null}
     </div>
   );
 }
+

@@ -12,7 +12,7 @@ if (typeof window !== "undefined") {
 
 const stats = [
   { label: "Course Mastery", value: "84", suffix: "%", color: "#059669" },
-  { label: "Active Streak", value: "12", suffix: " days", color: "#2563EB" },
+  { label: "Active Streak", value: "12", suffix: " days", color: "#C96B2D" },
   { label: "Problems Solved", value: "342", suffix: "", color: "#E11D48" },
 ];
 
@@ -72,7 +72,7 @@ export function ProgressDemo() {
   );
 
   return (
-    <section ref={containerRef} className="py-32 bg-white border-t border-[#E5E5E5] overflow-hidden">
+    <section ref={containerRef} className="py-32 bg-[#FFFBF5] border-t border-[#E9D8C3] overflow-hidden">
       <div className="max-w-[1440px] mx-auto px-8 md:px-16">
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-8 items-center">
@@ -133,7 +133,7 @@ export function ProgressDemo() {
                   {[
                     { label: "Real Number Theory", pct: "100%", color: "#111111" },
                     { label: "Functions & Polynomials", pct: "100%", color: "#111111" },
-                    { label: "Complex Numbers", pct: "84%", color: "#2563EB" },
+                    { label: "Complex Numbers", pct: "84%", color: "#C96B2D" },
                     { label: "Vector Algebra", pct: "12%", color: "#666666" }
                   ].map((item, i) => (
                     <div key={item.label} className="flex flex-col gap-2">

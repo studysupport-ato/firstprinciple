@@ -32,7 +32,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     `flex items-center ${collapsed ? "justify-center px-0" : "gap-3 px-4"} py-2.5 rounded-xl text-sm font-sans font-medium transition-all ${
       isActive(path)
         ? "bg-[#111111] text-white shadow-sm"
-        : "text-[#666666] hover:bg-[#F7F7F8] hover:text-[#111111]"
+        : "text-[#666666] hover:bg-[#FFF4E5] hover:text-[#A8561F]"
     }`;
 
   return (

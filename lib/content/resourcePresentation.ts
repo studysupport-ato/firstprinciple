@@ -99,6 +99,7 @@ function embedQuery(config: GeoGebraInteractiveConfig, materialId?: string) {
     showAlgebraInput: String(config.showAlgebraInput ?? false),
     showMenuBar: String(config.showMenuBar ?? false),
     showResetIcon: String(config.showResetIcon ?? true),
+    showNotes: String(config.showNotes ?? false),
   });
 
   if (materialId) params.set("materialId", materialId);

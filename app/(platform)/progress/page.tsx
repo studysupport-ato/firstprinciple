@@ -4,15 +4,108 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, type Variants } from "framer-motion";
 import { Target, Flame, Clock, Trophy, ChevronRight, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import {
-  getAssessmentSummaries,
-  getCurrentStreak,
-  getOverallMastery,
-  getPracticeStats,
-  getStudentProgress,
-  getTopicProgress,
-  type PracticeStats,
-} from "@/lib/progress";
+import { createProgressFactsRepository, STUDENT_ID, type ActivityEvent, type AssessmentAttempt, type PracticeAttempt, type PracticeStats } from "@/lib/progress";
+
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function localDateKey(iso: string) {
+  const date = new Date(iso);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getPracticeStats(attempts: PracticeAttempt[]): PracticeStats {
+  const correctAttempts = attempts.filter((attempt) => attempt.isCorrect).length;
+  const distinctCorrect = new Set(attempts.filter((attempt) => attempt.isCorrect).map((attempt) => attempt.questionId)).size;
+  return {
+    totalAttempts: attempts.length,
+    correctAttempts,
+    distinctAnswered: new Set(attempts.map((attempt) => attempt.questionId)).size,
+    distinctCorrect,
+    accuracy: attempts.length ? clampPercent((correctAttempts / attempts.length) * 100) : 0,
+    problemsSolved: distinctCorrect,
+  };
+}
+
+function getAssessmentSummaries(attempts: AssessmentAttempt[]) {
+  return attempts
+    .filter((attempt) => attempt.status === "submitted")
+    .sort((a, b) => (b.submittedAt ?? b.startedAt).localeCompare(a.submittedAt ?? a.startedAt))
+    .map((attempt) => ({
+      id: attempt.id,
+      assessmentId: attempt.assessmentId,
+      title: attempt.assessmentId,
+      date: attempt.submittedAt ?? attempt.startedAt,
+      score: attempt.percentage,
+      total: Object.keys(attempt.answers ?? {}).length,
+      marksEarned: attempt.marksEarned,
+      marksAvailable: attempt.marksAvailable,
+    }));
+}
+
+function getTopicProgress(attempts: PracticeAttempt[]) {
+  const buckets = new Map<string, { topicId: string; topic: string; attempted: number; correct: number }>();
+  for (const attempt of attempts) {
+    const questionId = attempt.questionId;
+    const topic = questionId || "Other";
+    const key = topic;
+    const entry = buckets.get(key) ?? { topicId: key, topic, attempted: 0, correct: 0 };
+    entry.attempted += 1;
+    if (attempt.isCorrect) entry.correct += 1;
+    buckets.set(key, entry);
+  }
+
+  return [...buckets.values()].map((row) => ({
+    name: row.topic,
+    attempted: row.attempted,
+    correct: row.correct,
+    accuracy: row.attempted ? clampPercent((row.correct / row.attempted) * 100) : 0,
+    mastery: row.attempted ? clampPercent((row.correct / row.attempted) * 100) : 0,
+  }));
+}
+
+function getOverallMastery(practiceAttempts: PracticeAttempt[], assessmentAttempts: AssessmentAttempt[]) {
+  const stats = getPracticeStats(practiceAttempts);
+  const parts: number[] = [];
+  if (stats.totalAttempts > 0) parts.push(stats.accuracy);
+  const submitted = assessmentAttempts.filter((attempt) => attempt.status === "submitted");
+  if (submitted.length > 0) {
+    const avg = submitted.reduce((sum, attempt) => sum + attempt.percentage, 0) / submitted.length;
+    parts.push(avg);
+  }
+  return parts.length > 0 ? clampPercent(parts.reduce((sum, value) => sum + value, 0) / parts.length) : 0;
+}
+
+function getCurrentStreak(events: ActivityEvent[]) {
+  const dates = [...new Set(events.map((event) => localDateKey(event.occurredAt)))].sort();
+  if (!dates.length) return 0;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayKey = localDateKey(today.toISOString());
+  const lastActiveKey = dates[dates.length - 1];
+  const diffCalendarDays = (earlier: string, later: string) => {
+    const a = new Date(earlier);
+    const b = new Date(later);
+    const utcA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+    const utcB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+    return Math.round((utcB - utcA) / 86400000);
+  };
+
+  const distanceFromToday = diffCalendarDays(lastActiveKey, todayKey);
+  if (distanceFromToday > 1) return 0;
+
+  let streak = 1;
+  for (let index = dates.length - 1; index > 0; index -= 1) {
+    if (diffCalendarDays(dates[index - 1], dates[index]) === 1) streak += 1;
+    else break;
+  }
+  return streak;
+}
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -29,6 +122,7 @@ const itemVariants: Variants = {
 
 export default function ProgressPage() {
   const [ready, setReady] = useState(false);
+  const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([]);
   const [mastery, setMastery] = useState(0);
   const [streak, setStreak] = useState(0);
   const [practice, setPractice] = useState<PracticeStats>({ totalAttempts: 0, correctAttempts: 0, distinctAnswered: 0, distinctCorrect: 0, accuracy: 0, problemsSolved: 0 });
@@ -36,12 +130,43 @@ export default function ProgressPage() {
   const [assessments, setAssessments] = useState<ReturnType<typeof getAssessmentSummaries>>([]);
 
   useEffect(() => {
-    setMastery(getOverallMastery("math-151"));
-    setStreak(getCurrentStreak());
-    setPractice(getPracticeStats("math-151"));
-    setTopics(getTopicProgress("math-151"));
-    setAssessments(getAssessmentSummaries("math-151"));
-    setReady(true);
+    let active = true;
+    const repository = createProgressFactsRepository("supabase");
+
+    void (async () => {
+      try {
+        const [practiceAttempts, assessmentAttempts, activityResult] = await Promise.all([
+          repository.listPracticeAttempts(STUDENT_ID, { courseId: "math-151" }),
+          repository.listAssessmentAttempts(STUDENT_ID, { courseId: "math-151" }),
+          repository.listActivity(STUDENT_ID, { courseId: "math-151", limit: 50 }),
+        ]);
+
+        if (!active) return;
+
+        setActivityEvents(activityResult.events);
+        setMastery(getOverallMastery(practiceAttempts, assessmentAttempts));
+        setStreak(getCurrentStreak(activityResult.events));
+        setPractice(getPracticeStats(practiceAttempts));
+        setTopics(getTopicProgress(practiceAttempts));
+        setAssessments(getAssessmentSummaries(assessmentAttempts));
+        setReady(true);
+      } catch (error) {
+        console.error("[Back2Basics with Kwamina] Failed to hydrate performance data from Supabase", error);
+        if (active) {
+          setActivityEvents([]);
+          setMastery(0);
+          setStreak(0);
+          setPractice({ totalAttempts: 0, correctAttempts: 0, distinctAnswered: 0, distinctCorrect: 0, accuracy: 0, problemsSolved: 0 });
+          setTopics([]);
+          setAssessments([]);
+          setReady(true);
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const stats = [
@@ -53,7 +178,7 @@ export default function ProgressPage() {
   const heatmapData = useMemo(() => {
     const counts = new Map<string, number>();
     if (ready) {
-      for (const event of getStudentProgress().activity) {
+      for (const event of activityEvents) {
         const key = event.occurredAt.slice(0, 10);
         counts.set(key, (counts.get(key) ?? 0) + 1);
       }
@@ -72,7 +197,7 @@ export default function ProgressPage() {
       weeks.push(cells.slice(w * 7, w * 7 + 7).map((key) => Math.min(3, counts.get(key) ?? 0)));
     }
     return weeks;
-  }, [ready]);
+  }, [ready, activityEvents]);
 
 const topicColors = ["bg-[#111111]", "bg-[#2563EB]", "bg-[#E11D48]", "bg-[#D97706]"];
   return (

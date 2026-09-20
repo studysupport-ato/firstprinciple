@@ -22,19 +22,19 @@ export function PracticeDemo() {
   const isCorrect = selected && question.options.find(o => o.id === selected)?.correct;
 
   return (
-    <section id="practice" className="py-32 bg-[#F7F7F8]">
+    <section id="practice" className="py-32 bg-[#FFF4E5]">
       <div className="max-w-[1440px] mx-auto px-8 md:px-16">
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           
           {/* Left Column - Practice UI */}
           <AnimatedItem direction="right" distance={40} className="w-full max-w-[500px] mx-auto lg:mx-0">
-            <div className="bg-white border border-[#E5E5E5] rounded-2xl p-8 shadow-sm">
+            <div className="bg-[#FFFBF5] border border-[#E9D8C3] rounded-2xl p-8 shadow-sm">
               <div className="flex items-center justify-between mb-8">
-                <span className="font-sans text-[10px] font-semibold tracking-widest text-[#2563EB] uppercase">
+                <span className="font-sans text-[10px] font-semibold tracking-widest text-[#C96B2D] uppercase">
                   Practice Mode
                 </span>
-                <span className="font-sans text-[10px] text-[#666666]">
+                <span className="font-sans text-[10px] text-[#5D5149]">
                   Question 1 of 5
                 </span>
               </div>
@@ -45,13 +45,13 @@ export function PracticeDemo() {
 
               <div className="flex flex-col gap-3 mb-8">
                 {question.options.map((opt) => {
-                  let buttonClass = "border-[#E5E5E5] bg-white text-[#111111] hover:border-[#111111]";
+                  let buttonClass = "border-[#E9D8C3] bg-[#FFFBF5] text-[#111111] hover:border-[#C96B2D]";
                   if (submitted) {
                     if (opt.correct) buttonClass = "border-[#059669] bg-[#059669]/5 text-[#059669]";
                     else if (selected === opt.id) buttonClass = "border-[#E11D48] bg-[#E11D48]/5 text-[#E11D48]";
-                    else buttonClass = "border-[#E5E5E5] bg-white text-[#666666] opacity-50";
+                    else buttonClass = "border-[#E9D8C3] bg-[#FFFBF5] text-[#666666] opacity-50";
                   } else if (selected === opt.id) {
-                    buttonClass = "border-[#2563EB] bg-[#2563EB]/5 text-[#2563EB]";
+                    buttonClass = "border-[#C96B2D] bg-[#C96B2D]/5 text-[#C96B2D]";
                   }
 
                   return (
@@ -98,7 +98,7 @@ export function PracticeDemo() {
               ) : (
                 <button 
                   onClick={() => { setSubmitted(false); setSelected(null); }}
-                  className="w-full py-3 bg-white border border-[#E5E5E5] text-[#111111] rounded-xl text-sm font-medium hover:border-[#111111] transition-colors"
+                  className="w-full py-3 bg-[#FFFBF5] border border-[#E9D8C3] text-[#111111] rounded-xl text-sm font-medium hover:border-[#C96B2D] transition-colors"
                 >
                   Try Again
                 </button>

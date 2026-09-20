@@ -2,14 +2,14 @@
 
 import { ArrowLeft, Check, Copy, Eye, RefreshCcw, Save, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { getQuestion, validateQuestion } from "@/lib/content/access";
-import { getLocalQuestionOverride, removeQuestionOverride, removeQuestionRecord, saveQuestionOverride } from "@/lib/content/overrides";
+import { validateQuestion } from "@/lib/content/access";
+import { getAdminQuestionAction, createQuestionAction, updateQuestionAction, deleteQuestionAction } from "@/lib/adminContentActions";
 import type { Question, QuestionOption, QuestionStatus, QuestionType } from "@/lib/content/types/question";
 import { createStableId } from "@/lib/ids";
 
@@ -43,35 +43,42 @@ function createBlankQuestion(): Question {
   };
 }
 
-function buildDraft(questionId: string): Question {
-  if (questionId === "new") {
-    return createBlankQuestion();
-  }
-
-  const baseQuestion = getQuestion(questionId);
-  const localOverride = getLocalQuestionOverride(questionId);
-  return localOverride?.question ?? cloneData(baseQuestion ?? createBlankQuestion());
-}
-
 export default function AdminQuestionEditorPage() {
   const router = useRouter();
   const params = useParams();
   const questionId = Array.isArray(params.questionId) ? params.questionId[0] : (params.questionId as string | undefined) ?? "";
   const isNew = questionId === "new";
-  const baseQuestion = useMemo(() => {
-    if (isNew) {
-      return createBlankQuestion();
-    }
 
-    return getQuestion(questionId) ?? createBlankQuestion();
-  }, [isNew, questionId]);
-
-  const [draft, setDraft] = useState<Question>(() => buildDraft(questionId));
+  const [draft, setDraft] = useState<Question>(createBlankQuestion());
+  const [baseQuestion, setBaseQuestion] = useState<Question | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [loading, setLoading] = useState(!isNew);
 
-  const localOverrideExists = !!getLocalQuestionOverride(draft.id);
+  useEffect(() => {
+    async function loadQuestion() {
+      if (isNew) {
+        const blank = createBlankQuestion();
+        setDraft(blank);
+        setBaseQuestion(blank);
+        setLoading(false);
+        return;
+      }
+
+      const result = await getAdminQuestionAction(questionId);
+      if (result.ok && result.data) {
+        setDraft(cloneData(result.data));
+        setBaseQuestion(result.data);
+      } else {
+        const blank = createBlankQuestion();
+        setDraft(blank);
+        setBaseQuestion(blank);
+      }
+      setLoading(false);
+    }
+    loadQuestion();
+  }, [questionId, isNew]);
 
   function triggerMessage(text: string) {
     setMessage(text);
@@ -114,7 +121,7 @@ export default function AdminQuestionEditorPage() {
     }));
   }
 
-  function saveDraft(nextStatus?: QuestionStatus) {
+  async function saveDraft(nextStatus?: QuestionStatus) {
     const normalizedDraft: Question = {
       ...draft,
       metadata: {
@@ -130,20 +137,23 @@ export default function AdminQuestionEditorPage() {
       return;
     }
 
-    saveQuestionOverride({
-      questionId: normalizedDraft.id,
-      updatedAt: new Date().toISOString(),
-      question: normalizedDraft,
-    });
-    setMessage("Question saved locally.");
-    router.refresh();
+    if (isNew) {
+      await createQuestionAction(normalizedDraft);
+      router.push(`/admin/questions/${normalizedDraft.id}`);
+    } else {
+      await updateQuestionAction(normalizedDraft);
+      setMessage("Question saved.");
+      setDraft(normalizedDraft);
+      setBaseQuestion(normalizedDraft);
+      router.refresh();
+    }
   }
 
   function revertDraft() {
-    const target = isNew ? createBlankQuestion() : baseQuestion;
-    setDraft(cloneData(target));
-    removeQuestionOverride(target.id);
-    setMessage("Local override removed.");
+    if (baseQuestion) {
+      setDraft(cloneData(baseQuestion));
+      setMessage("Reverted to original.");
+    }
   }
 
   function duplicateDraft() {
@@ -151,7 +161,7 @@ export default function AdminQuestionEditorPage() {
     duplicate.id = createStableId("question-copy", duplicate.prompt);
     duplicate.metadata = { ...(duplicate.metadata ?? {}), status: "draft", source: "authored", author: "Admin" };
     setDraft(duplicate);
-    router.push(`/admin/questions/${duplicate.id}`);
+    router.push(`/admin/questions/new`);
   }
 
   function archiveDraft() {
@@ -165,13 +175,11 @@ export default function AdminQuestionEditorPage() {
       router.push("/admin/questions");
       return;
     }
-
     setConfirmDelete(true);
   }
 
-  function confirmDeleteDraft() {
-    removeQuestionOverride(draft.id);
-    removeQuestionRecord(draft.id);
+  async function confirmDeleteDraft() {
+    await deleteQuestionAction(draft.id);
     setConfirmDelete(false);
     triggerMessage("Question deleted.");
     router.push("/admin/questions");
@@ -179,11 +187,15 @@ export default function AdminQuestionEditorPage() {
 
   const questionTypeOptions: QuestionType[] = ["multiple-choice", "numerical", "true-false", "short-answer"];
 
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="space-y-6">
       <AdminPageHeader
         title={isNew ? "Create question" : "Edit question"}
-        description="Keep this authoring flow local to the browser and preserve the single shared question model used by teaching and assessment."
+        description="Edit question details and save changes to the course bank."
         breadcrumbs={[{ label: "Admin", href: "/admin" }, { label: "Questions", href: "/admin/questions" }, { label: isNew ? "New" : draft.id }]}
       />
 
@@ -234,7 +246,7 @@ export default function AdminQuestionEditorPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-2 text-sm text-[#111111]">
                 <span className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">Question ID</span>
-                <input value={draft.id} onChange={(event) => updateDraft("id", event.target.value)} className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2.5 text-sm text-[#111111] outline-none" />
+                <input value={draft.id} onChange={(event) => updateDraft("id", event.target.value)} className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2.5 text-sm text-[#111111] outline-none" disabled={!isNew} />
               </label>
 
               <label className="space-y-2 text-sm text-[#111111]">
@@ -380,12 +392,12 @@ export default function AdminQuestionEditorPage() {
           <div className="rounded-[28px] border border-[#E5E5E5] bg-white p-6 shadow-[0_8px_24px_rgba(17,17,17,0.02)]">
             <div className="mb-4 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">Question status</div>
             <div className="mb-4 flex items-center gap-2">
-              <AdminStatusBadge status={localOverrideExists ? "Local override" : (draft.metadata?.status ?? "draft")} />
+              <AdminStatusBadge status={draft.metadata?.status ?? "draft"} />
             </div>
 
             <div className="space-y-3 text-sm text-[#666666]">
-              <p>Shared question model: one canonical source with local overrides stored in browser storage.</p>
-              <p>Edits here affect the student-facing practice and assessment flow without rewriting the TypeScript source.</p>
+              <p>Shared question model: one canonical source.</p>
+              <p>Edits here affect the student-facing practice and assessment flow.</p>
             </div>
           </div>
 
@@ -426,7 +438,7 @@ export default function AdminQuestionEditorPage() {
           <div className="rounded-[28px] border border-[#E5E5E5] bg-white p-6 shadow-[0_8px_24px_rgba(17,17,17,0.02)]">
             <button type="button" onClick={() => saveDraft()} className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#111111] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#2563EB]">
               <Save size={15} />
-              Save local changes
+              Save changes
             </button>
           </div>
         </aside>

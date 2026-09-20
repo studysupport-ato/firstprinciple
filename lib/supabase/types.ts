@@ -30,8 +30,8 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["weeks"]["Insert"]>;
       };
       days: {
-        Row: { id: string; course_id: string; week_id: string; chapter_id: string | null; title: string; description: string; order_index: number; estimated_minutes: number; objectives: Json; blocks: Json; status: ContentStatus; created_at: string; updated_at: string };
-        Insert: { id: string; course_id: string; week_id: string; chapter_id?: string | null; title: string; description: string; order_index: number; estimated_minutes: number; objectives?: Json; blocks?: Json; status?: ContentStatus; created_at?: string; updated_at?: string };
+        Row: { id: string; course_id: string; week_id: string; chapter_id: string | null; title: string; description: string; order_index: number; estimated_minutes: number; objectives: Json; content_blocks: Json; status: ContentStatus; created_at: string; updated_at: string };
+        Insert: { id: string; course_id: string; week_id: string; chapter_id?: string | null; title: string; description: string; order_index: number; estimated_minutes: number; objectives?: Json; content_blocks?: Json; status?: ContentStatus; created_at?: string; updated_at?: string };
         Update: Partial<Database["public"]["Tables"]["days"]["Insert"]>;
       };
       questions: {
@@ -45,8 +45,8 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["assessments"]["Insert"]>;
       };
       learning_resources: {
-        Row: { id: string; type: string; title: string; description: string | null; tags: string[]; data: Json; status: ContentStatus; created_at: string; updated_at: string };
-        Insert: { id: string; type: string; title: string; description?: string | null; tags?: string[]; data: Json; status?: ContentStatus; created_at?: string; updated_at?: string };
+        Row: { id: string; type: string; title: string; description: string | null; tags: string[]; data: Json; metadata: Json; status: ContentStatus; created_at: string; updated_at: string };
+        Insert: { id: string; type: string; title: string; description?: string | null; tags?: string[]; data: Json; metadata?: Json; status?: ContentStatus; created_at?: string; updated_at?: string };
         Update: Partial<Database["public"]["Tables"]["learning_resources"]["Insert"]>;
       };
       resource_placements: {
@@ -65,8 +65,8 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["course_materials"]["Insert"]>;
       };
       assets: {
-        Row: { id: string; type: string; name: string; title: string | null; alt_text: string | null; source_kind: string; url: string; size_bytes: number | null; mime_type: string | null; tags: string[]; status: string; created_at: string; updated_at: string };
-        Insert: { id: string; type: string; name: string; title?: string | null; alt_text?: string | null; source_kind: string; url: string; size_bytes?: number | null; mime_type?: string | null; tags?: string[]; status?: string; created_at?: string; updated_at?: string };
+        Row: { id: string; type: string; name: string; title: string | null; description: string | null; alt_text: string | null; source_kind: string; url: string; size_bytes: number | null; mime_type: string | null; width: number | null; height: number | null; duration: number | null; metadata: Json; tags: string[]; status: string; created_at: string; updated_at: string };
+        Insert: { id: string; type: string; name: string; title?: string | null; description?: string | null; alt_text?: string | null; source_kind: string; url: string; size_bytes?: number | null; mime_type?: string | null; width?: number | null; height?: number | null; duration?: number | null; metadata?: Json; tags?: string[]; status?: string; created_at?: string; updated_at?: string };
         Update: Partial<Database["public"]["Tables"]["assets"]["Insert"]>;
       };
       students: {

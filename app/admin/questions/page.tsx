@@ -2,36 +2,62 @@
 
 import { FileText, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { getCourses, getQuestions } from "@/lib/content/access";
-import { hasQuestionOverride, removeQuestionOverride, removeQuestionRecord } from "@/lib/content/overrides";
+import { getAdminCoursesAction, getAdminQuestionsAction, deleteQuestionAction } from "@/lib/adminContentActions";
+import type { Question } from "@/lib/content/adminContract";
+import type { AdminCourseListRow } from "@/lib/content/adminContract";
 
 export default function AdminQuestionsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const courses = getCourses();
-  const courseIdParam = searchParams.get("courseId") ?? courses[0]?.id ?? "";
-  const [selectedCourseId, setSelectedCourseId] = useState(courseIdParam);
+  const courseIdParam = searchParams.get("courseId");
+  
+  const [courses, setCourses] = useState<AdminCourseListRow[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState(courseIdParam ?? "");
   const [refreshKey, setRefreshKey] = useState(0);
   const [deleteQuestionId, setDeleteQuestionId] = useState<string | null>(null);
 
-  const selectedCourse = useMemo(() => courses.find((course) => course.id === selectedCourseId) ?? courses[0], [courses, selectedCourseId]);
+  useEffect(() => {
+    async function fetchCourses() {
+      const result = await getAdminCoursesAction();
+      if (result.ok && result.data) {
+        setCourses(result.data);
+        if (!courseIdParam && result.data.length > 0) {
+          setSelectedCourseId(result.data[0].course.id);
+        }
+      }
+    }
+    fetchCourses();
+  }, [courseIdParam]);
+
+  useEffect(() => {
+    async function fetchQuestions() {
+      if (!selectedCourseId) return;
+      const result = await getAdminQuestionsAction(selectedCourseId);
+      if (result.ok && result.data) {
+        setQuestions(result.data);
+      }
+    }
+    fetchQuestions();
+  }, [selectedCourseId, refreshKey]);
+
+  const selectedCourse = useMemo(() => courses.find((row) => row.course.id === selectedCourseId) ?? courses[0], [courses, selectedCourseId]);
 
   function handleDeleteQuestion(questionId: string) {
     setDeleteQuestionId(questionId);
   }
 
-  function confirmDeleteQuestion() {
+  async function confirmDeleteQuestion() {
     if (!deleteQuestionId) return;
 
-    removeQuestionOverride(deleteQuestionId);
-    removeQuestionRecord(deleteQuestionId);
+    await deleteQuestionAction(deleteQuestionId);
     setDeleteQuestionId(null);
     setRefreshKey((value) => value + 1);
     router.refresh();
@@ -39,16 +65,16 @@ export default function AdminQuestionsPage() {
 
   const rows = useMemo(
     () =>
-      getQuestions({ courseId: selectedCourse?.id }).map((question) => ({
+      questions.map((question) => ({
         id: question.id,
         prompt: question.prompt,
         topic: question.topic,
         difficulty: question.difficulty,
         type: question.type,
         status: question.metadata?.status ?? "published",
-        hasOverride: hasQuestionOverride(question.id),
+        hasOverride: false,
       })),
-    [selectedCourse?.id, refreshKey],
+    [questions],
   );
 
   return (
@@ -67,9 +93,9 @@ export default function AdminQuestionsPage() {
               onChange={(event) => setSelectedCourseId(event.target.value)}
               className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-3 py-2.5 text-sm text-[#111111] outline-none"
             >
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.code} · {course.title}
+              {courses.map((row) => (
+                <option key={row.course.id} value={row.course.id}>
+                  {row.course.code} · {row.course.title}
                 </option>
               ))}
             </select>
@@ -77,14 +103,14 @@ export default function AdminQuestionsPage() {
 
           <div className="flex flex-wrap gap-3">
             <Link
-              href={`/admin/questions/new?courseId=${selectedCourse?.id ?? ""}`}
+              href={`/admin/questions/new?courseId=${selectedCourse?.course.id ?? ""}`}
               className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2.5 text-sm font-medium text-[#111111] hover:border-[#111111]"
             >
               <Plus size={15} />
               New question
             </Link>
             <Link
-              href={`/admin/questions/import?courseId=${selectedCourse?.id ?? ""}`}
+              href={`/admin/questions/import?courseId=${selectedCourse?.course.id ?? ""}`}
               className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#2563EB]"
             >
               <FileText size={15} />
@@ -97,7 +123,7 @@ export default function AdminQuestionsPage() {
       <div className="mb-6 flex items-center justify-between rounded-[24px] border border-[#E5E5E5] bg-white p-4">
         <div>
           <div className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">Question bank</div>
-          <div className="mt-2 font-serif text-3xl text-[#111111]">{selectedCourse ? `${selectedCourse.code} · ${selectedCourse.title}` : "Course not found"}</div>
+          <div className="mt-2 font-serif text-3xl text-[#111111]">{selectedCourse ? `${selectedCourse.course.code} · ${selectedCourse.course.title}` : "Course not found"}</div>
         </div>
         <div className="rounded-full bg-[#F7F7F8] px-3 py-1.5 text-sm font-medium text-[#111111]">{rows.length} questions</div>
       </div>

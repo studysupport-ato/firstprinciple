@@ -4,35 +4,33 @@ import { useEffect, useState } from "react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AdminTable } from "@/components/admin/AdminTable";
-import { getChapter, getChapters, getCourse, getLessons, getWeek, getWeeks } from "@/lib/content/access";
-import { hasLessonOverride } from "@/lib/content/overrides";
+import { getAdminDaysAction } from "@/lib/adminContentActions";
+import type { AdminDayListRow } from "@/lib/content/adminContract";
 import Link from "next/link";
 
 export default function AdminLessonsPage() {
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [rows, setRows] = useState<AdminDayListRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsHydrated(true);
+    async function loadData() {
+      try {
+        const result = await getAdminDaysAction();
+        if (result.ok) {
+          setRows(result.data);
+        } else {
+          setError(result.error);
+        }
+      } catch (e) {
+        setError("An error occurred");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
   }, []);
 
-  const rows = isHydrated
-    ? getLessons().map((lesson) => {
-        const hasOverrideValue = hasLessonOverride(lesson.id);
-        const week = getWeek(lesson.weekId) ?? getWeeks().find((entry) => entry.sessionIds.includes(lesson.id));
-        const chapter = getChapter(lesson.chapterId) ?? (week ? getChapters(week.courseId).find((entry) => week.chapterIds.includes(entry.id)) : undefined) ?? getChapters().find((entry) => entry.id === lesson.chapterId);
-        const course = getCourse(lesson.courseId) ?? (week ? getCourse(week.courseId) : undefined);
-
-        return {
-          id: lesson.id,
-          title: lesson.title,
-          chapter: chapter?.title ?? lesson.chapterId,
-          week: week ? `Week ${week.weekNumber}` : lesson.weekId,
-          course: course?.title ?? lesson.courseId,
-          status: hasOverrideValue ? "Local changes" : "Published",
-          hasOverride: hasOverrideValue,
-        };
-      })
-    : [];
   return (
     <div>
       <AdminPageHeader
@@ -42,29 +40,33 @@ export default function AdminLessonsPage() {
         actionHref="/admin/lessons/new"
       />
 
-      <AdminTable
-        columns={[
-          {
-            key: "title",
-            label: "Lesson title",
-            render: (row) => (
-              <Link href={`/admin/lessons/${row.id}`} className="font-medium text-[#111111] transition-colors hover:text-[#2563EB]">
-                {row.title}
-              </Link>
-            ),
-          },
-          { key: "chapter", label: "Chapter" },
-          { key: "week", label: "Week" },
-          {
-            key: "status",
-            label: "Status",
-            render: (row) => <AdminStatusBadge status={row.status} />,
-          },
-        ]}
-        rows={rows}
-        emptyMessage="No lessons yet"
-        emptyDescription="New lessons created for the curriculum will appear here."
-      />
+      {loading && <div className="mt-8 text-center text-sm text-[#666666]">Loading lessons...</div>}
+      {error && <div className="mt-8 text-center text-sm text-red-500">{error}</div>}
+      {!loading && !error && (
+        <AdminTable
+          columns={[
+            {
+              key: "title",
+              label: "Lesson title",
+              render: (row) => (
+                <Link href={`/admin/lessons/${row.day.id}`} className="font-medium text-[#111111] transition-colors hover:text-[#2563EB]">
+                  {row.day.title}
+                </Link>
+              ),
+            },
+            { key: "chapter", label: "Chapter", render: (row) => row.chapterTitle },
+            { key: "week", label: "Week", render: (row) => row.week ? `Week ${row.week.weekNumber}` : row.day.weekId },
+            {
+              key: "status",
+              label: "Status",
+              render: (row) => <AdminStatusBadge status={row.day.status ?? "draft"} />,
+            },
+          ]}
+          rows={rows}
+          emptyMessage="No lessons yet"
+          emptyDescription="New lessons created for the curriculum will appear here."
+        />
+      )}
     </div>
   );
 }

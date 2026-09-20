@@ -5,12 +5,24 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "smoke:course-structure": "tsx scripts/smoke-course-structure.ts",
+    "smoke:day-content": "tsx scripts/smoke-course-structure.ts",
+    "smoke:questions-assessments": "tsx scripts/smoke-questions-assessments.ts",
+    "smoke:resources-course-materials-assets": "tsx scripts/smoke-resources-course-materials-assets.ts",
+    "smoke:progress": "tsx scripts/smoke-progress.ts"
+    ,"smoke:published-day": "tsx scripts/smoke-published-day.ts",
+    "smoke:published-structure": "tsx scripts/smoke-published-structure.ts",
+    "seed:math151": "tsx scripts/seed-math151.ts",
+    "seed:math151:check": "tsx scripts/seed-math151.ts --check",
+    "smoke:course-content": "tsx scripts/smoke-course-content.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
+    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
     "@types/katex": "^0.16.8",
     "@types/three": "^0.185.4",
@@ -32,7 +44,9 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17",
     "tailwindcss": "^4",
+    "tsx": "^4",
     "typescript": "^5"
   }
 }

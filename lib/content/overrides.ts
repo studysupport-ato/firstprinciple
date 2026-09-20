@@ -112,6 +112,16 @@ export function saveChapterRecord(chapter: Chapter) {
   saveRecord(CHAPTER_STORAGE_KEY, chapter);
 }
 
+export function removeCourseRecord(courseId: string) {
+  const storage = readStorage();
+  if (!storage) return;
+
+  const records = readRecords<Course>(COURSE_STORAGE_KEY);
+  if (!records[courseId]) return;
+  delete records[courseId];
+  storage.setItem(COURSE_STORAGE_KEY, JSON.stringify(records));
+}
+
 function normalizeSessionIds(sessionIds: string[] | undefined): string[] {
   const validIds = new Set<string>([
     ...math151Lessons.map((lesson) => lesson.id),

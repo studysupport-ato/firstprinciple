@@ -73,6 +73,7 @@ export interface GeoGebraInteractiveConfig {
   showAlgebraInput?: boolean;
   showMenuBar?: boolean;
   showResetIcon?: boolean;
+  showNotes?: boolean; // Added missing GeoGebra notes flag
   [key: string]: unknown;
 }
 

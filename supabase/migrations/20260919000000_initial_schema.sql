@@ -71,7 +71,7 @@ create table public.days (
   order_index      integer not null,
   estimated_minutes integer not null default 30,
   objectives       jsonb not null default '[]'::jsonb,           -- string[]
-  blocks           jsonb not null default '[]'::jsonb,           -- ContentBlock[]
+  content_blocks   jsonb not null default '[]'::jsonb,           -- ContentBlock[]
   status           text not null default 'draft',
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now(),
@@ -160,6 +160,7 @@ create table public.learning_resources (
   description text,
   tags        text[] not null default '{}'::text[],
   data        jsonb not null, -- YouTubeResourceData | GeoGebraResourceData | ExternalResourceData
+  metadata    jsonb not null default '{}'::jsonb,
   status      text not null default 'draft',
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
@@ -247,16 +248,21 @@ create table public.assets (
   type       text not null,
   name       text not null,
   title      text,
+  description text,
   alt_text   text,
   source_kind text not null,
   url        text not null,
   size_bytes bigint,
   mime_type  text,
+  width      integer,
+  height     integer,
+  duration   numeric,
+  metadata   jsonb not null default '{}'::jsonb,
   tags       text[] not null default '{}'::text[],
   status     text not null default 'draft',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint assets_type_check check (type in ('image', 'video', 'document', 'other')),
+  constraint assets_type_check check (type in ('image', 'video', 'document', 'audio', 'other')),
   constraint assets_source_kind_check check (source_kind in ('managed', 'external', 'local')),
   constraint assets_status_check check (status in ('draft', 'ready', 'archived'))
 );

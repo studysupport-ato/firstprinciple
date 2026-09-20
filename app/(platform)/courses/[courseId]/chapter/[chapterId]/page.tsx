@@ -109,7 +109,7 @@ export default function ChapterLandingPage() {
           transition={{ duration: 0.5 }}
           className="mb-12"
         >
-          <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#2563EB] block mb-3">
+          <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#C96B2D] block mb-3">
             {chapter.week}
           </span>
           <h1 className="editorial-heading text-4xl md:text-5xl text-[#111111] mb-6">

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { Archive, ArchiveRestore, ArrowDown, ArrowLeft, ArrowUp, ExternalLink, Plus, Save } from "lucide-react";
@@ -12,22 +12,20 @@ import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import {
-  archiveCourseMaterial,
-  archiveDepartment,
-  createCourseMaterial,
-  getCourseMaterialsDirectory,
-  getDepartmentById,
-  restoreCourseMaterial,
-  restoreDepartment,
-  reorderCourseMaterials,
-  updateCourseMaterial,
-  updateDepartment,
-  type CourseMaterialEntry,
-  type CourseMaterialsDepartment,
-  type CourseMaterialsStatus,
-} from "@/lib/courseMaterials";
+  getAdminDepartmentAction,
+  getAdminCourseMaterialsAction,
+  updateDepartmentAction,
+  setDepartmentStatusAction,
+  createCourseMaterialAction,
+  updateCourseMaterialAction,
+  setCourseMaterialStatusAction,
+  reorderCourseMaterialsAction,
+  archiveCourseMaterialAction,
+} from "@/lib/adminContentActions";
+import type { CourseMaterialEntry, CourseMaterialsDepartment } from "@/lib/content/adminContract";
+import type { ContentStatus } from "@/lib/content/lifecycle";
 
-const statuses: CourseMaterialsStatus[] = ["draft", "published", "archived"];
+const statuses: ContentStatus[] = ["draft", "published", "archived"];
 
 export default function AdminCourseMaterialsDepartmentPage() {
   const { departmentId } = useParams<{ departmentId: string }>();
@@ -35,40 +33,52 @@ export default function AdminCourseMaterialsDepartmentPage() {
   const [entries, setEntries] = useState<CourseMaterialEntry[]>([]);
   const [showEntryForm, setShowEntryForm] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
-  const [departmentForm, setDepartmentForm] = useState({ name: "", shortName: "", description: "", status: "draft" as CourseMaterialsStatus });
-  const [entryForm, setEntryForm] = useState({ courseCode: "", courseTitle: "", description: "", url: "", provider: "", status: "draft" as CourseMaterialsStatus });
+  const [departmentForm, setDepartmentForm] = useState({ name: "", shortName: "", description: "", status: "draft" as ContentStatus });
+  const [entryForm, setEntryForm] = useState({ courseCode: "", courseTitle: "", description: "", url: "", provider: "", status: "draft" as ContentStatus });
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmEntry, setConfirmEntry] = useState<CourseMaterialEntry | null>(null);
   const [confirmDepartmentArchive, setConfirmDepartmentArchive] = useState(false);
+  const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
 
-  function refresh() {
-    const directory = getCourseMaterialsDirectory();
-    const found = directory.departments.find((item) => item.id === departmentId);
-    setDepartment(found);
-    setEntries(directory.entries.filter((entry) => entry.departmentId === departmentId));
-    if (found) setDepartmentForm({ name: found.name, shortName: found.shortName ?? "", description: found.description ?? "", status: found.status });
+  async function refresh() {
+    setLoading(true);
+    try {
+      const [deptResult, materialsResult] = await Promise.all([
+        getAdminDepartmentAction(departmentId),
+        getAdminCourseMaterialsAction(departmentId),
+      ]);
+      
+      if (!deptResult.ok) throw new Error(deptResult.error);
+      if (!materialsResult.ok) throw new Error(materialsResult.error);
+      
+      const found = deptResult.data;
+      setDepartment(found || undefined);
+      setEntries(materialsResult.data);
+      if (found) setDepartmentForm({ name: found.name, shortName: found.shortName ?? "", description: found.description ?? "", status: found.status });
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The department could not be loaded.");
+    }
+    setLoading(false);
   }
 
   useEffect(() => {
-    try {
-      refresh();
-      setShowEntryForm(searchParams.get("create") === "1");
-    } catch {
-      setError("The department could not be loaded.");
-    }
+    refresh();
+    setShowEntryForm(searchParams.get("create") === "1");
   }, [departmentId, searchParams]);
 
-  function saveDepartment() {
+  async function saveDepartment() {
     try {
-      const updated = updateDepartment(departmentId, {
+      const result = await updateDepartmentAction(departmentId, {
         name: departmentForm.name.trim(),
         shortName: departmentForm.shortName.trim() || undefined,
         description: departmentForm.description.trim() || undefined,
         status: departmentForm.status,
       });
-      if (updated) setDepartment(updated);
+      if (!result.ok) throw new Error(result.error);
+      if (result.data) setDepartment(result.data);
       setNotice("Department details saved.");
       refresh();
     } catch (caught) {
@@ -95,7 +105,7 @@ export default function AdminCourseMaterialsDepartmentPage() {
     setShowEntryForm(true);
   }
 
-  function saveEntry() {
+  async function saveEntry() {
     try {
       const input = {
         departmentId,
@@ -106,8 +116,14 @@ export default function AdminCourseMaterialsDepartmentPage() {
         provider: entryForm.provider.trim() || undefined,
         status: entryForm.status,
       };
-      if (editingEntryId) updateCourseMaterial(editingEntryId, input);
-      else createCourseMaterial(input);
+      let result;
+      if (editingEntryId) {
+        result = await updateCourseMaterialAction(editingEntryId, input);
+      } else {
+        result = await createCourseMaterialAction(input);
+      }
+      
+      if (!result.ok) throw new Error(result.error);
       setShowEntryForm(false);
       setNotice(editingEntryId ? "Course material updated." : "Course material created.");
       refresh();
@@ -116,10 +132,11 @@ export default function AdminCourseMaterialsDepartmentPage() {
     }
   }
 
-  function toggleEntry(entry: CourseMaterialEntry) {
+  async function toggleEntry(entry: CourseMaterialEntry) {
     if (entry.status === "archived") {
       try {
-        restoreCourseMaterial(entry.id);
+        const result = await setCourseMaterialStatusAction(entry.id, "draft");
+        if (!result.ok) throw new Error(result.error);
         refresh();
         setNotice("Course material restored as a draft.");
       } catch (caught) {
@@ -131,11 +148,12 @@ export default function AdminCourseMaterialsDepartmentPage() {
     setConfirmEntry(entry);
   }
 
-  function confirmArchiveEntry() {
+  async function confirmArchiveEntry() {
     if (!confirmEntry) return;
 
     try {
-      archiveCourseMaterial(confirmEntry.id);
+      const result = await archiveCourseMaterialAction(confirmEntry.id);
+      if (!result.ok) throw new Error(result.error);
       setNotice("Course material archived.");
       setConfirmEntry(null);
       refresh();
@@ -144,16 +162,17 @@ export default function AdminCourseMaterialsDepartmentPage() {
     }
   }
 
-  function moveEntry(id: string, direction: -1 | 1) {
+  async function moveEntry(id: string, direction: -1 | 1) {
     const index = entries.findIndex((entry) => entry.id === id);
     const nextIndex = index + direction;
     if (index < 0 || nextIndex < 0 || nextIndex >= entries.length) return;
     const ids = entries.map((entry) => entry.id);
     [ids[index], ids[nextIndex]] = [ids[nextIndex], ids[index]];
-    reorderCourseMaterials(departmentId, ids);
+    await reorderCourseMaterialsAction(departmentId, ids);
     refresh();
   }
 
+  if (loading) return <div>Loading...</div>;
   if (error && !department) return <AdminErrorState title="Department unavailable" description={error} onRetry={refresh} />;
   if (!department) return <AdminErrorState title="Department not found" description="This department is not present in the local Course Materials directory." />;
 
@@ -185,8 +204,8 @@ export default function AdminCourseMaterialsDepartmentPage() {
         title="Archive department"
         description={`Archive "${department.name}"? Its materials will remain stored but hidden from students.`}
         confirmLabel="Archive"
-        onConfirm={() => {
-          archiveDepartment(department.id);
+        onConfirm={async () => {
+          await setDepartmentStatusAction(department.id, "archived");
           setConfirmDepartmentArchive(false);
           refresh();
           setNotice("Department archived.");
@@ -221,7 +240,7 @@ export default function AdminCourseMaterialsDepartmentPage() {
 
           <label className="space-y-2">
             <span className="field-label">Status</span>
-            <select value={departmentForm.status} onChange={(event) => setDepartmentForm({ ...departmentForm, status: event.target.value as CourseMaterialsStatus })} className="admin-input">
+            <select value={departmentForm.status} onChange={(event) => setDepartmentForm({ ...departmentForm, status: event.target.value as ContentStatus })} className="admin-input">
               {statuses.map((status) => <option key={status} value={status}>{status}</option>)}
             </select>
           </label>
@@ -235,9 +254,9 @@ export default function AdminCourseMaterialsDepartmentPage() {
 
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
               if (department.status === "archived") {
-                restoreDepartment(department.id);
+                await setDepartmentStatusAction(department.id, "draft");
                 refresh();
                 setNotice("Department restored as a draft.");
               } else {
@@ -293,7 +312,7 @@ export default function AdminCourseMaterialsDepartmentPage() {
 
             <label className="space-y-2">
               <span className="field-label">Status</span>
-              <select value={entryForm.status} onChange={(event) => setEntryForm({ ...entryForm, status: event.target.value as CourseMaterialsStatus })} className="admin-input">
+              <select value={entryForm.status} onChange={(event) => setEntryForm({ ...entryForm, status: event.target.value as ContentStatus })} className="admin-input">
                 {statuses.map((status) => <option key={status} value={status}>{status}</option>)}
               </select>
             </label>

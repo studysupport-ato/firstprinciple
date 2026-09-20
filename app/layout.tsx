@@ -29,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${newsreader.variable}`} suppressHydrationWarning>
-      <body className="antialiased selection:bg-blue-100 selection:text-black">
+      <body className="antialiased selection:bg-[#F8DFC2] selection:text-black">
         {children}
       </body>
     </html>

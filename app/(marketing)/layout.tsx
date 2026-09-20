@@ -35,20 +35,20 @@ export default function MarketingLayout({
   }, []);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-[#FFFBF5] flex flex-col">
       {/* Header */}
       <header
         className={`fixed top-0 left-0 right-0 h-20 z-50 flex items-center justify-between px-8 md:px-16 transition-all duration-500 ${
           isSolid
-            ? "bg-white/95 backdrop-blur-md border-b border-[#E5E5E5] shadow-sm"
+            ? "bg-[#FFFBF5]/95 backdrop-blur-md border-b border-[#E9D8C3] shadow-sm"
             : "bg-transparent border-b border-white/10"
         }`}
       >
         <div className="flex min-w-0 items-center gap-3">
-          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-sm transition-colors duration-500 ${isSolid ? "bg-[#111111]" : "bg-white"}`}>
-            <span className={`text-[10px] font-black transition-colors duration-500 ${isSolid ? "text-white" : "text-[#111111]"}`}>B2</span>
+          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-sm transition-colors duration-500 ${isSolid ? "bg-[#1A1714]" : "bg-white"}`}>
+            <span className={`text-[10px] font-black transition-colors duration-500 ${isSolid ? "text-white" : "text-[#1A1714]"}`}>B2</span>
           </div>
-          <span className={`whitespace-nowrap font-serif text-lg font-medium tracking-tight transition-colors duration-500 ${isSolid ? "text-[#111111]" : "text-white"}`}>
+          <span className={`whitespace-nowrap font-serif text-lg font-medium tracking-tight transition-colors duration-500 ${isSolid ? "text-[#1A1714]" : "text-white"}`}>
             Back2Basics with Kwamina
           </span>
         </div>
@@ -95,7 +95,7 @@ export default function MarketingLayout({
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialView={authView} />
 
       {/* Footer */}
-      <footer className="border-t border-[#E5E5E5] py-6 px-8 md:px-16 flex items-center justify-between bg-white">
+      <footer className="border-t border-[#E9D8C3] py-6 px-8 md:px-16 flex items-center justify-between bg-[#FFFBF5]">
         <span className="font-sans text-xs text-[#666666]">
           © 2026 Back2Basics with Kwamina. All rights reserved.
         </span>

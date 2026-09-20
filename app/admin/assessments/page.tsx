@@ -7,20 +7,23 @@ import { useEffect, useState } from "react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AdminTable } from "@/components/admin/AdminTable";
-import { getAssessments } from "@/lib/content/access";
 import { getAssessmentTotalMarks } from "@/lib/assessment/builder";
-import { hasAssessmentOverride, saveAssessmentOverride } from "@/lib/content/overrides";
 import type { Assessment } from "@/lib/content/types/assessment";
 import { createStableId } from "@/lib/ids";
+import { createAssessmentAction, getAdminAssessmentsAction } from "@/lib/adminContentActions";
 
 export default function AdminAssessmentsPage() {
-  const [assessments, setAssessments] = useState<Assessment[]>(() => getAssessments());
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
 
   useEffect(() => {
-    setAssessments(getAssessments());
+    async function load() {
+      const result = await getAdminAssessmentsAction();
+      if (result.ok) setAssessments(result.data);
+    }
+    load();
   }, []);
 
-  function duplicateAssessment(assessment: Assessment) {
+  async function duplicateAssessment(assessment: Assessment) {
     const duplicate: Assessment = {
       ...assessment,
       id: createStableId("assessment-copy", assessment.title),
@@ -29,8 +32,10 @@ export default function AdminAssessmentsPage() {
       blueprint: { rules: assessment.blueprint.rules.map((rule) => ({ ...rule, tags: rule.tags ? [...rule.tags] : undefined })) },
     };
 
-    saveAssessmentOverride({ assessmentId: duplicate.id, updatedAt: new Date().toISOString(), assessment: duplicate });
-    setAssessments(getAssessments());
+    const result = await createAssessmentAction(duplicate);
+    if (result.ok) {
+      setAssessments((current) => [...current, result.data]);
+    }
   }
 
   const rows = assessments.map((assessment) => ({
@@ -39,7 +44,7 @@ export default function AdminAssessmentsPage() {
     course: assessment.courseId,
     count: assessment.questionCount,
     marks: getAssessmentTotalMarks(assessment),
-    status: hasAssessmentOverride(assessment.id) ? "Local override" : assessment.status ?? "published",
+    status: assessment.status ?? "published",
   }));
 
   return (

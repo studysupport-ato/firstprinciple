@@ -8,17 +8,177 @@ import { AnimatedItem } from "@/components/motion/AnimatedItem";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowUpRight, ArrowRight, Flame, Target, CheckCircle2, BookOpen, TrendingUp, UserRound } from "lucide-react";
+import { getCourseWeeks, getWeekDays } from "@/lib/curriculum";
 import {
-  getContinueLearning,
-  getCurrentStreak,
-  getDailyActivity,
-  getOverallMastery,
-  getProblemsSolved,
-  getRecentActivity,
+  createProgressFactsRepository,
+  STUDENT_ID,
   type ActivityDisplay,
+  type ActivityEvent,
   type ContinueLearning,
   type DailyActivityPoint,
+  type PracticeAttempt,
+  type AssessmentAttempt,
 } from "@/lib/progress";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
+
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function localDateKey(iso: string) {
+  const date = new Date(iso);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - Date.parse(iso);
+  if (Number.isNaN(diffMs) || diffMs < 0) return "just now";
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "Yesterday";
+  return `${days} days ago`;
+}
+
+function getPracticeStats(attempts: PracticeAttempt[]) {
+  const correctAttempts = attempts.filter((attempt) => attempt.isCorrect).length;
+  const distinctCorrect = new Set(attempts.filter((attempt) => attempt.isCorrect).map((attempt) => attempt.questionId)).size;
+  return {
+    totalAttempts: attempts.length,
+    correctAttempts,
+    distinctAnswered: new Set(attempts.map((attempt) => attempt.questionId)).size,
+    distinctCorrect,
+    accuracy: attempts.length ? clampPercent((correctAttempts / attempts.length) * 100) : 0,
+    problemsSolved: distinctCorrect,
+  };
+}
+
+function getAssessmentSummaries(attempts: AssessmentAttempt[]) {
+  return attempts
+    .filter((attempt) => attempt.status === "submitted")
+    .sort((a, b) => (b.submittedAt ?? b.startedAt).localeCompare(a.submittedAt ?? a.startedAt))
+    .map((attempt) => ({
+      id: attempt.id,
+      assessmentId: attempt.assessmentId,
+      title: attempt.assessmentId,
+      occurredAt: attempt.submittedAt ?? attempt.startedAt,
+      score: attempt.percentage,
+      total: Object.keys(attempt.answers ?? {}).length,
+      marksEarned: attempt.marksEarned,
+      marksAvailable: attempt.marksAvailable,
+    }));
+}
+
+function getOverallMastery(practiceAttempts: PracticeAttempt[], assessmentAttempts: AssessmentAttempt[]) {
+  const stats = getPracticeStats(practiceAttempts);
+  const parts: number[] = [];
+  if (stats.totalAttempts > 0) parts.push(stats.accuracy);
+  const submitted = assessmentAttempts.filter((attempt) => attempt.status === "submitted");
+  if (submitted.length > 0) {
+    const avg = submitted.reduce((sum, attempt) => sum + attempt.percentage, 0) / submitted.length;
+    parts.push(avg);
+  }
+  if (parts.length === 0) return 0;
+  return clampPercent(parts.reduce((sum, value) => sum + value, 0) / parts.length);
+}
+
+function getCurrentStreak(events: ActivityEvent[]) {
+  const dates = [...new Set(events.map((event) => localDateKey(event.occurredAt)))].sort();
+  if (!dates.length) return 0;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayKey = localDateKey(today.toISOString());
+  const lastActiveKey = dates[dates.length - 1];
+  const diffCalendarDays = (earlier: string, later: string) => {
+    const a = new Date(earlier);
+    const b = new Date(later);
+    const utcA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+    const utcB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+    return Math.round((utcB - utcA) / 86400000);
+  };
+
+  const distanceFromToday = diffCalendarDays(lastActiveKey, todayKey);
+  if (distanceFromToday > 1) return 0;
+
+  let streak = 1;
+  for (let index = dates.length - 1; index > 0; index -= 1) {
+    if (diffCalendarDays(dates[index - 1], dates[index]) === 1) streak += 1;
+    else break;
+  }
+  return streak;
+}
+
+function getDailyActivity(events: ActivityEvent[], courseId: string, days = 7): DailyActivityPoint[] {
+  const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const points: DailyActivityPoint[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const scoped = events.filter((event) => event.courseId === courseId);
+
+  for (let offset = days - 1; offset >= 0; offset -= 1) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - offset);
+    const key = localDateKey(date.toISOString());
+    const count = scoped.filter((event) => localDateKey(event.occurredAt) === key).length;
+    points.push({ date: key, label: labels[date.getDay()], count });
+  }
+  return points;
+}
+
+function getRecentActivity(events: ActivityEvent[], courseId: string, limit = 4): ActivityDisplay[] {
+  return events
+    .filter((event) => event.courseId === courseId)
+    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
+    .slice(0, limit)
+    .map((event) => ({
+      id: event.id,
+      type: event.type.startsWith("lesson_") ? "Lesson" : event.type.startsWith("practice_") || event.type === "question_answered" ? "Practice" : event.type.startsWith("assessment_") ? "Assessment" : "Course",
+      title: event.type === "lesson_started" || event.type === "lesson_completed" ? `Lesson ${event.entityId ?? ""}` : event.type === "question_answered" ? "Practice question" : event.type.startsWith("assessment_") ? "Assessment" : "Course activity",
+      occurredAt: event.occurredAt,
+      time: relativeTime(event.occurredAt),
+      status: event.type === "lesson_completed" || event.type === "assessment_submitted" || event.type === "question_answered" ? "Completed" : "In Progress",
+      entityId: event.entityId,
+    }));
+}
+
+function getContinueLearning(courseId: string, dayProgress: Record<string, { status?: string }>): ContinueLearning | null {
+  const totalDays = getCourseWeeks(courseId).reduce((count, week) => count + getWeekDays(courseId, week).length, 0);
+  const completeCount = Object.values(dayProgress).filter((entry) => entry.status === "completed").length;
+
+  for (const week of getCourseWeeks(courseId)) {
+    for (const day of getWeekDays(courseId, week)) {
+      const status = dayProgress[day.lessonId]?.status;
+      if (status === "in_progress" || status === "not_started" || !status) {
+        const lesson = day.lesson;
+        if (!lesson) continue;
+        return {
+          courseId,
+          weekId: week.id,
+          weekTitle: week.title,
+          weekNumber: week.weekNumber,
+          lessonId: lesson.id,
+          lessonTitle: lesson.title,
+          chapterId: lesson.chapterId,
+          status: status === "in_progress" ? "in_progress" : "not_started",
+          completedDays: completeCount,
+          totalDays,
+          percent: totalDays ? clampPercent((completeCount / totalDays) * 100) : 0,
+        };
+      }
+    }
+  }
+  return null;
+}
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -35,12 +195,44 @@ export default function DashboardPage() {
   const [continueLearning, setContinueLearning] = useState<ContinueLearning | null>(null);
 
   useEffect(() => {
-    setMastery(getOverallMastery("math-151"));
-    setStreak(getCurrentStreak());
-    setSolved(getProblemsSolved("math-151"));
-    setWeekActivity(getDailyActivity("math-151", 7));
-    setRecentActivity(getRecentActivity("math-151", 4));
-    setContinueLearning(getContinueLearning("math-151"));
+    let active = true;
+    const repository = createProgressFactsRepository("supabase");
+
+    void (async () => {
+      try {
+        const [dayProgressRows, practiceAttempts, assessmentAttempts, activityResult] = await Promise.all([
+          repository.listDayProgressForCourse(STUDENT_ID, "math-151"),
+          repository.listPracticeAttempts(STUDENT_ID, { courseId: "math-151" }),
+          repository.listAssessmentAttempts(STUDENT_ID, { courseId: "math-151" }),
+          repository.listActivity(STUDENT_ID, { courseId: "math-151", limit: 50 }),
+        ]);
+
+        if (!active) return;
+
+        const dayProgress = Object.fromEntries(dayProgressRows.map((row) => [row.dayId, row]));
+        const practiceStats = getPracticeStats(practiceAttempts);
+        setMastery(getOverallMastery(practiceAttempts, assessmentAttempts));
+        setStreak(getCurrentStreak(activityResult.events));
+        setSolved(practiceStats.problemsSolved);
+        setWeekActivity(getDailyActivity(activityResult.events, "math-151", 7));
+        setRecentActivity(getRecentActivity(activityResult.events, "math-151", 4));
+        setContinueLearning(getContinueLearning("math-151", dayProgress));
+      } catch (error) {
+        console.error("[Back2Basics with Kwamina] Failed to hydrate dashboard progress from Supabase", error);
+        if (active) {
+          setMastery(0);
+          setStreak(0);
+          setSolved(0);
+          setWeekActivity([]);
+          setRecentActivity([]);
+          setContinueLearning(null);
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const hasActivity = weekActivity.some((point) => point.count > 0);

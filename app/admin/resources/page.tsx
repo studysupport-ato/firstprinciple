@@ -11,7 +11,8 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { archiveResource, getResourcePlacementCounts, getResources, restoreResource } from "@/lib/content/resources";
+import { getAdminResourcesAction, setResourceStatusAction } from "@/lib/adminContentActions";
+import type { AdminResourceListRow } from "@/lib/content/adminContract";
 import type { LearningResource, LearningResourceStatus, LearningResourceType } from "@/lib/content/types/resource";
 
 const resourceTypes: LearningResourceType[] = ["youtube", "geogebra", "external"];
@@ -34,7 +35,7 @@ function resourceSource(resource: LearningResource) {
 }
 
 export default function AdminResourcesPage() {
-  const [resources, setResources] = useState<LearningResource[]>([]);
+  const [resources, setResources] = useState<AdminResourceListRow[]>([]);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<LearningResourceType | "all">("all");
   const [statusFilter, setStatusFilter] = useState<LearningResourceStatus | "all">("all");
@@ -43,26 +44,28 @@ export default function AdminResourcesPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmResource, setConfirmResource] = useState<LearningResource | null>(null);
 
-  function refresh() {
-    try {
+  async function refresh() {
+    setLoading(true);
+    const result = await getAdminResourcesAction();
+    if (result.ok) {
+      setResources(result.data);
       setError(null);
-      setResources(getResources());
-    } catch {
-      setError("The local resource store could not be read.");
+    } else {
+      setError(result.error);
     }
+    setLoading(false);
   }
 
   useEffect(() => {
     refresh();
-    setLoading(false);
   }, []);
 
   const filtered = useMemo(
     () =>
       resources
-        .filter((resource) => typeFilter === "all" || resource.type === typeFilter)
-        .filter((resource) => statusFilter === "all" || resource.status === statusFilter)
-        .filter((resource) => `${resource.title} ${resource.description ?? ""} ${resource.tags.join(" ")}`.toLowerCase().includes(query.trim().toLowerCase())),
+        .filter((row) => typeFilter === "all" || row.resource.type === typeFilter)
+        .filter((row) => statusFilter === "all" || row.resource.status === statusFilter)
+        .filter((row) => `${row.resource.title} ${row.resource.description ?? ""} ${row.resource.tags.join(" ")}`.toLowerCase().includes(query.trim().toLowerCase())),
     [query, resources, statusFilter, typeFilter],
   );
 
@@ -70,17 +73,17 @@ export default function AdminResourcesPage() {
     setConfirmResource(resource);
   }
 
-  function confirmLifecycleChange() {
+  async function confirmLifecycleChange() {
     if (!confirmResource) return;
 
     try {
-      if (confirmResource.status === "archived") {
-        restoreResource(confirmResource.id);
-        setNotice("Resource restored as a draft.");
-      } else {
-        archiveResource(confirmResource.id);
-        setNotice("Resource archived. Existing placements remain available for review.");
+      const newStatus = confirmResource.status === "archived" ? "draft" : "archived";
+      const result = await setResourceStatusAction(confirmResource.id, newStatus);
+      if (!result.ok) {
+        setError(result.error);
+        return;
       }
+      setNotice(confirmResource.status === "archived" ? "Resource restored as a draft." : "Resource archived. Existing placements remain available for review.");
       setConfirmResource(null);
       refresh();
     } catch {
@@ -88,14 +91,13 @@ export default function AdminResourcesPage() {
     }
   }
 
-  const placementCounts = getResourcePlacementCounts();
-  const rows: ResourceRow[] = filtered.map((resource) => ({
-    id: resource.id,
-    resource,
-    type: typeLabels[resource.type],
-    status: resource.status,
-    placementCount: placementCounts.get(resource.id) ?? 0,
-    updatedAt: resource.updatedAt,
+  const rows: ResourceRow[] = filtered.map((row) => ({
+    id: row.resource.id,
+    resource: row.resource,
+    type: typeLabels[row.resource.type],
+    status: row.resource.status,
+    placementCount: row.placementCount,
+    updatedAt: row.resource.updatedAt,
   }));
 
   if (loading) return <AdminLoadingState />;
@@ -169,3 +171,4 @@ export default function AdminResourcesPage() {
     </div>
   );
 }
+

@@ -3,17 +3,29 @@
 import { ArrowDown, ArrowLeft, ArrowUp, Check, FileText, Upload, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
-import { getCourse, getLessons, getQuestions, getWeeks, validateQuestion } from "@/lib/content/access";
+import { validateQuestion } from "@/lib/content/access";
 import { extractPdfText, scanMarkdown, type ImportScanResult } from "@/lib/content/importer";
-import { saveChapterRecord, saveCourseRecord, saveLessonRecord, saveQuestionRecord, saveWeekRecord } from "@/lib/content/overrides";
+import {
+  getAdminCourseStructureAction,
+  getAdminQuestionsAction,
+  createWeekAction,
+  createDayAction,
+  createQuestionAction
+} from "@/lib/adminContentActions";
+import type { AdminCourseStructure, Question, Course } from "@/lib/content/adminContract";
 
 export default function AdminCourseImportPage() {
   const params = useParams();
   const courseId = params.courseId as string;
-  const course = getCourse(courseId);
+  
+  const [structure, setStructure] = useState<AdminCourseStructure | null>(null);
+  const [existingQuestions, setExistingQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
   const [scan, setScan] = useState<ImportScanResult | null>(null);
   const [status, setStatus] = useState<"idle" | "scanning" | "importing" | "complete">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -21,6 +33,32 @@ export default function AdminCourseImportPage() {
   const [stage, setStage] = useState<"upload" | "review" | "complete">("upload");
   const [fileInfo, setFileInfo] = useState<{ name: string; type: string; size: number } | null>(null);
   const [importedCounts, setImportedCounts] = useState({ weeks: 0, days: 0, questions: 0 });
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      setFetchError(null);
+      try {
+        const [structRes, questRes] = await Promise.all([
+          getAdminCourseStructureAction(courseId),
+          getAdminQuestionsAction(courseId)
+        ]);
+
+        if (!structRes.ok) throw new Error(structRes.error);
+        if (!questRes.ok) throw new Error(questRes.error);
+
+        setStructure(structRes.data);
+        setExistingQuestions(questRes.data);
+      } catch (err) {
+        setFetchError(err instanceof Error ? err.message : "Failed to load course data");
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [courseId]);
+
+  const course = structure?.course;
 
   async function handleFile(file: File) {
     if (!course) return;
@@ -47,36 +85,60 @@ export default function AdminCourseImportPage() {
     }
   }
 
-  function commitImport() {
-    if (!course || !scan) return;
+  async function commitImport() {
+    if (!course || !scan || !structure) return;
     setStatus("importing");
     setError(null);
 
     try {
-      const existingWeekIds = new Set(getWeeks(course.id).map((week) => week.id));
-      const existingLessonIds = new Set(getLessons(course.id).map((lesson) => lesson.id));
+      const existingWeekIds = new Set(structure.weeks.map((w) => w.week.id));
+      const existingLessonIds = new Set(structure.days.map((d) => d.id));
       const importWeeks = scan.weeks.filter((week) => !existingWeekIds.has(week.id));
       const importWeekIds = new Set(importWeeks.map((week) => week.id));
       const importLessons = scan.lessons.filter((lesson) => importWeekIds.has(lesson.weekId) && !existingLessonIds.has(lesson.id));
 
       if (mode !== "questions") {
-        scan.chapters.filter((chapter) => importWeekIds.has(scan.weeks.find((week) => week.chapterIds.includes(chapter.id))?.id ?? "")).forEach(saveChapterRecord);
-        importWeeks.forEach(saveWeekRecord);
-        importLessons.forEach(saveLessonRecord);
-        saveCourseRecord({ ...course, chapterIds: [...new Set([...course.chapterIds, ...importWeeks.flatMap((week) => week.chapterIds)])], weekIds: [...new Set([...course.weekIds, ...importWeeks.map((week) => week.id)])] });
+        for (const week of importWeeks) {
+          const res = await createWeekAction({
+            id: week.id,
+            courseId: week.courseId,
+            title: week.title,
+            description: week.description,
+            weekNumber: week.weekNumber
+          });
+          if (!res.ok) throw new Error(res.error);
+        }
+
+        for (const lesson of importLessons) {
+          const res = await createDayAction({
+            id: lesson.id,
+            courseId: lesson.courseId,
+            weekId: lesson.weekId,
+            chapterId: lesson.chapterId ?? "",
+            title: lesson.title,
+            description: lesson.description,
+            order: lesson.order,
+            blocks: lesson.blocks
+          });
+          if (!res.ok) throw new Error(res.error);
+        }
       }
 
       let importedQuestions = 0;
       if (mode !== "lessons") {
-        const existingPrompts = new Set(getQuestions({ courseId: course.id }).map((question) => question.prompt.trim().toLowerCase()));
+        const existingPrompts = new Set(existingQuestions.map((question) => question.prompt.trim().toLowerCase()));
         const eligibleLessonIds = new Set((mode === "questions" ? scan.lessons : importLessons).map((lesson) => lesson.id));
-        scan.questions.filter((question) => eligibleLessonIds.has(question.lessonId)).forEach((question) => {
+        for (const question of scan.questions) {
+          if (!eligibleLessonIds.has(question.lessonId)) continue;
           const errors = validateQuestion(question);
-          if (errors.length || existingPrompts.has(question.prompt.trim().toLowerCase())) return;
-          saveQuestionRecord(question);
+          if (errors.length || existingPrompts.has(question.prompt.trim().toLowerCase())) continue;
+          
+          const res = await createQuestionAction(question);
+          if (!res.ok) throw new Error(res.error);
+          
           existingPrompts.add(question.prompt.trim().toLowerCase());
           importedQuestions += 1;
-        });
+        }
       }
 
       setImportedCounts({ weeks: mode === "questions" ? 0 : importWeeks.length, days: mode === "questions" ? 0 : importLessons.length, questions: importedQuestions });
@@ -114,8 +176,10 @@ export default function AdminCourseImportPage() {
     });
   }
 
+  if (loading) return <div className="p-8 text-sm text-[#666666]">Loading...</div>;
+  if (fetchError) return <div className="p-8 text-sm text-[#E11D48]">{fetchError}</div>;
   if (!course) {
-    return <div className="p-8 text-sm text-[#666666]">Course not found in the local content model.</div>;
+    return <div className="p-8 text-sm text-[#666666]">Course not found.</div>;
   }
 
   const validQuestions = scan?.questions.filter((question) => validateQuestion(question).length === 0) ?? [];

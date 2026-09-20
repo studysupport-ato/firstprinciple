@@ -3,22 +3,35 @@
 import { ArrowLeft, Check, FileUp, Save, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
-import { getCourses } from "@/lib/content/access";
-import { saveQuestionRecord } from "@/lib/content/overrides";
+import { getAdminCoursesAction, createQuestionAction } from "@/lib/adminContentActions";
 import { parseMarkdownQuestionBatch } from "@/lib/questions/parser";
+import type { AdminCourseListRow } from "@/lib/content/adminContract";
 
 export default function AdminQuestionImportPage() {
   const router = useRouter();
-  const courses = getCourses();
-  const [selectedCourseId, setSelectedCourseId] = useState(courses[0]?.id ?? "");
+  const [courses, setCourses] = useState<AdminCourseListRow[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState("");
   const [markdown, setMarkdown] = useState("");
   const [result, setResult] = useState<ReturnType<typeof parseMarkdownQuestionBatch> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const selectedCourse = useMemo(() => courses.find((course) => course.id === selectedCourseId) ?? courses[0], [courses, selectedCourseId]);
+  useEffect(() => {
+    async function fetchCourses() {
+      const res = await getAdminCoursesAction();
+      if (res.ok && res.data) {
+        setCourses(res.data);
+        if (res.data.length > 0) {
+          setSelectedCourseId(res.data[0].course.id);
+        }
+      }
+    }
+    fetchCourses();
+  }, []);
+
+  const selectedCourse = useMemo(() => courses.find((row) => row.course.id === selectedCourseId) ?? courses[0], [courses, selectedCourseId]);
 
   function parseInput() {
     if (!selectedCourseId) {
@@ -31,7 +44,7 @@ export default function AdminQuestionImportPage() {
     setResult(batch);
   }
 
-  function importQuestions() {
+  async function importQuestions() {
     if (!result || !selectedCourseId) {
       setError("No valid import batch is ready.");
       return;
@@ -43,8 +56,12 @@ export default function AdminQuestionImportPage() {
       return;
     }
 
-    valid.forEach((question) => saveQuestionRecord(question));
-    router.push(`/admin/questions?courseId=${selectedCourseId}`);
+    try {
+      await Promise.all(valid.map((question) => createQuestionAction(question)));
+      router.push(`/admin/questions?courseId=${selectedCourseId}`);
+    } catch (e: any) {
+      setError("Failed to import: " + e.message);
+    }
   }
 
   async function handleFile(file: File) {
@@ -78,9 +95,9 @@ export default function AdminQuestionImportPage() {
           <label className="space-y-2 text-sm text-[#111111]">
             <span className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">Course</span>
             <select value={selectedCourseId} onChange={(event) => setSelectedCourseId(event.target.value)} className="admin-input w-full">
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.code} · {course.title}
+              {courses.map((row) => (
+                <option key={row.course.id} value={row.course.id}>
+                  {row.course.code} · {row.course.title}
                 </option>
               ))}
             </select>
@@ -118,7 +135,7 @@ export default function AdminQuestionImportPage() {
           </button>
           <button type="button" onClick={importQuestions} disabled={!result || !result.validQuestions.length} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] px-5 py-2.5 text-sm font-medium text-[#111111] hover:border-[#111111] disabled:cursor-not-allowed disabled:opacity-40">
             <Save size={15} />
-            Import to {selectedCourse?.code ?? "course"}
+            Import to {selectedCourse?.course.code ?? "course"}
           </button>
         </div>
       </section>

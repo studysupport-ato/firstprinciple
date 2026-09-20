@@ -1,6 +1,7 @@
 import { getCourse, getLesson, getWeek } from "./access";
 import { createStableId } from "../ids";
 import { isPreviewVisible } from "./lifecycle";
+import { createResourceRepository } from "./resourceRepository";
 import { getGeoGebraEmbedConfig, resolveGeoGebraEmbed } from "./resourcePresentation";
 import type {
   LearningResource,
@@ -182,24 +183,25 @@ export function getResourcesForDay(dayId: string, options: ResourceResolutionOpt
   const day = getLesson(dayId);
   if (!day) return [];
 
-  const store = readStore();
-  const resourceById = new Map(store.resources.map((resource) => [resource.id, resource]));
-  const matchingResourceIds = new Set(
-    store.placements
-      .filter(
-        (placement) =>
-          placement.dayId === day.id ||
-          placement.weekId === day.weekId ||
-          placement.courseId === day.courseId,
-      )
-      .map((placement) => placement.resourceId),
+  const repository = createResourceRepository("supabase");
+  const resources = repository.listResourcesForScope(
+    { dayId },
+    {
+      visibility: options.includeDraft ? "all" : "student",
+      includeDraft: options.includeDraft,
+    },
   );
 
-  return [...matchingResourceIds]
-    .map((resourceId) => resourceById.get(resourceId))
-    .filter((resource): resource is LearningResource => Boolean(resource))
-    .filter((resource) => resourceIsVisible(resource, options))
-    .sort((first, second) => resourceOrder(first) - resourceOrder(second) || first.createdAt.localeCompare(second.createdAt) || first.id.localeCompare(second.id));
+  return resources.then((items) =>
+    items
+      .filter((resource) => resourceIsVisible(resource, options))
+      .sort(
+        (first, second) =>
+          resourceOrder(first) - resourceOrder(second) ||
+          first.createdAt.localeCompare(second.createdAt) ||
+          first.id.localeCompare(second.id),
+      ),
+  );
 }
 
 export function createResource(input: LearningResourceInput) {

@@ -66,9 +66,9 @@ export function LeaderboardTeaser() {
   }, [isInView]);
 
   return (
-    <section ref={ref} className="relative overflow-hidden border-t border-[#E5E5E5] bg-white py-32 text-[#111111]">
+    <section ref={ref} className="relative overflow-hidden border-t border-[#E9D8C3] bg-[#FFFBF5] py-32 text-[#111111]">
       {/* Ambient glow */}
-      <div className="pointer-events-none absolute left-1/2 top-0 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-[#2563EB]/[0.06] blur-[150px]" />
+      <div className="pointer-events-none absolute left-1/2 top-0 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-[#C96B2D]/[0.06] blur-[150px]" />
 
       <div className="max-w-6xl mx-auto px-8 relative z-10 flex flex-col lg:flex-row items-center gap-16">
 
@@ -80,7 +80,7 @@ export function LeaderboardTeaser() {
           transition={{ duration: 0.7, ease: "easeOut" }}
           className="flex-1 text-center lg:text-left"
         >
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-[#F7F7F8] px-3 py-1">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#E9D8C3] bg-[#FFF4E5] px-3 py-1">
             <Trophy size={14} className="text-[#D97706]" />
             <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#666666]">
               Social Learning
@@ -158,7 +158,7 @@ export function LeaderboardTeaser() {
                   style={{ position: "absolute", top: 0, left: 0, right: 0 }}
                   className={`flex items-center gap-4 p-4 rounded-2xl border transition-colors duration-500 ${
                     isKwame && glowing
-                      ? "bg-[#2563EB] border-blue-400 shadow-[0_0_40px_rgba(37,99,235,0.5)]"
+                      ? "bg-[#C96B2D] border-[#F3C27A] shadow-[0_0_40px_rgba(201,107,45,0.5)]"
                       : isKwame
                       ? "bg-white/10 border-white/20"
                       : "bg-transparent border-transparent"
@@ -183,7 +183,7 @@ export function LeaderboardTeaser() {
                       <motion.span
                         initial={{ opacity: 0, y: 4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-[10px] text-blue-200 font-bold uppercase tracking-widest flex items-center gap-1 mt-0.5"
+                        className="text-[10px] text-[#F8DFC2] font-bold uppercase tracking-widest flex items-center gap-1 mt-0.5"
                       >
                         <Zap size={9} /> +450 XP earned
                       </motion.span>
@@ -195,7 +195,7 @@ export function LeaderboardTeaser() {
                       {isKwame ? kwameXp.toLocaleString() : user.xp.toLocaleString()}
                     </span>
                     {isKwame && (glowing || overtaken) && (
-                      <ArrowUp size={14} className="text-blue-300" />
+                      <ArrowUp size={14} className="text-[#F3C27A]" />
                     )}
                   </div>
                 </motion.div>

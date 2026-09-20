@@ -35,7 +35,7 @@ const courses = [
 
 export function CourseDiscovery() {
   return (
-    <section id="platform" className="py-32 bg-[#F7F7F8] border-t border-[#E5E5E5]">
+    <section id="platform" className="py-32 bg-[#FFFBF5] border-t border-[#E9D8C3]">
       <div className="max-w-[1440px] mx-auto px-8 md:px-16">
         
         <AnimatedItem className="mb-16 flex flex-col items-center text-center">
@@ -56,14 +56,14 @@ export function CourseDiscovery() {
               <div 
                 className={`p-6 rounded-2xl border transition-all duration-300 h-full flex flex-col ${
                   course.available 
-                    ? "bg-white border-[#2563EB]/20 shadow-sm hover:border-[#2563EB] cursor-pointer group" 
-                    : "bg-[#F7F7F8] border-[#E5E5E5] opacity-70"
+                    ? "bg-[#FFF4E5] border-[#C96B2D]/25 shadow-sm hover:border-[#C96B2D] cursor-pointer group" 
+                    : "bg-[#F4EEE8] border-[#E7D8C8] opacity-70"
                 }`}
               >
                 <div className="flex items-center justify-between mb-8">
                   <span 
                     className={`font-sans text-[10px] font-bold tracking-widest uppercase ${
-                      course.available ? "text-[#2563EB]" : "text-[#666666]"
+                      course.available ? "text-[#C96B2D]" : "text-[#5D5149]"
                     }`}
                   >
                     {course.code}
@@ -82,7 +82,7 @@ export function CourseDiscovery() {
                 </p>
 
                 {course.available && (
-                  <div className="mt-8 font-sans text-xs font-semibold text-[#2563EB] group-hover:translate-x-1 transition-transform">
+                  <div className="mt-8 font-sans text-xs font-semibold text-[#C96B2D] group-hover:translate-x-1 transition-transform">
                     Explore Course →
                   </div>
                 )}

@@ -1,41 +1,78 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, BookOpen, Trash2 } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { getChapter, getCourse } from "@/lib/content/access";
-import { removeLessonFromWeek } from "@/lib/content/overrides";
-import { getCourseWeek, getWeekDays } from "@/lib/curriculum";
+import { getAdminCourseStructureAction, deleteDayAction } from "@/lib/adminContentActions";
+import type { AdminCourseStructure } from "@/lib/content/adminContract";
 
 export default function AdminWeekWorkspace() {
   const router = useRouter();
   const { courseId, week: weekParam } = useParams<{ courseId: string; week: string }>();
-  const week = getCourseWeek(courseId, Number(weekParam));
-  const course = getCourse(courseId);
-
-  if (!week || !course) {
-    return <div className="p-8 text-sm text-[#666666]">Week not found in the local curriculum.</div>;
-  }
-
+  
+  const [structure, setStructure] = useState<AdminCourseStructure | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleteLessonTarget, setDeleteLessonTarget] = useState<string | null>(null);
-  const days = getWeekDays(courseId, week);
-  const chapter = getChapter(week.chapterIds[0] ?? "");
-  const createDayHref = `/admin/lessons/new?courseId=${course.id}&chapterId=${week.chapterIds[0] ?? ""}&weekId=${week.id}`;
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await getAdminCourseStructureAction(courseId);
+        if (!res.ok) throw new Error(res.error);
+        setStructure(res.data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load week data");
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [courseId, refreshTick]);
+
+  const course = structure?.course;
+  const weekNumber = Number(weekParam);
+  const adminWeek = structure?.weeks.find(w => w.week.weekNumber === weekNumber);
+  const week = adminWeek?.week;
+  
+  if (loading) return <div className="p-8 text-sm text-[#666666]">Loading...</div>;
+  if (error) return <div className="p-8 text-sm text-[#E11D48]">{error}</div>;
+  if (!week || !course) return <div className="p-8 text-sm text-[#666666]">Week not found.</div>;
+
+  const days = adminWeek?.days.map((lesson, index) => ({
+    dayNumber: index + 1,
+    lessonId: lesson.id,
+    title: lesson.title || `Day ${index + 1}`,
+    description: lesson.description || "Day content has not been authored yet.",
+    lesson
+  })) ?? [];
+
+  const chapterId = week.chapterIds?.[0] ?? "";
+  const chapter = structure?.chapters.find(c => c.id === chapterId);
+  const createDayHref = `/admin/lessons/new?courseId=${course.id}&weekId=${week.id}`;
 
   function handleDeleteLesson(lessonId: string) {
     setDeleteLessonTarget(lessonId);
   }
 
-  function confirmDeleteLesson() {
+  async function confirmDeleteLesson() {
     if (!week || !deleteLessonTarget) return;
 
-    removeLessonFromWeek(deleteLessonTarget, week.id);
-    setDeleteLessonTarget(null);
-    router.refresh();
+    const res = await deleteDayAction(course!.id, week.id, deleteLessonTarget);
+    if (res.ok) {
+      setDeleteLessonTarget(null);
+      setRefreshTick(t => t + 1);
+      router.refresh();
+    } else {
+      alert(res.error);
+    }
   }
 
   return (
@@ -54,7 +91,7 @@ export default function AdminWeekWorkspace() {
         <Link href={`/admin/courses/${course.id}`} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2 text-sm font-medium text-[#111111]">
           <ArrowLeft size={15} />Course
         </Link>
-        <AdminStatusBadge status={days.every((day) => day.lesson) ? "Ready" : "Needs content"} />
+        <AdminStatusBadge status={days.every((day) => day.lesson && day.lesson.blocks && day.lesson.blocks.length > 0) ? "Ready" : "Needs content"} />
       </div>
 
       <section className="rounded-[28px] border border-[#E5E5E5] bg-white p-6 shadow-[0_8px_24px_rgba(17,17,17,0.02)]">
@@ -91,7 +128,7 @@ export default function AdminWeekWorkspace() {
                   <div className="mt-2 font-serif text-2xl text-[#111111]">{day.title}</div>
                   <p className="mt-1 text-sm text-[#666666]">{day.description}</p>
                   <div className="mt-2 text-xs text-[#666666]">
-                    {day.lesson ? `${day.lesson.blocks.length} content blocks` : "No day content authored yet"}
+                    {day.lesson ? `${day.lesson.blocks?.length || 0} content blocks` : "No day content authored yet"}
                   </div>
                 </div>
 

@@ -4,27 +4,29 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
 
-  --color-background: #FFFFFF;
-  --color-foreground: #111111;
-  --color-muted: #F7F7F8;
-  --color-muted-foreground: #666666;
-  --color-border: #E5E5E5;
-  --color-primary: #111111;
-  --color-primary-foreground: #FFFFFF;
-  --color-interactive: #2563EB; /* Sophisticated academic blue */
-  --color-interactive-hover: #1D4ED8;
+  --color-background: #FFFBF5;
+  --color-surface: #FFF4E5;
+  --color-foreground: #1A1714;
+  --color-muted: #FFF4E5;
+  --color-muted-foreground: #5D5149;
+  --color-border: #E9D8C3;
+  --color-primary: #1A1714;
+  --color-primary-foreground: #FFFBF5;
+  --color-interactive: #C96B2D;
+  --color-interactive-hover: #A8561F;
   
   /* Mathematical accent colors used strictly for visualization */
-  --color-math-1: #E11D48;
-  --color-math-2: #059669;
-  --color-math-3: #D97706;
-  --color-math-4: #4F46E5;
+  --color-math-1: #D94E3B;
+  --color-math-2: #2E7B66;
+  --color-math-3: #D98A37;
+  --color-math-4: #4B3D2A;
 }
 
 :root {
-  --background: #FFFFFF;
-  --foreground: #111111;
-  --border: #E5E5E5;
+  --background: #FFFBF5;
+  --surface: #FFF4E5;
+  --foreground: #1A1714;
+  --border: #E9D8C3;
 }
 
 @layer base {
@@ -47,18 +49,23 @@
   }
 
   ::selection {
-    background-color: rgba(37, 99, 235, 0.15); /* light interactive blue */
+    background-color: rgba(201, 107, 45, 0.18);
     color: var(--foreground);
   }
 }
 
 @layer utilities {
+  .bg-white,
+  .bg-\[\#FFFFFF\] {
+    background-color: var(--surface) !important;
+  }
+
   .field-label {
     @apply block text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666];
   }
 
   .admin-input {
-    @apply w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2.5 text-sm text-[#111111] outline-none transition focus:border-[#2563EB];
+    @apply w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2.5 text-sm text-[#111111] outline-none transition focus:border-[#C96B2D];
   }
 
   .editorial-heading {

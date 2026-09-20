@@ -70,7 +70,7 @@ export function BuiltByKxy() {
             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#111111] rotate-45 border-r border-b border-white/10" />
 
             <div className="flex flex-col items-center mb-5">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#2563EB] to-[#7C3AED] mb-3 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#C96B2D] to-[#F3C27A] mb-3 flex items-center justify-center">
                 <span className="text-white font-serif font-bold text-xl">K</span>
               </div>
               <span className="font-sans font-bold text-white text-sm">Kxy</span>

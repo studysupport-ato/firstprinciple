@@ -65,7 +65,7 @@ export function FinalCTA() {
             <button
               type="button"
               onClick={() => openAuth("signup")}
-              className="h-14 rounded-full bg-white px-10 text-sm font-semibold text-[#111111] shadow-xl shadow-black/50 transition-all duration-300 hover:scale-105 hover:bg-[#2563EB] hover:text-white"
+              className="h-14 rounded-full bg-white px-10 text-sm font-semibold text-[#111111] shadow-xl shadow-black/50 transition-all duration-300 hover:scale-105 hover:bg-[#C96B2D] hover:text-white"
             >
               Start Learning Free
             </button>
