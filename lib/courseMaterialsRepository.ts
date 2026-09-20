@@ -142,7 +142,13 @@ export function createCourseMaterialsSupabaseRepository(clientFactory: () => Sup
   async restoreCourseMaterial(id) { return this.updateCourseMaterial(id, { status: "draft" }); },
   async reorderDepartments(ids) { for (const [order, id] of ids.entries()) { const { error } = await clientFactory().from("departments").update({ order_index: order } as never).eq("id", id); if (error) throw error; } return this.listDepartments(); },
   async reorderCourseMaterials(departmentId, ids) { for (const [order, id] of ids.entries()) { const { error } = await clientFactory().from("course_materials").update({ order_index: order } as never).eq("id", id).eq("department_id", departmentId); if (error) throw error; } return this.listCourseMaterials({ departmentId }); },
-  async deleteDepartment(id) { const { error } = await clientFactory().from("departments").delete().eq("id", id); if (error) throw error; },
+  async deleteDepartment(id) {
+    // Must delete child materials first to satisfy the FK constraint
+    const { error: materialsError } = await clientFactory().from("course_materials").delete().eq("department_id", id);
+    if (materialsError) throw materialsError;
+    const { error } = await clientFactory().from("departments").delete().eq("id", id);
+    if (error) throw error;
+  },
   async deleteCourseMaterial(id) { const { error } = await clientFactory().from("course_materials").delete().eq("id", id); if (error) throw error; },
   };
 }
