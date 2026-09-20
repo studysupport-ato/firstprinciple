@@ -358,3 +358,19 @@ export async function archiveCourseMaterialAction(materialId: string): Promise<A
   });
 }
 
+import { deleteAdminDepartment, deleteAdminCourseMaterial } from "./content/adminService";
+
+export async function deleteDepartmentAction(departmentId: string): Promise<AdminActionResult<null>> {
+  return run(async () => {
+    await deleteAdminDepartment(departmentId);
+    return null;
+  });
+}
+
+export async function deleteMaterialAction(materialId: string): Promise<AdminActionResult<null>> {
+  return run(async () => {
+    await deleteAdminCourseMaterial(materialId);
+    return null;
+  });
+}
+

@@ -492,5 +492,13 @@ export async function archiveAdminCourseMaterial(materialId: string): Promise<vo
   await createCourseMaterialsAdminRepository().archiveCourseMaterial(materialId);
 }
 
+export async function deleteAdminDepartment(departmentId: string): Promise<void> {
+  await createCourseMaterialsAdminRepository().deleteDepartment(departmentId);
+}
+
+export async function deleteAdminCourseMaterial(materialId: string): Promise<void> {
+  await createCourseMaterialsAdminRepository().deleteCourseMaterial(materialId);
+}
+
 
 

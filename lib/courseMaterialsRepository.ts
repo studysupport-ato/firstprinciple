@@ -43,6 +43,8 @@ export interface CourseMaterialsRepository {
   restoreCourseMaterial(materialId: string): Promise<CourseMaterialEntry | undefined>;
   reorderDepartments(ids: string[]): Promise<CourseMaterialsDepartment[]>;
   reorderCourseMaterials(departmentId: string, ids: string[]): Promise<CourseMaterialEntry[]>;
+  deleteDepartment(departmentId: string): Promise<void>;
+  deleteCourseMaterial(materialId: string): Promise<void>;
 }
 
 function visible(status: ContentStatus, options: CourseMaterialsRepositoryListOptions) {
@@ -71,6 +73,8 @@ export const courseMaterialsLocalRepository: CourseMaterialsRepository = {
   async restoreCourseMaterial(materialId) { return restoreCourseMaterial(materialId); },
   async reorderDepartments(ids) { return reorderDepartments(ids); },
   async reorderCourseMaterials(departmentId, ids) { return reorderCourseMaterials(departmentId, ids); },
+  async deleteDepartment() { throw new Error("Not implemented for local source"); },
+  async deleteCourseMaterial() { throw new Error("Not implemented for local source"); },
 };
 
 type DepartmentRow = Database["public"]["Tables"]["departments"]["Row"];
@@ -138,6 +142,8 @@ export function createCourseMaterialsSupabaseRepository(clientFactory: () => Sup
   async restoreCourseMaterial(id) { return this.updateCourseMaterial(id, { status: "draft" }); },
   async reorderDepartments(ids) { for (const [order, id] of ids.entries()) { const { error } = await clientFactory().from("departments").update({ order_index: order } as never).eq("id", id); if (error) throw error; } return this.listDepartments(); },
   async reorderCourseMaterials(departmentId, ids) { for (const [order, id] of ids.entries()) { const { error } = await clientFactory().from("course_materials").update({ order_index: order } as never).eq("id", id).eq("department_id", departmentId); if (error) throw error; } return this.listCourseMaterials({ departmentId }); },
+  async deleteDepartment(id) { const { error } = await clientFactory().from("departments").delete().eq("id", id); if (error) throw error; },
+  async deleteCourseMaterial(id) { const { error } = await clientFactory().from("course_materials").delete().eq("id", id); if (error) throw error; },
   };
 }
 

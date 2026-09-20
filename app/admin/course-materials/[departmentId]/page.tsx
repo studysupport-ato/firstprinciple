@@ -38,6 +38,7 @@ export default function AdminCourseMaterialsDepartmentPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmEntry, setConfirmEntry] = useState<CourseMaterialEntry | null>(null);
+  const [deleteEntryTarget, setDeleteEntryTarget] = useState<CourseMaterialEntry | null>(null);
   const [confirmDepartmentArchive, setConfirmDepartmentArchive] = useState(false);
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
@@ -162,6 +163,20 @@ export default function AdminCourseMaterialsDepartmentPage() {
     }
   }
 
+  async function confirmDeleteEntry() {
+    if (!deleteEntryTarget) return;
+    try {
+      const { deleteMaterialAction } = await import("@/lib/adminContentActions");
+      const result = await deleteMaterialAction(deleteEntryTarget.id);
+      if (!result.ok) throw new Error(result.error);
+      setNotice("Course material deleted.");
+      setDeleteEntryTarget(null);
+      refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Course material could not be deleted.");
+    }
+  }
+
   async function moveEntry(id: string, direction: -1 | 1) {
     const index = entries.findIndex((entry) => entry.id === id);
     const nextIndex = index + direction;
@@ -197,6 +212,15 @@ export default function AdminCourseMaterialsDepartmentPage() {
         confirmLabel="Archive"
         onConfirm={confirmArchiveEntry}
         onCancel={() => setConfirmEntry(null)}
+      />
+
+      <ConfirmDialog
+        open={!!deleteEntryTarget}
+        title="Delete course material"
+        description={deleteEntryTarget ? `Permanently delete "${deleteEntryTarget.courseTitle}"? This cannot be undone.` : "Delete this course material?"}
+        confirmLabel="Delete"
+        onConfirm={confirmDeleteEntry}
+        onCancel={() => setDeleteEntryTarget(null)}
       />
 
       <ConfirmDialog
@@ -379,6 +403,9 @@ export default function AdminCourseMaterialsDepartmentPage() {
                   <button type="button" onClick={() => toggleEntry(row.entry)} className="inline-flex items-center gap-1 rounded-full border border-[#E5E5E5] px-3 py-1.5 text-xs font-semibold">
                     {row.entry.status === "archived" ? <ArchiveRestore size={12} /> : <Archive size={12} />}
                     {row.entry.status === "archived" ? "Restore" : "Archive"}
+                  </button>
+                  <button type="button" onClick={() => setDeleteEntryTarget(row.entry)} className="inline-flex items-center gap-1 rounded-full border border-red-200 text-red-600 px-3 py-1.5 text-xs font-semibold hover:bg-red-50">
+                    Delete
                   </button>
                 </div>
               ),
