@@ -81,11 +81,11 @@ export function validateLearningResource(resource: LearningResourceInput | Learn
     const resolution = resolveGeoGebraEmbed(getGeoGebraEmbedConfig(resource.data));
     if (!resolution.ok) {
       if (resolution.reason === "not-configured") {
-        errors.push(`Resource ${label} needs a GeoGebra material ID (e.g. RHYH3UQ8) or a supported app (graphing, geometry, 3d, classic).`);
+        errors.push(`Resource ${label} needs a GeoGebra material ID (e.g. RHYH3UQ8) or a supported app (graphing, geometry, 3d, classic, notes).`);
       } else if (resolution.reason === "invalid-material-id") {
         errors.push(`Resource ${label} has an invalid GeoGebra material ID "${resolution.detail}". Use the id from the activity URL, e.g. https://www.geogebra.org/m/RHYH3UQ8.`);
       } else {
-        errors.push(`Resource ${label} has an unsupported GeoGebra app "${resolution.detail}". Supported apps: graphing, geometry, 3d, classic.`);
+        errors.push(`Resource ${label} has an unsupported GeoGebra app "${resolution.detail}". Supported apps: graphing, geometry, 3d, classic, notes.`);
       }
     }
   }

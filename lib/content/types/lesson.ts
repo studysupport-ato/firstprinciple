@@ -65,7 +65,7 @@ export interface VideoBlock extends BaseContentBlock {
 
 export interface GeoGebraInteractiveConfig {
   visualizer?: "geogebra";
-  appName?: "graphing" | "geometry" | "3d" | "classic";
+  appName?: "graphing" | "geometry" | "3d" | "classic" | "notes";
   materialId?: string;
   width?: number;
   height?: number;

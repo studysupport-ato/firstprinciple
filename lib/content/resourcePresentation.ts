@@ -21,7 +21,7 @@ export function getYouTubeSourceLabel(sourceType: YouTubeResourceData["sourceTyp
  * `https://www.geogebra.org/material/iframe/id/<id>` endpoint now returns
  * `410 Gone` for every id and must not be used either.
  */
-export const GEOGEBRA_APP_NAMES = ["graphing", "geometry", "3d", "classic"] as const;
+export const GEOGEBRA_APP_NAMES = ["graphing", "geometry", "3d", "classic", "notes"] as const;
 export type GeoGebraAppName = (typeof GEOGEBRA_APP_NAMES)[number];
 
 /** GeoGebra material ids are short slugs, e.g. "RHYH3UQ8". */

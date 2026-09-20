@@ -415,6 +415,7 @@ export default function AdminLessonEditorPage() {
                     <option value="geometry">Geometry</option>
                     <option value="3d">3D</option>
                     <option value="classic">Classic</option>
+                    <option value="notes">Notes</option>
                   </select>
                 </div>
                 <div className="space-y-2">

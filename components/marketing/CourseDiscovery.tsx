@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
+import Link from "next/link";
 
 const courses = [
   {
@@ -53,40 +54,54 @@ export function CourseDiscovery() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {courses.map((course, index) => (
             <AnimatedItem key={course.code} index={index} delay={0.2} direction="up" distance={20}>
-              <div 
-                className={`p-6 rounded-2xl border transition-all duration-300 h-full flex flex-col ${
-                  course.available 
-                    ? "bg-[#FFF4E5] border-[#C96B2D]/25 shadow-sm hover:border-[#C96B2D] cursor-pointer group" 
-                    : "bg-[#F4EEE8] border-[#E7D8C8] opacity-70"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-8">
-                  <span 
-                    className={`font-sans text-[10px] font-bold tracking-widest uppercase ${
-                      course.available ? "text-[#C96B2D]" : "text-[#5D5149]"
-                    }`}
-                  >
-                    {course.code}
-                  </span>
-                  <span className="font-sans text-[10px] text-[#111111] bg-[#E5E5E5] px-2 py-1 rounded-md">
-                    {course.status}
-                  </span>
-                </div>
+              {course.available ? (
+                <Link
+                  href="/courses/math-151"
+                  className={`p-6 rounded-2xl border transition-all duration-300 h-full flex flex-col bg-[#FFF4E5] border-[#C96B2D]/25 shadow-sm hover:border-[#C96B2D] cursor-pointer group`}
+                >
+                  <div className="flex items-center justify-between mb-8">
+                    <span className="font-sans text-[10px] font-bold tracking-widest uppercase text-[#C96B2D]">
+                      {course.code}
+                    </span>
+                    <span className="font-sans text-[10px] text-[#111111] bg-[#E5E5E5] px-2 py-1 rounded-md">
+                      {course.status}
+                    </span>
+                  </div>
 
-                <h3 className={`font-serif text-2xl mb-3 ${course.available ? "text-[#111111]" : "text-[#666666]"}`}>
-                  {course.title}
-                </h3>
-                
-                <p className="font-sans text-sm text-[#666666] leading-relaxed flex-grow">
-                  {course.description}
-                </p>
+                  <h3 className="font-serif text-2xl mb-3 text-[#111111]">
+                    {course.title}
+                  </h3>
+                  
+                  <p className="font-sans text-sm text-[#666666] leading-relaxed flex-grow">
+                    {course.description}
+                  </p>
 
-                {course.available && (
                   <div className="mt-8 font-sans text-xs font-semibold text-[#C96B2D] group-hover:translate-x-1 transition-transform">
                     Explore Course →
                   </div>
-                )}
-              </div>
+                </Link>
+              ) : (
+                <div 
+                  className="p-6 rounded-2xl border transition-all duration-300 h-full flex flex-col bg-[#F4EEE8] border-[#E7D8C8] opacity-70"
+                >
+                  <div className="flex items-center justify-between mb-8">
+                    <span className="font-sans text-[10px] font-bold tracking-widest uppercase text-[#5D5149]">
+                      {course.code}
+                    </span>
+                    <span className="font-sans text-[10px] text-[#111111] bg-[#E5E5E5] px-2 py-1 rounded-md">
+                      {course.status}
+                    </span>
+                  </div>
+
+                  <h3 className="font-serif text-2xl mb-3 text-[#666666]">
+                    {course.title}
+                  </h3>
+                  
+                  <p className="font-sans text-sm text-[#666666] leading-relaxed flex-grow">
+                    {course.description}
+                  </p>
+                </div>
+              )}
             </AnimatedItem>
           ))}
         </div>
