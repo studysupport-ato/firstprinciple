@@ -5,7 +5,7 @@ import { getAdminCoursesAction, deleteCourseAction } from "../lib/adminContentAc
 
 async function cleanup() {
   const result = await getAdminCoursesAction();
-  if (!result.ok || !result.data) {
+  if (!result.ok) {
     console.error("Failed to fetch courses:", result.error);
     return;
   }
