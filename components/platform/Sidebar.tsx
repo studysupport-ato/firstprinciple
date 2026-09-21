@@ -69,10 +69,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           </span>
         )}
 
-        <Link href="/dashboard" className={navItemClass("/dashboard")}>
+        {/* <Link href="/dashboard" className={navItemClass("/dashboard")}>
           <Compass size={16} />
           {!collapsed && "Dashboard"}
-        </Link>
+        </Link> */}
 
         <Link href="/courses" className={navItemClass("/courses")}>
           <BookOpen size={16} />
@@ -89,7 +89,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           {!collapsed && "Questions"}
         </Link>
 
-        <Link href="/leaderboard" className={navItemClass("/leaderboard")}>
+        {/* <Link href="/leaderboard" className={navItemClass("/leaderboard")}>
           <Trophy size={16} />
           {!collapsed && "Leaderboard"}
         </Link>
@@ -97,7 +97,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <Link href="/progress" className={navItemClass("/progress")}>
           <TrendingUp size={16} />
           {!collapsed && "Performance"}
-        </Link>
+        </Link> */}
       </nav>
 
       <div className="p-4 border-t border-[#E5E5E5] flex flex-col gap-2">

@@ -1,15 +1,5 @@
-import { Hero } from "@/components/marketing/Hero";
-import { PracticeDemo } from "@/components/marketing/PracticeDemo";
-import { CourseDiscovery } from "@/components/marketing/CourseDiscovery";
-import { LeaderboardTeaser } from "@/components/marketing/LeaderboardTeaser";
+import { redirect } from "next/navigation";
 
 export default function MarketingPage() {
-  return (
-    <>
-      <Hero />
-      <PracticeDemo />
-      <CourseDiscovery />
-      <LeaderboardTeaser />
-    </>
-  );
+  redirect("/courses");
 }
