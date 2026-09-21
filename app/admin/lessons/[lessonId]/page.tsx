@@ -75,6 +75,7 @@ export default function AdminLessonEditorPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [revertTarget, setRevertTarget] = useState(false);
@@ -111,9 +112,15 @@ export default function AdminLessonEditorPage() {
   );
 
   function triggerMessage(text: string) {
+    setSaveError(null);
     setMessage(text);
     window.clearTimeout((triggerMessage as unknown as { timer?: number }).timer);
     (triggerMessage as unknown as { timer?: number }).timer = window.setTimeout(() => setMessage(null), 2500);
+  }
+
+  function triggerSaveError(text: string) {
+    setMessage(null);
+    setSaveError(text);
   }
 
   function updateLessonField(field: EditableField, value: string) {
@@ -172,7 +179,7 @@ export default function AdminLessonEditorPage() {
     try {
       const res = await saveDayContentAction(baseLesson.courseId, baseLesson.weekId, baseLesson.id, draft.blocks);
       if (!res.ok) {
-        triggerMessage(`Save failed: ${res.error}`);
+        triggerSaveError(res.error ?? "Save failed.");
         return;
       }
       if (status) {
@@ -550,6 +557,19 @@ export default function AdminLessonEditorPage() {
         <div className="flex items-center gap-2 rounded-2xl border border-[#E5E5E5] bg-white px-4 py-3 text-sm text-[#111111]">
           <Check size={16} className="text-[#059669]" />
           <span>{message}</span>
+        </div>
+      ) : null}
+
+      {saveError ? (
+        <div className="flex items-start gap-3 rounded-2xl border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3 text-sm text-[#991B1B]">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-[#DC2626]" />
+          <div className="flex-1 space-y-1">
+            <p className="font-semibold">Save failed — block was not persisted</p>
+            <p className="leading-5">{saveError}</p>
+          </div>
+          <button type="button" onClick={() => setSaveError(null)} className="shrink-0 text-[#991B1B] opacity-60 hover:opacity-100" aria-label="Dismiss error">
+            <X size={16} />
+          </button>
         </div>
       ) : null}
 
