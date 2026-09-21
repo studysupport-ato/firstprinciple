@@ -509,8 +509,15 @@ export function validateBlock(block: ContentBlock): string[] {
       if (!block.config || Object.keys(block.config).length === 0) errors.push("Interactive config cannot be empty.");
       if (block.provider === "geogebra") {
         const geoConfig = block.config as Record<string, unknown> | undefined;
-        if (geoConfig && typeof geoConfig.materialId === "string" && geoConfig.materialId.trim() === "") {
-          errors.push("GeoGebra material ID cannot be empty.");
+        // A GeoGebra block is valid if it has either a materialId OR an appName.
+        // An empty materialId is only an error when no appName is set either
+        // (i.e. the block is completely unconfigured).
+        if (geoConfig) {
+          const hasMaterialId = typeof geoConfig.materialId === "string" && geoConfig.materialId.trim() !== "";
+          const hasAppName = typeof geoConfig.appName === "string" && geoConfig.appName.trim() !== "";
+          if (!hasMaterialId && !hasAppName) {
+            errors.push("GeoGebra block requires either a material ID or an app type (e.g. Notes, Graphing).");
+          }
         }
         if (geoConfig && "height" in geoConfig && (typeof geoConfig.height !== "number" || !Number.isFinite(geoConfig.height) || geoConfig.height <= 0)) {
           errors.push("GeoGebra height must be a positive number.");

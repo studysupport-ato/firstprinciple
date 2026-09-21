@@ -130,8 +130,12 @@ export default function AdminLessonEditorPage() {
 
   function addBlock(type: (typeof supportedBlockTypes)[number]) {
     if (!draft) return;
-    const nextStep = Math.max(1, ...draft.blocks.map((block) => block.step ?? 1)) + 1;
-    const block = createDefaultBlock(type, nextStep);
+    // Default new blocks to the same step as the currently active block (or step 1
+    // when the lesson is empty). The old behaviour of always using max+1 silently
+    // placed every new block on a brand-new step, hiding it from students who had
+    // not yet clicked "Continue" through all prior steps.
+    const activeStep = activeBlock?.step ?? (draft.blocks.length > 0 ? Math.max(1, ...draft.blocks.map((block) => block.step ?? 1)) : 1);
+    const block = createDefaultBlock(type, activeStep);
     setDraft((current) => current ? { ...current, blocks: [...current.blocks, block] } : current);
     setSelectedBlockId(block.id);
   }
@@ -599,6 +603,20 @@ export default function AdminLessonEditorPage() {
                         {index + 1}. {block.type}
                       </button>
                       <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#666666]">Step</span>
+                          <input
+                            type="number"
+                            min={1}
+                            value={block.step ?? 1}
+                            onChange={(event) => {
+                              const stepValue = Math.max(1, Number(event.target.value) || 1);
+                              updateBlock(block.id, (item) => ({ ...item, step: stepValue }));
+                            }}
+                            className="w-12 rounded-lg border border-[#E5E5E5] bg-white px-1.5 py-1 text-center text-xs text-[#111111] outline-none"
+                            aria-label="Step number for this block"
+                          />
+                        </div>
                         <button type="button" onClick={() => moveBlock(block.id, "up")} className="rounded-full border border-[#E5E5E5] p-1.5 text-[#666666]" aria-label="Move up">
                           <ArrowUpDown size={14} className="rotate-[-90deg]" />
                         </button>
