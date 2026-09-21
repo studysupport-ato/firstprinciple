@@ -356,8 +356,8 @@ export function ChapterPracticePageClient({
             <button type="button" onClick={handleReset} className="flex flex-1 items-center justify-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-5 py-3 font-sans text-sm font-semibold text-[#111111] transition hover:border-[#111111]">
               <RotateCcw size={16} /> Practice again
             </button>
-            <Link href={`/courses/${courseId}/chapter/${chapterId}`} className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#111111] px-5 py-3 font-sans text-sm font-semibold text-white transition hover:bg-[#2563EB]">
-              Back to chapter
+            <Link href={`/courses/${courseId}/roadmap`} className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#111111] px-5 py-3 font-sans text-sm font-semibold text-white transition hover:bg-[#2563EB]">
+              Return to Roadmap
             </Link>
           </div>
         </div>

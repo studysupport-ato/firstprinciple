@@ -402,6 +402,15 @@ export function AssessmentPageClient({
             </div>
           </div>
         </div>
+        <div className="mx-auto mt-6 flex max-w-5xl justify-end">
+          <Link
+            href={`/courses/${courseId}/roadmap`}
+            className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-6 py-3 font-sans text-sm font-semibold text-white transition hover:bg-[#C96B2D]"
+          >
+            Return to Roadmap
+            <ArrowRight size={16} />
+          </Link>
+        </div>
       </div>
     );
   }
