@@ -39,6 +39,15 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
     };
   }, [course.id]);
 
+  // When auth resolves from null → true, complete the pending navigation.
+  // When it resolves from null → false, the modal will open (open={pendingHref !== null && authenticated === false}).
+  useEffect(() => {
+    if (pendingHref !== null && authenticated === true) {
+      router.push(pendingHref);
+      setPendingHref(null);
+    }
+  }, [authenticated, pendingHref, router]);
+
   function handleDayClick(event: React.MouseEvent, href: string) {
     // Preview mode: ?preview=1 is present — let the link through unconditionally.
     if (new URLSearchParams(window.location.search).get("preview") === "1") return;
@@ -46,7 +55,9 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
     // Authenticated: let the normal Link navigate.
     if (authenticated === true) return;
 
-    // Still resolving (null) or unauthenticated (false): intercept.
+    // Still resolving (null) or unauthenticated (false): intercept the click.
+    // If null, we store the href and wait. The effect above will navigate once resolved.
+    // If false, the modal will open because open={pendingHref !== null && authenticated === false}.
     event.preventDefault();
     setPendingHref(href);
   }
@@ -55,9 +66,9 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
 
   return (
     <div className="mx-auto max-w-[1100px] px-5 py-8 md:px-10 md:py-12 xl:px-12">
-      {/* AuthModal — only rendered when a gated click has been attempted */}
+      {/* AuthModal — only shown when we know the student is unauthenticated (not while loading) */}
       <AuthModal
-        open={pendingHref !== null}
+        open={pendingHref !== null && authenticated === false}
         onClose={() => setPendingHref(null)}
         initialView="signup"
         redirectTo={pendingHref ?? undefined}
