@@ -13,13 +13,13 @@ const statusStyles: Record<string, string> = {
   default: "bg-[#F7F7F8] text-[#666666]",
 };
 
-export function AdminStatusBadge({ status }: { status: string }) {
+export function AdminStatusBadge({ status, label }: { status: string; label?: string }) {
   const normalized = status.toLowerCase();
   const className = statusStyles[normalized] ?? statusStyles.default;
 
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${className}`}>
-      {status}
+      {label || status}
     </span>
   );
 }

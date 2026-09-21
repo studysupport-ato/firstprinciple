@@ -14,7 +14,7 @@ interface AdminTableProps<T> {
   emptyDescription?: string;
 }
 
-export function AdminTable<T extends Record<string, unknown>>({
+export function AdminTable<T extends Record<string, any>>({
   columns,
   rows,
   emptyMessage,

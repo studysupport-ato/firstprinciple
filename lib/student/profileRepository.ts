@@ -26,3 +26,13 @@ export function saveStudentProfile(profile: StudentProfile): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
 }
+
+export function listStudentProfiles(): StudentProfile[] {
+  const profile = getStudentProfile();
+  return profile ? [profile] : [];
+}
+
+export function getStudentProfileById(studentId: string): StudentProfile | null {
+  const profile = getStudentProfile();
+  return profile?.studentId === studentId ? profile : null;
+}
