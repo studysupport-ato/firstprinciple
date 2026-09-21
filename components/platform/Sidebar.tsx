@@ -74,17 +74,17 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           {!collapsed && "Dashboard"}
         </Link> */}
 
-        <Link href="/courses" className={navItemClass("/courses")}>
+        <Link href="/courses" data-tour="courses" className={navItemClass("/courses")}>
           <BookOpen size={16} />
           {!collapsed && "Courses"}
         </Link>
 
-        <Link href="/course-materials" className={navItemClass("/course-materials")}>
+        <Link href="/course-materials" data-tour="course-materials" className={navItemClass("/course-materials")}>
           <Library size={16} />
           {!collapsed && "Course Materials"}
         </Link>
 
-        <Link href="/questions" className={navItemClass("/questions")}>
+        <Link href="/questions" data-tour="questions" className={navItemClass("/questions")}>
           <CircleHelp size={16} />
           {!collapsed && "Questions"}
         </Link>
@@ -101,7 +101,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </nav>
 
       <div className="p-4 border-t border-[#E5E5E5] flex flex-col gap-2">
-        <Link href="/settings" className={navItemClass("/settings")}>
+        <Link href="/settings" data-tour="settings" className={navItemClass("/settings")}>
           <Settings size={16} />
           {!collapsed && "Settings"}
         </Link>

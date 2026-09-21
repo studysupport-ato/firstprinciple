@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/platform/Sidebar";
 import { PreviewToolbar } from "@/components/platform/PreviewToolbar";
+import { OnboardingTour } from "@/components/platform/OnboardingTour";
 
 export default function PlatformLayout({
   children,
@@ -24,6 +25,7 @@ export default function PlatformLayout({
         <PreviewToolbar />
         {children}
       </main>
+      <OnboardingTour />
     </div>
   );
 }
