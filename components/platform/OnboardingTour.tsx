@@ -46,19 +46,25 @@ export function OnboardingTour() {
   useEffect(() => {
     // Only check on the client
     const isCompleted = localStorage.getItem(TOUR_KEY) === "true";
-    const isPreview = new URLSearchParams(window.location.search).get("preview") === "1";
+    const urlParams = new URLSearchParams(window.location.search);
+    const isPreview = urlParams.get("preview") === "1";
+    const wantsOnboarding = urlParams.get("onboarding") === "true";
     const isAdmin = pathname.startsWith("/admin");
     
-    // Only start on /courses, when authenticated, not completed, not preview, not admin
+    // Only start on /courses, when authenticated or explicitly requested, not completed, not preview, not admin
     if (
       pathname === "/courses" &&
-      authSession === true &&
+      (authSession === true || wantsOnboarding) &&
       !isCompleted &&
       !isPreview &&
       !isAdmin
     ) {
       const timer = setTimeout(() => {
         setIsVisible(true);
+        // Clean up the URL if we used the onboarding param
+        if (wantsOnboarding) {
+          window.history.replaceState(null, '', pathname);
+        }
       }, 800); // subtle delay
       return () => clearTimeout(timer);
     }

@@ -203,7 +203,7 @@ export function AuthModal({
     if (view !== "success") return;
 
     const timeout = window.setTimeout(() => {
-      const destination = redirectTo ?? "/dashboard";
+      const destination = redirectTo ?? "/courses?onboarding=true";
       onClose();
       onSuccess?.(destination);
       router.push(destination);

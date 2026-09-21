@@ -69,10 +69,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           </span>
         )}
 
-        {/* <Link href="/dashboard" className={navItemClass("/dashboard")}>
+        <Link href="/dashboard" className={navItemClass("/dashboard")}>
           <Compass size={16} />
           {!collapsed && "Dashboard"}
-        </Link> */}
+        </Link>
 
         <Link href="/courses" data-tour="courses" className={navItemClass("/courses")}>
           <BookOpen size={16} />
