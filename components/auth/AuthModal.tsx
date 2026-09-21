@@ -106,10 +106,16 @@ export function AuthModal({
   open,
   onClose,
   initialView = "signin",
+  redirectTo,
+  onSuccess,
 }: {
   open: boolean;
   onClose: () => void;
   initialView?: AuthView;
+  /** If provided, router.push is called with this path after successful auth instead of /dashboard. */
+  redirectTo?: string;
+  /** Optional callback fired immediately before navigation so callers can react. */
+  onSuccess?: (destination: string) => void;
 }) {
   const router = useRouter();
   const [view, setView] = useState<AuthView>(initialView);
@@ -197,12 +203,14 @@ export function AuthModal({
     if (view !== "success") return;
 
     const timeout = window.setTimeout(() => {
+      const destination = redirectTo ?? "/dashboard";
       onClose();
-      router.push("/dashboard");
+      onSuccess?.(destination);
+      router.push(destination);
     }, 1400);
 
     return () => window.clearTimeout(timeout);
-  }, [view, onClose, router]);
+  }, [view, onClose, router, redirectTo, onSuccess]);
 
   const handleClose = () => {
     onClose();
