@@ -50,7 +50,8 @@ export default async function AdminLessonDetailPage({
     blocks: [],
   } satisfies Lesson;
 
-  const totalSteps = lesson.blocks.reduce((highest, block) => Math.max(highest, block.step ?? 0), 0) || 1;
+  const uniqueSteps = Array.from(new Set(lesson.blocks.map(b => b.step ?? 1))).sort((a, b) => a - b);
+  const totalSteps = uniqueSteps.length || 1;
 
   return (
     <div>
@@ -77,8 +78,7 @@ export default async function AdminLessonDetailPage({
           </div>
 
           <div className="space-y-6">
-            {Array.from({ length: totalSteps }, (_, index) => {
-              const step = index + 1;
+            {uniqueSteps.map((step) => {
               return (
                 <div key={step} className="rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] p-5">
                   <LessonRenderer lesson={lesson} step={step} />

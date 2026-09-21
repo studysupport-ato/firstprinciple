@@ -41,7 +41,9 @@ function renderBlock(block: ContentBlock) {
 
 export function LessonRenderer({ lesson, step }: { lesson: Lesson; step: number }) {
   const blocks = (lesson?.blocks ?? []).filter((block) => block.step === step);
-  const totalSteps = (lesson?.blocks ?? []).reduce((highest, block) => Math.max(highest, block.step ?? 0), 0);
+  const uniqueSteps = Array.from(new Set((lesson?.blocks ?? []).map(b => b.step ?? 1))).sort((a, b) => a - b);
+  const totalSteps = uniqueSteps.length;
+  const displayStep = uniqueSteps.indexOf(step) + 1 || 1;
 
   return (
     <AnimatePresence mode="wait">
@@ -54,7 +56,7 @@ export function LessonRenderer({ lesson, step }: { lesson: Lesson; step: number 
         className="flex flex-col gap-6"
       >
         <span className="font-sans text-xs font-semibold uppercase tracking-wider text-[#2563EB]">
-          Step {step} of {totalSteps}
+          Step {displayStep} of {totalSteps}
         </span>
         {blocks.map((block) => (
           <div key={block.id}>{renderBlock(block)}</div>
