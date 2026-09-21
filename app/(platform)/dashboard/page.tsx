@@ -9,9 +9,9 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowUpRight, ArrowRight, Flame, Target, CheckCircle2, BookOpen, TrendingUp, UserRound } from "lucide-react";
 import { getCourseWeeks, getWeekDays } from "@/lib/curriculum";
+import { getActiveStudentId } from "@/lib/auth/mock";
 import {
   createProgressFactsRepository,
-  STUDENT_ID,
   type ActivityDisplay,
   type ActivityEvent,
   type ContinueLearning,
@@ -196,15 +196,16 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let active = true;
-    const repository = createProgressFactsRepository("supabase");
+    const repository = createProgressFactsRepository("local");
 
     void (async () => {
       try {
+        const studentId = getActiveStudentId();
         const [dayProgressRows, practiceAttempts, assessmentAttempts, activityResult] = await Promise.all([
-          repository.listDayProgressForCourse(STUDENT_ID, "math-151"),
-          repository.listPracticeAttempts(STUDENT_ID, { courseId: "math-151" }),
-          repository.listAssessmentAttempts(STUDENT_ID, { courseId: "math-151" }),
-          repository.listActivity(STUDENT_ID, { courseId: "math-151", limit: 50 }),
+          repository.listDayProgressForCourse(studentId, "math-151"),
+          repository.listPracticeAttempts(studentId, { courseId: "math-151" }),
+          repository.listAssessmentAttempts(studentId, { courseId: "math-151" }),
+          repository.listActivity(studentId, { courseId: "math-151", limit: 50 }),
         ]);
 
         if (!active) return;

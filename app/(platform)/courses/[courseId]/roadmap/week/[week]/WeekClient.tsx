@@ -7,13 +7,14 @@ import { ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { useAuthSession } from "@/lib/auth/useAuthSession";
-import { createProgressFactsRepository, STUDENT_ID, type DayProgress } from "@/lib/progress";
+import { getActiveStudentId } from "@/lib/auth/mock";
+import { createProgressFactsRepository, type DayProgress } from "@/lib/progress";
 import type { Course, Week } from "@/lib/content/types/course";
 import type { Lesson } from "@/lib/content/types/lesson";
 
 export default function WeekClient({ course, week, days }: { course: Course; week: Week; days: Lesson[] }) {
   const [dayProgress, setDayProgress] = useState<Record<string, DayProgress>>({});
-  const authenticated = useAuthSession();
+  const { authenticated } = useAuthSession();
   const router = useRouter();
 
   // Destination the student tried to enter before being gated.
@@ -21,11 +22,12 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
 
   useEffect(() => {
     let active = true;
-    const repository = createProgressFactsRepository("supabase");
+    const repository = createProgressFactsRepository("local");
 
     void (async () => {
       try {
-        const rows = await repository.listDayProgressForCourse(STUDENT_ID, course.id);
+        const studentId = getActiveStudentId();
+        const rows = await repository.listDayProgressForCourse(studentId, course.id);
         if (!active) return;
         setDayProgress(Object.fromEntries(rows.map((row) => [row.dayId, row])));
       } catch (error) {
@@ -70,7 +72,6 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
       <AuthModal
         open={pendingHref !== null && authenticated === false}
         onClose={() => setPendingHref(null)}
-        initialView="signup"
         redirectTo={pendingHref ?? undefined}
         onSuccess={(destination) => {
           setPendingHref(null);

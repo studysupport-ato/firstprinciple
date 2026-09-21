@@ -4,16 +4,30 @@ import type { ActivityEvent, AssessmentAttempt, CourseProgress, PracticeAttempt,
 /**
  * Local persistence for student state.
  *
- * Dedicated namespaced key so student progress stays separate from content,
- * asset, and admin lifecycle state. Serializes structured collections that
- * would map to relational records later.
+ * Keys are namespaced per-student so multiple demo students can have fully
+ * isolated progress. The legacy key (no suffix) maps to "local-student" for
+ * backward compatibility.
  */
 
+/** @deprecated Legacy key — use getStudentStorageKey(studentId) for per-student access. */
 export const PROGRESS_STORAGE_KEY = "first-principles-progress-v1";
 
-export function createEmptyProgress(): StudentProgress {
+export function getStudentStorageKey(studentId: string): string {
+  if (!studentId || studentId === "local-student") return PROGRESS_STORAGE_KEY;
+  return `first-principles-progress-v1:${studentId}`;
+}
+
+export function getActiveStudentStorageKey(): string {
+  if (typeof window === "undefined") return PROGRESS_STORAGE_KEY;
+  // Read mock auth directly to avoid circular dep with lib/auth/mock
+  const MOCK_AUTH_KEY = "first-principles-mock-auth-v1";
+  const studentId = window.localStorage.getItem(MOCK_AUTH_KEY);
+  return getStudentStorageKey(studentId || "local-student");
+}
+
+export function createEmptyProgress(studentId?: string): StudentProgress {
   return {
-    studentId: STUDENT_ID,
+    studentId: studentId || STUDENT_ID,
     courseProgress: {},
     practiceAttempts: [],
     assessmentAttempts: [],
@@ -157,27 +171,85 @@ export function normalizeProgress(input: unknown): StudentProgress {
   };
 }
 
+export function seedDemoProgressIfNeeded(studentId: string, storageKey: string): StudentProgress {
+  if (studentId === "demo-student-a") {
+    // Seed Student A (advanced progress)
+    const seed = createEmptyProgress(studentId);
+    seed.courseProgress["math-151"] = {
+      courseId: "math-151",
+      weeks: {
+        "w1": {
+          weekId: "w1",
+          days: {
+            "d1": { dayId: "d1", status: "completed", startedAt: new Date().toISOString(), completedAt: new Date().toISOString(), lastVisitedAt: new Date().toISOString(), timeSpentSeconds: 3400 },
+            "d2": { dayId: "d2", status: "in_progress", startedAt: new Date().toISOString(), lastVisitedAt: new Date().toISOString(), timeSpentSeconds: 1500 },
+          }
+        }
+      }
+    };
+    seed.activity.push({ id: "seed-a1", studentId, courseId: "math-151", type: "lesson_completed", occurredAt: new Date().toISOString(), entityId: "d1" });
+    window.localStorage.setItem(storageKey, JSON.stringify(seed));
+    return seed;
+  }
+  
+  if (studentId === "demo-student-c") {
+    // Seed Student C (starting out)
+    const seed = createEmptyProgress(studentId);
+    seed.courseProgress["math-151"] = {
+      courseId: "math-151",
+      weeks: {
+        "w1": {
+          weekId: "w1",
+          days: {
+            "d1": { dayId: "d1", status: "in_progress", startedAt: new Date().toISOString(), lastVisitedAt: new Date().toISOString(), timeSpentSeconds: 300 },
+          }
+        }
+      }
+    };
+    window.localStorage.setItem(storageKey, JSON.stringify(seed));
+    return seed;
+  }
+  
+  if (studentId === "demo-student-d") {
+    // Seed Student D (finished week 1, took assessment)
+    const seed = createEmptyProgress(studentId);
+    seed.assessmentAttempts.push({
+      id: "assessment-d1", studentId, assessmentId: "assessment-1", courseId: "math-151", startedAt: new Date().toISOString(), submittedAt: new Date().toISOString(), answers: {}, score: 8, percentage: 80, marksEarned: 8, marksAvailable: 10, status: "submitted"
+    });
+    window.localStorage.setItem(storageKey, JSON.stringify(seed));
+    return seed;
+  }
+  
+  return createEmptyProgress(studentId);
+}
+
 export function readProgress(): StudentProgress {
   if (typeof window === "undefined") return createEmptyProgress();
+  const storageKey = getActiveStudentStorageKey();
   try {
-    const raw = window.localStorage.getItem(PROGRESS_STORAGE_KEY);
-    if (!raw) return createEmptyProgress();
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) {
+      const MOCK_AUTH_KEY = "first-principles-mock-auth-v1";
+      const studentId = window.localStorage.getItem(MOCK_AUTH_KEY) || "local-student";
+      return seedDemoProgressIfNeeded(studentId, storageKey);
+    }
     return normalizeProgress(JSON.parse(raw));
   } catch {
-    console.warn(`[Back2Basics with Kwamina] Progress storage is malformed; using an empty progress state: ${PROGRESS_STORAGE_KEY}`);
+    console.warn(`[First Principles] Progress storage is malformed; using an empty state: ${storageKey}`);
     return createEmptyProgress();
   }
 }
 
 export function writeProgress(progress: StudentProgress) {
   if (typeof window === "undefined") return undefined;
+  const storageKey = getActiveStudentStorageKey();
   const normalized = normalizeProgress(progress);
   normalized.updatedAt = new Date().toISOString();
-  window.localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(normalized));
+  window.localStorage.setItem(storageKey, JSON.stringify(normalized));
   return normalized;
 }
 
 export function clearProgressStorage() {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(PROGRESS_STORAGE_KEY);
+  window.localStorage.removeItem(getActiveStudentStorageKey());
 }

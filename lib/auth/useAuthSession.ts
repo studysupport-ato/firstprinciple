@@ -4,40 +4,39 @@ import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
+import { getCurrentMockStudent, MockStudent } from "@/lib/auth/mock";
+
+export interface AuthSessionState {
+  authenticated: boolean | null;
+  student: MockStudent | null;
+}
+
 /**
- * Returns true if the current user has an active Supabase session, false otherwise.
- * Returns null while the check is still in flight (loading state).
- *
- * If Supabase is not configured in this environment the hook returns false
- * immediately so preview/dev flows are never blocked.
+ * Returns the current mock session state.
+ * authenticated is null while loading.
  */
-export function useAuthSession(): boolean | null {
-  const [authenticated, setAuthenticated] = useState<boolean | null>(
-    isSupabaseConfigured() ? null : false,
-  );
+export function useAuthSession(): AuthSessionState {
+  const [state, setState] = useState<AuthSessionState>({
+    authenticated: null,
+    student: null,
+  });
 
   useEffect(() => {
-    if (!isSupabaseConfigured()) {
-      setAuthenticated(false);
-      return;
-    }
-
-    const supabase = createSupabaseBrowserClient();
-
-    // Check the current session immediately.
-    supabase.auth.getSession().then(({ data }) => {
-      setAuthenticated(!!data.session);
-    });
-
-    // Subscribe to future changes (sign-in, sign-out, token refresh).
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthenticated(!!session);
-    });
-
-    return () => {
-      listener.subscription.unsubscribe();
+    const checkSession = () => {
+      const student = getCurrentMockStudent();
+      setState({
+        authenticated: !!student,
+        student,
+      });
     };
+
+    // Check immediately
+    checkSession();
+
+    // Listen to mock auth changes
+    window.addEventListener("mock-auth-change", checkSession);
+    return () => window.removeEventListener("mock-auth-change", checkSession);
   }, []);
 
-  return authenticated;
+  return state;
 }

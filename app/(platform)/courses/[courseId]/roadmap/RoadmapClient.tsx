@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
 import { Check } from "lucide-react";
-import { createProgressFactsRepository, STUDENT_ID, type DayProgress } from "@/lib/progress";
+import { getActiveStudentId } from "@/lib/auth/mock";
+import { createProgressFactsRepository, type DayProgress } from "@/lib/progress";
 import type { Course, Week } from "@/lib/content/types/course";
 import type { Lesson } from "@/lib/content/types/lesson";
 
@@ -13,15 +14,16 @@ export default function RoadmapClient({ course, weeks, daysByWeek }: { course: C
 
   useEffect(() => {
     let active = true;
-    const repository = createProgressFactsRepository("supabase");
+    const repository = createProgressFactsRepository("local");
 
     void (async () => {
       try {
-        const rows = await repository.listDayProgressForCourse(STUDENT_ID, course.id);
+        const studentId = getActiveStudentId();
+        const rows = await repository.listDayProgressForCourse(studentId, course.id);
         if (!active) return;
         setDayProgress(Object.fromEntries(rows.map((row) => [row.dayId, row])));
       } catch (error) {
-        console.error("[Back2Basics with Kwamina] Failed to read day progress from Supabase", error);
+        console.error("[Back2Basics with Kwamina] Failed to read day progress from local", error);
         if (active) setDayProgress({});
       }
     })();

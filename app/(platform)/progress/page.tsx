@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, type Variants } from "framer-motion";
 import { Target, Flame, Clock, Trophy, ChevronRight, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { createProgressFactsRepository, STUDENT_ID, type ActivityEvent, type AssessmentAttempt, type PracticeAttempt, type PracticeStats } from "@/lib/progress";
+import { getActiveStudentId } from "@/lib/auth/mock";
+import { createProgressFactsRepository, type ActivityEvent, type AssessmentAttempt, type PracticeAttempt, type PracticeStats } from "@/lib/progress";
 
 function clampPercent(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
@@ -131,14 +132,15 @@ export default function ProgressPage() {
 
   useEffect(() => {
     let active = true;
-    const repository = createProgressFactsRepository("supabase");
+    const repository = createProgressFactsRepository("local");
 
     void (async () => {
       try {
+        const studentId = getActiveStudentId();
         const [practiceAttempts, assessmentAttempts, activityResult] = await Promise.all([
-          repository.listPracticeAttempts(STUDENT_ID, { courseId: "math-151" }),
-          repository.listAssessmentAttempts(STUDENT_ID, { courseId: "math-151" }),
-          repository.listActivity(STUDENT_ID, { courseId: "math-151", limit: 50 }),
+          repository.listPracticeAttempts(studentId, { courseId: "math-151" }),
+          repository.listAssessmentAttempts(studentId, { courseId: "math-151" }),
+          repository.listActivity(studentId, { courseId: "math-151", limit: 50 }),
         ]);
 
         if (!active) return;

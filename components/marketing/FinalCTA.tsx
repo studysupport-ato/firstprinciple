@@ -92,7 +92,7 @@ export function FinalCTA() {
 
       </div>
       </section>
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialView={authView} />
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </>
   );
 }

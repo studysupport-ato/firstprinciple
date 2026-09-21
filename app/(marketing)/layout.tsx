@@ -12,7 +12,6 @@ export default function MarketingLayout({
 }) {
   const [isSolid, setIsSolid] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
-  const [authView, setAuthView] = useState<"signin" | "signup">("signin");
 
   useEffect(() => {
     const handler = () => {
@@ -75,7 +74,6 @@ export default function MarketingLayout({
         <button
           type="button"
           onClick={() => {
-            setAuthView("signin");
             setAuthOpen(true);
           }}
           className={`text-xs font-sans font-semibold px-5 py-2.5 rounded-full border transition-all duration-500 ${
@@ -92,7 +90,7 @@ export default function MarketingLayout({
         {children}
       </main>
 
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialView={authView} />
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
 
       {/* Footer */}
       <footer className="border-t border-[#E9D8C3] py-6 px-8 md:px-16 flex items-center justify-between bg-[#FFFBF5]">

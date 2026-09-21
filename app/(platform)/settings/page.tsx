@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { User, Bell, Shield, Monitor, LogOut, Check, Save, ChevronDown, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { resetStudentProgress } from "@/lib/progress";
 import { getStudentProfile, StudentProfile } from "@/lib/student/profileRepository";
+import { getCurrentMockStudent, listMockStudents, loginMockStudent, logoutMockStudent, MockStudent } from "@/lib/auth/mock";
 
 const tabs = [
   { id: "account", label: "Account", icon: User },
@@ -17,6 +19,7 @@ type Theme = "Light" | "System" | "Dark";
 type Density = "Comfortable" | "Compact";
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("account");
   const [saved, setSaved] = useState(false);
   const [notice, setNotice] = useState("");
@@ -26,9 +29,19 @@ export default function SettingsPage() {
   const [emailUpdates, setEmailUpdates] = useState(true);
   const [streakReminders, setStreakReminders] = useState(true);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [currentMockStudent, setCurrentMockStudent] = useState<MockStudent | null>(null);
+  const allStudents = listMockStudents();
 
   useEffect(() => {
     setProfile(getStudentProfile());
+    setCurrentMockStudent(getCurrentMockStudent());
+
+    const handleAuthChange = () => {
+      setProfile(getStudentProfile());
+      setCurrentMockStudent(getCurrentMockStudent());
+    };
+    window.addEventListener("mock-auth-change", handleAuthChange);
+    return () => window.removeEventListener("mock-auth-change", handleAuthChange);
   }, []);
 
   useEffect(() => {
@@ -250,12 +263,102 @@ export default function SettingsPage() {
               </div>
             </div>
           ) : (
-            <div className={`rounded-[24px] border p-6 shadow-[0_12px_30px_rgba(17,17,17,0.035)] md:p-8 ${theme === "Dark" ? "border-white/10 bg-[#202329] text-white" : "border-[#E5E5E5] bg-white"}`}>
-              <div className="mb-8"><div className="mb-2 flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#D97706]"><Shield size={13} /> Account protection</div><h2 className="font-serif text-3xl tracking-tight text-[#111111]">Security</h2><p className="mt-2 font-sans text-sm text-[#777777]">Keep your learning account private and protected.</p></div>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between rounded-2xl border border-[#E5E5E5] p-5"><div><div className="font-sans text-sm font-semibold">Password</div><div className="mt-1 font-sans text-xs text-[#777777]">Last updated 24 days ago</div></div><button type="button" onClick={() => showNotice("Password reset link sent.")} className="rounded-full border border-[#E5E5E5] px-4 py-2 font-sans text-xs font-semibold text-[#111111] hover:border-[#111111]">Change password</button></div>
-                <div className="flex items-center justify-between rounded-2xl border border-[#E5E5E5] p-5"><div><div className="font-sans text-sm font-semibold">Active sessions</div><div className="mt-1 font-sans text-xs text-[#777777]">1 active session on Chrome for Windows</div></div><button type="button" onClick={() => showNotice("All other sessions have been signed out.")} className="inline-flex items-center gap-2 rounded-full px-4 py-2 font-sans text-xs font-semibold text-[#E11D48] hover:bg-[#FFF1F2]"><LogOut size={13} /> Sign out all</button></div>
-                <div className="flex items-center justify-between rounded-2xl border border-[#E5E5E5] p-5"><div><div className="font-sans text-sm font-semibold">Local development data</div><div className="mt-1 font-sans text-xs text-[#777777]">Clears student progress only — content, question bank, assessments, and assets are not affected.</div></div><button type="button" onClick={() => { resetStudentProgress(); showNotice("Local progress cleared."); }} className="inline-flex items-center gap-2 rounded-full px-4 py-2 font-sans text-xs font-semibold text-[#E11D48] hover:bg-[#FFF1F2]"><LogOut size={13} /> Reset local progress</button></div>
+            <div className="flex flex-col gap-6">
+              {/* Demo Account Panel */}
+              <div className={`rounded-[24px] border p-6 shadow-[0_12px_30px_rgba(17,17,17,0.035)] md:p-8 ${theme === "Dark" ? "border-white/10 bg-[#202329] text-white" : "border-[#E5E5E5] bg-white"}`}>
+                <div className="mb-6">
+                  <div className="mb-2 flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#2563EB]"><Sparkles size={13} /> Demo account</div>
+                  <h2 className="font-serif text-3xl tracking-tight text-[#111111]">Active student</h2>
+                  <p className="mt-2 font-sans text-sm text-[#777777]">Switch between demo student accounts for testing or demonstrations.</p>
+                </div>
+
+                {/* Current student */}
+                {currentMockStudent ? (
+                  <div className="mb-5 flex items-center gap-4 rounded-2xl bg-[#F7F7F8] p-4">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#111111] text-sm font-bold text-white">
+                      {currentMockStudent.fullName.charAt(0)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-sans text-sm font-semibold text-[#111111]">{currentMockStudent.fullName}</div>
+                      <div className="truncate font-sans text-xs text-[#666666]">{currentMockStudent.email}</div>
+                    </div>
+                    <span className="rounded-full bg-[#ECFDF5] px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-[#059669]">Active</span>
+                  </div>
+                ) : (
+                  <div className="mb-5 rounded-2xl border border-dashed border-[#E5E5E5] p-4 text-center text-sm text-[#999999]">No student selected</div>
+                )}
+
+                {/* Student switcher */}
+                <div className="flex flex-col gap-2">
+                  {allStudents.map((student) => {
+                    const isActive = currentMockStudent?.studentId === student.studentId;
+                    return (
+                      <button
+                        key={student.studentId}
+                        type="button"
+                        disabled={isActive}
+                        onClick={() => {
+                          loginMockStudent(student.studentId);
+                          window.location.reload();
+                        }}
+                        className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition-all ${
+                          isActive
+                            ? "border-[#111111] bg-[#111111] text-white cursor-default"
+                            : "border-[#E5E5E5] bg-white text-[#111111] hover:border-[#999999] hover:shadow-sm"
+                        }`}
+                      >
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isActive ? "bg-white/20 text-white" : "bg-[#F7F7F8] text-[#111111]"}`}>
+                          {student.fullName.charAt(0)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className={`font-semibold ${isActive ? "text-white" : "text-[#111111]"}`}>{student.fullName}</div>
+                          <div className={`truncate text-xs ${isActive ? "text-white/70" : "text-[#666666]"}`}>{student.email}</div>
+                        </div>
+                        {isActive && <span className="text-[10px] font-bold uppercase tracking-widest text-white/60">Current</span>}
+                        {!student.profileCompleted && !isActive && <span className="rounded-full bg-[#FFF7ED] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#D97706]">New</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Session Actions */}
+              <div className={`rounded-[24px] border p-6 shadow-[0_12px_30px_rgba(17,17,17,0.035)] md:p-8 ${theme === "Dark" ? "border-white/10 bg-[#202329] text-white" : "border-[#E5E5E5] bg-white"}`}>
+                <div className="mb-6">
+                  <div className="mb-2 flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#D97706]"><Shield size={13} /> Session</div>
+                  <h2 className="font-serif text-3xl tracking-tight text-[#111111]">Account actions</h2>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between rounded-2xl border border-[#E5E5E5] p-5">
+                    <div>
+                      <div className="font-sans text-sm font-semibold">Sign out</div>
+                      <div className="mt-1 font-sans text-xs text-[#777777]">End your session and return to the course library.</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        logoutMockStudent();
+                        router.push("/courses");
+                      }}
+                      className="inline-flex items-center gap-2 rounded-full px-4 py-2 font-sans text-xs font-semibold text-[#E11D48] hover:bg-[#FFF1F2]"
+                    >
+                      <LogOut size={13} /> Sign out
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl border border-[#E5E5E5] p-5">
+                    <div>
+                      <div className="font-sans text-sm font-semibold">Reset local progress</div>
+                      <div className="mt-1 font-sans text-xs text-[#777777]">Clears current student&apos;s progress data only. Content and other students are not affected.</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { resetStudentProgress(); showNotice("Local progress cleared."); }}
+                      className="inline-flex items-center gap-2 rounded-full px-4 py-2 font-sans text-xs font-semibold text-[#E11D48] hover:bg-[#FFF1F2]"
+                    >
+                      <LogOut size={13} /> Reset progress
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}

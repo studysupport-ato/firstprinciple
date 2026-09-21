@@ -231,7 +231,7 @@ export function Hero() {
         ))}
       </motion.div>
 
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialView={authView} />
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
 
       {/* ── SCROLL INDICATOR ── */}
       <motion.div

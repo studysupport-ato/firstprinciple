@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, CheckCircle2, UserRound, Phone, Mail } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { getStudentProfile, saveStudentProfile } from "@/lib/student/profileRepository";
-import { STUDENT_ID } from "@/lib/progress/types";
+import { getActiveStudentId, getCurrentMockStudent } from "@/lib/auth/mock";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { useAuthSession } from "@/lib/auth/useAuthSession";
@@ -38,15 +38,17 @@ export function ProfileCompletionModal() {
   const [hasDismissed, setHasDismissed] = useState(false); // temporary session dismiss
 
   const pathname = usePathname();
-  const authSession = useAuthSession();
+  const { authenticated, student } = useAuthSession();
 
   useEffect(() => {
     // Only check on client
     if (pathname !== "/courses") return;
-    if (authSession !== true) return;
+    if (authenticated !== true) return;
     if (hasDismissed) return;
 
-    const isTourCompleted = localStorage.getItem(TOUR_KEY) === "true";
+    // Use student-aware onboarding key
+    const currentTourKey = student ? `${TOUR_KEY}:${student.studentId}` : TOUR_KEY;
+    const isTourCompleted = localStorage.getItem(currentTourKey) === "true";
     const profile = getStudentProfile();
 
     if (isTourCompleted && !profile) {
@@ -56,17 +58,24 @@ export function ProfileCompletionModal() {
       }, 600);
       return () => clearTimeout(timer);
     }
-  }, [pathname, authSession, hasDismissed]);
+  }, [pathname, authenticated, hasDismissed, student]);
 
   useEffect(() => {
-    // Try to get email from Supabase if configured
-    if (isVisible && isSupabaseConfigured() && !email) {
-      const supabase = createSupabaseBrowserClient();
-      supabase.auth.getSession().then(({ data }) => {
-        if (data.session?.user?.email) {
-          setEmail(data.session.user.email);
-        }
-      });
+    // Try email from mock student first, then Supabase if configured
+    if (isVisible && !email) {
+      const mockStudent = getCurrentMockStudent();
+      if (mockStudent?.email) {
+        setEmail(mockStudent.email);
+        return;
+      }
+      if (isSupabaseConfigured()) {
+        const supabase = createSupabaseBrowserClient();
+        supabase.auth.getSession().then(({ data }) => {
+          if (data.session?.user?.email) {
+            setEmail(data.session.user.email);
+          }
+        });
+      }
     }
   }, [isVisible, email]);
 
@@ -93,11 +102,14 @@ export function ProfileCompletionModal() {
     const normalizedPhone = normalizeGhanaPhoneNumber(phoneNumber);
     
     const now = new Date().toISOString();
+    const activeStudentId = getActiveStudentId();
+    // Pre-fill email from the mock student if not already loaded from Supabase
+    const resolvedEmail = email ?? getCurrentMockStudent()?.email ?? null;
     saveStudentProfile({
-      studentId: STUDENT_ID,
+      studentId: activeStudentId,
       fullName: fullName.trim(),
       phoneNumber: normalizedPhone,
-      email,
+      email: resolvedEmail,
       profileCompleted: true,
       createdAt: now,
       updatedAt: now,
