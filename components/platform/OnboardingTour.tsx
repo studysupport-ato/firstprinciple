@@ -132,6 +132,12 @@ export function OnboardingTour() {
     } else {
       cardTop = targetRect.top;
       cardLeft = targetRect.right + 20;
+      
+      // Prevent card from overflowing off the bottom of the screen
+      const estimatedCardHeight = 220;
+      if (cardTop + estimatedCardHeight > windowSize.h) {
+        cardTop = Math.max(16, windowSize.h - estimatedCardHeight - 24);
+      }
     }
   }
 
