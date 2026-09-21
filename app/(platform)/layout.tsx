@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Sidebar } from "@/components/platform/Sidebar";
 import { PreviewToolbar } from "@/components/platform/PreviewToolbar";
 import { OnboardingTour } from "@/components/platform/OnboardingTour";
+import { ProfileCompletionModal } from "@/components/platform/ProfileCompletionModal";
 
 export default function PlatformLayout({
   children,
@@ -26,6 +27,7 @@ export default function PlatformLayout({
         {children}
       </main>
       <OnboardingTour />
+      <ProfileCompletionModal />
     </div>
   );
 }

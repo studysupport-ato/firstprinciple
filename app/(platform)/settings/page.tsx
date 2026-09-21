@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { User, Bell, Shield, Monitor, LogOut, Check, Save, ChevronDown, Sparkles } from "lucide-react";
 import { resetStudentProgress } from "@/lib/progress";
+import { getStudentProfile, StudentProfile } from "@/lib/student/profileRepository";
 
 const tabs = [
   { id: "account", label: "Account", icon: User },
@@ -24,6 +25,11 @@ export default function SettingsPage() {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [emailUpdates, setEmailUpdates] = useState(true);
   const [streakReminders, setStreakReminders] = useState(true);
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
+
+  useEffect(() => {
+    setProfile(getStudentProfile());
+  }, []);
 
   useEffect(() => {
     const stored = window.sessionStorage.getItem("first-principles-settings");
@@ -83,10 +89,12 @@ export default function SettingsPage() {
             </p>
           </div>
           <div className={`flex items-center gap-3 self-start rounded-full border px-3 py-2 shadow-[0_4px_16px_rgba(17,17,17,0.03)] md:self-auto ${theme === "Dark" ? "border-white/10 bg-white/[0.06]" : "border-[#E5E5E5] bg-white"}`}>
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#111111] font-sans text-[10px] font-bold text-white">KM</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#111111] font-sans text-[10px] font-bold text-white">
+              {profile?.fullName ? profile.fullName.charAt(0).toUpperCase() : "S"}
+            </span>
             <div className="pr-2">
-              <div className="font-sans text-xs font-semibold text-[#111111]">Kwame Mensah</div>
-              <div className="font-sans text-[10px] text-[#777777]">MATH 151 learner</div>
+              <div className="font-sans text-xs font-semibold text-[#111111]">{profile?.fullName || "Student"}</div>
+              <div className="font-sans text-[10px] text-[#777777]">Learner</div>
             </div>
           </div>
         </header>
@@ -135,27 +143,27 @@ export default function SettingsPage() {
             </div>
             <div className="mb-8 flex flex-wrap items-center gap-5 rounded-2xl bg-[#F7F7F8] p-5">
               <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-[#111111] shadow-[0_8px_20px_rgba(17,17,17,0.16)]">
-                <img src="https://ui-avatars.com/api/?name=Kwame+Mensah&background=111111&color=fff&size=200" alt="Avatar" className="w-full h-full object-cover" />
+                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.fullName || "Student")}&background=111111&color=fff&size=200`} alt="Avatar" className="w-full h-full object-cover" />
               </div>
               <div className="flex-1">
-                <div className="font-sans text-base font-semibold text-[#111111]">Kwame Mensah</div>
-                <div className="mt-1 font-sans text-xs text-[#777777]">Student profile · KNUST</div>
+                <div className="font-sans text-base font-semibold text-[#111111]">{profile?.fullName || "Student"}</div>
+                <div className="mt-1 font-sans text-xs text-[#777777]">Student profile</div>
                 <button type="button" className="mt-3 rounded-full border border-[#D9D9D9] bg-white px-4 py-2 font-sans text-xs font-semibold text-[#111111] transition-colors hover:border-[#111111]">Change avatar</button>
               </div>
             </div>
             
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <label className="font-sans text-xs font-semibold uppercase tracking-widest text-[#666666]">First Name</label>
-                <input type="text" defaultValue="Kwame" className="h-12 rounded-xl border border-[#E5E5E5] bg-[#FBFBFA] px-4 text-[#111111] outline-none transition-colors focus:border-[#2563EB] focus:bg-white" />
+              <div className="flex flex-col gap-2 md:col-span-2">
+                <label className="font-sans text-xs font-semibold uppercase tracking-widest text-[#666666]">Full Name</label>
+                <input type="text" value={profile?.fullName || ""} readOnly className="h-12 rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 text-[#777777] outline-none cursor-not-allowed" />
               </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-sans text-xs font-semibold uppercase tracking-widest text-[#666666]">Last Name</label>
-                <input type="text" defaultValue="Mensah" className="h-12 rounded-xl border border-[#E5E5E5] bg-[#FBFBFA] px-4 text-[#111111] outline-none transition-colors focus:border-[#2563EB] focus:bg-white" />
+              <div className="flex flex-col gap-2 md:col-span-2">
+                <label className="font-sans text-xs font-semibold uppercase tracking-widest text-[#666666]">Phone Number</label>
+                <input type="tel" value={profile?.phoneNumber || ""} readOnly className="h-12 rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 text-[#777777] outline-none cursor-not-allowed" />
               </div>
               <div className="flex flex-col gap-2 md:col-span-2">
                 <label className="font-sans text-xs font-semibold uppercase tracking-widest text-[#666666]">Email Address</label>
-                <input type="email" defaultValue="kwame.mensah@st.knust.edu.gh" className="h-12 rounded-xl border border-[#E5E5E5] bg-[#FBFBFA] px-4 text-[#111111] outline-none transition-colors focus:border-[#2563EB] focus:bg-white" />
+                <input type="email" value={profile?.email || ""} readOnly className="h-12 rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 text-[#777777] outline-none cursor-not-allowed" />
               </div>
             </div>
           </div>
