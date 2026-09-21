@@ -374,3 +374,12 @@ export async function deleteMaterialAction(materialId: string): Promise<AdminAct
   });
 }
 
+import { deleteAdminResource } from "./content/adminService";
+
+export async function deleteResourceAction(resourceId: string): Promise<AdminActionResult<null>> {
+  return run(async () => {
+    await deleteAdminResource(resourceId);
+    return null;
+  });
+}
+

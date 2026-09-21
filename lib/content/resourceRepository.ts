@@ -37,6 +37,7 @@ export interface ResourceRepository {
   createPlacement(resourceId: string, target: ResourcePlacementTarget): Promise<ResourcePlacement>;
   deletePlacement(resourceId: string, target: ResourcePlacementTarget): Promise<void>;
   listResourcesForScope(scope: ResourcePlacementTarget, options?: ResourceRepositoryListOptions): Promise<LearningResource[]>;
+  deleteResource(resourceId: string): Promise<void>;
 }
 
 function resourceIsVisible(resource: LearningResource, options: ResourceRepositoryListOptions) {
@@ -92,6 +93,9 @@ export const resourceLocalRepository: ResourceRepository = {
     );
     const resourceIds = new Set(placements.map((placement) => placement.resourceId));
     return applyResourceOptions(getResources().filter((resource) => resourceIds.has(resource.id)), options);
+  },
+  async deleteResource() {
+    throw new Error("Not implemented for local source");
   },
 };
 
@@ -243,6 +247,12 @@ export function createResourceSupabaseRepository(clientFactory: () => SupabaseCl
     const { data, error } = await query;
     if (error) throw error;
     return ((data ?? []) as ResourceRow[]).map(mapResource);
+  },
+  async deleteResource(resourceId) {
+    const { error: placementsError } = await clientFactory().from("resource_placements").delete().eq("resource_id", resourceId);
+    if (placementsError) throw placementsError;
+    const { error } = await clientFactory().from("learning_resources").delete().eq("id", resourceId);
+    if (error) throw error;
   },
   };
 }

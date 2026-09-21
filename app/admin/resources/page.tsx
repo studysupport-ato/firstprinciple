@@ -43,6 +43,7 @@ export default function AdminResourcesPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmResource, setConfirmResource] = useState<LearningResource | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<LearningResource | null>(null);
 
   async function refresh() {
     setLoading(true);
@@ -91,6 +92,23 @@ export default function AdminResourcesPage() {
     }
   }
 
+  async function confirmDeleteResource() {
+    if (!deleteTarget) return;
+    try {
+      const { deleteResourceAction } = await import("@/lib/adminContentActions");
+      const result = await deleteResourceAction(deleteTarget.id);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setNotice("Resource permanently deleted.");
+      setDeleteTarget(null);
+      refresh();
+    } catch {
+      setError("The resource could not be deleted.");
+    }
+  }
+
   const rows: ResourceRow[] = filtered.map((row) => ({
     id: row.resource.id,
     resource: row.resource,
@@ -117,6 +135,7 @@ export default function AdminResourcesPage() {
 
       {notice ? <div className="mb-6 rounded-2xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm text-[#15803D]">{notice}</div> : null}
       <ConfirmDialog open={!!confirmResource} title={confirmResource?.status === "archived" ? "Restore resource" : "Archive resource"} description={confirmResource ? `${confirmResource.status === "archived" ? "Restore" : "Archive"} "${confirmResource.title}"? ${confirmResource.status === "archived" ? "This brings the resource back to the draft set." : "Existing placements will remain attached."}` : "Archive this resource?"} confirmLabel={confirmResource?.status === "archived" ? "Restore" : "Archive"} onConfirm={confirmLifecycleChange} onCancel={() => setConfirmResource(null)} />
+      <ConfirmDialog open={!!deleteTarget} title="Delete resource" description={deleteTarget ? `Permanently delete "${deleteTarget.title}" and all its placements? This cannot be undone.` : "Delete this resource?"} confirmLabel="Delete" onConfirm={confirmDeleteResource} onCancel={() => setDeleteTarget(null)} />
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, description or tag" className="admin-input max-w-sm" />
@@ -158,6 +177,9 @@ export default function AdminResourcesPage() {
                   <button type="button" onClick={() => changeLifecycle(row.resource)} className="inline-flex items-center gap-1 rounded-full border border-[#E5E5E5] px-3 py-1.5 text-xs font-semibold text-[#111111] hover:border-[#2563EB]">
                     {row.resource.status === "archived" ? <ArchiveRestore size={12} /> : <Archive size={12} />}
                     {row.resource.status === "archived" ? "Restore" : "Archive"}
+                  </button>
+                  <button type="button" onClick={() => setDeleteTarget(row.resource)} className="inline-flex items-center gap-1 rounded-full border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50">
+                    Delete
                   </button>
                 </div>
               ),

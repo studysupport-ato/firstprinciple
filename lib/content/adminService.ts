@@ -436,6 +436,10 @@ export async function removeAdminResourcePlacement(resourceId: string, target: A
   return createResourceAdminRepository().deletePlacement(resourceId, target);
 }
 
+export async function deleteAdminResource(resourceId: string): Promise<void> {
+  return createResourceAdminRepository().deleteResource(resourceId);
+}
+
 // ---------------------------------------------------------------------------
 // Writes — Course Materials (departments + course_materials)
 // ---------------------------------------------------------------------------
