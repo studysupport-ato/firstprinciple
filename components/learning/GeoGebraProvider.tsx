@@ -92,7 +92,7 @@ export function GeoGebraProvider({ config, title, adminHint = false }: { config:
           onLoad={() => setStatus("ready")}
         />
       </div>
-      <figcaption className="flex flex-wrap items-center justify-between gap-2 border-t border-[#E5E5E5] bg-[#FAFAFA] px-4 py-2.5">
+      <figcaption className="flex flex-wrap items-center justify-between gap-2 border-t border-[#E5E5E5] bg-transparent px-4 py-2.5">
         <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#666666]">
           GeoGebra - {resolution.kind === "material" ? "Activity" : resolution.appName}
         </span>

@@ -36,7 +36,7 @@ const courses = [
 
 export function CourseDiscovery() {
   return (
-    <section id="platform" className="py-32 bg-[#FAFAFA] border-t border-[#E5E5E5]">
+    <section id="platform" className="py-32 bg-transparent border-t border-[#E5E5E5]">
       <div className="max-w-[1440px] mx-auto px-8 md:px-16">
         
         <AnimatedItem className="mb-16 flex flex-col items-center text-center">

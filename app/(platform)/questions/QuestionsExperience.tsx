@@ -129,7 +129,7 @@ export default function QuestionsExperience({
             </div>
 
             {!matchingQuestions.length ? (
-              <p id="no-matches" className="mt-4 rounded-2xl border border-dashed border-[#E5E5E5] bg-[#FAFAFA] p-4 text-sm text-[#666666]">Try a broader topic, subtopic, or difficulty selection.</p>
+              <p id="no-matches" className="mt-4 rounded-2xl border border-dashed border-[#E5E5E5] bg-transparent p-4 text-sm text-[#666666]">Try a broader topic, subtopic, or difficulty selection.</p>
             ) : null}
           </section>
 

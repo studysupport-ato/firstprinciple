@@ -167,7 +167,7 @@ export default function VectorLessonPage() {
         </div>
 
         {/* Right Side: R3F Canvas */}
-        <div className="hidden lg:block w-[55%] h-full relative bg-[#FAFAFA]">
+        <div className="hidden lg:block w-[55%] h-full relative bg-transparent">
           <Canvas camera={{ position: [3, 4, 8], fov: 45 }} className="w-full h-full cursor-move">
             <color attach="background" args={['#FAFAFA']} />
             <React.Suspense fallback={null}>

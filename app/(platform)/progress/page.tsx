@@ -249,7 +249,7 @@ const topicColors = ["bg-[#111111]", "bg-[#FFBE00]", "bg-[#E11D48]", "bg-[#D9770
 
             <div className="space-y-6">
               {topics.length === 0 ? (
-                <p className="rounded-[18px] border border-dashed border-[#E5E5E5] bg-[#FAFAFA] p-6 text-center font-sans text-sm text-[#666666]">
+                <p className="rounded-[18px] border border-dashed border-[#E5E5E5] bg-transparent p-6 text-center font-sans text-sm text-[#666666]">
                   Not enough data yet. Answer practice questions to build topic mastery.
                 </p>
               ) : topics.map((topic, index) => (
@@ -278,7 +278,7 @@ const topicColors = ["bg-[#111111]", "bg-[#FFBE00]", "bg-[#E11D48]", "bg-[#D9770
               </h2>
             </div>
 
-            <div className="rounded-[22px] border border-[#E5E5E5] bg-[#FAFAFA] p-4 md:p-5">
+            <div className="rounded-[22px] border border-[#E5E5E5] bg-transparent p-4 md:p-5">
               <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
                 {heatmapData.map((week, wIdx) => (
                   <div key={wIdx} className="flex shrink-0 flex-col gap-2">
@@ -341,7 +341,7 @@ const topicColors = ["bg-[#111111]", "bg-[#FFBE00]", "bg-[#E11D48]", "bg-[#D9770
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
             {assessments.length === 0 ? (
-              <p className="col-span-full rounded-[22px] border border-dashed border-[#E5E5E5] bg-[#FAFAFA] p-6 text-center font-sans text-sm text-[#666666]">
+              <p className="col-span-full rounded-[22px] border border-dashed border-[#E5E5E5] bg-transparent p-6 text-center font-sans text-sm text-[#666666]">
                 No assessments yet. Submit an assessment and your score will appear here.
               </p>
             ) : (

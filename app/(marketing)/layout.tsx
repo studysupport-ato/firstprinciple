@@ -34,12 +34,12 @@ export default function MarketingLayout({
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] flex flex-col">
+    <div className="min-h-screen bg-transparent flex flex-col">
       {/* Header */}
       <header
         className={`fixed top-0 left-0 right-0 h-20 z-50 flex items-center justify-between px-8 md:px-16 transition-all duration-500 ${
           isSolid
-            ? "bg-[#FAFAFA]/95 backdrop-blur-md border-b border-[#E5E5E5] shadow-sm"
+            ? "bg-transparent/95 backdrop-blur-md border-b border-[#E5E5E5] shadow-sm"
             : "bg-transparent border-b border-white/10"
         }`}
       >
@@ -93,7 +93,7 @@ export default function MarketingLayout({
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
 
       {/* Footer */}
-      <footer className="border-t border-[#E5E5E5] py-6 px-8 md:px-16 flex items-center justify-between bg-[#FAFAFA]">
+      <footer className="border-t border-[#E5E5E5] py-6 px-8 md:px-16 flex items-center justify-between bg-transparent">
         <span className="font-sans text-xs text-[#666666]">
           © 2026 Back2Basics with Kwamina. All rights reserved.
         </span>

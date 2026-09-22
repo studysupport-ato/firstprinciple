@@ -66,7 +66,7 @@ export function LeaderboardTeaser() {
   }, [isInView]);
 
   return (
-    <section ref={ref} className="relative overflow-hidden border-t border-[#E5E5E5] bg-[#FAFAFA] py-32 text-[#111111]">
+    <section ref={ref} className="relative overflow-hidden border-t border-[#E5E5E5] bg-transparent py-32 text-[#111111]">
       {/* Ambient glow */}
       <div className="pointer-events-none absolute left-1/2 top-0 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-[#FFBE00]/[0.06] blur-[150px]" />
 

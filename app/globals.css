@@ -4,16 +4,16 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
 
-  --color-background: #FAFAFA;
+  --color-background: #FFBE00;
   --color-surface: #FFFFFF;
   --color-foreground: #111111;
-  --color-muted: #FFFFFF;
-  --color-muted-foreground: #5D5149;
-  --color-border: #E5E5E5;
+  --color-muted: #FFD54F;
+  --color-muted-foreground: #111111;
+  --color-border: #111111;
   --color-primary: #111111;
-  --color-primary-foreground: #FAFAFA;
-  --color-interactive: #FFBE00;
-  --color-interactive-hover: #E5AA00;
+  --color-primary-foreground: #FFBE00;
+  --color-interactive: #E53935;
+  --color-interactive-hover: #C62828;
   
   /* Mathematical accent colors used strictly for visualization */
   --color-math-1: #D94E3B;
@@ -23,10 +23,10 @@
 }
 
 :root {
-  --background: #FAFAFA;
+  --background: #FFBE00;
   --surface: #FFFFFF;
   --foreground: #111111;
-  --border: #E5E5E5;
+  --border: #111111;
 }
 
 @layer base {
@@ -43,13 +43,18 @@
   
   body {
     background-color: var(--background);
+    background-image: 
+      linear-gradient(rgba(17, 17, 17, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(17, 17, 17, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: center center;
     color: var(--foreground);
     font-family: var(--font-sans);
     line-height: 1.6;
   }
 
   ::selection {
-    background-color: rgba(255, 190, 0, 0.2);
+    background-color: rgba(229, 57, 53, 0.2);
     color: var(--foreground);
   }
 }
@@ -61,23 +66,23 @@
   }
 
   .field-label {
-    @apply block text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666];
+    @apply block text-[10px] font-bold uppercase tracking-[0.2em] text-[#111111]/70;
   }
 
   .admin-input {
-    @apply w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2.5 text-sm text-[#111111] outline-none transition focus:border-[#FFBE00];
+    @apply w-full rounded-xl border-2 border-[#111111] bg-white px-3 py-2.5 text-sm text-[#111111] outline-none transition focus:border-[#E53935] shadow-[2px_2px_0_#111111];
   }
 
   .editorial-heading {
-    @apply font-serif tracking-tight text-foreground leading-[1.1];
+    @apply font-sans font-black tracking-tight text-foreground leading-[1.1] uppercase;
   }
   
   .editorial-body {
-    @apply font-sans text-muted-foreground leading-relaxed text-lg;
+    @apply font-sans text-[#111111]/80 font-medium leading-relaxed text-lg;
   }
 
   .glass-panel {
-    @apply bg-white/80 backdrop-blur-md border border-border shadow-sm;
+    @apply bg-white/90 backdrop-blur-md border-2 border-border shadow-[4px_4px_0_#111111];
   }
 
   .math-display {

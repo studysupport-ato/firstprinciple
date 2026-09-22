@@ -40,7 +40,7 @@ export function InteractiveBlock({ provider, config }: InteractiveBlockData) {
           <span className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">3D view</span>
           <span className="font-sans text-[10px] text-[#666666]">{showResult ? "Orthogonality visible" : "Vector setup"}</span>
         </div>
-        <div className="h-[420px] w-full overflow-hidden rounded-2xl border border-[#E5E5E5] bg-[#FAFAFA]">
+        <div className="h-[420px] w-full overflow-hidden rounded-2xl border border-[#E5E5E5] bg-transparent">
           <Canvas camera={{ position: [3, 4, 8], fov: 45 }} className="h-full w-full">
             <CrossProductScene v1={v1} v2={v2} showResult={showResult} />
           </Canvas>

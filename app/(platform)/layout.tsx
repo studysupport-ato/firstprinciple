@@ -14,7 +14,6 @@ export default function PlatformLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
-    // If they haven't seen the welcome banner, start with the sidebar collapsed for the cinematic intro
     const hasSeenWelcome = localStorage.getItem("first-principles-welcome-v1");
     if (!hasSeenWelcome) {
       setSidebarCollapsed(true);
@@ -29,7 +28,7 @@ export default function PlatformLayout({
   }, []);
 
   return (
-    <div id="platform-root" className="min-h-screen bg-[#FAFAFA] flex">
+    <div id="platform-root" className="min-h-screen flex">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((current) => !current)}
