@@ -96,7 +96,7 @@ function NestedSetsScene({ buildStep }: { buildStep: number }) {
       </mesh>
       {buildStep >= 4 && (
         <Html position={[0, -0.5, 3.3]} center>
-          <div className="bg-slate-50 border border-slate-200 text-slate-600 px-3 py-1 rounded text-xs font-bold shadow-sm whitespace-nowrap">
+          <div className="bg-transparent border border-slate-200 text-slate-600 px-3 py-1 rounded text-xs font-bold shadow-sm whitespace-nowrap">
             ℝ : Real Numbers (ℚ ∪ 𝕀)
           </div>
         </Html>
@@ -181,7 +181,7 @@ function EducationalDominos() {
           <button onClick={triggerFall} className="bg-[#111111] text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-[#2563EB] transition-colors">
             Trigger Proof
           </button>
-          <button onClick={resetFall} className="bg-white border border-[#E5E5E5] text-[#111111] px-4 py-2 rounded-full text-xs font-bold hover:bg-[#F7F7F8] transition-colors">
+          <button onClick={resetFall} className="bg-white border border-[#E5E5E5] text-[#111111] px-4 py-2 rounded-full text-xs font-bold hover:bg-transparent transition-colors">
             Reset
           </button>
         </div>

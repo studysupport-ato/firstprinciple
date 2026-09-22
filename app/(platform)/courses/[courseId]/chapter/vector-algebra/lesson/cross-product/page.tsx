@@ -132,7 +132,7 @@ export default function VectorLessonPage() {
               </div>
 
               {step.math && (
-                <div className="bg-[#F7F7F8] border border-[#E5E5E5] rounded-2xl py-6 px-4 mt-4">
+                <div className="bg-transparent border border-[#E5E5E5] rounded-2xl py-6 px-4 mt-4">
                   <MathText math={step.math} block={true} />
                 </div>
               )}
@@ -140,7 +140,7 @@ export default function VectorLessonPage() {
           </div>
 
           {/* Navigation Controls */}
-          <div className="p-8 border-t border-[#E5E5E5] bg-[#F7F7F8] flex items-center justify-between">
+          <div className="p-8 border-t border-[#E5E5E5] bg-transparent flex items-center justify-between">
             <button 
               onClick={prevStep}
               disabled={currentStep === 0}

@@ -57,7 +57,7 @@ export default function QuestionsExperience({
   }
 
   return (
-    <div className="min-h-screen bg-[#FBFBFA] px-5 py-8 md:px-10 md:py-12">
+    <div className="min-h-screen bg-transparent px-5 py-8 md:px-10 md:py-12">
       <div className="mx-auto max-w-[1180px]">
         <header className="mb-10 border-b border-[#E5E5E5] pb-8">
           <div className="mb-4 flex items-center gap-3">
@@ -81,7 +81,7 @@ export default function QuestionsExperience({
             <div className="grid gap-5 md:grid-cols-2">
               <label className="space-y-2">
                 <span className="field-label">Course</span>
-                <select value={courseId} onChange={(event) => changeCourse(event.target.value)} className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
+                <select value={courseId} onChange={(event) => changeCourse(event.target.value)} className="w-full rounded-xl border border-[#E5E5E5] bg-transparent px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
                   {courses.map((course) => (
                     <option key={course.id} value={course.id}>{course.code} · {course.title}</option>
                   ))}
@@ -90,7 +90,7 @@ export default function QuestionsExperience({
 
               <label className="space-y-2">
                 <span className="field-label">Difficulty</span>
-                <select value={difficulty} onChange={(event) => setDifficulty(event.target.value as Difficulty | "all")} className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
+                <select value={difficulty} onChange={(event) => setDifficulty(event.target.value as Difficulty | "all")} className="w-full rounded-xl border border-[#E5E5E5] bg-transparent px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
                   {difficulties.map((value) => (
                     <option key={value} value={value}>{value === "all" ? "Any difficulty" : value.charAt(0).toUpperCase() + value.slice(1)}</option>
                   ))}
@@ -99,7 +99,7 @@ export default function QuestionsExperience({
 
               <label className="space-y-2">
                 <span className="field-label">Topic</span>
-                <select value={topic} onChange={(event) => { setTopic(event.target.value); setSubtopic(""); }} className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
+                <select value={topic} onChange={(event) => { setTopic(event.target.value); setSubtopic(""); }} className="w-full rounded-xl border border-[#E5E5E5] bg-transparent px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
                   <option value="">All topics</option>
                   {topics.map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
@@ -107,7 +107,7 @@ export default function QuestionsExperience({
 
               <label className="space-y-2">
                 <span className="field-label">Subtopic</span>
-                <select value={subtopic} onChange={(event) => setSubtopic(event.target.value)} className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
+                <select value={subtopic} onChange={(event) => setSubtopic(event.target.value)} className="w-full rounded-xl border border-[#E5E5E5] bg-transparent px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
                   <option value="">All subtopics</option>
                   {subtopics.map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
@@ -115,7 +115,7 @@ export default function QuestionsExperience({
 
               <label className="space-y-2 md:col-span-2">
                 <span className="field-label">Number of questions</span>
-                <select value={count} onChange={(event) => setCount(Number(event.target.value))} className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
+                <select value={count} onChange={(event) => setCount(Number(event.target.value))} className="w-full rounded-xl border border-[#E5E5E5] bg-transparent px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
                   {questionCounts.map((value) => <option key={value} value={value}>{value} questions</option>)}
                 </select>
               </label>

@@ -34,7 +34,7 @@ function QuestionRenderer({
 
   return (
     <div className="space-y-8">
-      <div className="rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] p-5">
+      <div className="rounded-2xl border border-[#E5E5E5] bg-transparent p-5">
         <span className="font-sans text-[10px] font-bold uppercase tracking-[0.24em] text-[#2563EB]">Practice question</span>
         <h2 className="mt-4 editorial-heading text-2xl md:text-3xl text-[#111111] leading-relaxed">
           {question.prompt.split(/(\$.*?\$)/g).map((part, index) => {
@@ -93,7 +93,7 @@ function QuestionRenderer({
             onChange={(event) => onSelect(question.type === "numerical" ? Number(event.target.value) : event.target.value)}
             disabled={submitted}
             placeholder={question.type === "numerical" ? "Enter a number" : "Type your answer"}
-            className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 font-sans text-base text-[#111111] outline-none transition focus:border-[#2563EB]"
+            className="w-full rounded-xl border border-[#E5E5E5] bg-transparent px-4 py-3 font-sans text-base text-[#111111] outline-none transition focus:border-[#2563EB]"
           />
         </div>
       )}
@@ -118,7 +118,7 @@ function QuestionRenderer({
       )}
 
       {submitted ? (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] p-5">
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden rounded-2xl border border-[#E5E5E5] bg-transparent p-5">
           <div className="flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#666666]">
             {evaluateQuestionAnswer(question, selectedValue) ? <Check size={14} className="text-[#059669]" /> : <XCircle size={14} className="text-[#E11D48]" />}
             {evaluateQuestionAnswer(question, selectedValue) ? "Correct" : "Feedback"}
@@ -205,7 +205,7 @@ export default function PracticeExperience({
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F7F7F8] p-6">
+      <div className="flex min-h-screen items-center justify-center bg-transparent p-6">
         <div className="max-w-lg rounded-[30px] border border-[#E5E5E5] bg-white p-10 text-center shadow-sm">
           <p className="font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#666666]">Loading</p>
           <h1 className="mt-4 editorial-heading text-4xl text-[#111111]">Preparing your practice set…</h1>
@@ -216,7 +216,7 @@ export default function PracticeExperience({
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F7F7F8] p-6">
+      <div className="flex min-h-screen items-center justify-center bg-transparent p-6">
         <div className="max-w-lg rounded-[30px] border border-[#E5E5E5] bg-white p-10 text-center shadow-sm">
           <p className="font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#666666]">Practice unavailable</p>
           <h1 className="mt-4 editorial-heading text-4xl text-[#111111]">Could not load questions.</h1>
@@ -231,7 +231,7 @@ export default function PracticeExperience({
 
   if (!questions.length || !currentQuestion || !session) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F7F7F8] p-6">
+      <div className="flex min-h-screen items-center justify-center bg-transparent p-6">
         <div className="max-w-lg rounded-[30px] border border-[#E5E5E5] bg-white p-10 text-center shadow-sm">
           <p className="font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#666666]">Practice unavailable</p>
           <h1 className="mt-4 editorial-heading text-4xl text-[#111111]">No questions are available yet.</h1>
@@ -326,14 +326,14 @@ export default function PracticeExperience({
 
   if (sessionComplete && summary) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F7F7F8] p-6">
+      <div className="flex min-h-screen items-center justify-center bg-transparent p-6">
         <div className="w-full max-w-2xl rounded-[30px] border border-[#E5E5E5] bg-white p-8 shadow-sm md:p-12">
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#F7F7F8]">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-transparent">
             <Trophy className="text-[#2563EB]" size={32} />
           </div>
           <p className="text-center font-sans text-[10px] font-bold uppercase tracking-[0.24em] text-[#666666]">Practice complete</p>
           <h1 className="mt-4 text-center editorial-heading text-4xl text-[#111111]">Session summary</h1>
-          <div className="mt-8 rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] p-6">
+          <div className="mt-8 rounded-2xl border border-[#E5E5E5] bg-transparent p-6">
             <div className="flex items-end justify-center gap-2">
               <span className="font-sans text-6xl font-black text-[#111111]">{summary.correctCount}</span>
               <span className="mb-2 font-sans text-xl text-[#666666]">/ {summary.total}</span>
@@ -354,7 +354,7 @@ export default function PracticeExperience({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F7F7F8]">
+    <div className="flex min-h-screen flex-col bg-transparent">
       <header className="flex h-16 items-center justify-between border-b border-[#E5E5E5] bg-white px-6 md:px-8">
         <div className="flex items-center gap-4">
           <Link href={`/courses/${courseId}/chapter/${chapterId}`} className="text-[#666666] transition-colors hover:text-[#111111]">

@@ -264,7 +264,7 @@ export default function LeaderboardPage() {
         transition={{ duration: 0.45, delay: 0.5 }}
         className="overflow-hidden rounded-[28px] border border-[#E5E5E5] bg-white shadow-[0_16px_40px_rgba(17,17,17,0.03)]"
       >
-        <div className="hidden grid-cols-12 gap-4 border-b border-[#E5E5E5] bg-[#F7F7F8] p-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#666666] md:grid">
+        <div className="hidden grid-cols-12 gap-4 border-b border-[#E5E5E5] bg-transparent p-4 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#666666] md:grid">
           <div className="col-span-1 text-center">Rank</div>
           <div className="col-span-5">Student</div>
           <div className="col-span-2 text-center">Streak</div>
@@ -288,7 +288,7 @@ export default function LeaderboardPage() {
                   y: { duration: 0.38, delay: 0.52 + idx * 0.06 },
                 }}
                 className={`grid grid-cols-12 items-center gap-3 p-4 transition-colors md:gap-4 ${
-                  currentUser ? "bg-[#EEF6FF]" : "hover:bg-[#F7F7F8]"
+                  currentUser ? "bg-[#EEF6FF]" : "hover:bg-transparent"
                 }`}
               >
                 <div className="col-span-2 flex justify-center md:col-span-1">

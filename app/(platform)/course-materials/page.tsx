@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   ArrowUpRight,
@@ -185,7 +185,7 @@ export default function CourseMaterialsPage() {
   ].filter(Boolean) as string[];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 antialiased">
+    <div className="min-h-screen bg-transparent text-slate-800 antialiased">
       <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white px-6 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-lg font-bold text-white shadow-md shadow-sky-900/20">
@@ -213,7 +213,7 @@ export default function CourseMaterialsPage() {
         </button>
       </header>
 
-      <main className="flex min-h-[calc(100vh-64px)] flex-col overflow-hidden bg-slate-50">
+      <main className="flex min-h-[calc(100vh-64px)] flex-col overflow-hidden bg-transparent">
         <div className="flex-1 overflow-y-auto p-6">
           <div className="mx-auto max-w-[1200px] space-y-6">
             <section className="space-y-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
@@ -224,7 +224,7 @@ export default function CourseMaterialsPage() {
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Search departments, course codes, titles or sources..."
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-10 text-sm text-slate-700 outline-none transition focus:border-sky-500 focus:bg-white focus:ring-2 focus:ring-sky-500/20"
+                    className="w-full rounded-xl border border-slate-200 bg-transparent py-3 pl-11 pr-10 text-sm text-slate-700 outline-none transition focus:border-sky-500 focus:bg-white focus:ring-2 focus:ring-sky-500/20"
                     aria-label="Search course materials"
                   />
                   {query ? (
@@ -237,7 +237,7 @@ export default function CourseMaterialsPage() {
                 <select
                   value={typeFilter}
                   onChange={(event) => setTypeFilter(event.target.value as "ALL" | MaterialType)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-sky-500 focus:bg-white focus:ring-2 focus:ring-sky-500/20 md:w-56"
+                  className="w-full rounded-xl border border-slate-200 bg-transparent px-3.5 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-sky-500 focus:bg-white focus:ring-2 focus:ring-sky-500/20 md:w-56"
                 >
                   {RESOURCE_TYPES.map((option) => (
                     <option key={option} value={option}>
@@ -338,7 +338,7 @@ export default function CourseMaterialsPage() {
                         const deptBadge = getDepartmentBadgeClass(department.name);
 
                         return viewMode === "grid" ? (
-                          <article key={entry.id} className="flex min-h-[220px] flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-sky-300 hover:bg-white">
+                          <article key={entry.id} className="flex min-h-[220px] flex-col justify-between rounded-2xl border border-slate-200 bg-transparent p-4 transition hover:border-sky-300 hover:bg-white">
                             <div className="space-y-3">
                               <div className="flex items-center justify-between gap-2">
                                 <span className={`inline-flex rounded-lg border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${deptBadge}`}>
@@ -375,7 +375,7 @@ export default function CourseMaterialsPage() {
                             </div>
                           </article>
                         ) : (
-                          <div key={entry.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 md:flex-row md:items-center md:justify-between">
+                          <div key={entry.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-transparent p-3 md:flex-row md:items-center md:justify-between">
                             <div className="flex min-w-0 items-center gap-3">
                               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white">
                                 {getTypeIcon(entry.type)}
@@ -420,7 +420,7 @@ export default function CourseMaterialsPage() {
       {selectedMaterial ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
           <div className="max-h-[90vh] w-full max-w-xl overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl">
-            <div className="flex items-start justify-between border-b border-slate-100 bg-slate-50 p-6">
+            <div className="flex items-start justify-between border-b border-slate-100 bg-transparent p-6">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] ${getDepartmentBadgeClass(directory.departments.find((item) => item.id === selectedMaterial.departmentId)?.name ?? "General")}`}>
@@ -441,7 +441,7 @@ export default function CourseMaterialsPage() {
                 <p className="leading-relaxed text-slate-600">{selectedMaterial.description ?? "No description has been provided for this course material."}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 rounded-xl bg-slate-50 p-4">
+              <div className="grid grid-cols-2 gap-4 rounded-xl bg-transparent p-4">
                 <div>
                   <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Resource Type</span>
                   <span className="mt-1 block font-semibold text-slate-700">{selectedMaterial.type}</span>
@@ -468,7 +468,7 @@ export default function CourseMaterialsPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-slate-100 bg-slate-50 p-5">
+            <div className="flex items-center justify-between gap-3 border-t border-slate-100 bg-transparent p-5">
               <button type="button" onClick={() => toggleBookmark(selectedMaterial.id)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
                 <Bookmark className={`h-4 w-4 ${bookmarks.includes(selectedMaterial.id) ? "fill-amber-500 text-amber-500" : "text-slate-500"}`} />
                 {bookmarks.includes(selectedMaterial.id) ? "Saved" : "Save Material"}

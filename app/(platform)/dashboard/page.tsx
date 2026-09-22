@@ -265,7 +265,7 @@ export default function DashboardPage() {
   }, { scope: containerRef });
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-[#FBFBFA] px-6 py-6 md:px-12 md:py-8">
+    <div ref={containerRef} className="min-h-screen bg-transparent px-6 py-6 md:px-12 md:py-8">
       <div className="mx-auto max-w-[1200px]">
         <div className="mb-12 flex items-center justify-between border-b border-[#E5E5E5] pb-5">
           <div className="flex items-center gap-3">
@@ -365,7 +365,7 @@ export default function DashboardPage() {
               {hasActivity ? weekActivity.map((day) => (
                 <div key={day.date} className="flex flex-col items-center gap-3 flex-1">
                   <motion.div
-                    className={`w-full rounded-lg ${day.count > 0 ? "bg-[#111111]" : "bg-[#F7F7F8] border border-[#E5E5E5]"}`}
+                    className={`w-full rounded-lg ${day.count > 0 ? "bg-[#111111]" : "bg-transparent border border-[#E5E5E5]"}`}
                     initial={{ height: 0 }}
                     whileInView={{ height: `${Math.max((day.count / maxCount) * 100, day.count > 0 ? 12 : 6)}%` }}
                     transition={{ duration: 0.8, delay: 0.05, ease: "easeOut" }}

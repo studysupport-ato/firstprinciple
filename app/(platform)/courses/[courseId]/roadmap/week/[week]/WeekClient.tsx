@@ -138,7 +138,7 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
                   <h2 className="font-serif text-2xl text-[#111111] md:text-3xl">{day.title}</h2>
                   <p className="mt-2 text-sm leading-relaxed text-[#666666]">{day.description}</p>
                 </div>
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E5E5E5] bg-[#F7F7F8]">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E5E5E5] bg-transparent">
                   <ArrowRight size={15} />
                 </span>
               </Link>

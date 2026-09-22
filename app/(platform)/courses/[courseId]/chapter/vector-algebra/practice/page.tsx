@@ -91,7 +91,7 @@ export default function VectorQuizPage() {
   const progressPercentage = ((currentQuestion) / quizQuestions.length) * 100;
 
   return (
-    <div className="flex flex-col h-screen bg-[#F7F7F8] relative">
+    <div className="flex flex-col h-screen bg-transparent relative">
       
       {/* Header */}
       <header className="flex-shrink-0 h-16 border-b border-[#E5E5E5] flex items-center justify-between px-8 bg-white z-20">
@@ -139,7 +139,7 @@ export default function VectorQuizPage() {
                 className="bg-white border border-[#E5E5E5] rounded-3xl p-8 md:p-12 shadow-sm"
               >
                 
-                <span className="inline-block px-3 py-1 bg-[#F7F7F8] text-[#666666] font-sans text-xs font-bold uppercase tracking-widest rounded-full mb-8">
+                <span className="inline-block px-3 py-1 bg-transparent text-[#666666] font-sans text-xs font-bold uppercase tracking-widest rounded-full mb-8">
                   Question {currentQuestion + 1}
                 </span>
 
@@ -197,7 +197,7 @@ export default function VectorQuizPage() {
                       animate={{ opacity: 1, height: "auto" }}
                       className="overflow-hidden"
                     >
-                      <div className={`p-6 rounded-2xl mb-8 ${selectedOption === question.correctAnswer ? 'bg-emerald-50 border border-emerald-100' : 'bg-[#F7F7F8] border border-[#E5E5E5]'}`}>
+                      <div className={`p-6 rounded-2xl mb-8 ${selectedOption === question.correctAnswer ? 'bg-emerald-50 border border-emerald-100' : 'bg-transparent border border-[#E5E5E5]'}`}>
                         <span className="font-sans text-xs font-bold uppercase tracking-widest block mb-2 text-[#666666]">
                           {selectedOption === question.correctAnswer ? 'Great Job!' : 'Explanation'}
                         </span>
@@ -240,7 +240,7 @@ export default function VectorQuizPage() {
                 <h2 className="editorial-heading text-4xl text-[#111111] mb-2">Practice Complete!</h2>
                 <p className="font-sans text-[#666666] mb-8">You have completed the Vector Algebra assessment.</p>
 
-                <div className="bg-[#F7F7F8] rounded-2xl p-8 mb-8 border border-[#E5E5E5]">
+                <div className="bg-transparent rounded-2xl p-8 mb-8 border border-[#E5E5E5]">
                   <span className="font-sans text-sm font-bold uppercase tracking-widest text-[#666666] block mb-2">Final Score</span>
                   <div className="flex items-end justify-center gap-2">
                     <span className="font-sans text-6xl font-black text-[#111111]">{score}</span>

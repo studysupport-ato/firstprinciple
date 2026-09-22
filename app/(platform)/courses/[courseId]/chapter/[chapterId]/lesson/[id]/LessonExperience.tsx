@@ -25,7 +25,7 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
   const weekLabel = week ? `Week ${week.replace("w", "")}` : "Week";
 
   const renderNavigation = () => (
-    <div className="flex items-center justify-between border-t border-[#E5E5E5] bg-[#F7F7F8] p-8">
+    <div className="flex items-center justify-between border-t border-[#E5E5E5] bg-transparent p-8">
       <button onClick={() => setCurrentStep((step) => Math.max(0, step - 1))} disabled={currentStep === 0} className="flex items-center gap-2 text-sm font-sans font-medium text-[#666666] transition-colors hover:text-[#111111] disabled:opacity-30"><ChevronLeft size={16} /> Previous</button>
       {!isComplete ? (
         <button onClick={() => setCurrentStep((step) => Math.min(totalSteps - 1, step + 1))} className="flex items-center gap-2 rounded-full bg-[#111111] px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#FFBE00] hover:text-[#111111] hover:text-[#111111]">Continue <ChevronRight size={16} /></button>

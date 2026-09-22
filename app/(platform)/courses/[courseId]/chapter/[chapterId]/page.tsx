@@ -91,7 +91,7 @@ export default function ChapterLandingPage() {
     : `/courses/${courseId}/chapter/${chapterId}/practice`;
 
   return (
-    <div className="min-h-screen bg-[#F7F7F8] p-8 md:p-16">
+    <div className="min-h-screen bg-transparent p-8 md:p-16">
       <div className="max-w-3xl mx-auto">
         
         {/* Breadcrumb */}
@@ -171,10 +171,10 @@ export default function ChapterLandingPage() {
               <Link
                 key={idx}
                 href={`${lessonBasePath}/${lesson.id}`}
-                className="flex items-center justify-between px-8 py-5 hover:bg-[#F7F7F8] transition-colors group"
+                className="flex items-center justify-between px-8 py-5 hover:bg-transparent transition-colors group"
               >
                 <div className="flex items-center gap-4">
-                  <span className="w-7 h-7 rounded-full bg-[#F7F7F8] group-hover:bg-[#111111] flex items-center justify-center font-sans text-xs font-bold text-[#666666] group-hover:text-white transition-colors flex-shrink-0">
+                  <span className="w-7 h-7 rounded-full bg-transparent group-hover:bg-[#111111] flex items-center justify-center font-sans text-xs font-bold text-[#666666] group-hover:text-white transition-colors flex-shrink-0">
                     {idx + 1}
                   </span>
                   <span className="font-sans font-medium text-[#111111]">{lesson.title}</span>
@@ -197,7 +197,7 @@ export default function ChapterLandingPage() {
           <Link href={practicePath}>
             <div className="bg-white border border-[#E5E5E5] hover:border-[#111111] rounded-3xl p-8 flex items-center justify-between transition-colors group cursor-pointer">
               <div className="flex items-center gap-5">
-                <div className="w-12 h-12 rounded-2xl bg-[#F7F7F8] group-hover:bg-[#111111] flex items-center justify-center transition-colors">
+                <div className="w-12 h-12 rounded-2xl bg-transparent group-hover:bg-[#111111] flex items-center justify-center transition-colors">
                   <PenLine size={20} className="text-[#111111] group-hover:text-white transition-colors" />
                 </div>
                 <div>

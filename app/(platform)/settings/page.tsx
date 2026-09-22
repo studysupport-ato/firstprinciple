@@ -87,7 +87,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className={`min-h-screen px-6 py-8 transition-colors md:px-10 lg:px-14 ${theme === "Dark" ? "bg-[#15171B]" : "bg-[#FBFBFA]"}`}>
+    <div className={`min-h-screen px-6 py-8 transition-colors md:px-10 lg:px-14 ${theme === "Dark" ? "bg-transparent" : "bg-transparent"}`}>
       <div className="mx-auto max-w-[1180px]">
       
         <header className="mb-10 flex flex-col gap-6 border-b border-[#E5E5E5] pb-8 md:flex-row md:items-end md:justify-between">
@@ -154,7 +154,7 @@ export default function SettingsPage() {
               </div>
               <Sparkles size={20} className="text-[#D97706]" />
             </div>
-            <div className="mb-8 flex flex-wrap items-center gap-5 rounded-2xl bg-[#F7F7F8] p-5">
+            <div className="mb-8 flex flex-wrap items-center gap-5 rounded-2xl bg-transparent p-5">
               <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-[#111111] shadow-[0_8px_20px_rgba(17,17,17,0.16)]">
                 <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.fullName || "Student")}&background=111111&color=fff&size=200`} alt="Avatar" className="w-full h-full object-cover" />
               </div>
@@ -168,15 +168,15 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <div className="flex flex-col gap-2 md:col-span-2">
                 <label className="font-sans text-xs font-semibold uppercase tracking-widest text-[#666666]">Full Name</label>
-                <input type="text" value={profile?.fullName || ""} readOnly className="h-12 rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 text-[#777777] outline-none cursor-not-allowed" />
+                <input type="text" value={profile?.fullName || ""} readOnly className="h-12 rounded-xl border border-[#E5E5E5] bg-transparent px-4 text-[#777777] outline-none cursor-not-allowed" />
               </div>
               <div className="flex flex-col gap-2 md:col-span-2">
                 <label className="font-sans text-xs font-semibold uppercase tracking-widest text-[#666666]">Phone Number</label>
-                <input type="tel" value={profile?.phoneNumber || ""} readOnly className="h-12 rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 text-[#777777] outline-none cursor-not-allowed" />
+                <input type="tel" value={profile?.phoneNumber || ""} readOnly className="h-12 rounded-xl border border-[#E5E5E5] bg-transparent px-4 text-[#777777] outline-none cursor-not-allowed" />
               </div>
               <div className="flex flex-col gap-2 md:col-span-2">
                 <label className="font-sans text-xs font-semibold uppercase tracking-widest text-[#666666]">Email Address</label>
-                <input type="email" value={profile?.email || ""} readOnly className="h-12 rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 text-[#777777] outline-none cursor-not-allowed" />
+                <input type="email" value={profile?.email || ""} readOnly className="h-12 rounded-xl border border-[#E5E5E5] bg-transparent px-4 text-[#777777] outline-none cursor-not-allowed" />
               </div>
             </div>
           </div>
@@ -191,7 +191,7 @@ export default function SettingsPage() {
               <div className="flex flex-col gap-2 md:col-span-2">
                 <label className="font-sans text-xs font-semibold uppercase tracking-widest text-[#666666]">Institution</label>
                 <div className="relative">
-                <select className="h-12 w-full appearance-none rounded-xl border border-[#E5E5E5] bg-[#FBFBFA] px-4 text-[#111111] outline-none transition-colors focus:border-[#059669] focus:bg-white">
+                <select className="h-12 w-full appearance-none rounded-xl border border-[#E5E5E5] bg-transparent px-4 text-[#111111] outline-none transition-colors focus:border-[#059669] focus:bg-white">
                   <option>Kwame Nkrumah University of Science and Technology</option>
                   <option>University of Ghana</option>
                   <option>Ashesi University</option>
@@ -201,11 +201,11 @@ export default function SettingsPage() {
               </div>
               <div className="flex flex-col gap-2">
                 <label className="font-sans text-xs font-semibold uppercase tracking-widest text-[#666666]">Student ID</label>
-                <input type="text" defaultValue="20834221" className="h-12 rounded-xl border border-[#E5E5E5] bg-[#FBFBFA] px-4 text-[#111111] outline-none transition-colors focus:border-[#059669] focus:bg-white" />
+                <input type="text" defaultValue="20834221" className="h-12 rounded-xl border border-[#E5E5E5] bg-transparent px-4 text-[#111111] outline-none transition-colors focus:border-[#059669] focus:bg-white" />
               </div>
               <div className="flex flex-col gap-2">
                 <label className="font-sans text-xs font-semibold uppercase tracking-widest text-[#666666]">Major / Program</label>
-                <input type="text" defaultValue="Computer Engineering" className="h-12 rounded-xl border border-[#E5E5E5] bg-[#FBFBFA] px-4 text-[#111111] outline-none transition-colors focus:border-[#059669] focus:bg-white" />
+                <input type="text" defaultValue="Computer Engineering" className="h-12 rounded-xl border border-[#E5E5E5] bg-transparent px-4 text-[#111111] outline-none transition-colors focus:border-[#059669] focus:bg-white" />
               </div>
             </div>
           </div>
@@ -234,7 +234,7 @@ export default function SettingsPage() {
                 <div className="space-y-6">
                   <div>
                     <div className="mb-3 font-sans text-sm font-semibold text-[#111111]">Theme</div>
-                    <div className={`grid grid-cols-3 gap-2 rounded-2xl p-1.5 ${theme === "Dark" ? "bg-white/[0.06]" : "bg-[#F7F7F8]"}`}>
+                    <div className={`grid grid-cols-3 gap-2 rounded-2xl p-1.5 ${theme === "Dark" ? "bg-white/[0.06]" : "bg-transparent"}`}>
                       {['Light', 'System', 'Dark'].map((option) => (
                         <button key={option} type="button" onClick={() => setTheme(option as Theme)} className={`rounded-xl px-3 py-2.5 font-sans text-xs font-semibold transition-all ${theme === option ? 'bg-white text-[#111111] shadow-sm' : option === 'Dark' ? 'text-white/60 hover:text-white' : 'text-[#777777] hover:text-[#111111]'}`}>{option}</button>
                       ))}
@@ -274,7 +274,7 @@ export default function SettingsPage() {
 
                 {/* Current student */}
                 {currentMockStudent ? (
-                  <div className="mb-5 flex items-center gap-4 rounded-2xl bg-[#F7F7F8] p-4">
+                  <div className="mb-5 flex items-center gap-4 rounded-2xl bg-transparent p-4">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#111111] text-sm font-bold text-white">
                       {currentMockStudent.fullName.charAt(0)}
                     </div>
@@ -307,7 +307,7 @@ export default function SettingsPage() {
                             : "border-[#E5E5E5] bg-white text-[#111111] hover:border-[#999999] hover:shadow-sm"
                         }`}
                       >
-                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isActive ? "bg-white/20 text-white" : "bg-[#F7F7F8] text-[#111111]"}`}>
+                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isActive ? "bg-white/20 text-white" : "bg-transparent text-[#111111]"}`}>
                           {student.fullName.charAt(0)}
                         </div>
                         <div className="min-w-0 flex-1">
