@@ -133,7 +133,7 @@ export function ProfileCompletionModal() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 pointer-events-auto">
           {/* Backdrop */}
           <motion.div
-            className="absolute inset-0 bg-[#FFFBF5]/90 backdrop-blur-sm"
+            className="absolute inset-0 bg-[#FAFAFA]/90 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

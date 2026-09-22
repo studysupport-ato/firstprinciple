@@ -72,7 +72,7 @@ export function ProgressDemo() {
   );
 
   return (
-    <section ref={containerRef} className="py-32 bg-[#FFFBF5] border-t border-[#E9D8C3] overflow-hidden">
+    <section ref={containerRef} className="py-32 bg-[#FAFAFA] border-t border-[#E5E5E5] overflow-hidden">
       <div className="max-w-[1440px] mx-auto px-8 md:px-16">
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-8 items-center">

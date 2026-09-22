@@ -14,7 +14,7 @@ export default function PlatformLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div id="platform-root" className="min-h-screen bg-[#FFFBF5] flex">
+    <div id="platform-root" className="min-h-screen bg-[#FAFAFA] flex">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((current) => !current)}

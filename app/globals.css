@@ -4,14 +4,14 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
 
-  --color-background: #FFFBF5;
-  --color-surface: #FFF8E5;
-  --color-foreground: #1A1714;
-  --color-muted: #FFF8E5;
+  --color-background: #FAFAFA;
+  --color-surface: #FFFFFF;
+  --color-foreground: #111111;
+  --color-muted: #FFFFFF;
   --color-muted-foreground: #5D5149;
-  --color-border: #E9D8C3;
-  --color-primary: #1A1714;
-  --color-primary-foreground: #FFFBF5;
+  --color-border: #E5E5E5;
+  --color-primary: #111111;
+  --color-primary-foreground: #FAFAFA;
   --color-interactive: #FFBE00;
   --color-interactive-hover: #E5AA00;
   
@@ -23,10 +23,10 @@
 }
 
 :root {
-  --background: #FFFBF5;
-  --surface: #FFF8E5;
-  --foreground: #1A1714;
-  --border: #E9D8C3;
+  --background: #FAFAFA;
+  --surface: #FFFFFF;
+  --foreground: #111111;
+  --border: #E5E5E5;
 }
 
 @layer base {
@@ -49,7 +49,7 @@
   }
 
   ::selection {
-    background-color: rgba(201, 107, 45, 0.18);
+    background-color: rgba(255, 190, 0, 0.2);
     color: var(--foreground);
   }
 }

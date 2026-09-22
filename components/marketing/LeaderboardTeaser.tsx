@@ -66,7 +66,7 @@ export function LeaderboardTeaser() {
   }, [isInView]);
 
   return (
-    <section ref={ref} className="relative overflow-hidden border-t border-[#E9D8C3] bg-[#FFFBF5] py-32 text-[#111111]">
+    <section ref={ref} className="relative overflow-hidden border-t border-[#E5E5E5] bg-[#FAFAFA] py-32 text-[#111111]">
       {/* Ambient glow */}
       <div className="pointer-events-none absolute left-1/2 top-0 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-[#FFBE00]/[0.06] blur-[150px]" />
 
@@ -80,7 +80,7 @@ export function LeaderboardTeaser() {
           transition={{ duration: 0.7, ease: "easeOut" }}
           className="flex-1 text-center lg:text-left"
         >
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#E9D8C3] bg-[#FFF8E5] px-3 py-1">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-[#FFF8E5] px-3 py-1">
             <Trophy size={14} className="text-[#D97706]" />
             <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#666666]">
               Social Learning
