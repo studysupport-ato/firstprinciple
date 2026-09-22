@@ -101,25 +101,25 @@ export function AuthModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 16 }}
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-[460px]"
+            className="relative w-full max-w-[820px]"
           >
             <div className="rounded-[30px] bg-gradient-to-b from-white/70 via-white/15 to-white/5 p-px shadow-[0_60px_140px_-40px_rgba(0,0,0,0.75)]">
-              <div className="relative overflow-hidden rounded-[30px] bg-white">
+              <div className="relative overflow-hidden rounded-[30px] bg-white" style={{ height: "min(560px, 90vh)" }}>
                 <div className="pointer-events-none absolute inset-0 z-20 rounded-[30px] ring-1 ring-inset ring-white/10" />
                 <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-40 bg-[radial-gradient(90%_100%_at_50%_0%,rgba(37,99,235,0.06),transparent_70%)]" />
 
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="absolute right-4 top-4 z-30 inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#E5E5E5] bg-white/90 text-[#111111] shadow-sm backdrop-blur transition-all duration-200 hover:scale-105 hover:border-[#111111] active:scale-95"
+                  className="absolute right-5 top-5 z-30 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E5E5] bg-white/90 text-[#111111] shadow-sm backdrop-blur transition-all duration-200 hover:scale-105 hover:border-[#111111] active:scale-95"
                   aria-label="Close authentication panel"
                 >
-                  <X size={15} />
+                  <X size={16} />
                 </button>
 
-                <div className="flex flex-col">
-                  {/* Left · Brand panel — hidden in compact mode */}
-                  <div className="hidden">
+                <div className="grid h-full lg:grid-cols-[1fr_1.1fr]">
+                  {/* Left · Brand panel */}
+                  <div className="relative hidden min-h-full overflow-hidden bg-[#0E0E10] lg:block">
                     <div className="absolute inset-0 bg-[radial-gradient(90%_60%_at_20%_0%,rgba(37,99,235,0.38),transparent_60%)]" />
                     <div className="absolute inset-0 bg-[radial-gradient(70%_50%_at_90%_100%,rgba(225,29,72,0.16),transparent_60%)]" />
                     <div className="absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_50%,rgba(79,70,229,0.12),transparent_65%)]" />
@@ -210,13 +210,13 @@ export function AuthModal({
                   </div>
 
                   {/* Right · Account selector / Success panel */}
-                  <div className="relative flex bg-[#FBFAF9] p-6 sm:p-8">
+                  <div className="relative flex min-h-full overflow-y-auto bg-[#FBFAF9] p-6 sm:p-10 lg:p-12">
                     <motion.div
                       key={view}
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
-                      className="my-auto w-full"
+                      className="mx-auto my-auto w-full max-w-[420px]"
                     >
                       {view === "success" ? (
                         <div className="space-y-7 text-center">
@@ -262,7 +262,7 @@ export function AuthModal({
                             <p className="text-[11px] font-sans font-semibold uppercase tracking-[0.24em] text-[#9a9a9a]">
                               Back2Basics with Kwamina
                             </p>
-                            <h2 id="auth-modal-title" className="font-serif text-[26px] leading-tight tracking-tight text-[#111111]">
+                            <h2 id="auth-modal-title" className="font-serif text-[34px] leading-tight tracking-tight text-[#111111]">
                               Continue as
                             </h2>
                             <p className="text-[15px] text-[#666666]">Select your demo student account to continue.</p>
