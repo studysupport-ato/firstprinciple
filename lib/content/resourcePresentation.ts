@@ -129,7 +129,7 @@ export function resolveGeoGebraEmbed(config: GeoGebraInteractiveConfig | null | 
     // using the actual app-first embed mechanism that supports iframe embedding.
     const appName = config?.appName && isGeoGebraAppName(config.appName) ? config.appName : "graphing";
     const query = embedQuery(config ?? {}, materialId);
-    return { ok: true, kind: "material", materialId, src: `https://www.geogebra.org/${appName}?${query}` };
+    return { ok: true, kind: "material", materialId, src: `https://www.geogebra.org/m/${materialId}?${query}` };
   }
 
   // `appName` is typed as a union, but persisted/JSONB data can hold anything,
