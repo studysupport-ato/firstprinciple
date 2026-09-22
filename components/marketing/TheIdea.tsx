@@ -60,7 +60,7 @@ export function TheIdea() {
                   <div className="absolute top-1/2 left-0 w-2 h-2 rounded-full bg-[#111111] -translate-y-1/2 transition-all duration-700 group-hover:left-full group-hover:-ml-2" />
                 </div>
                 <div className="w-48 h-[1px] bg-[#E5E5E5] relative">
-                  <div className="absolute top-1/2 left-0 w-2 h-2 rounded-full bg-[#2563EB] -translate-y-1/2 transition-all duration-700 delay-100 group-hover:left-full group-hover:-ml-2" />
+                  <div className="absolute top-1/2 left-0 w-2 h-2 rounded-full bg-[#FFBE00] -translate-y-1/2 transition-all duration-700 delay-100 group-hover:left-full group-hover:-ml-2" />
                 </div>
                 <div className="w-48 h-[1px] bg-[#E5E5E5] relative">
                   <div className="absolute top-1/2 left-0 w-2 h-2 rounded-full bg-[#E11D48] -translate-y-1/2 transition-all duration-700 delay-200 group-hover:left-full group-hover:-ml-2" />

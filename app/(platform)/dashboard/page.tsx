@@ -240,7 +240,7 @@ export default function DashboardPage() {
   const maxCount = Math.max(...weekActivity.map((point) => point.count), 1);
 
   const stats = [
-    { label: "Overall Mastery", value: mastery, suffix: "%", icon: Target, color: "#2563EB" },
+    { label: "Overall Mastery", value: mastery, suffix: "%", icon: Target, color: "#FFBE00" },
     { label: "Day Streak", value: streak, suffix: " days", icon: Flame, color: "#E11D48" },
     { label: "Problems Solved", value: solved, suffix: "", icon: CheckCircle2, color: "#059669" },
   ];
@@ -405,7 +405,7 @@ export default function DashboardPage() {
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      item.type === "Lesson" ? "bg-[#2563EB]/10 text-[#2563EB]" : item.type === "Assessment" ? "bg-[#4F46E5]/10 text-[#4F46E5]" : "bg-[#059669]/10 text-[#059669]"
+                      item.type === "Lesson" ? "bg-[#111111]/5 text-[#111111]" : item.type === "Assessment" ? "bg-[#4F46E5]/10 text-[#4F46E5]" : "bg-[#059669]/10 text-[#059669]"
                     }`}>
                       {item.type === "Lesson" ? <BookOpen size={15} /> : <Target size={15} />}
                     </div>
@@ -417,7 +417,7 @@ export default function DashboardPage() {
                   <span className={`font-sans text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full ${
                     item.status === "Completed"
                       ? "bg-[#059669]/10 text-[#059669]"
-                      : "bg-[#2563EB]/10 text-[#2563EB]"
+                      : "bg-[#111111]/5 text-[#111111]"
                   }`}>
                     {item.status}
                   </span>

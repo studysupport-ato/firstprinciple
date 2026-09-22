@@ -28,7 +28,7 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
     <div className="flex items-center justify-between border-t border-[#E5E5E5] bg-[#F7F7F8] p-8">
       <button onClick={() => setCurrentStep((step) => Math.max(0, step - 1))} disabled={currentStep === 0} className="flex items-center gap-2 text-sm font-sans font-medium text-[#666666] transition-colors hover:text-[#111111] disabled:opacity-30"><ChevronLeft size={16} /> Previous</button>
       {!isComplete ? (
-        <button onClick={() => setCurrentStep((step) => Math.min(totalSteps - 1, step + 1))} className="flex items-center gap-2 rounded-full bg-[#111111] px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#C96B2D]">Continue <ChevronRight size={16} /></button>
+        <button onClick={() => setCurrentStep((step) => Math.min(totalSteps - 1, step + 1))} className="flex items-center gap-2 rounded-full bg-[#111111] px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#FFBE00] hover:text-[#111111] hover:text-[#111111]">Continue <ChevronRight size={16} /></button>
       ) : (
         <Link href={roadmapHref} onClick={() => { if (!preview) completeDay(lesson.courseId, lesson.weekId, lesson.id); }}><span className="flex items-center gap-2 rounded-full bg-[#059669] px-6 py-3 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-105">Complete Day <CheckCircle2 size={16} /></span></Link>
       )}
@@ -47,7 +47,7 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
     <div className="flex h-screen flex-col bg-white">
       <header className="z-20 flex h-16 flex-shrink-0 items-center justify-between border-b border-[#E5E5E5] bg-white px-8">
         <div className="flex items-center gap-4"><Link href={roadmapHref} className="text-[#666666] transition-colors hover:text-[#111111]"><ChevronLeft size={20} /></Link><div className="flex items-center gap-2"><span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#666666]">{weekLabel}</span><span className="text-[#E5E5E5]">/</span><span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#111111]">{lesson.title}</span></div></div>
-        <div className="flex items-center gap-2">{Array.from({ length: totalSteps }).map((_, index) => <div key={index} className={`h-2 w-2 rounded-full transition-colors duration-300 ${index <= currentStep ? "bg-[#C96B2D]" : "bg-[#E5E5E5]"}`} />)}</div>
+        <div className="flex items-center gap-2">{Array.from({ length: totalSteps }).map((_, index) => <div key={index} className={`h-2 w-2 rounded-full transition-colors duration-300 ${index <= currentStep ? "bg-[#FFBE00]" : "bg-[#E5E5E5]"}`} />)}</div>
       </header>
       <div className="flex flex-1 overflow-hidden">
         {!isFullWidthInteractive && (

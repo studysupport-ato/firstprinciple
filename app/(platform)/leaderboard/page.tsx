@@ -307,7 +307,7 @@ export default function LeaderboardPage() {
                     <img src={`https://ui-avatars.com/api/?name=${student.avatar}&background=111111&color=fff&size=100`} alt="Avatar" />
                   </motion.div>
                   <div className="min-w-0">
-                    <div className={`truncate font-sans text-base font-bold ${currentUser ? "text-[#2563EB]" : "text-[#111111]"}`}>
+                    <div className={`truncate font-sans text-base font-bold ${currentUser ? "text-[#FFBE00]" : "text-[#111111]"}`}>
                       {student.name}
                       {currentUser && " (You)"}
                     </div>

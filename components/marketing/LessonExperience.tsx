@@ -35,7 +35,7 @@ export function LessonExperience() {
                   "Beautiful KaTeX typesetting"
                 ].map((item, i) => (
                   <li key={i} className="flex items-center gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#2563EB]" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#FFBE00]" />
                     <span className="font-sans text-sm text-[#111111]">{item}</span>
                   </li>
                 ))}
@@ -49,7 +49,7 @@ export function LessonExperience() {
             <motion.div
               animate={{ scale: [1, 1.04, 1], opacity: [0.5, 0.75, 0.5] }}
               transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute inset-4 rounded-3xl bg-[#2563EB]/5 blur-2xl"
+              className="absolute inset-4 rounded-3xl bg-[#FFBE00]/5 blur-2xl"
             />
             
             {/* The mock UI window */}

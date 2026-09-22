@@ -55,7 +55,7 @@ export function LessonRenderer({ lesson, step }: { lesson: Lesson; step: number 
         transition={{ duration: 0.4 }}
         className="flex flex-col gap-6"
       >
-        <span className="font-sans text-xs font-semibold uppercase tracking-wider text-[#2563EB]">
+        <span className="font-sans text-xs font-semibold uppercase tracking-wider text-[#111111]">
           Step {displayStep} of {totalSteps}
         </span>
         {blocks.map((block) => (

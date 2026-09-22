@@ -72,16 +72,16 @@ export default function QuestionsExperience({
           <section className="rounded-[28px] border border-[#E5E5E5] bg-white p-6 shadow-[0_12px_30px_rgba(17,17,17,0.03)] md:p-8">
             <div className="mb-7 flex items-start justify-between gap-4">
               <div>
-                <div className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#2563EB]">Practice questions</div>
+                <div className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#111111]">Practice questions</div>
                 <h2 className="mt-2 font-serif text-3xl text-[#111111]">Build a focused set</h2>
               </div>
-              <BookOpenCheck size={22} className="text-[#2563EB]" />
+              <BookOpenCheck size={22} className="text-[#111111]" />
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
               <label className="space-y-2">
                 <span className="field-label">Course</span>
-                <select value={courseId} onChange={(event) => changeCourse(event.target.value)} className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm outline-none focus:border-[#2563EB]">
+                <select value={courseId} onChange={(event) => changeCourse(event.target.value)} className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
                   {courses.map((course) => (
                     <option key={course.id} value={course.id}>{course.code} · {course.title}</option>
                   ))}
@@ -90,7 +90,7 @@ export default function QuestionsExperience({
 
               <label className="space-y-2">
                 <span className="field-label">Difficulty</span>
-                <select value={difficulty} onChange={(event) => setDifficulty(event.target.value as Difficulty | "all")} className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm outline-none focus:border-[#2563EB]">
+                <select value={difficulty} onChange={(event) => setDifficulty(event.target.value as Difficulty | "all")} className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
                   {difficulties.map((value) => (
                     <option key={value} value={value}>{value === "all" ? "Any difficulty" : value.charAt(0).toUpperCase() + value.slice(1)}</option>
                   ))}
@@ -99,7 +99,7 @@ export default function QuestionsExperience({
 
               <label className="space-y-2">
                 <span className="field-label">Topic</span>
-                <select value={topic} onChange={(event) => { setTopic(event.target.value); setSubtopic(""); }} className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm outline-none focus:border-[#2563EB]">
+                <select value={topic} onChange={(event) => { setTopic(event.target.value); setSubtopic(""); }} className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
                   <option value="">All topics</option>
                   {topics.map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
@@ -107,7 +107,7 @@ export default function QuestionsExperience({
 
               <label className="space-y-2">
                 <span className="field-label">Subtopic</span>
-                <select value={subtopic} onChange={(event) => setSubtopic(event.target.value)} className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm outline-none focus:border-[#2563EB]">
+                <select value={subtopic} onChange={(event) => setSubtopic(event.target.value)} className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
                   <option value="">All subtopics</option>
                   {subtopics.map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
@@ -115,7 +115,7 @@ export default function QuestionsExperience({
 
               <label className="space-y-2 md:col-span-2">
                 <span className="field-label">Number of questions</span>
-                <select value={count} onChange={(event) => setCount(Number(event.target.value))} className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm outline-none focus:border-[#2563EB]">
+                <select value={count} onChange={(event) => setCount(Number(event.target.value))} className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
                   {questionCounts.map((value) => <option key={value} value={value}>{value} questions</option>)}
                 </select>
               </label>
@@ -123,7 +123,7 @@ export default function QuestionsExperience({
 
             <div className="mt-7 flex flex-col gap-3 border-t border-[#E5E5E5] pt-6 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-sm text-[#666666]">{matchingQuestions.length ? `${Math.min(count, matchingQuestions.length)} of ${matchingQuestions.length} matching questions available` : "No available questions match these filters."}</span>
-              <Link href={practiceHref} aria-disabled={!matchingQuestions.length} onClick={(event) => { if (!matchingQuestions.length) event.preventDefault(); }} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#111111] px-6 py-3 text-sm font-semibold text-white hover:bg-[#2563EB] aria-disabled:pointer-events-none aria-disabled:opacity-40">
+              <Link href={practiceHref} aria-disabled={!matchingQuestions.length} onClick={(event) => { if (!matchingQuestions.length) event.preventDefault(); }} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#111111] px-6 py-3 text-sm font-semibold text-white hover:bg-[#FFBE00] hover:text-[#111111] aria-disabled:pointer-events-none aria-disabled:opacity-40">
                 <Play size={15} fill="currentColor" /> Start practice
               </Link>
             </div>

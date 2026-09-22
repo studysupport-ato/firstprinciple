@@ -12,7 +12,7 @@ if (typeof window !== "undefined") {
 
 const stats = [
   { label: "Course Mastery", value: "84", suffix: "%", color: "#059669" },
-  { label: "Active Streak", value: "12", suffix: " days", color: "#C96B2D" },
+  { label: "Active Streak", value: "12", suffix: " days", color: "#FFBE00" },
   { label: "Problems Solved", value: "342", suffix: "", color: "#E11D48" },
 ];
 
@@ -133,7 +133,7 @@ export function ProgressDemo() {
                   {[
                     { label: "Real Number Theory", pct: "100%", color: "#111111" },
                     { label: "Functions & Polynomials", pct: "100%", color: "#111111" },
-                    { label: "Complex Numbers", pct: "84%", color: "#C96B2D" },
+                    { label: "Complex Numbers", pct: "84%", color: "#FFBE00" },
                     { label: "Vector Algebra", pct: "12%", color: "#666666" }
                   ].map((item, i) => (
                     <div key={item.label} className="flex flex-col gap-2">

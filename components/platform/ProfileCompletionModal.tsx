@@ -155,7 +155,7 @@ export function ProfileCompletionModal() {
               <button
                 type="button"
                 onClick={handleDismiss}
-                className="absolute top-6 right-6 p-2 rounded-full text-[#999999] hover:bg-[#F7F7F8] hover:text-[#111111] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C96B2D]"
+                className="absolute top-6 right-6 p-2 rounded-full text-[#999999] hover:bg-[#F7F7F8] hover:text-[#111111] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBE00]"
                 aria-label="Close profile setup"
               >
                 <X size={18} />
@@ -187,7 +187,7 @@ export function ProfileCompletionModal() {
                         setFullName(e.target.value);
                         if (errors.fullName) setErrors({ ...errors, fullName: undefined });
                       }}
-                      className={`w-full pl-10 pr-4 py-3 rounded-xl border ${errors.fullName ? "border-[#E11D48] bg-[#E11D48]/5" : "border-[#E5E5E5] bg-white"} text-sm text-[#111111] placeholder-[#999999] focus:outline-none focus:border-[#C96B2D] focus:ring-1 focus:ring-[#C96B2D] transition-all`}
+                      className={`w-full pl-10 pr-4 py-3 rounded-xl border ${errors.fullName ? "border-[#E11D48] bg-[#E11D48]/5" : "border-[#E5E5E5] bg-white"} text-sm text-[#111111] placeholder-[#999999] focus:outline-none focus:border-[#FFBE00] focus:ring-1 focus:ring-[#FFBE00] transition-all`}
                       placeholder="e.g. Kwame Boateng"
                     />
                   </div>
@@ -212,7 +212,7 @@ export function ProfileCompletionModal() {
                         setPhoneNumber(e.target.value);
                         if (errors.phoneNumber) setErrors({ ...errors, phoneNumber: undefined });
                       }}
-                      className={`w-full pl-10 pr-4 py-3 rounded-xl border ${errors.phoneNumber ? "border-[#E11D48] bg-[#E11D48]/5" : "border-[#E5E5E5] bg-white"} text-sm text-[#111111] placeholder-[#999999] focus:outline-none focus:border-[#C96B2D] focus:ring-1 focus:ring-[#C96B2D] transition-all`}
+                      className={`w-full pl-10 pr-4 py-3 rounded-xl border ${errors.phoneNumber ? "border-[#E11D48] bg-[#E11D48]/5" : "border-[#E5E5E5] bg-white"} text-sm text-[#111111] placeholder-[#999999] focus:outline-none focus:border-[#FFBE00] focus:ring-1 focus:ring-[#FFBE00] transition-all`}
                       placeholder="e.g. 0241234567"
                     />
                   </div>
@@ -248,7 +248,7 @@ export function ProfileCompletionModal() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full flex items-center justify-center gap-2 bg-[#111111] hover:bg-[#C96B2D] text-white text-sm font-sans font-semibold py-3.5 rounded-xl transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#C96B2D] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center justify-center gap-2 bg-[#111111] hover:bg-[#FFBE00] text-white text-sm font-sans font-semibold py-3.5 rounded-xl transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FFBE00] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? (
                       "Saving..."

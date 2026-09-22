@@ -77,7 +77,7 @@ export function GeoGebraProvider({ config, title, adminHint = false }: { config:
         {status !== "ready" ? (
           <div className="absolute inset-0 flex items-center justify-center bg-white">
             <div className="flex flex-col items-center gap-3">
-              <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#E5E5E5] border-t-[#2563EB]" aria-hidden />
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#E5E5E5] border-t-[#FFBE00]" aria-hidden />
               <span className="text-xs font-medium text-[#666666]">Loading GeoGebra...</span>
             </div>
           </div>
@@ -100,7 +100,7 @@ export function GeoGebraProvider({ config, title, adminHint = false }: { config:
           href={resolution.kind === "material" ? `https://www.geogebra.org/m/${encodeURIComponent(resolution.materialId)}` : `https://www.geogebra.org/${resolution.appName}`}
           target="_blank"
           rel="noreferrer noopener"
-          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#2563EB] underline-offset-4 hover:underline"
+          className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#111111] underline-offset-4 hover:underline"
         >
           Open in GeoGebra <ExternalLink size={11} />
         </a>

@@ -87,7 +87,7 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
 
       <div className="mb-14 grid gap-8 lg:grid-cols-[1fr_300px] lg:items-end">
         <AnimatedItem>
-          <div className="mb-5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#C96B2D]">
+          <div className="mb-5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#FFBE00]">
             {course.code} · Week {week.weekNumber}
           </div>
           <h1 className="editorial-heading mb-5 text-5xl md:text-[5.5rem]">{week.title}</h1>
@@ -104,7 +104,7 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-[#F1F1F1]">
               <div
-                className="h-full rounded-full bg-[#C96B2D]"
+                className="h-full rounded-full bg-[#FFBE00]"
                 style={{ width: `${days.length ? (completed / days.length) * 100 : 0}%` }}
               />
             </div>
@@ -122,7 +122,7 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
               <Link
                 href={href}
                 onClick={(event) => handleDayClick(event, href)}
-                className="group flex items-center justify-between gap-5 rounded-[24px] border border-[#E7E5E2] bg-white p-5 hover:border-[#C96B2D] md:p-7"
+                className="group flex items-center justify-between gap-5 rounded-[24px] border border-[#E7E5E2] bg-white p-5 hover:border-[#FFBE00] md:p-7"
               >
                 <div>
                   <div className="mb-3 flex items-center gap-3">

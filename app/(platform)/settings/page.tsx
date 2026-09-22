@@ -93,7 +93,7 @@ export default function SettingsPage() {
         <header className="mb-10 flex flex-col gap-6 border-b border-[#E5E5E5] pb-8 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-4 flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#777777]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#2563EB]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#FFBE00]" />
               Account workspace
             </div>
             <h1 className={`font-serif text-5xl tracking-tight md:text-6xl ${theme === "Dark" ? "text-white" : "text-[#111111]"}`}>Settings</h1>
@@ -148,7 +148,7 @@ export default function SettingsPage() {
             <div className="mb-8 rounded-[24px] border border-[#E5E5E5] bg-white p-6 shadow-[0_12px_30px_rgba(17,17,17,0.035)] md:p-8">
             <div className="mb-8 flex items-start justify-between gap-4">
               <div>
-                <div className="mb-2 flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#2563EB]"><User size={13} /> Personal identity</div>
+                <div className="mb-2 flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#111111]"><User size={13} /> Personal identity</div>
                 <h2 className="font-serif text-3xl tracking-tight text-[#111111]">Profile information</h2>
                 <p className="mt-2 font-sans text-sm text-[#777777]">The details your learning community sees.</p>
               </div>
@@ -216,7 +216,7 @@ export default function SettingsPage() {
             <button type="button" className="h-12 rounded-full px-6 text-sm font-semibold text-[#666666] transition-colors hover:bg-white hover:text-[#111111]">
               Cancel
             </button>
-            <button type="button" onClick={handleSave} className="inline-flex h-12 items-center gap-2 rounded-full bg-[#111111] px-7 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(17,17,17,0.16)] transition-all hover:-translate-y-0.5 hover:bg-[#2563EB]">
+            <button type="button" onClick={handleSave} className="inline-flex h-12 items-center gap-2 rounded-full bg-[#111111] px-7 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(17,17,17,0.16)] transition-all hover:-translate-y-0.5 hover:bg-[#FFBE00]">
               {saved ? <Check size={16} /> : <Save size={16} />}
               {saved ? "Saved" : "Save changes"}
             </button>
@@ -267,7 +267,7 @@ export default function SettingsPage() {
               {/* Demo Account Panel */}
               <div className={`rounded-[24px] border p-6 shadow-[0_12px_30px_rgba(17,17,17,0.035)] md:p-8 ${theme === "Dark" ? "border-white/10 bg-[#202329] text-white" : "border-[#E5E5E5] bg-white"}`}>
                 <div className="mb-6">
-                  <div className="mb-2 flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#2563EB]"><Sparkles size={13} /> Demo account</div>
+                  <div className="mb-2 flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#111111]"><Sparkles size={13} /> Demo account</div>
                   <h2 className="font-serif text-3xl tracking-tight text-[#111111]">Active student</h2>
                   <p className="mt-2 font-sans text-sm text-[#777777]">Switch between demo student accounts for testing or demonstrations.</p>
                 </div>

@@ -27,7 +27,7 @@ function inlineContent(value: string, keyPrefix: string): ReactNode[] {
     const link = token.match(/^\[([^\]]+)\]\(([^\)]+)\)$/);
     if (link) {
       const href = safeHref(link[2]);
-      if (href) return <a key={key} href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noreferrer" : undefined} className="font-semibold text-[#2563EB] underline decoration-[#BFDBFE] underline-offset-2 hover:text-[#1D4ED8]">{link[1]}</a>;
+      if (href) return <a key={key} href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noreferrer" : undefined} className="font-semibold text-[#111111] underline decoration-[#E5E5E5] underline-offset-2 hover:text-[#666666]">{link[1]}</a>;
       return <span key={key}>{link[1]}</span>;
     }
 
@@ -83,7 +83,7 @@ export function MarkdownBlock({ markdown }: { markdown: string }) {
     if (line.trim().startsWith(">")) {
       const quoteLines: string[] = [];
       while (index < lines.length && lines[index].trim().startsWith(">")) { quoteLines.push(lines[index].trim().replace(/^>\s?/, "")); index += 1; }
-      output.push(<blockquote key={`quote-${index}`} className="my-5 border-l-4 border-[#2563EB] bg-[#F7F7F8] px-5 py-3 font-serif text-lg italic leading-8 text-[#444444]">{quoteLines.map((quote, quoteIndex) => <p key={quoteIndex}>{inlineContent(quote, `quote-${index}-${quoteIndex}`)}</p>)}</blockquote>);
+      output.push(<blockquote key={`quote-${index}`} className="my-5 border-l-4 border-[#FFBE00] bg-[#F7F7F8] px-5 py-3 font-serif text-lg italic leading-8 text-[#444444]">{quoteLines.map((quote, quoteIndex) => <p key={quoteIndex}>{inlineContent(quote, `quote-${index}-${quoteIndex}`)}</p>)}</blockquote>);
       continue;
     }
 

@@ -172,7 +172,7 @@ export default function ProgressPage() {
   }, []);
 
   const stats = [
-    { label: "Overall Accuracy", value: practice.totalAttempts > 0 ? `${practice.accuracy}%` : "—", sub: practice.totalAttempts > 0 ? `${practice.correctAttempts} of ${practice.totalAttempts} correct` : "Not enough data yet", icon: Target, tint: "bg-[#EAF3FF] text-[#2563EB]" },
+    { label: "Overall Accuracy", value: practice.totalAttempts > 0 ? `${practice.accuracy}%` : "—", sub: practice.totalAttempts > 0 ? `${practice.correctAttempts} of ${practice.totalAttempts} correct` : "Not enough data yet", icon: Target, tint: "bg-[#FFF8E5] text-[#FFBE00]" },
     { label: "Current Streak", value: `${streak} Days`, sub: streak > 0 ? "Consecutive learning days" : "No streak yet", icon: Flame, tint: "bg-[#FEE7EC] text-[#E11D48]" },
     { label: "Overall Mastery", value: `${mastery}%`, sub: practice.totalAttempts > 0 ? "From practice evidence" : "Not enough data yet", icon: Clock, tint: "bg-[#EAF8F2] text-[#059669]" },
   ];
@@ -201,7 +201,7 @@ export default function ProgressPage() {
     return weeks;
   }, [ready, activityEvents]);
 
-const topicColors = ["bg-[#111111]", "bg-[#2563EB]", "bg-[#E11D48]", "bg-[#D97706]"];
+const topicColors = ["bg-[#111111]", "bg-[#FFBE00]", "bg-[#E11D48]", "bg-[#D97706]"];
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-10 px-5 py-8 md:px-10 md:py-12">
       <header className="pt-2">
@@ -290,7 +290,7 @@ const topicColors = ["bg-[#111111]", "bg-[#2563EB]", "bg-[#E11D48]", "bg-[#D9770
                             ? "bg-[#DBEAFE]"
                             : intensity === 2
                               ? "bg-[#60A5FA]"
-                              : "bg-[#2563EB]";
+                              : "bg-[#FFBE00]";
 
                       return (
                         <motion.div
@@ -314,7 +314,7 @@ const topicColors = ["bg-[#111111]", "bg-[#2563EB]", "bg-[#E11D48]", "bg-[#D9770
                     <div className="h-3 w-3 rounded-[3px] bg-[#F3F4F6]" />
                     <div className="h-3 w-3 rounded-[3px] bg-[#DBEAFE]" />
                     <div className="h-3 w-3 rounded-[3px] bg-[#60A5FA]" />
-                    <div className="h-3 w-3 rounded-[3px] bg-[#2563EB]" />
+                    <div className="h-3 w-3 rounded-[3px] bg-[#FFBE00]" />
                   </div>
                   <span>More</span>
                 </div>
@@ -333,7 +333,7 @@ const topicColors = ["bg-[#111111]", "bg-[#2563EB]", "bg-[#E11D48]", "bg-[#D9770
             </h2>
             <Link
               href="/courses"
-              className="inline-flex items-center gap-1 font-sans text-sm font-semibold text-[#2563EB] transition-colors hover:text-[#1D4ED8]"
+              className="inline-flex items-center gap-1 font-sans text-sm font-semibold text-[#111111] transition-colors hover:text-[#E5AA00]"
             >
               View All <ChevronRight size={15} />
             </Link>
@@ -360,7 +360,7 @@ const topicColors = ["bg-[#111111]", "bg-[#2563EB]", "bg-[#E11D48]", "bg-[#D9770
                     <span className="font-sans text-[11px] font-medium text-[#666666]">{test.date.slice(0, 10)}</span>
                   </div>
 
-                  <h3 className="font-sans text-[1.05rem] font-bold leading-snug text-[#111111] transition-colors group-hover:text-[#2563EB]">
+                  <h3 className="font-sans text-[1.05rem] font-bold leading-snug text-[#111111] transition-colors group-hover:text-[#111111]">
                     {test.title}
                   </h3>
 
@@ -377,7 +377,7 @@ const topicColors = ["bg-[#111111]", "bg-[#2563EB]", "bg-[#E11D48]", "bg-[#D9770
                     <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 ring-1 ring-[#E5E5E5]">
                       {test.marksEarned}/{test.marksAvailable} marks
                     </span>
-                    <ArrowUpRight size={12} className="text-[#2563EB]" />
+                    <ArrowUpRight size={12} className="text-[#111111]" />
                   </div>
                 </div>
               );

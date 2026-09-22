@@ -49,7 +49,7 @@ export function WelcomeBanner() {
 
               <div className="grid gap-8 md:grid-cols-3">
                 <div className="flex flex-col gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#2563EB]/20 text-[#60A5FA]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFBE00]/20 text-[#E5AA00]">
                     <BookOpen size={20} />
                   </div>
                   <h3 className="font-sans text-sm font-semibold uppercase tracking-wider text-white">Interactive Lessons</h3>
@@ -69,7 +69,7 @@ export function WelcomeBanner() {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#C96B2D]/20 text-[#FDBA74]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFBE00]/20 text-[#FDBA74]">
                     <GraduationCap size={20} />
                   </div>
                   <h3 className="font-sans text-sm font-semibold uppercase tracking-wider text-white">Clear Progression</h3>

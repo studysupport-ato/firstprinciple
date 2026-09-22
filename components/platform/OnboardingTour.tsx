@@ -165,7 +165,7 @@ export function OnboardingTour() {
 
           {/* Glowing ring around the target */}
           <motion.div
-            className="absolute rounded-2xl border-2 border-[#C96B2D]/60 shadow-[0_0_20px_rgba(201,107,45,0.4)] pointer-events-none"
+            className="absolute rounded-2xl border-2 border-[#FFBE00]/60 shadow-[0_0_20px_rgba(201,107,45,0.4)] pointer-events-none"
             initial={{ opacity: 0 }}
             animate={{
               opacity: 1,
@@ -187,7 +187,7 @@ export function OnboardingTour() {
             transition={transitionProps}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#C96B2D]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#FFBE00]">
                 {String(currentStep + 1).padStart(2, '0')} / {String(STEPS.length).padStart(2, '0')}
               </span>
             </div>
@@ -202,14 +202,14 @@ export function OnboardingTour() {
               <button
                 type="button"
                 onClick={handleSkip}
-                className="text-xs font-sans font-medium text-[#999999] hover:text-[#111111] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C96B2D] rounded-md px-2 py-1 -ml-2"
+                className="text-xs font-sans font-medium text-[#999999] hover:text-[#111111] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBE00] rounded-md px-2 py-1 -ml-2"
               >
                 Skip tour
               </button>
               <button
                 type="button"
                 onClick={handleNext}
-                className="bg-[#111111] hover:bg-[#C96B2D] text-white text-xs font-sans font-semibold px-5 py-2.5 rounded-full transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#C96B2D]"
+                className="bg-[#111111] hover:bg-[#FFBE00] text-white text-xs font-sans font-semibold px-5 py-2.5 rounded-full transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FFBE00]"
               >
                 {currentStep === STEPS.length - 1 ? "Finish" : "Continue"}
               </button>

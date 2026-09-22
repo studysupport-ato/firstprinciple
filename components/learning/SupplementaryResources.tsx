@@ -25,7 +25,7 @@ function YouTubeResourceCard({ resource }: { resource: Extract<LearningResource,
         </div>
         <h3 className="font-serif text-xl leading-tight text-[#111111]">{resource.title}</h3>
         {resource.description ? <p className="text-sm leading-6 text-[#666666]">{resource.description}</p> : null}
-        <a href={resource.data.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-semibold text-[#2563EB] hover:underline">
+        <a href={resource.data.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-semibold text-[#111111] underline hover:text-[#666666]">
           <Play size={14} fill="currentColor" />Watch on YouTube <ArrowUpRight size={14} />
         </a>
       </div>
@@ -44,7 +44,7 @@ function GeoGebraResourceCard({ resource }: { resource: Extract<LearningResource
           <h3 className="font-serif text-xl leading-tight text-[#111111]">{resource.title}</h3>
           {resource.description ? <p className="max-w-xl text-sm leading-6 text-[#666666]">{resource.description}</p> : null}
         </div>
-        <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#111111] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#2563EB]">
+        <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#111111] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#FFBE00] hover:text-[#111111]">
           <Sparkles size={14} />{open ? "Close interactive" : "Open inside lesson"}
         </button>
       </div>
@@ -62,7 +62,7 @@ function ExternalResourceCard({ resource }: { resource: Extract<LearningResource
         {resource.description ? <p className="text-sm leading-6 text-[#666666]">{resource.description}</p> : null}
         <p className="break-all text-xs text-[#666666]">{resource.data.provider ?? resource.data.url}</p>
       </div>
-      <a href={resource.data.url} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-[#E5E5E5] px-4 py-2.5 text-sm font-semibold text-[#111111] hover:border-[#2563EB]">
+      <a href={resource.data.url} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-[#E5E5E5] px-4 py-2.5 text-sm font-semibold text-[#111111] hover:border-[#FFBE00]">
         Open external resource <ExternalLink size={14} />
       </a>
     </article>

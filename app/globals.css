@@ -5,15 +5,15 @@
   --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
 
   --color-background: #FFFBF5;
-  --color-surface: #FFF4E5;
+  --color-surface: #FFF8E5;
   --color-foreground: #1A1714;
-  --color-muted: #FFF4E5;
+  --color-muted: #FFF8E5;
   --color-muted-foreground: #5D5149;
   --color-border: #E9D8C3;
   --color-primary: #1A1714;
   --color-primary-foreground: #FFFBF5;
-  --color-interactive: #C96B2D;
-  --color-interactive-hover: #A8561F;
+  --color-interactive: #FFBE00;
+  --color-interactive-hover: #E5AA00;
   
   /* Mathematical accent colors used strictly for visualization */
   --color-math-1: #D94E3B;
@@ -24,7 +24,7 @@
 
 :root {
   --background: #FFFBF5;
-  --surface: #FFF4E5;
+  --surface: #FFF8E5;
   --foreground: #1A1714;
   --border: #E9D8C3;
 }
@@ -65,7 +65,7 @@
   }
 
   .admin-input {
-    @apply w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2.5 text-sm text-[#111111] outline-none transition focus:border-[#C96B2D];
+    @apply w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2.5 text-sm text-[#111111] outline-none transition focus:border-[#FFBE00];
   }
 
   .editorial-heading {

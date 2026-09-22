@@ -29,8 +29,8 @@ export function PreviewToolbar() {
   return (
     <div className="sticky top-0 z-40 flex min-h-12 flex-wrap items-center justify-between gap-3 border-b border-[#E5E5E5] bg-[#FBFBFA]/95 px-5 py-2 backdrop-blur-sm md:px-8">
       <div className="flex items-center gap-3">
-        <span className="inline-flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#C96B2D]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#C96B2D]" />
+        <span className="inline-flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#FFBE00]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#FFBE00]" />
           Preview mode
         </span>
         <span className="hidden text-xs text-[#666666] sm:inline">Viewing the student experience</span>
