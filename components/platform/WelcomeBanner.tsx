@@ -44,12 +44,15 @@ export function WelcomeBanner() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98, y: -10 }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full max-w-[850px] max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-[24px] bg-[#111111] text-white shadow-2xl relative scrollbar-hide"
+            className="w-full max-w-[850px] max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-[24px] bg-[#FFBE00] text-[#111111] border-4 border-[#111111] shadow-[8px_8px_0_#E53935] relative scrollbar-hide"
           >
+            {/* Faint grid background overlay like StudySync */}
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+            
             <div className="relative p-8 md:p-10 lg:p-12">
               <button
                 onClick={dismiss}
-                className="absolute right-6 top-6 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+                className="absolute right-6 top-6 flex h-8 w-8 items-center justify-center rounded-full bg-[#111111]/10 text-[#111111]/70 transition-colors hover:bg-[#111111]/20 hover:text-[#111111]"
                 aria-label="Dismiss welcome message"
               >
                 <X size={18} />
@@ -60,19 +63,18 @@ export function WelcomeBanner() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3, duration: 0.6 }}
-                  className="mb-3 font-serif text-3xl font-medium tracking-tight md:text-4xl"
+                  className="mb-3 font-sans text-4xl font-black tracking-tight md:text-5xl uppercase"
                 >
-                  Welcome to First Principles
+                  Welcome to <span className="text-[#E53935]">First Principles</span>
                 </motion.h2>
                 
                 <motion.p 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4, duration: 0.6 }}
-                  className="mb-10 font-sans text-lg text-[#A3A3A3] md:text-xl leading-relaxed max-w-2xl"
+                  className="mb-10 font-sans text-lg text-[#111111]/80 font-medium md:text-xl leading-relaxed max-w-2xl"
                 >
-                  An open platform designed for structured, step-by-step mathematical reasoning.
-                  Start by exploring the complete MATH 151 curriculum below.
+                  The unified academic platform students deserve — structured reasoning, real-time progression, and a foundation built for excellence.
                 </motion.p>
 
                 <motion.div 
@@ -82,31 +84,31 @@ export function WelcomeBanner() {
                   className="grid gap-6 md:grid-cols-3"
                 >
                   <div className="flex flex-col gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFBE00]/20 text-[#E5AA00]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#111111] text-[#FFBE00] border-2 border-[#E53935]">
                       <BookOpen size={20} />
                     </div>
-                    <h3 className="font-sans text-xs font-bold uppercase tracking-widest text-white">Interactive Lessons</h3>
-                    <p className="font-sans text-sm leading-relaxed text-[#A3A3A3]">
+                    <h3 className="font-sans text-xs font-black uppercase tracking-widest text-[#111111]">Interactive Lessons</h3>
+                    <p className="font-sans text-sm font-medium leading-relaxed text-[#111111]/70">
                       Core concepts are broken down into logical steps alongside interactive visualizations.
                     </p>
                   </div>
 
                   <div className="flex flex-col gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#10B981]/20 text-[#34D399]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#111111] text-[#FFBE00] border-2 border-[#E53935]">
                       <Compass size={20} />
                     </div>
-                    <h3 className="font-sans text-xs font-bold uppercase tracking-widest text-white">Guided Practice</h3>
-                    <p className="font-sans text-sm leading-relaxed text-[#A3A3A3]">
+                    <h3 className="font-sans text-xs font-black uppercase tracking-widest text-[#111111]">Guided Practice</h3>
+                    <p className="font-sans text-sm font-medium leading-relaxed text-[#111111]/70">
                       Apply what you learn through immediate, low-stakes questions with detailed solutions.
                     </p>
                   </div>
 
                   <div className="flex flex-col gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFBE00]/20 text-[#FFBE00]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#111111] text-[#FFBE00] border-2 border-[#E53935]">
                       <GraduationCap size={20} />
                     </div>
-                    <h3 className="font-sans text-xs font-bold uppercase tracking-widest text-white">Clear Progression</h3>
-                    <p className="font-sans text-sm leading-relaxed text-[#A3A3A3]">
+                    <h3 className="font-sans text-xs font-black uppercase tracking-widest text-[#111111]">Clear Progression</h3>
+                    <p className="font-sans text-sm font-medium leading-relaxed text-[#111111]/70">
                       Follow the structured roadmap to ensure you master foundations before advancing.
                     </p>
                   </div>
@@ -116,11 +118,11 @@ export function WelcomeBanner() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.7, duration: 0.6 }}
-                  className="mt-10 border-t border-white/10 pt-6"
+                  className="mt-10 border-t-2 border-[#111111]/10 pt-8"
                 >
                   <button
                     onClick={dismiss}
-                    className="inline-flex h-11 items-center justify-center rounded-full bg-[#FFBE00] px-7 text-sm font-bold text-[#111111] transition-all hover:scale-105 hover:bg-[#E5AA00] shadow-[0_0_20px_rgba(255,190,0,0.3)]"
+                    className="inline-flex h-12 items-center justify-center rounded-full bg-[#111111] px-8 text-sm font-black uppercase tracking-wide text-[#FFBE00] border-2 border-[#111111] shadow-[4px_4px_0_#E53935] transition-all hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0_#E53935] active:translate-y-[4px] active:translate-x-[4px] active:shadow-none"
                   >
                     Explore Course Library
                   </button>
