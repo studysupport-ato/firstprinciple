@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { AlertTriangle, ExternalLink } from "lucide-react";
 
 import type { GeoGebraInteractiveConfig } from "@/lib/content/types/lesson";
@@ -8,11 +8,61 @@ import {
   GEOGEBRA_DEFAULT_HEIGHT,
   GEOGEBRA_MIN_HEIGHT,
   getGeoGebraFailureDetail,
+  isGeoGebraAppName,
   resolveGeoGebraEmbed,
   type GeoGebraEmbedFailureReason,
 } from "@/lib/content/resourcePresentation";
 
-type LoadStatus = "loading" | "ready" | "stalled";
+type LoadStatus = "loading" | "ready" | "error";
+
+type GeoGebraApi = { remove?: () => void };
+type GeoGebraApplet = { inject: (containerId: string) => void };
+type GeoGebraAppletOptions = {
+  appName: string;
+  material_id?: string;
+  id: string;
+  width: number;
+  height: number;
+  scaleContainerClass: string;
+  showToolBar?: boolean;
+  showAlgebraInput?: boolean;
+  showMenuBar?: boolean;
+  showResetIcon?: boolean;
+  appletOnLoad: (api: GeoGebraApi) => void;
+};
+
+declare global {
+  interface Window {
+    GGBApplet?: new (options: GeoGebraAppletOptions, prerelease?: boolean) => GeoGebraApplet;
+  }
+}
+
+let geoGebraScriptPromise: Promise<void> | undefined;
+
+function loadGeoGebraScript() {
+  if (typeof window === "undefined") return Promise.reject(new Error("GeoGebra is only available in the browser."));
+  if (window.GGBApplet) return Promise.resolve();
+  if (geoGebraScriptPromise) return geoGebraScriptPromise;
+
+  geoGebraScriptPromise = new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[src="https://www.geogebra.org/apps/deployggb.js"]');
+    const script = existing ?? document.createElement("script");
+    const fail = () => {
+      geoGebraScriptPromise = undefined;
+      reject(new Error("GeoGebra script failed to load."));
+    };
+
+    script.addEventListener("load", () => (window.GGBApplet ? resolve() : fail()), { once: true });
+    script.addEventListener("error", fail, { once: true });
+    if (!existing) {
+      script.src = "https://www.geogebra.org/apps/deployggb.js";
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  });
+
+  return geoGebraScriptPromise;
+}
 
 function heightFor(config: GeoGebraInteractiveConfig) {
   const value = typeof config.height === "number" ? config.height : Number(config.height);
@@ -26,28 +76,75 @@ function failureCopy(reason: GeoGebraEmbedFailureReason, detail?: string) {
 }
 
 /**
- * Renders a GeoGebra activity or calculator inside the lesson.
- *
- * GeoGebra is embedded through its documented iframe endpoints:
- * `https://www.geogebra.org/m/<materialId>?embed` for an activity and
- * `https://www.geogebra.org/<appName>?embed` for a calculator. The old
- * `/apps/<appName>` path is GeoGebra's script codebase, not an embeddable page,
- * and it responds with `403 Forbidden`.
+ * Renders a GeoGebra activity or calculator through the official Apps Embedding API.
  */
 export function GeoGebraProvider({ config, title, adminHint = false }: { config: GeoGebraInteractiveConfig; title?: string; adminHint?: boolean }) {
   const resolution = useMemo(() => resolveGeoGebraEmbed(config), [config]);
+  const containerId = `geogebra-${useId().replace(/:/g, "")}`;
+  const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<LoadStatus>("loading");
-  const [stalled, setStalled] = useState(false);
-
-  const src = resolution.ok ? resolution.src : undefined;
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!src) return;
+    if (!resolution.ok || !containerRef.current) return;
+
+    let active = true;
+    let api: GeoGebraApi | undefined;
+    let timer: number | undefined;
     setStatus("loading");
-    setStalled(false);
-    const timer = window.setTimeout(() => setStalled(true), 12000);
-    return () => window.clearTimeout(timer);
-  }, [src]);
+    setError(null);
+
+    const materialId = resolution.kind === "material" ? resolution.materialId : undefined;
+    const configuredAppName = isGeoGebraAppName(config.appName) ? config.appName : "graphing";
+    const appName = materialId && config.showNotes ? "notes" : resolution.kind === "material" ? configuredAppName : resolution.appName;
+    const height = heightFor(config);
+
+    void loadGeoGebraScript()
+      .then(() => {
+        if (!active || !containerRef.current || !window.GGBApplet) throw new Error("GeoGebra applet is unavailable.");
+
+        const applet = new window.GGBApplet(
+          {
+            appName,
+            ...(materialId ? { material_id: materialId } : {}),
+            id: containerId,
+            width: 800,
+            height,
+            scaleContainerClass: "geogebra-responsive-container",
+            showToolBar: config.showToolbar,
+            showAlgebraInput: config.showAlgebraInput,
+            showMenuBar: config.showMenuBar,
+            showResetIcon: config.showResetIcon,
+            appletOnLoad: (loadedApi) => {
+              if (!active) return;
+              api = loadedApi;
+              if (timer !== undefined) window.clearTimeout(timer);
+              setStatus("ready");
+            },
+          },
+          true,
+        );
+
+        applet.inject(containerId);
+        timer = window.setTimeout(() => {
+          if (!active) return;
+          setError("GeoGebra couldn't be loaded. Please refresh the page and try again.");
+          setStatus("error");
+        }, 30000);
+      })
+      .catch(() => {
+        if (!active) return;
+        setError("GeoGebra couldn't be loaded. Please refresh the page and try again.");
+        setStatus("error");
+      });
+
+    return () => {
+      active = false;
+      if (timer !== undefined) window.clearTimeout(timer);
+      api?.remove?.();
+      if (containerRef.current) containerRef.current.replaceChildren();
+    };
+  }, [config, containerId, resolution]);
 
   // A resource that is not configured correctly must never render a broken
   // iframe (or leak GeoGebra's own raw error page into the lesson).
@@ -73,24 +170,16 @@ export function GeoGebraProvider({ config, title, adminHint = false }: { config:
 
   return (
     <figure className="overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white">
-      <div className="relative w-full" style={{ height: heightFor(config) }}>
+      <div className="geogebra-responsive-container relative w-full overflow-hidden" style={{ aspectRatio: `800 / ${heightFor(config)}` }}>
         {status !== "ready" ? (
           <div className="absolute inset-0 flex items-center justify-center bg-white">
             <div className="flex flex-col items-center gap-3">
-              <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#E5E5E5] border-t-[#FFBE00]" aria-hidden />
-              <span className="text-xs font-medium text-[#666666]">Loading GeoGebra...</span>
+              {status === "error" ? <AlertTriangle size={20} className="text-[#B45309]" /> : <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#E5E5E5] border-t-[#FFBE00]" aria-hidden />}
+              <span className="text-xs font-medium text-[#666666]">{status === "error" ? error : "Loading GeoGebra..."}</span>
             </div>
           </div>
         ) : null}
-        <iframe
-          src={resolution.src}
-          title={title ?? (resolution.kind === "material" ? `GeoGebra activity ${resolution.materialId}` : `GeoGebra ${resolution.appName}`)}
-          className="h-full w-full border-0"
-          allowFullScreen
-          allow="fullscreen; clipboard-write"
-          referrerPolicy="strict-origin-when-cross-origin"
-          onLoad={() => setStatus("ready")}
-        />
+        <div id={containerId} ref={containerRef} className="h-full w-full" aria-label={title ?? "GeoGebra interactive"} />
       </div>
       <figcaption className="flex flex-wrap items-center justify-between gap-2 border-t border-[#E5E5E5] bg-transparent px-4 py-2.5">
         <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#666666]">
@@ -105,11 +194,6 @@ export function GeoGebraProvider({ config, title, adminHint = false }: { config:
           Open in GeoGebra <ExternalLink size={11} />
         </a>
       </figcaption>
-      {stalled && status !== "ready" ? (
-        <p className="border-t border-[#E5E5E5] px-4 py-2 text-[11px] leading-5 text-[#999999]">
-          GeoGebra is taking longer than usual. If it stays blank, check that the material id is published and that the browser is not blocking third-party frames.
-        </p>
-      ) : null}
     </figure>
   );
 }
