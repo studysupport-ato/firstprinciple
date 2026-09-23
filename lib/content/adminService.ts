@@ -1,5 +1,6 @@
 import {
   createAssessmentAdminRepository,
+  createAssetAdminRepository,
   createCourseMaterialsAdminRepository,
   createCourseStructureAdminRepository,
   createDayContentAdminRepository,
@@ -179,6 +180,10 @@ export async function getAdminDay(dayId: string): Promise<Lesson | undefined> {
 
 export async function getAdminDayContent(courseId: string, weekId: string, dayId: string): Promise<ContentBlock[] | undefined> {
   return createDayContentAdminRepository().getDayContent(courseId, weekId, dayId);
+}
+
+export async function uploadAdminLessonImage(courseId: string, weekId: string, dayId: string, file: File, altText?: string) {
+  return createAssetAdminRepository().uploadLessonImage({ courseId, weekId, dayId, file, altText });
 }
 
 export async function listAdminQuestions(courseId?: string): Promise<Question[]> {

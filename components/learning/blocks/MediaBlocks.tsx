@@ -1,11 +1,12 @@
 "use client";
 
 import type { ImageBlock as ImageBlockData, VideoBlock as VideoBlockData } from "@/lib/content/types/lesson";
+import type { Asset } from "@/lib/content/types/asset";
 import { assetUrl, getAssetById } from "@/lib/content/assets";
 
-export function ImageBlock({ assetId, src, alt, caption }: ImageBlockData) {
-  const asset = assetId ? getAssetById(assetId) : undefined;
-  return <figure className="space-y-2"><img src={assetUrl(assetId, src)} alt={alt || asset?.altText || ""} className="h-auto w-full rounded-2xl border border-[#E5E5E5]" />{caption ? <figcaption className="font-sans text-xs text-[#666666]">{caption}</figcaption> : null}</figure>;
+export function ImageBlock({ assetId, src, alt, caption, asset }: ImageBlockData & { asset?: Asset }) {
+  const resolvedAsset = asset ?? (assetId ? getAssetById(assetId) : undefined);
+  return <figure className="space-y-2"><img src={resolvedAsset?.source.url ?? assetUrl(assetId, src)} alt={alt || resolvedAsset?.altText || ""} className="h-auto w-full rounded-2xl border border-[#E5E5E5]" />{caption ? <figcaption className="font-sans text-xs text-[#666666]">{caption}</figcaption> : null}</figure>;
 }
 
 export function VideoBlock({ assetId, src, title }: VideoBlockData) {

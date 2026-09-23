@@ -8,7 +8,7 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { LessonRenderer } from "@/components/learning/LessonRenderer";
 import { createDefaultBlock } from "@/lib/content/overrides";
-import { getAdminDayAction, getAdminDayContentAction, saveDayContentAction, setDayStatusAction } from "@/lib/adminContentActions";
+import { getAdminDayAction, getAdminDayContentAction, saveDayContentAction, setDayStatusAction, updateDayAction, uploadLessonImageAction } from "@/lib/adminContentActions";
 import type { ContentBlock, GeoGebraInteractiveConfig, Lesson } from "@/lib/content/types";
 import { MathText } from "@/components/learning/blocks/MathText";
 import { MarkdownBlock } from "@/components/learning/blocks/MarkdownBlock";
@@ -24,6 +24,7 @@ const supportedBlockTypes = [
   "image",
   "video",
   "interactive",
+  "visualizer",
   "question",
 ] as const;
 
@@ -79,6 +80,7 @@ export default function AdminLessonEditorPage() {
   const [previewMode, setPreviewMode] = useState(false);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [revertTarget, setRevertTarget] = useState(false);
+  const [uploadingBlockId, setUploadingBlockId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -173,10 +175,32 @@ export default function AdminLessonEditorPage() {
     });
   }
 
+  async function uploadImage(block: Extract<ContentBlock, { type: "image" }>, file: File) {
+    if (!baseLesson) return;
+    setUploadingBlockId(block.id);
+    setSaveError(null);
+    const result = await uploadLessonImageAction(baseLesson.courseId, baseLesson.weekId, baseLesson.id, file, block.alt);
+    if (!result.ok) {
+      triggerSaveError(result.error ?? "Image upload failed.");
+    } else {
+      updateBlock(block.id, (item) => ({ ...item, type: "image", assetId: result.data.id, src: result.data.source.url, alt: item.type === "image" && item.alt ? item.alt : result.data.altText ?? "Lesson image" } as ContentBlock));
+      triggerMessage("Image uploaded. Save the Day to persist the block.");
+    }
+    setUploadingBlockId(null);
+  }
+
   async function handleSave(status?: "draft" | "published") {
     if (!draft || !baseLesson) return;
     setSaving(true);
     try {
+      const dayRes = await updateDayAction(baseLesson.courseId, baseLesson.weekId, baseLesson.id, {
+        title: draft.title,
+        description: draft.description,
+      });
+      if (!dayRes.ok) {
+        triggerSaveError(dayRes.error ?? "Day details could not be saved.");
+        return;
+      }
       const res = await saveDayContentAction(baseLesson.courseId, baseLesson.weekId, baseLesson.id, draft.blocks);
       if (!res.ok) {
         triggerSaveError(res.error ?? "Save failed.");
@@ -185,7 +209,7 @@ export default function AdminLessonEditorPage() {
       if (status) {
         await setDayStatusAction(baseLesson.courseId, baseLesson.weekId, baseLesson.id, status);
       }
-      setBaseLesson({ ...baseLesson, blocks: draft.blocks });
+      setBaseLesson({ ...baseLesson, title: draft.title, description: draft.description, blocks: draft.blocks });
       triggerMessage(status === "published" ? "Published to Supabase." : "Changes saved to Supabase.");
     } finally {
       setSaving(false);
@@ -330,6 +354,15 @@ export default function AdminLessonEditorPage() {
       case "image":
         return (
           <div className="space-y-3">
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Upload image</label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={uploadingBlockId === block.id}
+                onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadImage(block, file); event.currentTarget.value = ""; }}
+                className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
+              />
+              {uploadingBlockId === block.id ? <p className="text-xs text-[#666666]">Uploading image...</p> : null}
             <AssetPicker type="image" value={block.assetId} onChange={(asset) => updateBlock(block.id, (item) => ({ ...item, type: "image", assetId: asset?.id, src: asset?.source.url ?? block.src, alt: asset?.altText ?? block.alt } as ContentBlock))} />
             <input
               value={block.src}
@@ -460,6 +493,46 @@ export default function AdminLessonEditorPage() {
                 className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
               />
             )}
+          </div>
+        );
+      case "visualizer":
+        return (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Visualizer title</label>
+              <input
+                value={block.title ?? ""}
+                onChange={(event) => updateBlock(block.id, (item) => ({ ...item, type: "visualizer", title: event.target.value } as ContentBlock))}
+                className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
+                placeholder="Custom visualizer"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Height</label>
+              <input
+                type="number"
+                min={280}
+                max={900}
+                value={block.height ?? 420}
+                onChange={(event) => {
+                  const height = Number(event.target.value || 420);
+                  updateBlock(block.id, (item) => ({ ...item, type: "visualizer", height: Number.isFinite(height) ? Math.max(280, Math.min(900, height)) : 420 } as ContentBlock));
+                }}
+                className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">HTML / CSS / JavaScript source</label>
+              <p className="text-xs leading-5 text-[#666666]">Runs in a sandboxed preview with scripts enabled but without same-origin, storage, parent-page, or network access.</p>
+              <textarea
+                value={block.source}
+                onChange={(event) => updateBlock(block.id, (item) => ({ ...item, type: "visualizer", source: event.target.value } as ContentBlock))}
+                rows={14}
+                spellCheck={false}
+                className="w-full rounded-xl border border-[#E5E5E5] bg-[#111827] px-3 py-3 font-mono text-xs leading-5 text-[#F9FAFB] outline-none"
+                placeholder={'<div id="app"></div>\n<script>...</script>'}
+              />
+            </div>
           </div>
         );
       case "question":
@@ -660,6 +733,7 @@ export default function AdminLessonEditorPage() {
                         {block.type === "image" && `${block.alt} (${block.src})`}
                         {block.type === "video" && block.title}
                         {block.type === "interactive" && `Interactive: ${block.provider}`}
+                        {block.type === "visualizer" && (block.title || "Custom visualizer")}
                         {block.type === "question" && `Question ref: ${block.questionId}`}
                       </div>
                     )}

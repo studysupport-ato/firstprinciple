@@ -20,6 +20,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { BrandLogo } from "@/components/branding/BrandLogo";
 
 const navigation = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -58,13 +59,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         >
           <div className="flex h-20 items-center justify-between border-b border-[#E5E5E5] px-6">
             <Link href="/admin" className="flex items-center gap-3" aria-label="Back2Basics with Kwamina admin home">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#111111] text-[10px] font-bold text-white">
-                FP
-              </div>
-              <div>
-                <div className="font-serif text-lg tracking-tight text-[#111111]">Back2Basics with Kwamina</div>
-                <div className="text-[10px] font-sans uppercase tracking-[0.2em] text-[#666666]">Admin</div>
-              </div>
+              <BrandLogo className="h-10 w-44 rounded-md" priority />
+              <span className="sr-only">Back2Basics with Kwamina Admin</span>
             </Link>
             <button
               type="button"

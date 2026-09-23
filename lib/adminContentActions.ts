@@ -50,6 +50,7 @@ import {
   updateAdminQuestion,
   updateAdminResource,
   updateAdminWeek,
+  uploadAdminLessonImage,
 } from "@/lib/content/adminService";
 import type { ContentStatus } from "@/lib/content/lifecycle";
 import type { CoursePatch, DayPatch, WeekPatch } from "@/lib/content/repository";
@@ -132,6 +133,10 @@ export async function getAdminDayAction(dayId: string): Promise<AdminActionResul
 
 export async function getAdminDayContentAction(courseId: string, weekId: string, dayId: string): Promise<AdminActionResult<ContentBlock[] | null>> {
   return run(async () => (await getAdminDayContent(courseId, weekId, dayId)) ?? null);
+}
+
+export async function uploadLessonImageAction(courseId: string, weekId: string, dayId: string, file: File, altText?: string): Promise<AdminActionResult<import("@/lib/content/types").Asset>> {
+  return run(() => uploadAdminLessonImage(courseId, weekId, dayId, file, altText));
 }
 
 export async function getAdminQuestionsAction(courseId?: string): Promise<AdminActionResult<Question[]>> {

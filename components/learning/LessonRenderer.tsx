@@ -1,6 +1,7 @@
 "use client";
 
 import type { ContentBlock, Lesson } from "@/lib/content/types";
+import type { Asset } from "@/lib/content/types/asset";
 import { AnimatePresence, motion } from "framer-motion";
 import { CalloutBlock } from "./blocks/CalloutBlock";
 import { HeadingBlock } from "./blocks/HeadingBlock";
@@ -11,8 +12,9 @@ import { MarkdownBlock } from "./blocks/MarkdownBlock";
 import { QuestionBlock } from "./blocks/QuestionBlock";
 import { TextBlock } from "./blocks/TextBlock";
 import { WorkedExampleBlock } from "./blocks/WorkedExampleBlock";
+import { VisualizerBlock } from "./blocks/VisualizerBlock";
 
-function renderBlock(block: ContentBlock) {
+function renderBlock(block: ContentBlock, assetsById?: Record<string, Asset>) {
   switch (block.type) {
     case "heading":
       return <HeadingBlock {...block} />;
@@ -25,11 +27,13 @@ function renderBlock(block: ContentBlock) {
     case "callout":
       return <CalloutBlock {...block} />;
     case "image":
-      return <ImageBlock {...block} />;
+      return <ImageBlock {...block} asset={block.assetId ? assetsById?.[block.assetId] : undefined} />;
     case "video":
       return <VideoBlock {...block} />;
     case "interactive":
       return <InteractiveBlock {...block} />;
+    case "visualizer":
+      return <VisualizerBlock {...block} />;
     case "question":
       return <QuestionBlock {...block} />;
     case "markdown":
@@ -39,7 +43,7 @@ function renderBlock(block: ContentBlock) {
   }
 }
 
-export function LessonRenderer({ lesson, step }: { lesson: Lesson; step: number }) {
+export function LessonRenderer({ lesson, step, assetsById }: { lesson: Lesson; step: number; assetsById?: Record<string, Asset> }) {
   const blocks = (lesson?.blocks ?? []).filter((block) => block.step === step);
   const uniqueSteps = Array.from(new Set((lesson?.blocks ?? []).map(b => b.step ?? 1))).sort((a, b) => a - b);
   const totalSteps = uniqueSteps.length;
@@ -59,7 +63,7 @@ export function LessonRenderer({ lesson, step }: { lesson: Lesson; step: number 
           Step {displayStep} of {totalSteps}
         </span>
         {blocks.map((block) => (
-          <div key={block.id}>{renderBlock(block)}</div>
+          <div key={block.id}>{renderBlock(block, assetsById)}</div>
         ))}
       </motion.div>
     </AnimatePresence>

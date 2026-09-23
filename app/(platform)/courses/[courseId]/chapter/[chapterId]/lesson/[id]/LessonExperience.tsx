@@ -10,8 +10,9 @@ import { SupplementaryResources } from "@/components/learning/SupplementaryResou
 import { getGeoGebraEmbedConfig } from "@/lib/content/resourcePresentation";
 import type { LearningResource } from "@/lib/content/types/resource";
 import type { Lesson } from "@/lib/content/types/lesson";
+import type { Asset } from "@/lib/content/types/asset";
 
-export function LessonExperience({ lesson, courseId, preview, week, supplementaryResources }: { lesson: Lesson; courseId: string; preview: boolean; week?: string; supplementaryResources: LearningResource[] }) {
+export function LessonExperience({ lesson, courseId, preview, week, supplementaryResources, assetsById }: { lesson: Lesson; courseId: string; preview: boolean; week?: string; supplementaryResources: LearningResource[]; assetsById?: Record<string, Asset> }) {
   const [currentStep, setCurrentStep] = useState(0);
 
   const geoResource = useMemo(() => supplementaryResources.find((resource) => resource.type === "geogebra"), [supplementaryResources]);
@@ -53,7 +54,7 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
         {!isFullWidthInteractive && (
           <div className={`relative z-10 flex flex-col justify-between border-r border-[#E5E5E5] bg-white ${hasSideContent ? "w-full lg:w-[45%]" : "w-full"}`}>
             <div className="overflow-y-auto p-12 lg:p-16">
-              <LessonRenderer lesson={lesson} step={activeStep} />
+              <LessonRenderer lesson={lesson} step={activeStep} assetsById={assetsById} />
               {isComplete ? <SupplementaryResources resources={supplementaryResources} /> : null}
             </div>
             {renderNavigation()}

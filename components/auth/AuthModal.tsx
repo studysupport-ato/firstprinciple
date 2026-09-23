@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { listMockStudents, loginMockStudent, MockStudent } from "@/lib/auth/mock";
+import { BrandLogo } from "@/components/branding/BrandLogo";
 
 type AuthView = "select" | "success";
 
@@ -136,19 +137,7 @@ export function AuthModal({
                     </div>
 
                     <div className="relative z-10 flex h-full flex-col p-10 lg:p-12">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-white/95 text-[11px] font-black tracking-tight text-[#0E0E10] shadow-lg">
-                          FP
-                        </div>
-                        <div>
-                          <div className="text-sm font-serif font-medium tracking-tight text-white">
-                            Back2Basics with Kwamina
-                          </div>
-                          <div className="text-[10px] font-sans font-semibold uppercase tracking-[0.28em] text-white/40">
-                            Mathematics
-                          </div>
-                        </div>
-                      </div>
+                      <BrandLogo className="h-14 w-64 rounded-lg shadow-lg" priority />
 
                       <div className="mt-10">
                         <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 backdrop-blur">

@@ -461,6 +461,24 @@ export function createDefaultBlock(type: ContentBlock["type"], step = 1): Conten
           height: 440,
         },
       };
+    case "visualizer":
+      return {
+        id: createStableId("block-visualizer"),
+        type: "visualizer",
+        step,
+        title: "Custom visualizer",
+        height: 420,
+        source: `<div id="visualizer" style="height:100%;display:grid;place-items:center;font:600 20px system-ui,sans-serif;color:#111827;background:#f8fafc">Move the point</div>
+<script>
+  const point = document.getElementById("visualizer");
+  let x = 50;
+  point.addEventListener("pointermove", (event) => {
+    if (event.buttons !== 1) return;
+    x = Math.max(0, Math.min(100, event.offsetX / point.clientWidth * 100));
+    point.style.background = "linear-gradient(90deg, #fbbf24 " + x + "%, #f8fafc " + x + "%)";
+  });
+</script>`,
+      };
     case "question":
       return { id: createStableId("block-question"), type: "question", step, questionId: "math151-argand-modulus-check" };
     case "markdown":
@@ -522,6 +540,14 @@ export function validateBlock(block: ContentBlock): string[] {
         if (geoConfig && "height" in geoConfig && (typeof geoConfig.height !== "number" || !Number.isFinite(geoConfig.height) || geoConfig.height <= 0)) {
           errors.push("GeoGebra height must be a positive number.");
         }
+      }
+      break;
+    case "visualizer":
+      if (!block.source.trim()) errors.push("Visualizer source cannot be empty.");
+      if (block.source.length > 200000) errors.push("Visualizer source cannot exceed 200,000 characters.");
+      if (block.title !== undefined && block.title.length > 200) errors.push("Visualizer title cannot exceed 200 characters.");
+      if (block.height !== undefined && (!Number.isFinite(block.height) || block.height < 280 || block.height > 900)) {
+        errors.push("Visualizer height must be between 280 and 900 pixels.");
       }
       break;
     case "question":

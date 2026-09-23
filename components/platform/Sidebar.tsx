@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Trophy,
 } from "lucide-react";
+import { BrandLogo } from "@/components/branding/BrandLogo";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -41,13 +42,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     >
       <div className={`h-20 flex items-center ${collapsed ? "justify-center px-3" : "px-8"} border-b-2 border-[#111111]`}>
         <Link href="/" className="flex items-center gap-3 group" title="Back2Basics with Kwamina">
-          <div className="w-6 h-6 bg-[#111111] rounded-sm flex items-center justify-center transition-transform group-hover:scale-105 border-2 border-[#111111] shadow-[2px_2px_0_#E53935]">
-            <span className="text-[#FFBE00] text-[10px] font-black font-sans">B2</span>
-          </div>
+          <BrandLogo className="h-9 w-36 rounded-sm border-2 border-[#111111] shadow-[2px_2px_0_#E53935] transition-transform group-hover:scale-[1.02]" priority />
           {!collapsed && (
-            <span className="font-serif text-lg font-black tracking-tight text-[#111111]">
-              Back2Basics
-            </span>
+            <span className="sr-only">Back2Basics with Kwamina</span>
           )}
         </Link>
         <button

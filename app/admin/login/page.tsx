@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BrandLogo } from "@/components/branding/BrandLogo";
 import { useRouter } from "next/navigation";
 import { ArrowRight, BookOpenCheck, Eye, EyeOff, Lock, Mail, ShieldCheck, Sparkles } from "lucide-react";
 
@@ -44,13 +45,8 @@ export default function AdminLoginPage() {
 
             <div className="relative z-10 flex h-full flex-col">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[11px] font-bold text-[#111111] shadow-sm">
-                  FP
-                </div>
-                <div>
-                  <div className="font-serif text-[28px] tracking-[-0.04em]">Back2Basics with Kwamina</div>
-                  <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.24em] text-[#d7d7d7]">Admin portal</div>
-                </div>
+                <BrandLogo className="h-14 w-64 rounded-xl shadow-sm" priority />
+                <span className="sr-only">Back2Basics with Kwamina Admin portal</span>
               </div>
 
               <div className="mt-7 space-y-4">
