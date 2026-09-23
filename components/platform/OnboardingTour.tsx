@@ -49,24 +49,24 @@ export function OnboardingTour() {
     const isCompleted = localStorage.getItem(currentTourKey) === "true";
     const urlParams = new URLSearchParams(window.location.search);
     const isPreview = urlParams.get("preview") === "1";
+    // ONLY trigger from explicit ?onboarding=true param — set by AuthModal after first login.
+    // Do NOT trigger just because the user is authenticated (that would fire on every return visit).
     const wantsOnboarding = urlParams.get("onboarding") === "true";
     const isAdmin = pathname.startsWith("/admin");
     
-    // Only start on /courses, when authenticated or explicitly requested, not completed, not preview, not admin
+    // Only start on /courses, when the onboarding param is present, not completed, not preview, not admin
     if (
       pathname === "/courses" &&
-      (authenticated === true || wantsOnboarding) &&
+      wantsOnboarding &&
       !isCompleted &&
       !isPreview &&
       !isAdmin
     ) {
       const timer = setTimeout(() => {
         setIsVisible(true);
-        // Clean up the URL if we used the onboarding param
-        if (wantsOnboarding) {
-          window.history.replaceState(null, '', pathname);
-        }
-      }, 800); // subtle delay
+        // Clean the URL immediately so a refresh doesn't re-trigger
+        window.history.replaceState(null, '', pathname);
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [pathname, authenticated, student]);
