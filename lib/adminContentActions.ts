@@ -163,8 +163,8 @@ export async function getAdminResourceAction(resourceId: string): Promise<AdminA
   return run(async () => (await getAdminResource(resourceId)) ?? null);
 }
 
-export async function getAdminResourcePlacementsAction(): Promise<AdminActionResult<ResourcePlacement[]>> {
-  return run(() => listAdminResourcePlacements());
+export async function getAdminResourcePlacementsAction(resourceId?: string): Promise<AdminActionResult<ResourcePlacement[]>> {
+  return run(() => listAdminResourcePlacements(resourceId));
 }
 
 export async function getAdminDepartmentsAction(): Promise<AdminActionResult<AdminDepartmentListRow[]>> {

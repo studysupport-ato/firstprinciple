@@ -41,6 +41,8 @@ export interface WorkedExampleBlock extends BaseContentBlock {
   title: string;
   prompt: string;
   solution: string;
+  /** Optional Markdown-first content; prompt/solution remain the legacy fallback. */
+  markdown?: string;
 }
 
 export interface CalloutBlock extends BaseContentBlock {

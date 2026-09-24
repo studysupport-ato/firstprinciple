@@ -14,11 +14,6 @@ export default function PlatformLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
-    const hasSeenWelcome = localStorage.getItem("first-principles-welcome-v1");
-    if (!hasSeenWelcome) {
-      setSidebarCollapsed(true);
-    }
-
     const handleWelcomeDismissed = () => {
       setSidebarCollapsed(false);
     };
@@ -35,7 +30,7 @@ export default function PlatformLayout({
       />
 
       <main
-        className={`flex-1 relative ${sidebarCollapsed ? "ml-20" : "ml-64"} min-h-screen transition-[margin] duration-500 ease-in-out`}
+        className={`flex-1 relative ${sidebarCollapsed ? "ml-[104px]" : "ml-[224px]"} min-h-screen bg-[#FFC600] transition-[margin] duration-500 ease-in-out`}
       >
         <PreviewToolbar />
         {children}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   ArrowUpRight,
   BookOpenText,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { AnimatedItem } from "@/components/motion/AnimatedItem";
 import { createCourseMaterialsRepository, type CourseMaterialsRepository } from "@/lib/courseMaterialsRepository";
 import { type CourseMaterialEntry, type CourseMaterialsDepartment, type CourseMaterialsDirectory } from "@/lib/courseMaterials";
 
@@ -47,6 +49,26 @@ function getTypeIcon(type: MaterialType) {
     default:
       return <Globe className="h-4 w-4 text-emerald-500" />;
   }
+}
+
+function FilterPills({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#111111]/45">{label}</span>
+      {options.map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          onClick={() => onChange(opt)}
+          className={`rounded-full px-[14px] py-[8px] text-[12px] font-bold transition ${
+            value === opt ? "bg-[#0e0e0e] text-[#FFC700]" : "border-[1.2px] border-black/50 text-[#0e0e0e] hover:bg-black/5"
+          }`}
+        >
+          {opt}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 // Derive initials for the department icon placeholder
@@ -157,6 +179,14 @@ export default function CourseMaterialsPage() {
   );
 
   // Departments matching search that have at least 1 material
+  const departmentNames = useMemo(
+    () =>
+      directory.departments
+        .filter((d) => d.status === "published")
+        .map((d) => d.name),
+    [directory]
+  );
+
   const visibleDepartments = useMemo(
     () =>
       departmentsWithEntries.filter(({ department, filteredEntries }) => {
@@ -284,217 +314,204 @@ export default function CourseMaterialsPage() {
 
   // ─── Department card grid (main view) ─────────────────────────────────────
   return (
-    <div className="min-h-screen bg-transparent">
-      <div className="mx-auto max-w-[1200px] px-6 py-10">
-
-        {/* Page header */}
-        <div className="mb-10">
-          <h1 className="font-sans text-4xl font-black uppercase tracking-tight text-[#111111] md:text-5xl">Course Materials</h1>
-          <p className="mt-2 font-sans text-lg font-medium text-[#111111]/70">Browse resources by department. Find past questions, lecture slides and more.</p>
-        </div>
-
-        {/* Search bar */}
-        <div className="mb-6 flex flex-col gap-3 md:flex-row">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#111111]/50" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search departments by name or abbreviation..."
-              className="w-full rounded-2xl border-2 border-[#111111] bg-white py-3.5 pl-11 pr-10 text-sm font-medium text-[#111111] outline-none shadow-[3px_3px_0_#111111] transition focus:shadow-none focus:translate-x-[2px] focus:translate-y-[2px] placeholder:text-[#111111]/40"
-              aria-label="Search course materials"
-            />
-            {query ? (
-              <button type="button" onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-[#111111]/50 hover:text-[#111111]">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            ) : null}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl border-2 border-[#111111] bg-white px-4 py-3 text-sm font-black text-[#111111] shadow-[3px_3px_0_#111111]">
-              {directory.departments.filter((d) => d.status === "published").length} Departments
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowBookmarksOnly((c) => !c)}
-              className={`inline-flex items-center gap-2 rounded-2xl border-2 border-[#111111] px-4 py-3 text-sm font-black shadow-[3px_3px_0_#111111] transition hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none ${
-                showBookmarksOnly ? "bg-[#111111] text-[#FFBE00]" : "bg-white text-[#111111]"
-              }`}
-            >
-              <Bookmark className={`h-4 w-4 ${showBookmarksOnly ? "fill-[#FFBE00]" : ""}`} />
-              Saved ({bookmarks.length})
-            </button>
-          </div>
-        </div>
-
-        {/* Active filters */}
-        {activeFilters.length > 0 && (
-          <div className="mb-6 flex flex-wrap items-center gap-2 text-xs">
-            <span className="font-black text-[#111111]">Filters:</span>
-            {activeFilters.map((f) => (
-              <span key={f} className="rounded-lg border-2 border-[#111111] bg-white px-2.5 py-1 font-bold text-[#111111]">
-                {f}
-              </span>
-            ))}
-            <button type="button" onClick={clearFilters} className="font-black text-[#E53935] underline hover:no-underline">
-              Reset All
-            </button>
-          </div>
-        )}
-
-        {/* States */}
-        {!ready ? (
-          <div className="rounded-2xl border-2 border-[#111111] bg-white p-10 text-center font-bold text-[#111111]/60 shadow-[4px_4px_0_#111111]">
-            Loading departments...
-          </div>
-        ) : error ? (
-          <div className="rounded-2xl border-2 border-[#E53935] bg-white p-10 text-center shadow-[4px_4px_0_#E53935]">
-            <h3 className="text-base font-black text-[#E53935]">Course materials unavailable</h3>
-            <p className="mt-2 text-sm font-medium text-[#111111]/60">{error}</p>
-          </div>
-        ) : visibleDepartments.length === 0 ? (
-          <div className="rounded-2xl border-2 border-dashed border-[#111111] bg-white p-12 text-center">
-            <FolderOpen className="mx-auto h-10 w-10 text-[#111111]/30" />
-            <h3 className="mt-5 font-black text-[#111111]">No departments found</h3>
-            <p className="mx-auto mt-2 max-w-sm text-sm font-medium text-[#111111]/60">
-              We could not find any departments matching your search.
-            </p>
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="mt-5 inline-flex items-center gap-2 rounded-xl border-2 border-[#111111] bg-[#111111] px-5 py-2.5 text-xs font-black text-[#FFBE00] shadow-[3px_3px_0_#E53935] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
-            >
-              Reset Filters
-            </button>
-          </div>
-        ) : (
-          /* Department cards — GESA style */
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {visibleDepartments.map(({ department, entries, filteredEntries }) => {
-              const totalCount = entries.length;
-              const initials = getDeptInitials(department.name);
-
-              return (
-                <div
-                  key={department.id}
-                  className="flex flex-col rounded-3xl border-2 border-[#E5E5E5] bg-white p-6 shadow-sm transition-all hover:border-[#111111] hover:shadow-[4px_4px_0_#111111]"
-                >
-                  {/* Dept icon */}
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FAFAFA] border border-[#E5E5E5]">
-                    <span className="text-xl font-black text-[#111111]">{initials}</span>
-                  </div>
-
-                  {/* Badge */}
-                  <div className="mb-3 inline-flex">
-                    <span className="rounded-full bg-[#FFBE00] px-3 py-0.5 text-[10px] font-black uppercase tracking-widest text-[#111111]">
-                      {department.shortName ?? "DEPT"}
-                    </span>
-                  </div>
-
-                  {/* Title & description */}
-                  <h2 className="mb-2 font-sans text-xl font-black leading-tight text-[#111111]">{department.name}</h2>
-                  <p className="mb-6 flex-1 text-sm leading-relaxed text-[#111111]/60">
-                    {department.description ??
-                      `Explore the academic resources and course materials for the ${department.name} at KNUST.`}
-                  </p>
-
-                  {/* Material count */}
-                  <div className="mb-4 text-xs font-bold text-[#111111]/40 uppercase tracking-widest">
-                    {totalCount} {totalCount === 1 ? "resource" : "resources"}
-                    {filteredEntries.length !== totalCount && ` · ${filteredEntries.length} matching`}
-                  </div>
-
-                  {/* CTA */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDepartment(department)}
-                    className="w-full rounded-2xl border-2 border-[#111111] bg-[#111111] py-3 text-sm font-black text-white transition hover:bg-[#333333]"
-                  >
-                    View Department
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
+    <div className="relative min-h-screen overflow-x-clip bg-[#FFC700] pb-10">
+      {/* BUILDING — true overflow: page-level, bleeds off the right edge, never clipped by a container */}
+      <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 top-0 z-0">
+        <div
+          className="absolute right-[-40px] top-0 h-[400px] w-[82%] min-w-[760px] max-[900px]:left-0 max-[900px]:right-auto max-[900px]:h-[220px] max-[900px]:w-full max-[900px]:min-w-0 max-[900px]:opacity-60"
+          style={{
+            backgroundImage: "url('/knust.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "left center",
+            filter: "saturate(1.05)",
+            WebkitMaskImage: "linear-gradient(90deg, transparent 0%, #000 30%, #000 100%), linear-gradient(180deg, #000 0%, #000 55%, transparent 82%)",
+            WebkitMaskComposite: "source-in",
+            maskImage: "linear-gradient(90deg, transparent 0%, #000 30%, #000 100%), linear-gradient(180deg, #000 0%, #000 55%, transparent 82%)",
+            maskComposite: "intersect",
+          }}
+        />
       </div>
 
-      {/* Material detail modal */}
-      {selectedMaterial ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#111111]/60 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-xl overflow-hidden rounded-2xl border-2 border-[#111111] bg-white shadow-[6px_6px_0_#111111]">
-            <div className="flex items-start justify-between border-b-2 border-[#111111] p-6">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-[#FFBE00] px-3 py-0.5 text-[10px] font-black uppercase tracking-widest text-[#111111]">
-                    {directory.departments.find((item) => item.id === selectedMaterial.departmentId)?.shortName ?? "Course"}
+      <div className="relative z-10 px-[40px] pt-[22px] max-[900px]:px-[18px] max-[900px]:pt-5">
+        <div className="mx-auto max-w-[1220px]">
+        <div className="relative overflow-visible">
+          <div className="mb-[14px] flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.1em] text-[#111111]/60">
+              <span>Learning space</span>
+              <span className="text-[8px]">●</span>
+              <span className="text-[#111111]/80">MATH 151</span>
+            </div>
+            <Link
+              href="/settings"
+              aria-label="Open profile settings"
+              title="Profile settings"
+              className="group flex items-center gap-2.5 rounded-full bg-black/[0.08] py-1 pl-1 pr-4 backdrop-blur-[2px]"
+            >
+              <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#111111] text-[11px] font-black text-[#FFC700] transition-transform group-hover:scale-105">
+                KM
+              </span>
+              <span className="hidden text-left sm:block">
+                <span className="block font-sans text-[13px] font-bold leading-tight text-[#111111]">Kwame Mensah</span>
+                <span className="block font-sans text-[11px] leading-tight text-[#111111]/55">Student profile</span>
+              </span>
+            </Link>
+          </div>
+          <div className="relative mb-[10px]">
+            <p className="mb-[6px] mt-[26px] font-sans text-[15px] font-normal text-[#1d1d1d]">Your library,</p>
+            <h1 className="max-w-[560px] font-sans text-[46px] font-black leading-[1.0] tracking-[-0.01em] text-[#0c0c0c] max-[900px]:text-[30px]">
+              COURSE
+              <span className="block">MATERIALS.</span>
+            </h1>
+            <p className="mb-[20px] mt-[12px] max-w-[470px] text-[13.5px] leading-[1.55] text-[#333]/75">
+              Browse resources by department. Find past questions, lecture slides and more.
+            </p>
+          </div>
+          <div className="rounded-[20px] bg-white px-[20px] pb-[20px] pt-[18px] shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+            <div className="relative">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#111111]/60" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search departments by name or abbreviation..."
+                  className="w-full rounded-full border border-[#111111]/15 bg-white/75 py-3.5 pl-11 pr-10 text-sm font-medium text-[#111111] shadow-sm outline-none placeholder:text-[#111111]/45"
+                  aria-label="Search course materials"
+                />
+                {query ? (
+                  <button type="button" onClick={() => setQuery("")} className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-[#111111]/10 text-[#111111]/60 transition hover:bg-[#111111]/20" aria-label="Clear search">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 border-t border-[#111111]/10 pt-4">
+                <div className="flex items-center gap-2 rounded-full bg-[#111111] px-4 py-2.5 text-[12.5px] font-black text-[#FFC700]">
+                  {directory.departments.filter((d) => d.status === "published").length} Departments
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowBookmarksOnly((c) => !c)}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-[16px] py-[9px] text-[12px] font-bold transition ${
+                    showBookmarksOnly ? "bg-[#0e0e0e] text-[#FFC700]" : "border-[1.2px] border-black/50 text-[#0e0e0e] hover:bg-black/5"
+                  }`}
+                >
+                  <Bookmark className={`h-3.5 w-3.5 ${showBookmarksOnly ? "fill-current" : ""}`} />
+                  Saved
+                </button>
+                <FilterPills
+                  label="Type"
+                  options={RESOURCE_TYPES}
+                  value={typeFilter}
+                  onChange={(v) => setTypeFilter(v as "ALL" | MaterialType)}
+                />
+              </div>
+            </div>
+
+            {activeFilters.length > 0 && (
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#111111]/10 pt-4 text-xs">
+                <span className="font-black text-[#111111]">Filters:</span>
+                {activeFilters.map((f) => (
+                  <span key={f} className="rounded-full bg-[#111111]/5 px-2.5 py-1 font-bold text-[#111111]">
+                    {f}
                   </span>
-                  <span className="text-[11px] font-bold text-[#111111]/50">{selectedMaterial.courseCode ?? "Course material"}</span>
-                </div>
-                <h3 className="text-xl font-black text-[#111111]">{selectedMaterial.courseTitle}</h3>
+                ))}
+                <button type="button" onClick={clearFilters} className="font-black text-[#111111] underline underline-offset-2">
+                  Reset All
+                </button>
               </div>
-              <button type="button" onClick={() => setSelectedMaterial(null)} className="rounded-lg p-2 text-[#111111]/40 hover:bg-[#111111]/10 hover:text-[#111111]">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+            )}
 
-            <div className="space-y-5 p-6 text-sm">
-              <div>
-                <h4 className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#111111]/40">Description</h4>
-                <p className="leading-relaxed text-[#111111]/70">{selectedMaterial.description ?? "No description has been provided for this course material."}</p>
+            {!ready ? (
+              <div className="mt-4 rounded-[20px] bg-white p-10 text-center font-bold text-[#111111]/65 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+                Loading departments...
               </div>
-
-              <div className="grid grid-cols-2 gap-4 rounded-xl border-2 border-[#111111]/10 bg-[#FAFAFA] p-4">
-                <div>
-                  <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-[#111111]/40">Resource Type</span>
-                  <span className="mt-1 block font-black text-[#111111]">{selectedMaterial.type}</span>
-                </div>
-                <div>
-                  <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-[#111111]/40">Source</span>
-                  <span className="mt-1 block font-black text-[#111111]">{selectedMaterial.provider ?? "Back2Basics Directory"}</span>
-                </div>
+            ) : error ? (
+              <div className="mt-4 rounded-[20px] bg-white p-10 text-center shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+                <h3 className="text-base font-black text-[#111111]">Course materials unavailable</h3>
+                <p className="mt-2 text-sm font-medium text-[#111111]/65">{error}</p>
               </div>
-
-              <div>
-                <h4 className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#111111]/40">Topic Tags</h4>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    selectedMaterial.type,
-                    directory.departments.find((item) => item.id === selectedMaterial.departmentId)?.name ?? "Course",
-                    selectedMaterial.courseCode ?? "Academic",
-                  ].map((tag) => (
-                    <span key={tag} className="rounded-lg border-2 border-[#111111] bg-white px-2.5 py-1 text-xs font-bold text-[#111111]">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+            ) : visibleDepartments.length === 0 ? (
+              <div className="mt-4 rounded-[20px] border border-dashed border-[#111111]/30 bg-white p-12 text-center shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+                <FolderOpen className="mx-auto h-10 w-10 text-[#111111]/30" />
+                <h3 className="mt-5 font-black text-[#111111]">No departments found</h3>
+                <p className="mx-auto mt-2 max-w-sm text-sm font-medium text-[#111111]/65">
+                  We could not find any departments matching your search.
+                </p>
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#111111] px-5 py-2.5 text-xs font-black text-[#FFC600]"
+                >
+                  Reset Filters
+                </button>
               </div>
-            </div>
+            ) : (
+              <div className="mt-4 grid gap-[22px] md:grid-cols-2 xl:grid-cols-3">
+                {visibleDepartments.map(({ department, entries, filteredEntries }, index) => {
+                  const totalCount = entries.length;
+                  const initials = getDeptInitials(department.name);
 
-            <div className="flex items-center justify-between gap-3 border-t-2 border-[#111111]/10 p-5">
-              <button
-                type="button"
-                onClick={() => toggleBookmark(selectedMaterial.id)}
-                className="inline-flex items-center gap-2 rounded-xl border-2 border-[#111111] bg-white px-4 py-2.5 text-sm font-black text-[#111111] shadow-[3px_3px_0_#111111] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
-              >
-                <Bookmark className={`h-4 w-4 ${bookmarks.includes(selectedMaterial.id) ? "fill-[#FFBE00] text-[#FFBE00]" : "text-[#111111]/50"}`} />
-                {bookmarks.includes(selectedMaterial.id) ? "Saved" : "Save Material"}
-              </button>
+                  return (
+                    <AnimatedItem key={department.id} index={index} className="flex">
+                      <div className="group relative flex w-full flex-col overflow-hidden rounded-[26px] border border-black/[0.05] bg-white p-[28px] shadow-[0_2px_10px_rgba(16,16,16,0.06)] transition-[transform,box-shadow,border-color] duration-300 ease-out will-change-transform hover:-translate-y-[8px] hover:scale-[1.012] hover:border-black/[0.09] hover:shadow-[0_30px_60px_-22px_rgba(16,16,16,0.35)] focus-within:border-black/[0.09] focus-within:shadow-[0_24px_48px_-24px_rgba(16,16,16,0.3)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100">
+                        {/* Yellow accent bar that grows across the top on hover */}
+                        <span
+                          aria-hidden
+                          className="pointer-events-none absolute left-0 top-0 h-[4px] w-0 rounded-r-full bg-[#FFC700] transition-[width] duration-500 ease-out group-hover:w-full"
+                        />
 
-              <a
-                href={selectedMaterial.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl border-2 border-[#111111] bg-[#111111] px-5 py-2.5 text-sm font-black text-[#FFBE00] shadow-[3px_3px_0_#E53935] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
-              >
-                Open Material Source
-                <ArrowUpRight className="h-4 w-4" />
-              </a>
-            </div>
+                        {/* Soft radial warmth that fades in */}
+                        <span
+                          aria-hidden
+                          className="pointer-events-none absolute -right-[70px] -top-[70px] h-[200px] w-[200px] rounded-full bg-[#FFC700]/25 opacity-0 blur-[48px] transition-opacity duration-500 ease-out group-hover:opacity-100"
+                        />
+
+                        {/* Sheen sweep on hover */}
+                        <span
+                          aria-hidden
+                          className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[42%] -translate-x-[130%] -skew-x-12 bg-gradient-to-r from-transparent via-[#FFC700]/25 to-transparent transition-transform duration-[900ms] ease-out group-hover:translate-x-[330%]"
+                        />
+
+                        <div className="relative flex items-start justify-between gap-3">
+                          <div className="flex h-[74px] w-[74px] shrink-0 items-center justify-center rounded-[20px] bg-[#FCF5E3] ring-1 ring-[#F2E6C6] transition-[transform,box-shadow,background-color] duration-300 ease-out group-hover:-rotate-[5deg] group-hover:scale-[1.07] group-hover:bg-[#FDEECB] group-hover:shadow-[0_16px_26px_-14px_rgba(214,160,32,0.8)]">
+                            <span className="text-[22px] font-black tracking-tight text-[#121212]">{initials}</span>
+                          </div>
+                          <div className="pt-[8px] text-right text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#111111]/35 transition-colors duration-300 group-hover:text-[#111111]/55">
+                            {totalCount} {totalCount === 1 ? "Resource" : "Resources"}
+                            {filteredEntries.length !== totalCount && (
+                              <span className="mt-[2px] block text-[#111111]/50">{filteredEntries.length} matching</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="relative mt-[26px] inline-flex w-fit items-center rounded-full bg-[#FDF0C6] px-[13px] py-[6px] text-[10.5px] font-black uppercase tracking-[0.16em] text-[#C2891B] transition-[background-color,transform] duration-300 ease-out group-hover:scale-[1.05] group-hover:bg-[#FBE38F]">
+                          {department.shortName ?? "DEPT"}
+                        </div>
+
+                        <h2 className="relative mt-[16px] line-clamp-2 font-sans text-[24px] font-extrabold leading-[1.15] tracking-[-0.015em] text-[#141414] transition-colors duration-300 group-hover:text-[#0B0B0F]">
+                          {department.name}
+                        </h2>
+                        <p className="relative mt-[16px] line-clamp-3 text-[14px] leading-[1.6] text-[#111111]/55 transition-colors duration-300 group-hover:text-[#111111]/70">
+                          {department.description ?? `Explore the academic excellence and innovative initiatives of the ${department.name} at KNUST.`}
+                        </p>
+
+                        <div className="relative mt-auto pt-[28px]">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedDepartment(department)}
+                            className="w-full rounded-full bg-[#0B0B0F] py-[17px] text-[16px] font-extrabold tracking-[-0.01em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] transition-[transform,background-color,box-shadow] duration-300 ease-out hover:bg-[#1b1b23] hover:shadow-[0_18px_32px_-16px_rgba(11,11,15,0.95)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111111]/30 focus-visible:ring-offset-2 group-hover:-translate-y-[3px] active:translate-y-0 active:scale-[0.99]"
+                          >
+                            View Department
+                          </button>
+                        </div>
+                      </div>
+                    </AnimatedItem>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }

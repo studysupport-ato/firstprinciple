@@ -14,7 +14,6 @@ import {
   TrendingUp,
   Trophy,
 } from "lucide-react";
-import { BrandLogo } from "@/components/branding/BrandLogo";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -30,77 +29,86 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   };
 
   const navItemClass = (path: string) =>
-    `flex items-center ${collapsed ? "justify-center px-0" : "gap-3 px-4"} py-2.5 rounded-xl text-sm font-sans font-bold transition-all ${
+    `flex items-center ${collapsed ? "justify-center px-0" : "gap-3.5 px-[18px]"} py-3 rounded-xl font-sans font-bold text-[14.5px] transition-all ${
       isActive(path)
-        ? "bg-[#111111] text-[#FFBE00] border-2 border-[#111111] shadow-[2px_2px_0_#E53935]"
-        : "text-[#111111]/80 hover:bg-[#111111]/10 hover:text-[#111111] border-2 border-transparent"
+        ? "bg-[#FFC600] text-[#111111]"
+        : "text-[#d7d7d7] hover:bg-[#1d1d1d] hover:text-white"
     }`;
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 ${collapsed ? "w-20" : "w-64"} border-r-2 border-[#111111] bg-transparent flex flex-col z-20 transition-[width] duration-200`}
+      className={`fixed inset-y-0 left-0 ${collapsed ? "w-[104px]" : "w-[224px]"} z-20 flex flex-col bg-[#111111] p-5 text-white transition-[width] duration-200`}
     >
-      <div className={`h-20 flex items-center ${collapsed ? "justify-center px-3" : "px-8"} border-b-2 border-[#111111]`}>
-        <Link href="/" className="flex items-center gap-3 group" title="Back2Basics with Kwamina">
-          <BrandLogo className="h-9 w-36 rounded-sm border-2 border-[#111111] shadow-[2px_2px_0_#E53935] transition-transform group-hover:scale-[1.02]" priority />
-          {!collapsed && (
-            <span className="sr-only">Back2Basics with Kwamina</span>
+      <div className={`mb-8 flex items-center ${collapsed ? "justify-center" : "px-0"}`}>
+        <Link href="/" className={`flex items-center ${collapsed ? "justify-center" : "w-full"}`} title="Back2Basics with Kwamina">
+          {collapsed ? (
+            <img
+              src="/logobg.png"
+              alt="Back2Basics with Kwamina"
+              className="h-10 w-10 rounded-xl object-cover"
+            />
+          ) : (
+            <img
+              src="/logobg.png"
+              alt="Back2Basics with Kwamina"
+              className="h-12 w-full rounded-xl object-cover object-center"
+            />
           )}
         </Link>
         <button
           onClick={onToggle}
-          className="absolute top-[4.75rem] -right-3 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#111111] bg-[#FFBE00] text-[#111111] transition-transform hover:scale-110"
+          className="absolute top-[3.5rem] -right-3 flex h-6 w-6 items-center justify-center rounded-full border border-[#111111] bg-[#FFC600] text-[#111111] shadow-sm"
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? <PanelLeftOpen size={12} strokeWidth={3} /> : <PanelLeftClose size={12} strokeWidth={3} />}
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-8 px-4 flex flex-col gap-8 scrollbar-hide">
-        <nav className="flex flex-col gap-2">
-          {!collapsed && <div className="px-4 text-[10px] font-black uppercase tracking-widest text-[#111111]/60 mb-2">Menu</div>}
+      <div className="no-scrollbar flex-1 overflow-y-auto">
+        <nav className="flex flex-col gap-1.5">
+          {!collapsed && <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7a7a7a]">Menu</div>}
           <Link href="/dashboard" className={navItemClass("/dashboard")} title="Dashboard">
-            <Compass size={18} strokeWidth={2.5} />
+            <Compass size={20} strokeWidth={2.5} />
             {!collapsed && <span>Dashboard</span>}
           </Link>
           <Link href="/courses" className={navItemClass("/courses")} title="Courses">
-            <BookOpen size={18} strokeWidth={2.5} />
+            <BookOpen size={20} strokeWidth={2.5} />
             {!collapsed && <span>Courses</span>}
           </Link>
           <Link href="/course-materials" className={navItemClass("/course-materials")} title="Course Materials">
-            <Library size={18} strokeWidth={2.5} />
+            <Library size={20} strokeWidth={2.5} />
             {!collapsed && <span>Course Materials</span>}
           </Link>
           <Link href="/questions" className={navItemClass("/questions")} title="Questions">
-            <CircleHelp size={18} strokeWidth={2.5} />
+            <CircleHelp size={20} strokeWidth={2.5} />
             {!collapsed && <span>Questions</span>}
           </Link>
         </nav>
 
-        <nav className="flex flex-col gap-2">
-          {!collapsed && <div className="px-4 text-[10px] font-black uppercase tracking-widest text-[#111111]/60 mb-2">Performance</div>}
+        <nav className="mt-10 flex flex-col gap-1.5">
+          {!collapsed && <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7a7a7a]">Performance</div>}
           <Link href="/progress" className={navItemClass("/progress")} title="Progress">
-            <TrendingUp size={18} strokeWidth={2.5} />
+            <TrendingUp size={20} strokeWidth={2.5} />
             {!collapsed && <span>Progress</span>}
           </Link>
           <Link href="/leaderboard" className={navItemClass("/leaderboard")} title="Leaderboard">
-            <Trophy size={18} strokeWidth={2.5} />
+            <Trophy size={20} strokeWidth={2.5} />
             {!collapsed && <span>Leaderboard</span>}
           </Link>
         </nav>
       </div>
 
-      <div className={`p-4 border-t-2 border-[#111111] ${collapsed ? "flex flex-col items-center" : ""}`}>
+      <div className={`mt-auto border-t border-[#2a2a2a] pt-4 ${collapsed ? "flex flex-col items-center" : ""}`}>
         <Link href="/settings" className={navItemClass("/settings")} title="Settings">
-          <Settings size={18} strokeWidth={2.5} />
+          <Settings size={20} strokeWidth={2.5} />
           {!collapsed && <span>Settings</span>}
         </Link>
         <button
           type="button"
           title="Sign out"
-          className={`flex items-center ${collapsed ? "justify-center px-0 mt-2" : "gap-3 px-4 mt-2"} py-2.5 rounded-xl text-sm font-sans font-black text-[#E53935] hover:bg-[#E53935]/10 border-2 border-transparent transition-colors text-left w-full`}
+          className={`mt-2 flex items-center text-[14.5px] ${collapsed ? "justify-center px-0" : "gap-3.5 px-[18px]"} w-full rounded-xl py-3 text-left font-bold text-[#ff5b5b] transition hover:bg-[#1d1d1d]`}
         >
-          <LogOut size={18} strokeWidth={2.5} />
+          <LogOut size={20} strokeWidth={2.5} />
           {!collapsed && <span>Sign out</span>}
         </button>
       </div>

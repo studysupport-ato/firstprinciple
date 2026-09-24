@@ -214,8 +214,8 @@ export async function getAdminResource(resourceId: string): Promise<LearningReso
   return createResourceAdminRepository().getResource(resourceId);
 }
 
-export async function listAdminResourcePlacements(): Promise<ResourcePlacement[]> {
-  return createResourceAdminRepository().listPlacements();
+export async function listAdminResourcePlacements(resourceId?: string): Promise<ResourcePlacement[]> {
+  return createResourceAdminRepository().listPlacements(resourceId ? { resourceId } : undefined);
 }
 
 export async function listAdminDepartments(): Promise<AdminDepartmentListRow[]> {

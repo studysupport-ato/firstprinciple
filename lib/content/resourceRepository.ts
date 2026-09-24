@@ -33,7 +33,7 @@ export interface ResourceRepository {
   updateResource(resourceId: string, patch: Partial<Omit<LearningResource, "id" | "createdAt" | "updatedAt">>): Promise<LearningResource | undefined>;
   archiveResource(resourceId: string): Promise<LearningResource | undefined>;
   restoreResource(resourceId: string): Promise<LearningResource | undefined>;
-  listPlacements(scope?: ResourcePlacementTarget): Promise<ResourcePlacement[]>;
+  listPlacements(scope?: ResourcePlacementTarget & { resourceId?: string }): Promise<ResourcePlacement[]>;
   createPlacement(resourceId: string, target: ResourcePlacementTarget): Promise<ResourcePlacement>;
   deletePlacement(resourceId: string, target: ResourcePlacementTarget): Promise<void>;
   listResourcesForScope(scope: ResourcePlacementTarget, options?: ResourceRepositoryListOptions): Promise<LearningResource[]>;
@@ -73,7 +73,7 @@ export const resourceLocalRepository: ResourceRepository = {
     return restoreResource(resourceId);
   },
   async listPlacements(scope = {}) {
-    return getResourcePlacements().filter((placement) => (!scope.courseId || placement.courseId === scope.courseId) && (!scope.weekId || placement.weekId === scope.weekId) && (!scope.dayId || placement.dayId === scope.dayId));
+    return getResourcePlacements().filter((placement) => (!scope.resourceId || placement.resourceId === scope.resourceId) && (!scope.courseId || placement.courseId === scope.courseId) && (!scope.weekId || placement.weekId === scope.weekId) && (!scope.dayId || placement.dayId === scope.dayId));
   },
   async createPlacement(resourceId, target) {
     const errors = validateResourcePlacement(resourceId, target);
@@ -196,6 +196,7 @@ export function createResourceSupabaseRepository(clientFactory: () => SupabaseCl
   },
   async listPlacements(scope = {}) {
     let query = clientFactory().from("resource_placements").select("*").order("order_index", { ascending: true }).order("created_at", { ascending: true });
+    if (scope.resourceId) query = query.eq("resource_id", scope.resourceId);
     if (scope.courseId) query = query.eq("course_id", scope.courseId);
     if (scope.weekId) query = query.eq("week_id", scope.weekId);
     if (scope.dayId) query = query.eq("day_id", scope.dayId);

@@ -7,9 +7,10 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowUpRight, ArrowRight, Flame, Target, CheckCircle2, BookOpen, TrendingUp, UserRound } from "lucide-react";
+import { ArrowUpRight, ArrowRight, Flame, Target, CheckCircle2, BookOpen, CalendarDays, TrendingUp, UserRound } from "lucide-react";
 import { getCourseWeeks, getWeekDays } from "@/lib/curriculum";
 import { getActiveStudentId } from "@/lib/auth/mock";
+import { createCourseStructureSupabaseRepository } from "@/lib/content/repository";
 import {
   createProgressFactsRepository,
   type ActivityDisplay,
@@ -180,6 +181,16 @@ function getContinueLearning(courseId: string, dayProgress: Record<string, { sta
   return null;
 }
 
+type DashboardCourse = {
+  id: string;
+  code: string;
+  title: string;
+  mastery: number;
+  description: string;
+  weeks: number;
+  days: number;
+};
+
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
@@ -193,20 +204,50 @@ export default function DashboardPage() {
   const [weekActivity, setWeekActivity] = useState<DailyActivityPoint[]>([]);
   const [recentActivity, setRecentActivity] = useState<ActivityDisplay[]>([]);
   const [continueLearning, setContinueLearning] = useState<ContinueLearning | null>(null);
+  const [courses, setCourses] = useState<DashboardCourse[]>([]);
 
   useEffect(() => {
     let active = true;
-    const repository = createProgressFactsRepository("local");
+    const repository = createProgressFactsRepository("supabase");
+    const courseRepository = createCourseStructureSupabaseRepository();
 
     void (async () => {
       try {
         const studentId = getActiveStudentId();
-        const [dayProgressRows, practiceAttempts, assessmentAttempts, activityResult] = await Promise.all([
+        const [courseRows, dayProgressRows, practiceAttempts, assessmentAttempts, activityResult] = await Promise.all([
+          courseRepository.listCourses(),
           repository.listDayProgressForCourse(studentId, "math-151"),
           repository.listPracticeAttempts(studentId, { courseId: "math-151" }),
           repository.listAssessmentAttempts(studentId, { courseId: "math-151" }),
           repository.listActivity(studentId, { courseId: "math-151", limit: 50 }),
         ]);
+
+        const courseFacts = await Promise.all(
+          courseRows
+            .filter((course) => !course.status || course.status === "published")
+            .map(async (course) => {
+              const weeks = getCourseWeeks(course.id);
+              const days = weeks.reduce((count, week) => count + getWeekDays(course.id, week).length, 0);
+              if (course.id === "math-151") {
+                return { id: course.id, code: course.code, title: course.title, description: course.description, weeks: weeks.length, days, mastery: getOverallMastery(practiceAttempts, assessmentAttempts) };
+              }
+
+              const [coursePracticeAttempts, courseAssessmentAttempts] = await Promise.all([
+                repository.listPracticeAttempts(studentId, { courseId: course.id }),
+                repository.listAssessmentAttempts(studentId, { courseId: course.id }),
+              ]);
+
+              return {
+                id: course.id,
+                code: course.code,
+                title: course.title,
+                description: course.description,
+                weeks: weeks.length,
+                days,
+                mastery: getOverallMastery(coursePracticeAttempts, courseAssessmentAttempts),
+              };
+            }),
+        );
 
         if (!active) return;
 
@@ -218,6 +259,7 @@ export default function DashboardPage() {
         setWeekActivity(getDailyActivity(activityResult.events, "math-151", 7));
         setRecentActivity(getRecentActivity(activityResult.events, "math-151", 4));
         setContinueLearning(getContinueLearning("math-151", dayProgress));
+        setCourses(courseFacts);
       } catch (error) {
         console.error("[Back2Basics with Kwamina] Failed to hydrate dashboard progress from Supabase", error);
         if (active) {
@@ -227,6 +269,7 @@ export default function DashboardPage() {
           setWeekActivity([]);
           setRecentActivity([]);
           setContinueLearning(null);
+          setCourses([]);
         }
       }
     })();
@@ -240,7 +283,7 @@ export default function DashboardPage() {
   const maxCount = Math.max(...weekActivity.map((point) => point.count), 1);
 
   const stats = [
-    { label: "Overall Mastery", value: mastery, suffix: "%", icon: Target, color: "#FFBE00" },
+    { label: "Overall Mastery", value: mastery, suffix: "%", icon: Target, color: "#E5A600" },
     { label: "Day Streak", value: streak, suffix: " days", icon: Flame, color: "#E11D48" },
     { label: "Problems Solved", value: solved, suffix: "", icon: CheckCircle2, color: "#059669" },
   ];
@@ -264,170 +307,183 @@ export default function DashboardPage() {
     });
   }, { scope: containerRef });
 
+  const lessonHref = continueLearning
+    ? `/courses/math-151/chapter/${continueLearning.chapterId}/lesson/${continueLearning.lessonId}?week=${continueLearning.weekNumber}`
+    : "/courses/math-151/roadmap";
+
   return (
-    <div ref={containerRef} className="min-h-screen bg-transparent px-6 py-6 md:px-12 md:py-8">
-      <div className="mx-auto max-w-[1200px]">
-        <div className="mb-12 flex items-center justify-between border-b border-[#E5E5E5] pb-5">
-          <div className="flex items-center gap-3">
-            <span className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#666666]">Learning space</span>
-            <span className="h-1 w-1 rounded-full bg-[#D1D5DB]" />
-            <span className="font-sans text-xs text-[#666666]">MATH 151</span>
-          </div>
-          <Link
-            href="/settings"
-            aria-label="Open profile settings"
-            title="Profile settings"
-            className="group flex items-center gap-3 rounded-full pl-2 pr-1.5 py-1.5 transition-colors hover:bg-white"
-          >
-            <span className="hidden text-right sm:block">
-              <span className="block font-sans text-xs font-semibold text-[#111111]">Kwame Mensah</span>
-              <span className="block font-sans text-[10px] text-[#777777]">Student profile</span>
-            </span>
-            <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-[#111111] shadow-[0_3px_12px_rgba(17,17,17,0.14)] ring-1 ring-[#E5E5E5] transition-transform group-hover:scale-105">
-              <img src="https://ui-avatars.com/api/?name=Kwame+Mensah&background=111111&color=fff&size=120" alt="Kwame Mensah" className="h-full w-full object-cover" />
-            </span>
-          </Link>
-        </div>
-
-        <div className="mb-12 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-end">
-          <AnimatedItem>
-            <p className="mb-3 font-sans text-sm text-[#666666]">Good evening.</p>
-            <h1 className="editorial-heading max-w-2xl text-5xl md:text-6xl">
-              Welcome back, Kwame.
-            </h1>
-            <p className="mt-5 max-w-xl font-sans text-base leading-7 text-[#666666]">
-              Keep building from first principles. Your next step is ready when you are.
-            </p>
-          </AnimatedItem>
-
-          <AnimatedItem delay={0.12} direction="up" distance={18}>
-            <Link href={continueLearning ? `/courses/math-151/chapter/${continueLearning.chapterId}/lesson/${continueLearning.lessonId}?week=${continueLearning.weekNumber}` : "/courses/math-151/roadmap"} className="group relative block overflow-hidden rounded-[22px] bg-[#111111] p-6 text-white shadow-[0_18px_40px_rgba(17,17,17,0.12)] transition-transform hover:-translate-y-1">
-              <div className="absolute right-0 top-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full border border-white/10" />
-              <div className="relative">
-                <div className="mb-8 flex items-center justify-between">
-                  <span className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-white/55">Continue learning</span>
-                  <ArrowRight size={17} className="text-white/70 transition-transform group-hover:translate-x-1" />
-                </div>
-                <p className="font-sans text-xs text-white/55">{continueLearning ? continueLearning.weekTitle : "MATH 151"}</p>
-                <h2 className="mt-1 font-serif text-2xl">{continueLearning ? continueLearning.lessonTitle : "Start Week 1, Day 1"}</h2>
-                <div className="mt-5 flex items-center gap-3">
-                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/15">
-                    <div className="h-full rounded-full bg-[#93C5FD]" style={{ width: `${continueLearning ? continueLearning.percent : 0}%` }} />
-                  </div>
-                  <span className="font-sans text-xs font-semibold text-white/70">{continueLearning ? `${continueLearning.percent}%` : "0%"}</span>
-                </div>
-                {mastery === 0 && solved === 0 ? (
-                  <p className="mt-3 font-sans text-[11px] text-white/50">Start learning to build mastery</p>
-                ) : null}
-              </div>
-            </Link>
-          </AnimatedItem>
-        </div>
-
-      {/* Stats Row */}
-      <div className="mb-12 grid grid-cols-1 gap-5 md:grid-cols-3">
-        {stats.map((stat, i) => {
-          const Icon = stat.icon;
-          return (
-            <AnimatedItem key={stat.label} index={i} delay={0.1} direction="up" distance={20}>
-              <div className="group flex min-h-[178px] flex-col justify-between rounded-[20px] border border-[#E5E5E5] bg-white p-7 shadow-[0_8px_24px_rgba(17,17,17,0.025)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(17,17,17,0.06)]">
-                <div className="flex items-center justify-between">
-                  <span className="font-sans text-[10px] font-bold tracking-widest uppercase text-[#666666]">
-                    {stat.label}
-                  </span>
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl transition-transform group-hover:scale-105" style={{ background: `${stat.color}15`, color: stat.color }}>
-                    <Icon size={18} />
-                  </div>
-                </div>
-                <div className="flex items-baseline gap-1" style={{ color: stat.color }}>
-                  <span ref={el => { countersRef.current[i] = el; }} className="font-serif text-6xl leading-none tracking-tight">
-                    0
-                  </span>
-                  <span className="font-sans font-semibold text-lg">{stat.suffix}</span>
-                </div>
-              </div>
-            </AnimatedItem>
-          );
-        })}
+    <div ref={containerRef} className="relative min-h-screen overflow-x-clip bg-[#FFC700] pb-10">
+      {/* BUILDING — true overflow: page-level, bleeds off right edge */}
+      <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 top-0 z-0">
+        <div
+          className="absolute right-[-40px] top-0 h-[400px] w-[82%] min-w-[760px] max-[900px]:left-0 max-[900px]:right-auto max-[900px]:h-[220px] max-[900px]:w-full max-[900px]:min-w-0 max-[900px]:opacity-60"
+          style={{
+            backgroundImage: "url('/knust.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "left center",
+            filter: "saturate(1.05)",
+            WebkitMaskImage: "linear-gradient(90deg, transparent 0%, #000 30%, #000 100%), linear-gradient(180deg, #000 0%, #000 55%, transparent 82%)",
+            WebkitMaskComposite: "source-in",
+            maskImage: "linear-gradient(90deg, transparent 0%, #000 30%, #000 100%), linear-gradient(180deg, #000 0%, #000 55%, transparent 82%)",
+            maskComposite: "intersect",
+          }}
+        />
       </div>
 
-      {/* Bottom Grid: Activity + Recent */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+      <div className="relative z-10 px-[40px] pt-[22px] max-[900px]:px-[18px] max-[900px]:pt-5">
+        <div className="mx-auto max-w-[1220px]">
+          <div className="relative overflow-visible">
+            <div className="mb-[14px] flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.1em] text-[#111111]/60">
+                <span>Learning space</span>
+                <span className="text-[8px]">●</span>
+                <span className="text-[#111111]/80">MATH 151</span>
+              </div>
 
-        {/* Weekly Activity Chart */}
-        <AnimatedItem delay={0.3} direction="up" distance={20} className="xl:col-span-2">
-          <div className="h-full rounded-[20px] border border-[#E5E5E5] bg-white p-8 shadow-[0_8px_24px_rgba(17,17,17,0.025)]">
-            <div className="flex items-center justify-between mb-10">
-              <h3 className="font-sans font-semibold text-[#111111]">This Week</h3>
-              <TrendingUp size={16} className="text-[#666666]" />
-            </div>
-            <div className="flex items-end justify-between gap-2 h-32">
-              {hasActivity ? weekActivity.map((day) => (
-                <div key={day.date} className="flex flex-col items-center gap-3 flex-1">
-                  <motion.div
-                    className={`w-full rounded-lg ${day.count > 0 ? "bg-[#111111]" : "bg-transparent border border-[#E5E5E5]"}`}
-                    initial={{ height: 0 }}
-                    whileInView={{ height: `${Math.max((day.count / maxCount) * 100, day.count > 0 ? 12 : 6)}%` }}
-                    transition={{ duration: 0.8, delay: 0.05, ease: "easeOut" }}
-                    viewport={{ once: true }}
-                  />
-                  <span className={`font-sans text-[10px] ${day.count > 0 ? "text-[#111111] font-bold" : "text-[#666666]"}`}>
-                    {day.label}
-                  </span>
-                </div>
-              )) : (
-                <p className="w-full py-8 text-center font-sans text-sm text-[#666666]">No activity yet. Complete a day or answer a question to get started.</p>
-              )}
-            </div>
-          </div>
-        </AnimatedItem>
-
-        {/* Recent Activity */}
-        <AnimatedItem delay={0.4} direction="up" distance={20} className="xl:col-span-3">
-          <div className="h-full rounded-[20px] border border-[#E5E5E5] bg-white p-8 shadow-[0_8px_24px_rgba(17,17,17,0.025)]">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="font-sans font-semibold text-[#111111]">Recent Activity</h3>
-              <Link href="/courses/math-151" className="text-xs font-sans font-medium text-[#666666] hover:text-[#111111] transition-colors flex items-center gap-1">
-                All <ArrowUpRight size={12} />
+              <Link
+                href="/settings"
+                aria-label="Open profile settings"
+                title="Profile settings"
+                className="group flex items-center gap-2.5 rounded-full bg-black/[0.08] py-1 pl-1 pr-4 backdrop-blur-[2px]"
+              >
+                <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#111111] text-[11px] font-black text-[#FFC700] transition-transform group-hover:scale-105">
+                  KM
+                </span>
+                <span className="hidden text-left sm:block">
+                  <span className="block font-sans text-[13px] font-bold leading-tight text-[#111111]">Kwame Mensah</span>
+                  <span className="block font-sans text-[11px] leading-tight text-[#111111]/55">Student profile</span>
+                </span>
               </Link>
             </div>
-            <div className="flex flex-col divide-y divide-[#F7F7F8]">
-              {recentActivity.length === 0 ? (
-                <p className="py-6 text-center font-sans text-sm text-[#666666]">No recent activity yet. Start learning to build your history.</p>
-              ) : recentActivity.map((item, i) => (
-                <motion.div
-                  key={item.id || i}
-                  initial={{ opacity: 0, x: -8 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.08, duration: 0.4 }}
-                  viewport={{ once: true }}
-                  className="flex items-center justify-between py-5 first:pt-0 last:pb-0"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      item.type === "Lesson" ? "bg-[#111111]/5 text-[#111111]" : item.type === "Assessment" ? "bg-[#4F46E5]/10 text-[#4F46E5]" : "bg-[#059669]/10 text-[#059669]"
-                    }`}>
-                      {item.type === "Lesson" ? <BookOpen size={15} /> : <Target size={15} />}
-                    </div>
-                    <div>
-                      <p className="font-sans text-sm font-semibold text-[#111111]">{item.title}</p>
-                      <p className="font-sans text-xs text-[#666666]">{item.type} · {item.time}</p>
-                    </div>
+
+            <div className="relative mb-[10px]">
+              <AnimatedItem>
+                <p className="mb-[6px] mt-[26px] font-sans text-[15px] font-normal text-[#1d1d1d]">Good afternoon,</p>
+                <h1 className="max-w-[560px] font-sans text-[46px] font-black leading-[1.0] tracking-[-0.01em] text-[#0c0c0c] max-[900px]:text-[30px]">
+                  WELCOME BACK,
+                  <span className="block">KWAME.</span>
+                </h1>
+                <p className="mb-[20px] mt-[12px] max-w-[470px] text-[13.5px] leading-[1.55] text-[#333]/75">
+                  Keep building from first principles — your next step in Real Number Theory is ready whenever you are.
+                </p>
+
+                <div className="flex flex-wrap gap-2.5">
+                  <Link
+                    href={continueLearning ? `/courses/math-151/chapter/${continueLearning.chapterId}/lesson/${continueLearning.lessonId}?week=${continueLearning.weekNumber}` : "/courses/math-151/roadmap"}
+                    className="inline-flex items-center justify-center rounded-full bg-[#0e0e0e] px-[20px] py-[11px] text-[12.5px] font-bold text-[#FFC700] transition hover:-translate-y-0.5"
+                  >
+                    Resume last lesson →
+                  </Link>
+                  <Link
+                    href="/courses"
+                    className="inline-flex items-center justify-center rounded-full border-[1.2px] border-black/50 bg-transparent px-[20px] py-[11px] text-[12.5px] font-bold text-[#0e0e0e] transition hover:bg-black/5"
+                  >
+                    Browse courses
+                  </Link>
+                </div>
+              </AnimatedItem>
+
+              <AnimatedItem delay={0.1} direction="up" distance={18} className="absolute right-0 top-[-6px] w-[300px] max-[900px]:static max-[900px]:mt-5 max-[900px]:w-full">
+                <div className="rounded-[18px] bg-[#0c0c0c] p-[16px] pb-[16px] text-white shadow-[0_18px_40px_rgba(0,0,0,0.30)]">
+                  <div className="mb-[10px] text-[10px] font-medium uppercase tracking-[0.16em] text-white/55">Continue learning</div>
+
+                  <div className="mb-[10px] inline-flex items-center rounded-full bg-[#FFC700]/18 px-[10px] py-[5px] text-[11px] font-bold text-[#FFC700]">
+                    {continueLearning ? continueLearning.weekTitle : "Real Number Theory"}
                   </div>
-                  <span className={`font-sans text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full ${
-                    item.status === "Completed"
-                      ? "bg-[#059669]/10 text-[#059669]"
-                      : "bg-[#111111]/5 text-[#111111]"
-                  }`}>
-                    {item.status}
-                  </span>
-                </motion.div>
+
+                  <div className="text-[20px] font-extrabold leading-[1.1] tracking-[-0.01em] text-white">
+                    {continueLearning ? continueLearning.lessonTitle : "Real Numbers"}
+                  </div>
+
+                  <div className="mt-[4px] text-[11.5px] text-white/55">
+                    {continueLearning ? `${continueLearning.percent}% complete` : "Module 1 of 8  •  ~18 min left"}
+                  </div>
+
+                  <div className="mt-[14px] h-[4px] w-full overflow-hidden rounded-full bg-white/10">
+                    <div className="h-full rounded-full bg-[#FFC700]" style={{ width: `${continueLearning ? continueLearning.percent : 13}%` }} />
+                  </div>
+
+                  <Link
+                    href={continueLearning ? `/courses/math-151/chapter/${continueLearning.chapterId}/lesson/${continueLearning.lessonId}?week=${continueLearning.weekNumber}` : "/courses/math-151/roadmap"}
+                    className="mt-[14px] flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#6673ff] px-4 py-[10px] text-[12.5px] font-bold text-white"
+                  >
+                    Start learning →
+                  </Link>
+                </div>
+              </AnimatedItem>
+            </div>
+
+            <div className="grid grid-cols-1 gap-[14px] md:grid-cols-3">
+              {stats.map((stat, i) => {
+                const Icon = stat.icon;
+                return (
+                  <AnimatedItem key={stat.label} index={i} delay={0.08} direction="up" distance={18}>
+                    <div className="rounded-[20px] bg-white px-[20px] pb-[22px] pt-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+                      <div className="mb-[30px] flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-black/50">{stat.label}</span>
+                        <div className="flex h-[38px] w-[38px] items-center justify-center rounded-full" style={{ background: `${stat.color}1F`, color: stat.color }}>
+                          <Icon size={18} strokeWidth={2.2} />
+                        </div>
+                      </div>
+
+                      <div className="flex items-end gap-[5px]" style={{ color: stat.color }}>
+                        <span ref={(el) => { countersRef.current[i] = el; }} className="font-sans text-[42px] font-extrabold leading-none tracking-[-0.02em]">
+                          0
+                        </span>
+                        <span className="mb-[6px] text-[16px] font-bold text-[#111111]">{stat.suffix}</span>
+                      </div>
+                    </div>
+                  </AnimatedItem>
+                );
+              })}
+            </div>
+
+            <div className="mb-1 mt-8 text-[20px] font-black tracking-[-0.05em] text-[#111111]">Available Courses</div>
+            <p className="mb-4 text-[13px] font-medium text-[#111111]/55">Explore other courses and expand your knowledge.</p>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {courses.map((course, i) => (
+                <AnimatedItem key={course.id} index={i} delay={0.08} direction="up" distance={18}>
+                  <Link
+                    href={`/courses/${course.id}`}
+                    className="group relative flex min-h-[240px] flex-col overflow-hidden rounded-[16px] bg-white p-5 pr-[128px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:-translate-y-1 hover:shadow-[0_10px_24px_rgba(0,0,0,0.10)]"
+                  >
+                    <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#F5A800]">{course.code}</div>
+                    <div className="mt-1.5 text-[17px] font-extrabold leading-snug text-[#111111]">{course.title}</div>
+                    <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-relaxed text-[#111111]/60">{course.description}</p>
+
+                    <div className="mt-3 flex items-center gap-5 text-[12px] font-semibold text-[#111111]/55">
+                      <span className="flex items-center gap-1.5">
+                        <CalendarDays size={14} strokeWidth={2.2} className="text-[#111111]/45" />
+                        {course.weeks} {course.weeks === 1 ? "week" : "weeks"}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <BookOpen size={14} strokeWidth={2.2} className="text-[#111111]/45" />
+                        {course.days} {course.days === 1 ? "day" : "days"}
+                      </span>
+                    </div>
+
+                    <div className="mt-auto flex items-center gap-1.5 pt-4 text-[13px] font-bold text-[#111111]">
+                      View Course
+                      <ArrowRight size={15} strokeWidth={2.6} className="text-[#F5A800] transition-transform group-hover:translate-x-1" />
+                    </div>
+
+                    <div className="pointer-events-none absolute inset-y-0 right-0 w-[112px] overflow-hidden">
+                      <img
+                        src={`/hero-images/img${(i % 5) + 1}${i % 5 === 4 ? ".webp" : ".jpg"}`}
+                        alt=""
+                        aria-hidden
+                        className="h-full w-full object-cover grayscale"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-r from-white via-white/20 to-transparent" />
+                      <div className="absolute right-0 top-0 h-[44px] w-[18px] rounded-bl-[10px] bg-[#FFC700]" />
+                    </div>
+                  </Link>
+                </AnimatedItem>
               ))}
             </div>
           </div>
-        </AnimatedItem>
-
-      </div>
+        </div>
       </div>
     </div>
   );
