@@ -1,5 +1,10 @@
 "use client";
 
+export function InlineMathText({ text }: { text: string }) {
+  return <>{inlineContent(text, "inline-math")}</>;
+}
+
+
 import type { ReactNode } from "react";
 import { MathText } from "./MathText";
 

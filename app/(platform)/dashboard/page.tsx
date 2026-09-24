@@ -387,34 +387,6 @@ export default function DashboardPage() {
                 </div>
               </AnimatedItem>
 
-              <AnimatedItem delay={0.1} direction="up" distance={18} className="absolute right-0 top-[-6px] w-[300px] max-[900px]:static max-[900px]:mt-5 max-[900px]:w-full">
-                <div className="rounded-[18px] bg-[#0c0c0c] p-[16px] pb-[16px] text-white shadow-[0_18px_40px_rgba(0,0,0,0.30)]">
-                  <div className="mb-[10px] text-[10px] font-medium uppercase tracking-[0.16em] text-white/55">Continue learning</div>
-
-                  <div className="mb-[10px] inline-flex items-center rounded-full bg-[#FFC700]/18 px-[10px] py-[5px] text-[11px] font-bold text-[#FFC700]">
-                    {continueLearning ? continueLearning.weekTitle : "Real Number Theory"}
-                  </div>
-
-                  <div className="text-[20px] font-extrabold leading-[1.1] tracking-[-0.01em] text-white">
-                    {continueLearning ? continueLearning.lessonTitle : "Real Numbers"}
-                  </div>
-
-                  <div className="mt-[4px] text-[11.5px] text-white/55">
-                    {continueLearning ? `${continueLearning.percent}% complete` : "Module 1 of 8  •  ~18 min left"}
-                  </div>
-
-                  <div className="mt-[14px] h-[4px] w-full overflow-hidden rounded-full bg-white/10">
-                    <div className="h-full rounded-full bg-[#FFC700]" style={{ width: `${continueLearning ? continueLearning.percent : 13}%` }} />
-                  </div>
-
-                  <Link
-                    href={continueLearning ? `/courses/math-151/chapter/${continueLearning.chapterId}/lesson/${continueLearning.lessonId}?week=${continueLearning.weekNumber}` : "/courses/math-151/roadmap"}
-                    className="mt-[14px] flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#6673ff] px-4 py-[10px] text-[12.5px] font-bold text-white"
-                  >
-                    Start learning →
-                  </Link>
-                </div>
-              </AnimatedItem>
             </div>
 
             <div className="grid grid-cols-1 gap-[14px] md:grid-cols-3">
