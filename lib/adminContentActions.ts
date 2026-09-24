@@ -109,6 +109,17 @@ async function run<T>(operation: () => Promise<T>): Promise<AdminActionResult<T>
   }
 }
 
+export async function adminLoginAction(email: string, password: string): Promise<AdminActionResult<null>> {
+  return run(async () => {
+    const expectedEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+    const expectedPassword = process.env.ADMIN_PASSWORD;
+    if (!expectedEmail || !expectedPassword || email !== expectedEmail || password !== expectedPassword) {
+      throw new Error("Invalid email or password.");
+    }
+    return null;
+  });
+}
+
 // --- Reads -----------------------------------------------------------------
 
 export async function getAdminCoursesAction(): Promise<AdminActionResult<AdminCourseListRow[]>> {

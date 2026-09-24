@@ -18,6 +18,7 @@ export default function AdminWeekWorkspace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLessonTarget, setDeleteLessonTarget] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
@@ -65,9 +66,11 @@ export default function AdminWeekWorkspace() {
   async function confirmDeleteLesson() {
     if (!week || !deleteLessonTarget) return;
 
+    const target = days.find((day) => day.lessonId === deleteLessonTarget);
     const res = await deleteDayAction(course!.id, week.id, deleteLessonTarget);
     if (res.ok) {
       setDeleteLessonTarget(null);
+      setNotice(`Day "${target?.title ?? deleteLessonTarget}" was deleted.`);
       setRefreshTick(t => t + 1);
       router.refresh();
     } else {
@@ -86,6 +89,8 @@ export default function AdminWeekWorkspace() {
           { label: `Week ${week.weekNumber}` },
         ]}
       />
+
+      {notice ? <div className="mb-5 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm font-semibold text-[#166534]">{notice}</div> : null}
 
       <div className="mb-6 flex items-center gap-3">
         <Link href={`/admin/courses/${course.id}`} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2 text-sm font-medium text-[#111111]">
@@ -165,8 +170,8 @@ export default function AdminWeekWorkspace() {
 
       <ConfirmDialog
         open={!!deleteLessonTarget}
-        title="Delete lesson"
-        description="Delete this lesson from the week and remove its local lesson record?"
+        title="Delete day"
+        description={deleteLessonTarget ? `Permanently delete the Day "${days.find((day) => day.lessonId === deleteLessonTarget)?.title ?? deleteLessonTarget}" from this week? Its content blocks and Day-targeted resource placements will be removed by the existing cascade rules.` : "Delete this Day?"}
         confirmLabel="Delete"
         onConfirm={confirmDeleteLesson}
         onCancel={() => setDeleteLessonTarget(null)}

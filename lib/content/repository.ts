@@ -494,8 +494,17 @@ export function createCourseStructureSupabaseRepository(clientFactory: () => Sup
   },
   async deleteDay(courseId: string, weekId: string, dayId: string) {
     const client = clientFactory();
-    const { error } = await client.from("days").delete().eq("course_id", courseId).eq("week_id", weekId).eq("id", dayId);
+    const { data, error } = await client
+      .from("days")
+      .delete()
+      .eq("course_id", courseId)
+      .eq("week_id", weekId)
+      .eq("id", dayId)
+      .select("id");
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error(`Day ${dayId} was not found in the selected course and week.`);
+    }
   },
   };
 }

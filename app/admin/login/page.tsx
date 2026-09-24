@@ -6,32 +6,35 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, BookOpenCheck, Eye, EyeOff, Lock, Mail, ShieldCheck, Sparkles } from "lucide-react";
 
 import { setAdminAuthenticated } from "@/lib/adminAuth";
+import { adminLoginAction } from "@/lib/adminContentActions";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@back2basics.app");
-  const [password, setPassword] = useState("back2basics");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError(null);
 
     const trimmedEmail = email.trim().toLowerCase();
-    const trimmedPassword = password.trim();
+    const trimmedPassword = password;
 
     if (!trimmedEmail || !trimmedPassword) {
-      setError("Enter both the admin email and password.");
+      setError("Invalid email or password.");
       return;
     }
 
-    if (trimmedEmail === "admin@back2basics.app" && trimmedPassword === "back2basics") {
+    const result = await adminLoginAction(trimmedEmail, trimmedPassword);
+    if (result.ok) {
       setAdminAuthenticated(true);
       router.replace("/admin");
       return;
     }
 
-    setError("Access denied. Use the local admin credentials.");
+    setError("Invalid email or password.");
   }
 
   return (
@@ -112,7 +115,7 @@ export default function AdminLoginPage() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     className="w-full rounded-xl border border-[#d8d5d1] bg-white/80 py-2.5 pl-10 pr-3 text-[16px] text-[#111111] outline-none placeholder:text-[#8a847d]"
-                    placeholder="admin@back2basics.app"
+                    placeholder="Enter your email"
                   />
                 </div>
               </div>
@@ -149,17 +152,13 @@ export default function AdminLoginPage() {
                 type="submit"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#111111] px-5 py-3 text-base font-semibold text-white transition-transform hover:-translate-y-0.5 hover:bg-[#1d1d1d]"
               >
-                Continue to admin
+                Log in
                 <ArrowRight size={18} />
               </button>
 
-              <div className="rounded-2xl border border-[#dfe0df] bg-white/55 px-3 py-3 text-[12px] text-[#666666]">
-                <div className="flex items-center justify-center gap-2">
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#c7c3bf] text-[10px]">i</span>
-                  <span>Demo credentials: admin@back2basics.app / back2basics</span>
-                </div>
-              </div>
             </form>
+
+
           </div>
         </div>
       </div>
