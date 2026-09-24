@@ -69,6 +69,22 @@ export function MarkdownBlock({ markdown }: { markdown: string }) {
       continue;
     }
 
+    if (line.trim() === "$$") {
+      const mathLines: string[] = [];
+      index += 1;
+      while (index < lines.length && lines[index].trim() !== "$$") {
+        mathLines.push(lines[index].trim());
+        index += 1;
+      }
+      if (index < lines.length) index += 1;
+      output.push(
+        <div key={`display-math-${index}`} className="my-4 max-w-full overflow-x-auto px-1">
+          <MathText math={mathLines.join("\n")} block />
+        </div>,
+      );
+      continue;
+    }
+
     const heading = line.match(/^(#{1,6})\s+(.+)$/);
     if (heading) {
       const level = Math.min(heading[1].length, 4);
