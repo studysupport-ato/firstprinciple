@@ -15,10 +15,11 @@ function safeHref(value: string) {
 }
 
 function inlineContent(value: string, keyPrefix: string): ReactNode[] {
-  const tokens = value.split(/(\$[^$\n]+\$|\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]]+\]\([^\)]+\))/g).filter(Boolean);
+  const tokens = value.split(/(\$\$[^$]+\$\$|\$[^$\n]+\$|\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]]+\]\([^\)]+\))/g).filter(Boolean);
 
   return tokens.map((token, index) => {
     const key = `${keyPrefix}-${index}`;
+    if (token.startsWith("$$") && token.endsWith("$$")) return <MathText key={key} math={token.slice(2, -2)} block />;
     if (token.startsWith("$") && token.endsWith("$")) return <MathText key={key} math={token.slice(1, -1)} />;
     if (token.startsWith("**") && token.endsWith("**")) return <strong key={key}>{inlineContent(token.slice(2, -2), key)}</strong>;
     if (token.startsWith("*") && token.endsWith("*")) return <em key={key}>{inlineContent(token.slice(1, -1), key)}</em>;

@@ -298,33 +298,53 @@ export default function AdminLessonEditorPage() {
         );
       case "worked-example":
         return (
-          <div className="space-y-3">
-            <input
-              value={block.title}
-              onChange={(event) =>
-                updateBlock(block.id, (item) => ({ ...item, type: "worked-example", title: event.target.value } as ContentBlock))
-              }
-              className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
-              placeholder="Worked example title"
-            />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Worked example title</label>
+              <input
+                value={block.title}
+                onChange={(event) =>
+                  updateBlock(block.id, (item) => ({ ...item, type: "worked-example", title: event.target.value } as ContentBlock))
+                }
+                className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm font-semibold text-[#111111] outline-none"
+                placeholder="E.g. Find the modulus..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Content (Markdown)</label>
+              <p className="mt-1 text-[11px] leading-5 text-[#666666]">Use <code className="bg-[#F1F1F1] px-1 py-0.5 rounded text-[#111111]">$inline math$</code> or <code className="bg-[#F1F1F1] px-1 py-0.5 rounded text-[#111111]">$$display math$$</code>.</p>
+            </div>
             <textarea
-              value={block.prompt}
+              value={block.markdown ?? ""}
               onChange={(event) =>
-                updateBlock(block.id, (item) => ({ ...item, type: "worked-example", prompt: event.target.value } as ContentBlock))
+                updateBlock(block.id, (item) => ({ ...item, type: "worked-example", markdown: event.target.value } as ContentBlock))
               }
-              rows={3}
-              className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
-              placeholder="Prompt"
+              rows={8}
+              className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-3 font-mono text-sm leading-6 text-[#111111] outline-none focus:border-[#2563EB]"
+              placeholder="Write the problem and solution here..."
             />
-            <textarea
-              value={block.solution}
-              onChange={(event) =>
-                updateBlock(block.id, (item) => ({ ...item, type: "worked-example", solution: event.target.value } as ContentBlock))
-              }
-              rows={4}
-              className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
-              placeholder="Solution"
-            />
+
+            {!block.markdown && (block.prompt || block.solution) && (
+               <div className="rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] p-4">
+                 <p className="text-xs text-[#991B1B] font-semibold mb-2">Legacy Content Found (will be ignored if Markdown is provided)</p>
+                 <div className="text-[10px] uppercase font-bold text-[#991B1B] mb-1">Prompt</div>
+                 <p className="text-xs text-[#991B1B] mb-3">{block.prompt}</p>
+                 <div className="text-[10px] uppercase font-bold text-[#991B1B] mb-1">Solution</div>
+                 <p className="text-xs text-[#991B1B]">{block.solution}</p>
+               </div>
+            )}
+
+            <div className="rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] p-4">
+              <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">Local Preview</div>
+              <div className="rounded-2xl border border-[#E5E5E5] bg-white p-5 pointer-events-none">
+                <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#2563EB]">Worked example</span>
+                <h3 className="mt-2 font-serif text-2xl text-[#111111]">{block.title || "Example"}</h3>
+                <div className="mt-3 border-t border-[#E5E5E5] pt-1">
+                  {block.markdown ? <MarkdownBlock markdown={block.markdown} /> : <p className="text-sm text-[#999999] mt-3">Type markdown to see preview.</p>}
+                </div>
+              </div>
+            </div>
           </div>
         );
       case "callout":
