@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { EducationalText } from "@/components/learning/EducationalText";
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -425,8 +426,8 @@ export default function DashboardPage() {
                     className="group relative flex min-h-[240px] flex-col overflow-hidden rounded-[16px] bg-white p-5 pr-[128px] shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition hover:-translate-y-1 hover:shadow-[0_10px_24px_rgba(0,0,0,0.10)]"
                   >
                     <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#F5A800]">{course.code}</div>
-                    <div className="mt-1.5 text-[17px] font-extrabold leading-snug text-[#111111]">{course.title}</div>
-                    <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-relaxed text-[#111111]/60">{course.description}</p>
+                    <div className="mt-1.5 text-[17px] font-extrabold leading-snug text-[#111111]"><EducationalText text={course.title} /></div>
+                    <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-relaxed text-[#111111]/60"><EducationalText text={course.description} /></p>
 
                     <div className="mt-3 flex items-center gap-5 text-[12px] font-semibold text-[#111111]/55">
                       <span className="flex items-center gap-1.5">

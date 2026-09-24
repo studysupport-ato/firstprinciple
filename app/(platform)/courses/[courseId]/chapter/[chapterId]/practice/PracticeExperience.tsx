@@ -4,16 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Check, CheckCircle2, ChevronLeft, Lightbulb, RotateCcw, Trophy, XCircle } from "lucide-react";
 import Link from "next/link";
-import katex from "katex";
+import { EducationalText } from "@/components/learning/EducationalText";
 
 import type { Difficulty, Question } from "@/lib/content/types/question";
 import { createPracticeSession, evaluateQuestionAnswer, getPracticeSummary, type PracticeSession, type PracticeValue } from "@/lib/practice/session";
 import { recordPracticeAttempt, recordPracticeStarted } from "@/lib/progress";
-
-function MathText({ math, block = false }: { math: string; block?: boolean }) {
-  const html = katex.renderToString(math, { displayMode: block, throwOnError: false });
-  return <span dangerouslySetInnerHTML={{ __html: html }} className={`font-serif ${block ? "my-6 block text-center text-xl" : "inline"}`} />;
-}
 
 function QuestionRenderer({
   question,
@@ -37,12 +32,7 @@ function QuestionRenderer({
       <div className="rounded-2xl border border-[#E5E5E5] bg-transparent p-5">
         <span className="font-sans text-[10px] font-bold uppercase tracking-[0.24em] text-[#2563EB]">Practice question</span>
         <h2 className="mt-4 editorial-heading text-2xl md:text-3xl text-[#111111] leading-relaxed">
-          {question.prompt.split(/(\$.*?\$)/g).map((part, index) => {
-            if (part.startsWith("$") && part.endsWith("$")) {
-              return <MathText key={index} math={part.slice(1, -1)} />;
-            }
-            return <span key={index}>{part}</span>;
-          })}
+          <EducationalText text={question.prompt} />
         </h2>
       </div>
 
@@ -71,12 +61,7 @@ function QuestionRenderer({
               >
                 <span className="font-sans text-base text-[#111111]">
                   <span className="mr-3 font-semibold text-[#666666]">{option.label}</span>
-                  {option.text.split(/(\$.*?\$)/g).map((part, index) => {
-                    if (part.startsWith("$") && part.endsWith("$")) {
-                      return <MathText key={index} math={part.slice(1, -1)} />;
-                    }
-                    return <span key={index}>{part}</span>;
-                  })}
+                  <EducationalText text={option.text} />
                 </span>
                 {submitted && isCorrect && <CheckCircle2 className="text-[#059669]" size={20} />}
                 {submitted && isSelected && !isCorrect && <XCircle className="text-[#E11D48]" size={20} />}
@@ -106,12 +91,7 @@ function QuestionRenderer({
           </button>
           {showHint ? (
             <p className="mt-3 font-sans text-sm leading-relaxed text-[#111111]">
-              {question.hint.split(/(\$.*?\$)/g).map((part, index) => {
-                if (part.startsWith("$") && part.endsWith("$")) {
-                  return <MathText key={index} math={part.slice(1, -1)} />;
-                }
-                return <span key={index}>{part}</span>;
-              })}
+              <EducationalText text={question.hint} />
             </p>
           ) : null}
         </div>
@@ -124,12 +104,7 @@ function QuestionRenderer({
             {evaluateQuestionAnswer(question, selectedValue) ? "Correct" : "Feedback"}
           </div>
           <p className="mt-3 font-sans text-sm leading-relaxed text-[#111111]">
-            {question.explanation.split(/(\$.*?\$)/g).map((part, index) => {
-              if (part.startsWith("$") && part.endsWith("$")) {
-                return <MathText key={index} math={part.slice(1, -1)} />;
-              }
-              return <span key={index}>{part}</span>;
-            })}
+            <EducationalText text={question.explanation} />
           </p>
         </motion.div>
       ) : null}

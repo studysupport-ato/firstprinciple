@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowUpRight, ExternalLink, Play, Sparkles } from "lucide-react";
 
 import { GeoGebraProvider } from "@/components/learning/GeoGebraProvider";
+import { EducationalText } from "@/components/learning/EducationalText";
 import { getGeoGebraEmbedConfig, getYouTubeSourceLabel, getYouTubeThumbnailUrl } from "@/lib/content/resourcePresentation";
 import type { LearningResource } from "@/lib/content/types/resource";
 
@@ -23,8 +24,8 @@ function YouTubeResourceCard({ resource }: { resource: Extract<LearningResource,
           <ResourceEyebrow>{sourceLabel}</ResourceEyebrow>
           <span className="text-xs text-[#666666]">YouTube</span>
         </div>
-        <h3 className="font-serif text-xl leading-tight text-[#111111]">{resource.title}</h3>
-        {resource.description ? <p className="text-sm leading-6 text-[#666666]">{resource.description}</p> : null}
+        <h3 className="font-serif text-xl leading-tight text-[#111111]"><EducationalText text={resource.title} /></h3>
+        {resource.description ? <p className="text-sm leading-6 text-[#666666]"><EducationalText text={resource.description} /></p> : null}
         <a href={resource.data.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-semibold text-[#111111] underline hover:text-[#666666]">
           <Play size={14} fill="currentColor" />Watch on YouTube <ArrowUpRight size={14} />
         </a>
@@ -41,8 +42,8 @@ function GeoGebraResourceCard({ resource }: { resource: Extract<LearningResource
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <ResourceEyebrow>Interactive</ResourceEyebrow>
-          <h3 className="font-serif text-xl leading-tight text-[#111111]">{resource.title}</h3>
-          {resource.description ? <p className="max-w-xl text-sm leading-6 text-[#666666]">{resource.description}</p> : null}
+          <h3 className="font-serif text-xl leading-tight text-[#111111]"><EducationalText text={resource.title} /></h3>
+          {resource.description ? <p className="max-w-xl text-sm leading-6 text-[#666666]"><EducationalText text={resource.description} /></p> : null}
         </div>
         <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#111111] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#FFBE00] hover:text-[#111111]">
           <Sparkles size={14} />{open ? "Close interactive" : "Open inside lesson"}
@@ -58,8 +59,8 @@ function ExternalResourceCard({ resource }: { resource: Extract<LearningResource
     <article className="flex flex-col gap-4 rounded-2xl border border-[#E5E5E5] bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="space-y-2">
         <ResourceEyebrow>External resource</ResourceEyebrow>
-        <h3 className="font-serif text-xl leading-tight text-[#111111]">{resource.title}</h3>
-        {resource.description ? <p className="text-sm leading-6 text-[#666666]">{resource.description}</p> : null}
+        <h3 className="font-serif text-xl leading-tight text-[#111111]"><EducationalText text={resource.title} /></h3>
+        {resource.description ? <p className="text-sm leading-6 text-[#666666]"><EducationalText text={resource.description} /></p> : null}
         <p className="break-all text-xs text-[#666666]">{resource.data.provider ?? resource.data.url}</p>
       </div>
       <a href={resource.data.url} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-[#E5E5E5] px-4 py-2.5 text-sm font-semibold text-[#111111] hover:border-[#FFBE00]">

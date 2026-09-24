@@ -8,6 +8,7 @@ import { LessonRenderer } from "@/components/learning/LessonRenderer";
 import { GeoGebraProvider } from "@/components/learning/GeoGebraProvider";
 import { SupplementaryResources } from "@/components/learning/SupplementaryResources";
 import { getGeoGebraEmbedConfig } from "@/lib/content/resourcePresentation";
+import { EducationalText } from "@/components/learning/EducationalText";
 import type { LearningResource } from "@/lib/content/types/resource";
 import type { Lesson } from "@/lib/content/types/lesson";
 import type { Asset } from "@/lib/content/types/asset";
@@ -47,7 +48,7 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
   return (
     <div className="flex h-screen flex-col bg-white">
       <header className="z-20 flex h-16 flex-shrink-0 items-center justify-between border-b border-[#E5E5E5] bg-white px-8">
-        <div className="flex items-center gap-4"><Link href={roadmapHref} className="text-[#666666] transition-colors hover:text-[#111111]"><ChevronLeft size={20} /></Link><div className="flex items-center gap-2"><span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#666666]">{weekLabel}</span><span className="text-[#E5E5E5]">/</span><span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#111111]">{lesson.title}</span></div></div>
+        <div className="flex items-center gap-4"><Link href={roadmapHref} className="text-[#666666] transition-colors hover:text-[#111111]"><ChevronLeft size={20} /></Link><div className="flex items-center gap-2"><span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#666666]">{weekLabel}</span><span className="text-[#E5E5E5]">/</span><span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#111111]"><EducationalText text={lesson.title} /></span></div></div>
         <div className="flex items-center gap-2">{Array.from({ length: totalSteps }).map((_, index) => <div key={index} className={`h-2 w-2 rounded-full transition-colors duration-300 ${index <= currentStep ? "bg-[#FFBE00]" : "bg-[#E5E5E5]"}`} />)}</div>
       </header>
       <div className="flex flex-1 overflow-hidden">

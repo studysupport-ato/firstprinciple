@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 
+import { EducationalText } from "@/components/learning/EducationalText";
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
 
 import { getChapters, getCourses, getStudentAssessments } from "@/lib/content/access";
@@ -283,8 +284,8 @@ export default function QuestionsExperience({
                   <Link key={assessment.id} href={`/courses/${courseId}/chapter/${selectedAssessmentChapter(assessment)}/assessment/${assessment.id}`} className="group block rounded-2xl border border-white/15 bg-white/5 p-4 transition hover:border-white/40 hover:bg-white/10">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="font-serif text-xl">{assessment.title}</div>
-                        <p className="mt-1 text-sm leading-6 text-white/60">{assessment.description}</p>
+                        <div className="font-serif text-xl"><EducationalText text={assessment.title} /></div>
+                        <p className="mt-1 text-sm leading-6 text-white/60"><EducationalText text={assessment.description} /></p>
                       </div>
                       <ArrowRight size={16} className="mt-1 shrink-0 text-white/50 transition group-hover:translate-x-1" />
                     </div>

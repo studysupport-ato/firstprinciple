@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
+import { EducationalText } from "@/components/learning/EducationalText";
 import Link from "next/link";
 import { ArrowRight, BookOpen, CalendarDays } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -132,8 +133,8 @@ export default function CourseLibraryClient({ courses }: { courses: Course[] }) 
                         ) : null}
                       </div>
 
-                      <div className="mt-1.5 text-[17px] font-extrabold leading-snug text-[#111111]">{course.title}</div>
-                      <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-relaxed text-[#111111]/60">{course.description}</p>
+                      <div className="mt-1.5 text-[17px] font-extrabold leading-snug text-[#111111]"><EducationalText text={course.title} /></div>
+                      <p className="mt-1.5 line-clamp-2 text-[12.5px] leading-relaxed text-[#111111]/60"><EducationalText text={course.description} /></p>
 
                       <div className="mt-3 flex items-center gap-5 text-[12px] font-semibold text-[#111111]/55">
                         <span className="flex items-center gap-1.5">

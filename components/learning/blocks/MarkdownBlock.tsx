@@ -1,12 +1,10 @@
 "use client";
 
-export function InlineMathText({ text }: { text: string }) {
-  return <>{inlineContent(text, "inline-math")}</>;
-}
-
-
 import type { ReactNode } from "react";
 import { MathText } from "./MathText";
+import { EducationalText } from "../EducationalText";
+
+export { InlineMathText } from "../EducationalText";
 
 function safeHref(value: string) {
   const href = value.trim();

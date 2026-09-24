@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { EducationalText } from "@/components/learning/EducationalText";
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
 import { ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
@@ -90,7 +91,7 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
           <div className="mb-5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#FFBE00]">
             {course.code} · Week {week.weekNumber}
           </div>
-          <h1 className="editorial-heading mb-5 text-5xl md:text-[5.5rem]">{week.title}</h1>
+          <h1 className="editorial-heading mb-5 text-5xl md:text-[5.5rem]"><EducationalText text={week.title} /></h1>
           <p className="editorial-body max-w-2xl text-lg leading-relaxed text-[#525252]">
             {week.description} Work through this week&apos;s published days.
           </p>
@@ -135,8 +136,8 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
                       </span>
                     ) : null}
                   </div>
-                  <h2 className="font-serif text-2xl text-[#111111] md:text-3xl">{day.title}</h2>
-                  <p className="mt-2 text-sm leading-relaxed text-[#666666]">{day.description}</p>
+                  <h2 className="font-serif text-2xl text-[#111111] md:text-3xl"><EducationalText text={day.title} /></h2>
+                  <p className="mt-2 text-sm leading-relaxed text-[#666666]"><EducationalText text={day.description} /></p>
                 </div>
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E5E5E5] bg-transparent">
                   <ArrowRight size={15} />
