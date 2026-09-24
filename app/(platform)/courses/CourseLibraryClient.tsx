@@ -56,14 +56,14 @@ export default function CourseLibraryClient({ courses }: { courses: Course[] }) 
   return (
     <div className="relative min-h-screen overflow-x-clip bg-[#FFC700] pb-10">
       {/* BUILDING — true overflow: page-level, bleeds off right edge */}
-      <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 top-0 z-0">
+      <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 top-0 z-0" style={{ mixBlendMode: "multiply" }}>
         <div
           className="absolute right-[-40px] top-0 h-[400px] w-[82%] min-w-[760px] max-[900px]:left-0 max-[900px]:right-auto max-[900px]:h-[220px] max-[900px]:w-full max-[900px]:min-w-0 max-[900px]:opacity-60"
           style={{
-            backgroundImage: "url('/knust.jpg')",
+            backgroundImage: "url('/courses.jpeg')",
             backgroundSize: "cover",
             backgroundPosition: "left center",
-            filter: "saturate(1.05)",
+            filter: "grayscale(1) contrast(1.2) brightness(1.6)",
             WebkitMaskImage: "linear-gradient(90deg, transparent 0%, #000 30%, #000 100%), linear-gradient(180deg, #000 0%, #000 55%, transparent 82%)",
             WebkitMaskComposite: "source-in",
             maskImage: "linear-gradient(90deg, transparent 0%, #000 30%, #000 100%), linear-gradient(180deg, #000 0%, #000 55%, transparent 82%)",

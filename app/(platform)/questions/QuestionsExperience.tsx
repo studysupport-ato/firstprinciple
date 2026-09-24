@@ -1,14 +1,72 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, BookOpenCheck, CircleHelp, FileCheck2, Play, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+  ArrowRight,
+  BookOpenCheck,
+  ChevronDown,
+  CircleHelp,
+  FileCheck2,
+  Layers,
+  ListChecks,
+  Play,
+  Search,
+} from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
+
+import { AnimatedItem } from "@/components/motion/AnimatedItem";
 
 import { getChapters, getCourses, getStudentAssessments } from "@/lib/content/access";
 import type { Difficulty, Question } from "@/lib/content/types/question";
 
 const difficulties: Array<Difficulty | "all"> = ["all", "easy", "medium", "hard"];
 const questionCounts = [5, 10, 15, 20];
+
+// Difficulty accents reuse the dashboard palette so every platform page reads as one system.
+const difficultyMeta: Record<Difficulty, { label: string; color: string }> = {
+  easy: { label: "Easy", color: "#059669" },
+  medium: { label: "Medium", color: "#E5A600" },
+  hard: { label: "Hard", color: "#E11D48" },
+};
+
+// Pill styling shared by the difficulty and set-size controls (matches the material filters).
+function pillClass(active: boolean) {
+  return `inline-flex items-center gap-[8px] rounded-full px-[14px] py-[8px] text-[12px] font-bold transition ${
+    active ? "bg-[#0e0e0e] text-[#FFC700]" : "border-[1.2px] border-black/50 text-[#0e0e0e] hover:bg-black/5"
+  }`;
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="field-label">{label}</span>
+      <span className="relative mt-[9px] block">
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full appearance-none rounded-[12px] border border-[#111111]/15 bg-white/70 px-[15px] py-[12px] pr-[40px] text-[13.5px] font-semibold text-[#111111] outline-none transition hover:border-[#111111]/30 focus:border-[#111111]/45 focus:bg-white"
+        >
+          {children}
+        </select>
+        <ChevronDown
+          size={16}
+          strokeWidth={2.6}
+          className="pointer-events-none absolute right-[14px] top-1/2 -translate-y-1/2 text-[#111111]/45"
+        />
+      </span>
+    </label>
+  );
+}
 
 export default function QuestionsExperience({
   initialQuestions,
@@ -42,6 +100,15 @@ export default function QuestionsExperience({
       }),
     [availableQuestions, difficulty, subtopic, topic],
   );
+  const difficultyBreakdown = useMemo(
+    () =>
+      (["easy", "medium", "hard"] as Difficulty[]).map((level) => ({
+        level,
+        ...difficultyMeta[level],
+        count: matchingQuestions.filter((question) => question.difficulty === level).length,
+      })),
+    [matchingQuestions],
+  );
 
   const assessments = useMemo(() => getStudentAssessments(courseId, { preview }), [courseId, preview]);
   const firstChapterId = getChapters(courseId)[0]?.id ?? "complex-numbers";
@@ -50,26 +117,94 @@ export default function QuestionsExperience({
     ? `/courses/${courseId}/chapter/${matchingQuestions[0].chapterId}/practice?limit=${count}${topic ? `&topic=${encodeURIComponent(topic)}` : ""}${subtopic ? `&subtopic=${encodeURIComponent(subtopic)}` : ""}${difficulty !== "all" ? `&difficulty=${difficulty}` : ""}${preview ? "&preview=1" : ""}`
     : "#no-matches";
 
+  const selectedCourse = courses.find((course) => course.id === courseId);
+  const stats = [
+    { label: "Matching questions", value: matchingQuestions.length, icon: ListChecks, color: "#E5A600" },
+    { label: "Topics in scope", value: topics.length, icon: Layers, color: "#6673ff" },
+    { label: "Course checkpoints", value: assessments.length, icon: FileCheck2, color: "#059669" },
+  ];
+
   function changeCourse(value: string) {
     setCourseId(value);
     setTopic("");
     setSubtopic("");
   }
 
-  return (
-    <div className="min-h-screen bg-transparent px-5 py-8 md:px-10 md:py-12">
-      <div className="mx-auto max-w-[1180px]">
-        <header className="mb-10 border-b border-[#E5E5E5] pb-8">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#111111] text-white"><CircleHelp size={18} /></div>
-            <span className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#666666]">Practice space</span>
-          </div>
-          <h1 className="font-serif text-5xl tracking-tight text-[#111111] md:text-6xl">Questions</h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-[#666666]">Practice what you have learned and take structured assessments from the same course question bank.</p>
-        </header>
+  function clearQuestionFilters() {
+    setTopic("");
+    setSubtopic("");
+    setDifficulty("all");
+  }
 
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="rounded-[28px] border border-[#E5E5E5] bg-white p-6 shadow-[0_12px_30px_rgba(17,17,17,0.03)] md:p-8">
+  return (
+    <div className="min-h-screen bg-transparent">
+      <section className="relative isolate overflow-hidden bg-[#FFC700] px-5 pb-16 pt-8 md:px-10 md:pb-20 md:pt-10">
+        <div className="pointer-events-none absolute inset-y-0 right-0 -z-20 w-full md:w-[58%]">
+          <div className="absolute inset-0 bg-[#FFC700] mix-blend-multiply md:left-[-34%]" />
+          <div
+            className="absolute inset-0 bg-[url('/last.jpeg')] bg-cover bg-[position:62%_center] opacity-80 grayscale mix-blend-multiply"
+            style={{
+              maskImage: "linear-gradient(90deg, transparent 0%, #000 30%, #000 100%), linear-gradient(180deg, #000 0%, #000 72%, transparent 100%)",
+              WebkitMaskImage: "linear-gradient(90deg, transparent 0%, #000 30%, #000 100%), linear-gradient(180deg, #000 0%, #000 72%, transparent 100%)",
+              maskComposite: "intersect",
+              WebkitMaskComposite: "source-in",
+            }}
+          />
+        </div>
+        <div className="pointer-events-none absolute -right-24 -top-32 -z-10 h-80 w-80 rounded-full border-[55px] border-black/[0.06]" />
+
+        <AnimatedItem className="relative mx-auto max-w-[1180px]">
+          <div className="mb-8 flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.1em] text-black/60">
+            <CircleHelp size={15} strokeWidth={2.4} />
+            <span>Learning space</span>
+            <span className="text-[8px]">●</span>
+            <span className="text-black/80">Questions</span>
+          </div>
+
+          <div className="grid items-end gap-8 md:grid-cols-[minmax(0,1fr)_300px]">
+            <div className="max-w-[650px]">
+              <p className="mb-2 font-sans text-[15px] text-[#1d1d1d]">Ready when you are,</p>
+              <h1 className="font-sans text-[46px] font-black leading-[0.98] tracking-[-0.035em] text-[#0c0c0c] md:text-[64px]">
+                PRACTICE.<br />PROVE IT.
+              </h1>
+              <p className="mt-5 max-w-[540px] text-[13.5px] leading-[1.6] text-black/65">
+                Turn what you have learned into mastery with focused question sets and clear course checkpoints.
+              </p>
+              {selectedCourse ? (
+                <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-black/20 bg-black/[0.07] px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.12em] text-black/70">
+                  <BookOpenCheck size={14} /> {selectedCourse.code} · {selectedCourse.title}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="rounded-[20px] bg-[#0c0c0c] p-5 text-white shadow-[0_18px_40px_rgba(0,0,0,0.28)]">
+              <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-white/55">Question bank</div>
+              <div className="mt-2 text-[30px] font-black leading-none">{availableQuestions.length}</div>
+              <div className="mt-1 text-[12px] text-white/55">questions ready for {selectedCourse?.code ?? "this course"}</div>
+              <div className="mt-4 flex items-center gap-2 text-[11px] font-bold text-[#FFC700]">
+                <ListChecks size={14} /> {matchingQuestions.length} match your filters
+              </div>
+            </div>
+          </div>
+        </AnimatedItem>
+      </section>
+
+      <div className="px-5 py-8 md:px-10 md:py-12">
+        <div className="mx-auto max-w-[1180px]">
+          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-black/45">Build your session</div>
+              <h2 className="mt-1 font-sans text-[30px] font-black tracking-[-0.025em] text-[#111111]">Choose what to practice</h2>
+            </div>
+            {matchingQuestions.length > 0 ? (
+              <button type="button" onClick={clearQuestionFilters} className="w-fit rounded-full border border-black/20 bg-white/60 px-4 py-2 text-[11px] font-bold text-black/65 transition hover:bg-white">
+                Clear filters
+              </button>
+            ) : null}
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <section className="rounded-[24px] bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.06)] md:p-8">
             <div className="mb-7 flex items-start justify-between gap-4">
               <div>
                 <div className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#111111]">Practice questions</div>
@@ -173,6 +308,7 @@ export default function QuestionsExperience({
 
         <div className="mt-8 flex items-center gap-2 text-xs text-[#777777]">
           <Search size={14} /> Practice and assessments use the canonical Question Bank and existing progress tracking.
+        </div>
         </div>
       </div>
     </div>
