@@ -34,6 +34,7 @@ import {
   placeAdminResource,
   removeAdminResourcePlacement,
   reorderAdminCourseMaterials,
+  reorderAdminDays,
   reorderAdminDepartments,
   saveAdminDayContent,
   setAdminCourseMaterialStatus,
@@ -251,6 +252,10 @@ export async function deleteDayAction(courseId: string, weekId: string, dayId: s
     await deleteAdminDay(courseId, weekId, dayId);
     return null;
   });
+}
+
+export async function reorderDaysAction(courseId: string, weekId: string, orderedIds: string[]): Promise<AdminActionResult<Lesson[]>> {
+  return run(() => reorderAdminDays(courseId, weekId, orderedIds));
 }
 
 export async function saveDayContentAction(

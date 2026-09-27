@@ -18,12 +18,16 @@ export async function getPublishedRoadmap(courseId: string): Promise<PublishedSt
   const course = await repository.getCourse(courseId);
   if (!published(course)) return { kind: "not-found" };
   const [rawWeeks, rawDays] = await Promise.all([repository.listWeeksForCourse(courseId), repository.listDaysForCourse(courseId)]);
-  const weeks = rawWeeks.filter(published);
+  const weeks = rawWeeks.filter(published).sort((first, second) => first.weekNumber - second.weekNumber);
   const publishedWeekIds = new Set(weeks.map((week) => week.id));
   const dayEntries = rawDays.filter((day) => published(day) && publishedWeekIds.has(day.weekId)).reduce<Record<string, Lesson[]>>((groups, day) => {
     (groups[day.weekId] ??= []).push(day);
     return groups;
   }, {});
+  // Student order follows the Admin-defined persisted order_index (never creation order).
+  for (const key of Object.keys(dayEntries)) {
+    dayEntries[key] = dayEntries[key].slice().sort((first, second) => first.order - second.order || first.id.localeCompare(second.id));
+  }
   return { kind: "success", value: { course, weeks, daysByWeek: dayEntries } };
 }
 

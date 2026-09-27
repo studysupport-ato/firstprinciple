@@ -347,6 +347,13 @@ export async function deleteAdminDay(courseId: string, weekId: string, dayId: st
   return createCourseStructureAdminRepository().deleteDay(courseId, weekId, dayId);
 }
 
+export async function reorderAdminDays(courseId: string, weekId: string, orderedIds: string[]): Promise<Lesson[]> {
+  assertNonEmpty(courseId, "Course ID");
+  assertNonEmpty(weekId, "Week ID");
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) throw new Error("Day order must include the Days of this Week.");
+  return createCourseStructureAdminRepository().reorderDays(courseId, weekId, orderedIds);
+}
+
 /** Writes ONLY `days.content_blocks` for the scoped Day. */
 export async function saveAdminDayContent(courseId: string, weekId: string, dayId: string, blocks: ContentBlock[]): Promise<void> {
   validateDayBlocks(blocks);
