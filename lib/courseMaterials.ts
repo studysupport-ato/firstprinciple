@@ -1,5 +1,7 @@
 export type CourseMaterialsStatus = "draft" | "published" | "archived";
 
+export type CourseMaterialKind = "link" | "youtube";
+
 export interface CourseMaterialsDepartment {
   id: string;
   name: string;
@@ -19,6 +21,8 @@ export interface CourseMaterialEntry {
   description?: string;
   url: string;
   provider?: string;
+  /** "link" = external resource (legacy default), "youtube" = embedded YouTube video (provider stores the validated video ID). */
+  kind: CourseMaterialKind;
   order: number;
   status: CourseMaterialsStatus;
   createdAt: string;
@@ -26,8 +30,9 @@ export interface CourseMaterialEntry {
 }
 
 export type CourseMaterialsDepartmentInput = Omit<CourseMaterialsDepartment, "id" | "createdAt" | "updatedAt" | "order">;
-export type CourseMaterialEntryInput = Omit<CourseMaterialEntry, "id" | "createdAt" | "updatedAt" | "order">;
+export type CourseMaterialEntryInput = Omit<CourseMaterialEntry, "id" | "createdAt" | "updatedAt" | "order" | "kind"> & { kind?: CourseMaterialKind };
 import { createStableId } from "./ids";
+import { buildYouTubeWatchUrl, parseYouTubeVideoId } from "./youtube";
 
 export interface CourseMaterialsDirectory {
   departments: CourseMaterialsDepartment[];
@@ -82,11 +87,40 @@ export function validateDepartment(department: CourseMaterialsDepartmentInput | 
   return errors;
 }
 
+export function isCourseMaterialYouTube(entry: Pick<CourseMaterialEntry, "kind" | "url" | "provider">) {
+  if (entry.kind === "youtube") return true;
+  return parseYouTubeVideoId(entry.url) !== undefined || parseYouTubeVideoId(entry.provider) !== undefined;
+}
+
+export function getCourseMaterialVideoId(entry: Pick<CourseMaterialEntry, "kind" | "url" | "provider">) {
+  return parseYouTubeVideoId(entry.provider) ?? parseYouTubeVideoId(entry.url);
+}
+
+function withKind<T extends { url: string; provider?: string; kind?: CourseMaterialKind }>(value: T): T & { kind: CourseMaterialKind } {
+  const kind = value.kind ?? (parseYouTubeVideoId(value.url) || parseYouTubeVideoId(value.provider) ? "youtube" : "link");
+  return { ...value, kind };
+}
+
+function normalizeCourseMaterial<T extends { url: string; provider?: string; kind?: CourseMaterialKind }>(value: T) {
+  const withKindValue = withKind(value);
+  if (withKindValue.kind === "youtube") {
+    const videoId = parseYouTubeVideoId(withKindValue.provider) ?? parseYouTubeVideoId(withKindValue.url);
+    if (!videoId) return { ...withKindValue, videoError: "A valid YouTube URL or video ID is required (e.g. https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID)." } as const;
+    return { ...withKindValue, url: buildYouTubeWatchUrl(videoId), provider: videoId, videoError: undefined } as const;
+  }
+  return { ...withKindValue, videoError: undefined } as const;
+}
+
 export function validateCourseMaterial(entry: CourseMaterialEntryInput | CourseMaterialEntry) {
   const errors: string[] = [];
   if (!entry.departmentId.trim()) errors.push("A department is required.");
   if (!entry.courseTitle.trim()) errors.push("Course title is required.");
   if (!isHttpUrl(entry.url.trim())) errors.push("A valid HTTP or HTTPS URL is required.");
+  const kind = (entry as Partial<CourseMaterialEntry>).kind ?? "link";
+  if (kind !== "link" && kind !== "youtube") errors.push("Course material type is invalid.");
+  if (kind === "youtube" && !parseYouTubeVideoId(entry.url) && !parseYouTubeVideoId(entry.provider)) {
+    errors.push("A valid YouTube URL or video ID is required (e.g. https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID).");
+  }
   if (!["draft", "published", "archived"].includes(entry.status)) errors.push("Course material status is invalid.");
   return errors;
 }
@@ -184,17 +218,20 @@ export function reorderDepartments(ids: string[]) {
 
 export function createCourseMaterial(input: CourseMaterialEntryInput) {
   if (!getDepartmentById(input.departmentId)) throw new Error("The selected department does not exist.");
-  const errors = validateCourseMaterial(input);
+  const normalized = normalizeCourseMaterial(input);
+  const { videoError, ...normalizedEntry } = normalized;
+  if (videoError) throw new Error(videoError);
+  const errors = validateCourseMaterial(normalizedEntry);
   if (errors.length) throw new Error(errors.join(" "));
   const now = new Date().toISOString();
   const directory = readDirectory();
-  const entries = directory.entries.filter((entry) => entry.departmentId === input.departmentId);
-  const normalizedUrl = input.url.trim().toLowerCase();
-  const normalizedCode = input.courseCode?.trim().toLowerCase();
-  if (entries.some((entry) => entry.url.trim().toLowerCase() === normalizedUrl || (normalizedCode && entry.courseCode?.trim().toLowerCase() === normalizedCode && entry.courseTitle.trim().toLowerCase() === input.courseTitle.trim().toLowerCase()))) {
+  const entries = directory.entries.filter((entry) => entry.departmentId === normalized.departmentId);
+  const normalizedUrl = normalizedEntry.url.trim().toLowerCase();
+  const normalizedCode = normalizedEntry.courseCode?.trim().toLowerCase();
+  if (entries.some((entry) => entry.url.trim().toLowerCase() === normalizedUrl || (normalizedCode && entry.courseCode?.trim().toLowerCase() === normalizedCode && entry.courseTitle.trim().toLowerCase() === normalizedEntry.courseTitle.trim().toLowerCase()))) {
     throw new Error("This department already has the same course material link or course entry.");
   }
-  const entry: CourseMaterialEntry = { ...input, id: uid("course-material", input.courseTitle), order: entries.length, createdAt: now, updatedAt: now };
+  const entry: CourseMaterialEntry = { ...normalizedEntry, id: uid("course-material", normalizedEntry.courseTitle), order: entries.length, createdAt: now, updatedAt: now };
   writeDirectory({ ...directory, entries: [...directory.entries, entry] });
   return entry;
 }
@@ -202,7 +239,11 @@ export function createCourseMaterial(input: CourseMaterialEntryInput) {
 export function updateCourseMaterial(id: string, patch: Partial<Omit<CourseMaterialEntry, "id" | "createdAt" | "updatedAt">>) {
   const current = getCourseMaterialById(id);
   if (!current) return undefined;
-  const updated = { ...current, ...patch, id, createdAt: current.createdAt, updatedAt: new Date().toISOString() };
+  const merged = { ...current, ...patch, id, createdAt: current.createdAt, updatedAt: new Date().toISOString() };
+  const normalized = normalizeCourseMaterial(merged);
+  const { videoError, ...normalizedEntry } = normalized;
+  if (videoError) throw new Error(videoError);
+  const updated: CourseMaterialEntry = normalizedEntry;
   const errors = validateCourseMaterial(updated);
   if (errors.length) throw new Error(errors.join(" "));
   const directory = readDirectory();

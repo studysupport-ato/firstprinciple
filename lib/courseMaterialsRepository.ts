@@ -22,6 +22,7 @@ import {
   type CourseMaterialsDepartmentInput,
 } from "./courseMaterials";
 import type { ContentStatus } from "./content/lifecycle";
+import { buildYouTubeWatchUrl, getCourseMaterialVideoId, parseYouTubeVideoId } from "./youtube";
 import { createSupabaseBrowserClient } from "./supabase/client";
 import type { Database } from "./supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -84,7 +85,21 @@ function mapDepartment(row: DepartmentRow): CourseMaterialsDepartment {
   return { id: row.id, name: row.name, shortName: row.short_name ?? undefined, description: row.description ?? undefined, order: row.order_index, status: row.status as ContentStatus, createdAt: row.created_at, updatedAt: row.updated_at };
 }
 function mapMaterial(row: MaterialRow): CourseMaterialEntry {
-  return { id: row.id, departmentId: row.department_id, courseCode: row.course_code ?? undefined, courseTitle: row.course_title, description: row.description ?? undefined, url: row.url, provider: row.provider ?? undefined, order: row.order_index, status: row.status as ContentStatus, createdAt: row.created_at, updatedAt: row.updated_at };
+  // Backwards-compatible: no kind column. provider="youtube" marker OR a YouTube URL implies YouTube.
+  const rawProvider = row.provider ?? undefined;
+  const videoId = getCourseMaterialVideoId({ kind: undefined, url: row.url, provider: rawProvider });
+  const kind: CourseMaterialEntry["kind"] = rawProvider === "youtube" || videoId ? "youtube" : "link";
+  return { id: row.id, departmentId: row.department_id, courseCode: row.course_code ?? undefined, courseTitle: row.course_title, description: row.description ?? undefined, url: kind === "youtube" && videoId ? buildYouTubeWatchUrl(videoId) : row.url, provider: kind === "youtube" ? videoId ?? rawProvider : rawProvider === "youtube" ? undefined : rawProvider, kind, order: row.order_index, status: row.status as ContentStatus, createdAt: row.created_at, updatedAt: row.updated_at };
+}
+
+function toRowMaterial(input: { departmentId: string; courseCode?: string; courseTitle: string; description?: string; url: string; provider?: string; kind?: CourseMaterialEntry["kind"]; status: string }) {
+  const kind = input.kind ?? (parseYouTubeVideoId(input.url) || parseYouTubeVideoId(input.provider) ? "youtube" : "link");
+  if (kind === "youtube") {
+    const videoId = parseYouTubeVideoId(input.provider) ?? parseYouTubeVideoId(input.url);
+    // Store canonical watch URL; provider column carries ONLY the validated video ID (tiny metadata, no bytes).
+    return { kind, url: videoId ? buildYouTubeWatchUrl(videoId) : input.url, provider: videoId ?? input.provider ?? null };
+  }
+  return { kind, url: input.url, provider: input.provider ?? null };
 }
 function applyVisibility(query: any, options: CourseMaterialsRepositoryListOptions) {
   let next = query;
@@ -134,8 +149,8 @@ export function createCourseMaterialsSupabaseRepository(clientFactory: () => Sup
     const { data, error } = await query; if (error) throw error; return ((data ?? []) as MaterialRow[]).map(mapMaterial);
   },
   async getCourseMaterial(materialId) { const { data, error } = await clientFactory().from("course_materials").select("*").eq("id", materialId).maybeSingle(); if (error) throw error; return data ? mapMaterial(data as MaterialRow) : undefined; },
-  async createCourseMaterial(input) { const errors = validateCourseMaterial(input); if (errors.length) throw new Error(errors.join(" ")); const now = new Date().toISOString(); const row = { id: crypto.randomUUID(), department_id: input.departmentId, course_code: input.courseCode ?? null, course_title: input.courseTitle, description: input.description ?? null, url: input.url, provider: input.provider ?? null, order_index: 0, status: input.status, created_at: now, updated_at: now }; const { error } = await clientFactory().from("course_materials").insert(row as never); if (error) throw error; return mapMaterial(row as MaterialRow); },
-  async updateCourseMaterial(materialId, patch) { const current = await this.getCourseMaterial(materialId); if (!current) return undefined; const updated = { ...current, ...patch, id: current.id, createdAt: current.createdAt, updatedAt: new Date().toISOString() }; const errors = validateCourseMaterial(updated); if (errors.length) throw new Error(errors.join(" ")); const { error } = await clientFactory().from("course_materials").update({ department_id: updated.departmentId, course_code: updated.courseCode ?? null, course_title: updated.courseTitle, description: updated.description ?? null, url: updated.url, provider: updated.provider ?? null, order_index: updated.order, status: updated.status } as never).eq("id", materialId); if (error) throw error; return updated; },
+  async createCourseMaterial(input) { const errors = validateCourseMaterial({ ...input, kind: input.kind ?? (parseYouTubeVideoId(input.url) || parseYouTubeVideoId(input.provider) ? "youtube" : "link") }); if (errors.length) throw new Error(errors.join(" ")); const now = new Date().toISOString(); const stored = toRowMaterial(input); const row = { id: crypto.randomUUID(), department_id: input.departmentId, course_code: input.courseCode ?? null, course_title: input.courseTitle, description: input.description ?? null, url: stored.url, provider: stored.provider, order_index: 0, status: input.status, created_at: now, updated_at: now }; const { error } = await clientFactory().from("course_materials").insert(row as never); if (error) throw error; return mapMaterial(row as MaterialRow); },
+  async updateCourseMaterial(materialId, patch) { const current = await this.getCourseMaterial(materialId); if (!current) return undefined; const merged = { ...current, ...patch, id: current.id, createdAt: current.createdAt, updatedAt: new Date().toISOString() }; const errors = validateCourseMaterial(merged); if (errors.length) throw new Error(errors.join(" ")); const stored = toRowMaterial(merged); const updated = { ...merged, url: stored.url, provider: stored.provider ?? undefined, kind: stored.kind }; const { error } = await clientFactory().from("course_materials").update({ department_id: updated.departmentId, course_code: updated.courseCode ?? null, course_title: updated.courseTitle, description: updated.description ?? null, url: stored.url, provider: stored.provider, order_index: updated.order, status: updated.status } as never).eq("id", materialId); if (error) throw error; return updated; },
   async archiveDepartment(id) { return this.updateDepartment(id, { status: "archived" }); },
   async restoreDepartment(id) { return this.updateDepartment(id, { status: "draft" }); },
   async archiveCourseMaterial(id) { return this.updateCourseMaterial(id, { status: "archived" }); },

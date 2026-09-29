@@ -15,6 +15,8 @@ import {
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
+import { YouTubeEmbed } from "@/components/learning/YouTubeEmbed";
+import { getCourseMaterialVideoId, parseYouTubeVideoId } from "@/lib/youtube";
 import { createCourseMaterialsRepository, type CourseMaterialsRepository } from "@/lib/courseMaterialsRepository";
 import { type CourseMaterialEntry, type CourseMaterialsDepartment, type CourseMaterialsDirectory } from "@/lib/courseMaterials";
 
@@ -28,9 +30,10 @@ const RESOURCE_TYPES: Array<"ALL" | MaterialType> = ["ALL", "PDF Document", "Lec
 const BOOKMARK_STORAGE_KEY = "b2b-course-material-bookmarks-v1";
 
 function deriveMaterialType(entry: CourseMaterialEntry): MaterialType {
+  if (entry.kind === "youtube" || parseYouTubeVideoId(entry.url) || parseYouTubeVideoId(entry.provider)) return "Video Lecture";
   const raw = `${entry.courseTitle} ${entry.description ?? ""} ${entry.provider ?? ""} ${entry.url}`.toLowerCase();
 
-  if (/youtube|vimeo|video|mp4|stream/.test(raw)) return "Video Lecture";
+  if (/vimeo|video|mp4|stream/.test(raw)) return "Video Lecture";
   if (/past|exam|question|quiz|test/.test(raw)) return "Past Questions";
   if (/slides|ppt|powerpoint|deck/.test(raw)) return "Lecture Slides";
   if (/pdf/.test(raw)) return "PDF Document";
@@ -350,6 +353,7 @@ export default function CourseMaterialsPage() {
           <div className="mt-4 grid gap-[22px] md:grid-cols-2 xl:grid-cols-3">
             {deptEntries.map((entry, index) => {
               const isSaved = bookmarks.includes(entry.id);
+              const videoId = getCourseMaterialVideoId(entry);
 
               return (
                 <AnimatedItem key={entry.id} index={index} className="flex">
@@ -391,10 +395,24 @@ export default function CourseMaterialsPage() {
                       <p className="mt-[14px] line-clamp-3 text-[14px] leading-[1.6] text-[#111111]/55">
                         {entry.description ?? "Course material resource for this department."}
                       </p>
+
+                      {videoId ? (
+                        <div className="mt-[18px]">
+                          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-[#FFC700]/25 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#7a5b00]">
+                            YouTube video · plays here
+                          </div>
+                          <YouTubeEmbed videoId={videoId} title={entry.courseTitle} />
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="relative mt-[24px] flex items-center justify-between gap-3 border-t border-[#111111]/10 pt-[18px]">
-                      <span className="text-[12px] font-medium text-[#111111]/45">{entry.provider ?? "Academic source"}</span>
+                      <span className="text-[12px] font-medium text-[#111111]/45">{videoId ? "YouTube" : entry.provider ?? "Academic source"}</span>
+                      {videoId ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0B0B0F] px-[18px] py-[11px] text-[13px] font-extrabold tracking-[-0.01em] text-white">
+                          Embedded above
+                        </span>
+                      ) : (
                       <a
                         href={entry.url}
                         target="_blank"
@@ -403,6 +421,7 @@ export default function CourseMaterialsPage() {
                       >
                         Open <ArrowUpRight className="h-3.5 w-3.5" />
                       </a>
+                      )}
                     </div>
                   </article>
                 </AnimatedItem>

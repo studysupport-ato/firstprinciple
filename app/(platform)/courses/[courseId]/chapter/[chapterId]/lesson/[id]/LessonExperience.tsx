@@ -6,7 +6,7 @@ import Link from "next/link";
 import { completeDay, startDay } from "@/lib/progress";
 import { LessonRenderer } from "@/components/learning/LessonRenderer";
 import { GeoGebraProvider } from "@/components/learning/GeoGebraProvider";
-import { SupplementaryResources } from "@/components/learning/SupplementaryResources";
+import { LessonVideo, SupplementaryResources } from "@/components/learning/SupplementaryResources";
 import { getGeoGebraEmbedConfig } from "@/lib/content/resourcePresentation";
 import { EducationalText } from "@/components/learning/EducationalText";
 import type { LearningResource } from "@/lib/content/types/resource";
@@ -56,7 +56,7 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
           <div className={`relative z-10 flex flex-col justify-between border-r border-[#E5E5E5] bg-white ${hasSideContent ? "w-full lg:w-[45%]" : "w-full"}`}>
             <div className="overflow-y-auto p-12 lg:p-16">
               <LessonRenderer lesson={lesson} step={activeStep} assetsById={assetsById} />
-              {isComplete ? <SupplementaryResources resources={supplementaryResources} /> : null}
+              {isComplete ? <><LessonVideo resources={supplementaryResources} /><SupplementaryResources resources={supplementaryResources} /></> : null}
             </div>
             {renderNavigation()}
           </div>
@@ -68,7 +68,7 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
             </div>
             {isFullWidthInteractive && (
               <div className="w-full flex flex-col">
-                {isComplete ? <div className="px-12 pb-8 lg:px-16"><SupplementaryResources resources={supplementaryResources} /></div> : null}
+                {isComplete ? <div className="px-12 pb-8 lg:px-16"><LessonVideo resources={supplementaryResources} /><SupplementaryResources resources={supplementaryResources} /></div> : null}
                 {renderNavigation()}
               </div>
             )}
