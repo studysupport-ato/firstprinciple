@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, CheckCircle2, UserRound, Phone, Mail } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { getStudentProfile, saveStudentProfile } from "@/lib/student/profileRepository";
+import { migrateLocalProfileOnce } from "@/lib/progress/access";
+import { saveSupabaseStudentProfile } from "@/lib/student/supabaseProfileRepository";
 import { getActiveStudentId, getCurrentMockStudent } from "@/lib/auth/mock";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -38,7 +40,7 @@ export function ProfileCompletionModal() {
   const [hasDismissed, setHasDismissed] = useState(false); // temporary session dismiss
 
   const pathname = usePathname();
-  const { authenticated, student } = useAuthSession();
+  const { authenticated, user } = useAuthSession();
 
   useEffect(() => {
     // Only check on client
@@ -46,8 +48,8 @@ export function ProfileCompletionModal() {
     if (authenticated !== true) return;
     if (hasDismissed) return;
 
-    // Use student-aware onboarding key
-    const currentTourKey = student ? `${TOUR_KEY}:${student.studentId}` : TOUR_KEY;
+    // Use auth-user-aware onboarding key until the student profile mapping is built.
+    const currentTourKey = user ? `${TOUR_KEY}:${user.id}` : TOUR_KEY;
     const isTourCompleted = localStorage.getItem(currentTourKey) === "true";
     const profile = getStudentProfile();
 
@@ -58,16 +60,22 @@ export function ProfileCompletionModal() {
       }, 600);
       return () => clearTimeout(timer);
     }
-  }, [pathname, authenticated, hasDismissed, student]);
+  }, [pathname, authenticated, hasDismissed, user]);
 
   useEffect(() => {
     // Try email from mock student first, then Supabase if configured
     if (isVisible && !email) {
+      if (user?.email) {
+        setEmail(user.email);
+        return;
+      }
+
       const mockStudent = getCurrentMockStudent();
       if (mockStudent?.email) {
         setEmail(mockStudent.email);
         return;
       }
+
       if (isSupabaseConfigured()) {
         const supabase = createSupabaseBrowserClient();
         supabase.auth.getSession().then(({ data }) => {
@@ -77,9 +85,13 @@ export function ProfileCompletionModal() {
         });
       }
     }
-  }, [isVisible, email]);
+  }, [isVisible, email, user]);
 
   const handleSubmit = (e: React.FormEvent) => {
+    void handleSubmitAsync(e);
+  };
+
+  const handleSubmitAsync = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const nextErrors: typeof errors = {};
@@ -102,18 +114,34 @@ export function ProfileCompletionModal() {
     const normalizedPhone = normalizeGhanaPhoneNumber(phoneNumber);
     
     const now = new Date().toISOString();
-    const activeStudentId = getActiveStudentId();
-    // Pre-fill email from the mock student if not already loaded from Supabase
-    const resolvedEmail = email ?? getCurrentMockStudent()?.email ?? null;
-    saveStudentProfile({
-      studentId: activeStudentId,
-      fullName: fullName.trim(),
-      phoneNumber: normalizedPhone,
-      email: resolvedEmail,
-      profileCompleted: true,
-      createdAt: now,
-      updatedAt: now,
-    });
+    const activeStudentId = user?.id ?? getActiveStudentId();
+    const resolvedEmail = email ?? user?.email ?? getCurrentMockStudent()?.email ?? null;
+    // Task 40B: Supabase row is source of truth for authenticated users.
+    if (user) {
+      try {
+        const client = createSupabaseBrowserClient();
+        const row = await client.from("students").select("id").eq("auth_user_id", user.id).maybeSingle();
+        const studentId = (row.data as { id: string } | null)?.id;
+        if (studentId) {
+          await migrateLocalProfileOnce(studentId);
+          await saveSupabaseStudentProfile(client, studentId, { fullName: fullName.trim() });
+        }
+      } catch (profileError) {
+        setErrors({ fullName: profileError instanceof Error ? profileError.message : "Could not save profile." });
+        setIsSubmitting(false);
+        return;
+      }
+    } else {
+      saveStudentProfile({
+        studentId: activeStudentId,
+        fullName: fullName.trim(),
+        phoneNumber: normalizedPhone,
+        email: resolvedEmail,
+        profileCompleted: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
 
     // Briefly show success state then close
     setTimeout(() => {

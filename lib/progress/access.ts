@@ -2,12 +2,84 @@ import { createEmptyStudentProgress, createProgressFactsRepository, localProgres
 import type { ActivityEvent, ActivityType, AssessmentAttempt, CourseProgress, DayProgress, StudentProgress, WeekProgress, AttemptAnswerValue } from "./types";
 import { createStableId } from "../ids";
 import { getActiveStudentId } from "../auth/mock";
+import { createSupabaseBrowserClient } from "../supabase/client";
+import { getSupabaseStudentProfile, saveSupabaseStudentProfile } from "../student/supabaseProfileRepository";
+import { getStudentProfile as getLocalStudentProfile, saveStudentProfile as saveLocalStudentProfile } from "../student/profileRepository";
 
 // Use local storage for all progress to maintain demo student isolation
 // without creating fake Supabase records or modifying auth RLS policies.
 const dayProgressRepository = createProgressFactsRepository("local");
 const practiceRepository = createProgressFactsRepository("local");
 const assessmentRepository = createProgressFactsRepository("local");
+
+/** Task 40B identity boundary: real Supabase users resolve via students bridge. */
+export type ProgressIdentity =
+  | { kind: "authenticated"; studentId: string }
+  | { kind: "mock"; studentId: string };
+
+let cachedIdentity: ProgressIdentity | null = null;
+
+export function clearProgressIdentityCache() {
+  cachedIdentity = null;
+}
+
+/**
+ * Resolve the student identity for progress writes. Authenticated Supabase
+ * users NEVER fall back to local-student/mock storage; mock/demo mode stays
+ * explicit via lib/auth/mock.
+ */
+export async function resolveProgressIdentity(): Promise<ProgressIdentity> {
+  if (cachedIdentity) return cachedIdentity;
+  try {
+    const client = createSupabaseBrowserClient();
+    const { data } = await client.auth.getSession();
+    const authUserId = data.session?.user?.id;
+    if (authUserId) {
+      const row = await client.from("students").select("id").eq("auth_user_id", authUserId).maybeSingle();
+      const studentId = (row.data as { id: string } | null)?.id;
+      if (studentId) {
+        cachedIdentity = { kind: "authenticated", studentId };
+        return cachedIdentity;
+      }
+      // Authenticated but trigger has not created the row yet: integrity error
+      // surface — do NOT silently fall back to mock identity.
+      throw new Error("Authenticated user has no student record.");
+    }
+  } catch (error) {
+    // Only fall through to mock when there is genuinely no session.
+    if (error instanceof Error && error.message.includes("no student record")) throw error;
+  }
+  const mockId = getActiveStudentId();
+  cachedIdentity = { kind: "mock", studentId: mockId };
+  return cachedIdentity;
+}
+
+function progressRepos(identity: ProgressIdentity) {
+  return identity.kind === "authenticated" ? createProgressFactsRepository("supabase") : createProgressFactsRepository("local");
+}
+
+/** One-time explicit localStorage profile migration into Supabase (never overwrites). */
+export async function migrateLocalProfileOnce(studentId: string): Promise<void> {
+  try {
+    const client = createSupabaseBrowserClient();
+    const server = await getSupabaseStudentProfile(client, studentId);
+    if (!server || server.fullName.trim()) return; // never overwrite server data
+    const local = getLocalStudentProfile();
+    if (local?.fullName.trim()) {
+      await saveSupabaseStudentProfile(client, studentId, { fullName: local.fullName.trim(), migrateFromLocal: { fullName: local.fullName } });
+    }
+  } catch {
+    // best-effort only
+  }
+}
+
+async function saveProfileForIdentity(identity: ProgressIdentity, profile: { fullName: string; phoneNumber: string; email: string | null; profileCompleted: boolean }) {
+  if (identity.kind === "authenticated") {
+    const client = createSupabaseBrowserClient();
+    return saveSupabaseStudentProfile(client, identity.studentId, { fullName: profile.fullName });
+  }
+  saveLocalStudentProfile({ studentId: identity.studentId, fullName: profile.fullName, phoneNumber: profile.phoneNumber, email: profile.email, profileCompleted: profile.profileCompleted, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+}
 
 /**
  * Progress access / service layer. The single source of truth for student
@@ -60,9 +132,11 @@ function recordActivity(progress: StudentProgress, courseId: string, type: Activ
 export async function startDay(courseId: string, weekId: string, dayId: string) {
   if (isPreviewMode()) return;
 
-  const studentId = getActiveStudentId();
+  const identity = await resolveProgressIdentity();
+  const studentId = identity.studentId;
+  const repo = progressRepos(identity);
   const now = new Date().toISOString();
-  const existing = await dayProgressRepository.getDayProgress(studentId, courseId, weekId, dayId);
+  const existing = await repo.getDayProgress(studentId, courseId, weekId, dayId);
   const next: DayProgress = {
     dayId,
     status: "in_progress",
@@ -72,8 +146,8 @@ export async function startDay(courseId: string, weekId: string, dayId: string) 
     timeSpentSeconds: existing?.timeSpentSeconds ?? 0,
   };
 
-  await dayProgressRepository.upsertDayProgress(studentId, courseId, weekId, next);
-  await dayProgressRepository.createActivityEvent({
+  await repo.upsertDayProgress(studentId, courseId, weekId, next);
+  await repo.createActivityEvent({
     id: uid("activity"),
     studentId,
     courseId,
@@ -87,9 +161,11 @@ export async function startDay(courseId: string, weekId: string, dayId: string) 
 export async function completeDay(courseId: string, weekId: string, dayId: string) {
   if (isPreviewMode()) return;
 
-  const studentId = getActiveStudentId();
+  const identity = await resolveProgressIdentity();
+  const studentId = identity.studentId;
+  const repo = progressRepos(identity);
   const now = new Date().toISOString();
-  const existing = await dayProgressRepository.getDayProgress(studentId, courseId, weekId, dayId);
+  const existing = await repo.getDayProgress(studentId, courseId, weekId, dayId);
   const startedAt = existing?.startedAt ?? now;
   const previousSeconds = existing?.timeSpentSeconds ?? 0;
   const elapsedSeconds = Math.max(0, Math.round((Date.parse(now) - Date.parse(startedAt)) / 1000));
@@ -103,8 +179,8 @@ export async function completeDay(courseId: string, weekId: string, dayId: strin
     timeSpentSeconds: previousSeconds + elapsedSeconds,
   };
 
-  await dayProgressRepository.upsertDayProgress(studentId, courseId, weekId, next);
-  await dayProgressRepository.createActivityEvent({
+  await repo.upsertDayProgress(studentId, courseId, weekId, next);
+  await repo.createActivityEvent({
     id: uid("activity"),
     studentId,
     courseId,
@@ -129,7 +205,9 @@ export interface PracticeAttemptInput {
 export async function recordPracticeAttempt(input: PracticeAttemptInput) {
   if (isPreviewMode()) return undefined;
 
-  const studentId = getActiveStudentId();
+  const identity = await resolveProgressIdentity();
+  const studentId = identity.studentId;
+  const repo = progressRepos(identity);
   const now = new Date().toISOString();
   const attempt = {
     id: uid("practice"),
@@ -146,8 +224,8 @@ export async function recordPracticeAttempt(input: PracticeAttemptInput) {
   };
 
   try {
-    const persisted = await practiceRepository.createPracticeAttempt(attempt);
-    await practiceRepository.createActivityEvent({
+    const persisted = await repo.createPracticeAttempt(attempt);
+    await repo.createActivityEvent({
       id: uid("activity"),
       studentId,
       courseId: input.courseId,
@@ -166,9 +244,11 @@ export async function recordPracticeAttempt(input: PracticeAttemptInput) {
 export async function recordPracticeStarted(courseId: string, chapterId?: string, lessonId?: string) {
   if (isPreviewMode()) return;
 
-  const studentId = getActiveStudentId();
+  const identity = await resolveProgressIdentity();
+  const studentId = identity.studentId;
+  const repo = progressRepos(identity);
   const now = new Date().toISOString();
-  await practiceRepository.createActivityEvent({
+  await repo.createActivityEvent({
     id: uid("activity"),
     studentId,
     courseId,
@@ -181,8 +261,10 @@ export async function recordPracticeStarted(courseId: string, chapterId?: string
 
 /** Record assessment started (event) and create/reuse an in-progress attempt. */
 export async function getPersistedAssessmentAttempt(assessmentId: string, courseId?: string) {
-  const studentId = getActiveStudentId();
-  const attempts = await assessmentRepository.listAssessmentAttempts(studentId, {
+  const identity = await resolveProgressIdentity();
+  const studentId = identity.studentId;
+  const repo = progressRepos(identity);
+  const attempts = await repo.listAssessmentAttempts(studentId, {
     assessmentId,
     courseId,
     limit: 20,
@@ -205,15 +287,17 @@ export async function getPersistedAssessmentAttempt(assessmentId: string, course
 
   const latest = latestSubmitted ?? latestInProgress;
   if (!latest) return undefined;
-  return await assessmentRepository.getAssessmentAttempt(studentId, latest.id) ?? latest;
+  return await repo.getAssessmentAttempt(studentId, latest.id) ?? latest;
 }
 
 export async function recordAssessmentStart(courseId: string, assessmentId: string, chapterId?: string, startedAt?: string) {
   if (isPreviewMode()) return undefined;
 
-  const studentId = getActiveStudentId();
+  const identity = await resolveProgressIdentity();
+  const studentId = identity.studentId;
+  const repo = progressRepos(identity);
   const now = startedAt ?? new Date().toISOString();
-  const existingAttempts = await assessmentRepository.listAssessmentAttempts(studentId, {
+  const existingAttempts = await repo.listAssessmentAttempts(studentId, {
     assessmentId,
     status: "in_progress",
     limit: 1,
@@ -234,7 +318,7 @@ export async function recordAssessmentStart(courseId: string, assessmentId: stri
     status: "in_progress" as const,
   };
 
-  const persisted = await assessmentRepository.upsertAssessmentAttempt({
+  const persisted = await repo.upsertAssessmentAttempt({
     ...nextAttempt,
     studentId,
     courseId,
@@ -244,7 +328,7 @@ export async function recordAssessmentStart(courseId: string, assessmentId: stri
     answers: nextAttempt.answers ?? {},
   });
 
-  await assessmentRepository.createActivityEvent({
+  await repo.createActivityEvent({
     id: uid("activity"),
     studentId,
     courseId,
@@ -273,11 +357,13 @@ export interface AssessmentSubmitInput {
 export async function recordAssessmentSubmit(input: AssessmentSubmitInput) {
   if (isPreviewMode()) return undefined;
 
-  const studentId = getActiveStudentId();
+  const identity = await resolveProgressIdentity();
+  const studentId = identity.studentId;
+  const repo = progressRepos(identity);
   const now = new Date().toISOString();
   const percent = Math.max(0, Math.min(100, Math.round(input.percentage)));
 
-  const existingAttempts = await assessmentRepository.listAssessmentAttempts(studentId, {
+  const existingAttempts = await repo.listAssessmentAttempts(studentId, {
     assessmentId: input.assessmentId,
     status: "in_progress",
     limit: 1,
@@ -313,9 +399,9 @@ export async function recordAssessmentSubmit(input: AssessmentSubmitInput) {
     status: "submitted",
   };
 
-  const persisted = await assessmentRepository.upsertAssessmentAttempt(nextAttempt);
+  const persisted = await repo.upsertAssessmentAttempt(nextAttempt);
 
-  await assessmentRepository.createActivityEvent({
+  await repo.createActivityEvent({
     id: uid("activity"),
     studentId,
     courseId: input.courseId,
