@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { VisualizerBlock as VisualizerBlockData } from "@/lib/content/types/lesson";
 
@@ -43,11 +43,29 @@ export function VisualizerBlock({ source, title = "Custom visualizer", height }:
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const iframeSource = useMemo(() => buildSourceDocument(source), [source]);
   const frameHeight = visualizerHeight(height);
+  const timeoutRef = useRef<number | undefined>(undefined);
+
+  const markReady = () => {
+    if (timeoutRef.current !== undefined) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
+    }
+    setStatus("ready");
+  };
 
   useEffect(() => {
     setStatus("loading");
-    const timer = window.setTimeout(() => setStatus("error"), LOAD_TIMEOUT);
-    return () => window.clearTimeout(timer);
+    if (timeoutRef.current !== undefined) window.clearTimeout(timeoutRef.current);
+    // The timeout is a fallback for a document that never finishes loading.
+    // It is cleared by the iframe load event, so it can never overwrite a
+    // visualizer that already rendered.
+    timeoutRef.current = window.setTimeout(() => setStatus("error"), LOAD_TIMEOUT);
+    return () => {
+      if (timeoutRef.current !== undefined) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = undefined;
+      }
+    };
   }, [iframeSource]);
 
   return (
@@ -66,7 +84,7 @@ export function VisualizerBlock({ source, title = "Custom visualizer", height }:
           sandbox="allow-scripts"
           referrerPolicy="no-referrer"
           className="h-full w-full border-0"
-          onLoad={() => setStatus("ready")}
+          onLoad={markReady}
         />
       </div>
       <figcaption className="border-t border-[#E5E5E5] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#666666]">
