@@ -36,7 +36,7 @@ export function OnboardingTour() {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [windowSize, setWindowSize] = useState({ w: 0, h: 0 });
   const pathname = usePathname();
-  const { authenticated, student } = useAuthSession();
+  const { authenticated, user } = useAuthSession();
   const prefersReducedMotion = useReducedMotion();
   
   const transitionProps = prefersReducedMotion 
@@ -45,7 +45,7 @@ export function OnboardingTour() {
 
   useEffect(() => {
     // Only check on the client
-    const currentTourKey = student ? `${TOUR_KEY}:${student.studentId}` : TOUR_KEY;
+    const currentTourKey = user ? `${TOUR_KEY}:${user.id}` : TOUR_KEY;
     const isCompleted = localStorage.getItem(currentTourKey) === "true";
     const urlParams = new URLSearchParams(window.location.search);
     const isPreview = urlParams.get("preview") === "1";
@@ -69,7 +69,7 @@ export function OnboardingTour() {
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [pathname, authenticated, student]);
+  }, [pathname, authenticated, user]);
 
   const step = STEPS[currentStep];
 
@@ -102,7 +102,7 @@ export function OnboardingTour() {
   if (!isVisible) return null;
 
   const handleSkip = () => {
-    const currentTourKey = student ? `${TOUR_KEY}:${student.studentId}` : TOUR_KEY;
+    const currentTourKey = user ? `${TOUR_KEY}:${user.id}` : TOUR_KEY;
     localStorage.setItem(currentTourKey, "true");
     setIsVisible(false);
   };
