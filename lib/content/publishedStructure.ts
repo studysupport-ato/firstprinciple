@@ -1,4 +1,4 @@
-import { createCourseStructureServerRepository } from "./serverRepository";
+import { createCourseStructureServerRepository, type ContentClientFactory } from "./serverRepository";
 import { createSupabaseAdminClient } from "../supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../supabase/types";
@@ -9,15 +9,15 @@ export type PublishedStructureResult<T> = { kind: "not-found" } | { kind: "succe
 
 function published<T extends { status?: string }>(value: T | undefined): value is T { return Boolean(value && value.status === "published"); }
 
-export async function listPublishedCourses(): Promise<Course[]> { return (await createCourseStructureServerRepository().listCourses()).filter(published); }
+export async function listPublishedCourses(clientFactory?: ContentClientFactory): Promise<Course[]> { return (await createCourseStructureServerRepository(clientFactory).listCourses()).filter(published); }
 
-export async function getPublishedCourse(courseId: string): Promise<PublishedStructureResult<Course>> {
-  const course = await createCourseStructureServerRepository().getCourse(courseId);
+export async function getPublishedCourse(courseId: string, clientFactory?: ContentClientFactory): Promise<PublishedStructureResult<Course>> {
+  const course = await createCourseStructureServerRepository(clientFactory).getCourse(courseId);
   return published(course) ? { kind: "success", value: course } : { kind: "not-found" };
 }
 
-export async function getPublishedRoadmap(courseId: string): Promise<PublishedStructureResult<{ course: Course; weeks: Week[]; daysByWeek: Record<string, Lesson[]> }>> {
-  const repository = createCourseStructureServerRepository();
+export async function getPublishedRoadmap(courseId: string, clientFactory?: ContentClientFactory): Promise<PublishedStructureResult<{ course: Course; weeks: Week[]; daysByWeek: Record<string, Lesson[]> }>> {
+  const repository = createCourseStructureServerRepository(clientFactory);
   const course = await repository.getCourse(courseId);
   if (!published(course)) return { kind: "not-found" };
   const [rawWeeks, rawDays] = await Promise.all([repository.listWeeksForCourse(courseId), repository.listDaysForCourse(courseId)]);
@@ -34,8 +34,8 @@ export async function getPublishedRoadmap(courseId: string): Promise<PublishedSt
   return { kind: "success", value: { course, weeks, daysByWeek: dayEntries } };
 }
 
-export async function getPublishedWeek(courseId: string, weekReference: string): Promise<PublishedStructureResult<{ course: Course; week: Week; days: Lesson[] }>> {
-  const repository = createCourseStructureServerRepository();
+export async function getPublishedWeek(courseId: string, weekReference: string, clientFactory?: ContentClientFactory): Promise<PublishedStructureResult<{ course: Course; week: Week; days: Lesson[] }>> {
+  const repository = createCourseStructureServerRepository(clientFactory);
   const course = await repository.getCourse(courseId);
   if (!published(course)) return { kind: "not-found" };
   const weeks = await repository.listWeeksForCourse(courseId);

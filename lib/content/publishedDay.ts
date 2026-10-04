@@ -1,11 +1,16 @@
-import { createCourseStructureServerRepository, createDayContentServerRepository } from "./serverRepository";
+import { createCourseStructureServerRepository, createDayContentServerRepository, type ContentClientFactory } from "./serverRepository";
 import type { Lesson } from "./types/lesson";
 
 export type PublishedDayResult = { kind: "not-found" } | { kind: "success"; lesson: Lesson };
 
-export async function getPublishedDay(courseId: string, weekReference: string | undefined, dayId: string): Promise<PublishedDayResult> {
-  const structure = createCourseStructureServerRepository();
-  const content = createDayContentServerRepository();
+/**
+ * Task 40G.5C: an explicit `clientFactory` makes this read request-scoped and
+ * RLS-constrained (student server pages pass `createSupabaseServerClient`).
+ * Omitting it keeps the service-role default for admin/infra/test callers.
+ */
+export async function getPublishedDay(courseId: string, weekReference: string | undefined, dayId: string, clientFactory?: ContentClientFactory): Promise<PublishedDayResult> {
+  const structure = createCourseStructureServerRepository(clientFactory);
+  const content = createDayContentServerRepository(clientFactory);
   const course = await structure.getCourse(courseId);
   if (!course || !weekReference) return { kind: "not-found" };
 

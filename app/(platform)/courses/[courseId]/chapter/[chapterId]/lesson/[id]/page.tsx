@@ -34,7 +34,9 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
     }
   }
 
-  const result = await getPublishedDay(route.courseId, query.week, route.id);
+  // Task 40G.5C: reuse the request-scoped client created above so the Day read is
+  // constrained by the hardened published-only RLS policies.
+  const result = await getPublishedDay(route.courseId, query.week, route.id, () => supabase);
 
   if (result.kind === "not-found") notFound();
 

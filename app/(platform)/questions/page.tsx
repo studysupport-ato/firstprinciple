@@ -13,7 +13,9 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Pr
   // No fixture metadata and no hardcoded chapter fallback.
   const client = await createSupabaseServerClient();
 
-  const courses = await listPublishedCourses();
+  // Task 40G.5C: reuse the page's request-scoped client so this course list is
+  // constrained by the hardened published-only RLS policy.
+  const courses = await listPublishedCourses(() => client);
   const initialCourseId = courses[0]?.id ?? "";
 
   // One bounded query for all student-visible assessments; the client filters
