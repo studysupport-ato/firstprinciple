@@ -7,6 +7,7 @@ import {
   Compass,
   Library,
   CircleHelp,
+  LogIn,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -20,9 +21,11 @@ import { useAuthSession } from "@/lib/auth/useAuthSession";
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  /** Opens the layout-owned AuthModal. Shown only when signed out. */
+  onSignIn?: () => void;
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, onSignIn }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { signOut, authenticated } = useAuthSession();
@@ -129,6 +132,18 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           {!collapsed && <span>Sign out</span>}
             </button>
           ) : null}
+
+        {authenticated === false && onSignIn ? (
+          <button
+            type="button"
+            onClick={onSignIn}
+            title="Sign in"
+            className={`mt-2 flex items-center text-[14.5px] ${collapsed ? "justify-center px-0" : "gap-3.5 px-[18px]"} w-full rounded-xl py-3 text-left font-bold text-[#FFC700] transition hover:bg-[#1d1d1d]`}
+          >
+            <LogIn size={20} strokeWidth={2.5} />
+            {!collapsed && <span>Sign in</span>}
+          </button>
+        ) : null}
       </div>
     </aside>
   );

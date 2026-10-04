@@ -48,6 +48,12 @@ export default function PlatformLayout({
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((current) => !current)}
+        onSignIn={() => {
+          // Signed-in users never see this, but clear any stale destination from
+          // a previous ?auth=required redirect so the modal uses its default.
+          setAuthRedirectTo(undefined);
+          setAuthOpen(true);
+        }}
       />
 
       <main
