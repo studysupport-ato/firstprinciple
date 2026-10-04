@@ -2,6 +2,7 @@
 
 import type { ContentBlock, Lesson } from "@/lib/content/types";
 import type { Asset } from "@/lib/content/types/asset";
+import type { Question } from "@/lib/content/types/question";
 import { AnimatePresence, motion } from "framer-motion";
 import { CalloutBlock } from "./blocks/CalloutBlock";
 import { HeadingBlock } from "./blocks/HeadingBlock";
@@ -14,7 +15,7 @@ import { TextBlock } from "./blocks/TextBlock";
 import { WorkedExampleBlock } from "./blocks/WorkedExampleBlock";
 import { VisualizerBlock } from "./blocks/VisualizerBlock";
 
-function renderBlock(block: ContentBlock, assetsById?: Record<string, Asset>) {
+function renderBlock(block: ContentBlock, assetsById?: Record<string, Asset>, questionsById?: Record<string, Question>) {
   switch (block.type) {
     case "heading":
       return <HeadingBlock {...block} />;
@@ -35,7 +36,7 @@ function renderBlock(block: ContentBlock, assetsById?: Record<string, Asset>) {
     case "visualizer":
       return <VisualizerBlock {...block} />;
     case "question":
-      return <QuestionBlock {...block} />;
+      return <QuestionBlock {...block} question={questionsById?.[block.questionId]} />;
     case "markdown":
       return <MarkdownBlock {...block} />;
     default:
@@ -43,7 +44,7 @@ function renderBlock(block: ContentBlock, assetsById?: Record<string, Asset>) {
   }
 }
 
-export function LessonRenderer({ lesson, step, assetsById }: { lesson: Lesson; step: number; assetsById?: Record<string, Asset> }) {
+export function LessonRenderer({ lesson, step, assetsById, questionsById }: { lesson: Lesson; step: number; assetsById?: Record<string, Asset>; questionsById?: Record<string, Question> }) {
   const blocks = (lesson?.blocks ?? []).filter((block) => block.step === step);
   const uniqueSteps = Array.from(new Set((lesson?.blocks ?? []).map(b => b.step ?? 1))).sort((a, b) => a - b);
   const totalSteps = uniqueSteps.length;
@@ -63,7 +64,7 @@ export function LessonRenderer({ lesson, step, assetsById }: { lesson: Lesson; s
           Step {displayStep} of {totalSteps}
         </span>
         {blocks.map((block) => (
-          <div key={block.id}>{renderBlock(block, assetsById)}</div>
+          <div key={block.id}>{renderBlock(block, assetsById, questionsById)}</div>
         ))}
       </motion.div>
     </AnimatePresence>

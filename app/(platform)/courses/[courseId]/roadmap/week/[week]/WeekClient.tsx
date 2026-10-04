@@ -8,12 +8,12 @@ import { ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { useAuthSession } from "@/lib/auth/useAuthSession";
-import { getActiveStudentId } from "@/lib/auth/mock";
-import { createProgressFactsRepository, type DayProgress } from "@/lib/progress";
+import { readStudentDayProgressMap } from "@/lib/student/readProgress";
+import type { DayProgress } from "@/lib/progress";
 import type { Course, Week } from "@/lib/content/types/course";
 import type { Lesson } from "@/lib/content/types/lesson";
 
-export default function WeekClient({ course, week, days }: { course: Course; week: Week; days: Lesson[] }) {
+export default function WeekClient({ course, week, days, preview = false }: { course: Course; week: Week; days: Lesson[]; preview?: boolean }) {
   const [dayProgress, setDayProgress] = useState<Record<string, DayProgress>>({});
   const { authenticated } = useAuthSession();
   const router = useRouter();
@@ -23,14 +23,15 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
 
   useEffect(() => {
     let active = true;
-    const repository = createProgressFactsRepository("local");
 
     void (async () => {
       try {
-        const studentId = getActiveStudentId();
-        const rows = await repository.listDayProgressForCourse(studentId, course.id);
+        // Task 40C-2: identical Supabase day-progress source as the Roadmap and
+        // Course Overview, so completion can never disagree between views.
+        // null when signed out -> public browsing shows the unpublished state.
+        const map = await readStudentDayProgressMap(course.id);
         if (!active) return;
-        setDayProgress(Object.fromEntries(rows.map((row) => [row.dayId, row])));
+        setDayProgress(map ?? {});
       } catch (error) {
         console.error("[Back2Basics with Kwamina] Failed to read day progress from Supabase", error);
         if (active) setDayProgress({});
@@ -53,7 +54,7 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
 
   function handleDayClick(event: React.MouseEvent, href: string) {
     // Preview mode: ?preview=1 is present — let the link through unconditionally.
-    if (new URLSearchParams(window.location.search).get("preview") === "1") return;
+    if (preview) return;
 
     // Authenticated: let the normal Link navigate.
     if (authenticated === true) return;
@@ -116,7 +117,8 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
       <div className="space-y-4">
         {days.map((day, index) => {
           const isComplete = dayProgress[day.id]?.status === "completed";
-          const href = `/courses/${course.id}/chapter/${day.chapterId}/lesson/${day.id}?week=${week.weekNumber}`;
+          const previewQuery = preview ? "&preview=1" : "";
+          const href = `/courses/${course.id}/chapter/${day.chapterId}/lesson/${day.id}?week=${week.weekNumber}${previewQuery}`;
 
           return (
             <AnimatedItem key={day.id} index={index} delay={0.06}>

@@ -12,8 +12,10 @@ import {
   PanelLeftOpen,
   Settings,
   TrendingUp,
-  Trophy,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { logoutMockStudent } from "@/lib/auth/mock";
+import { useAuthSession } from "@/lib/auth/useAuthSession";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -22,6 +24,8 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { signOut } = useAuthSession();
 
   const isActive = (path: string) => {
     if (path === "/dashboard") return pathname === "/dashboard";
@@ -91,10 +95,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <TrendingUp size={20} strokeWidth={2.5} />
             {!collapsed && <span>Progress</span>}
           </Link>
-          <Link href="/leaderboard" className={navItemClass("/leaderboard")} title="Leaderboard">
-            <Trophy size={20} strokeWidth={2.5} />
-            {!collapsed && <span>Leaderboard</span>}
-          </Link>
+          {/*
+            Leaderboard is a deferred feature (Task 40D.1). The route is retained
+            but no longer exposed as an active product destination. Its legacy
+            selector dependencies are intentionally left in place until the
+            separate selector-retirement task.
+          */}
         </nav>
       </div>
 
@@ -105,6 +111,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </Link>
         <button
           type="button"
+          onClick={async () => {
+            try {
+              await signOut();
+              logoutMockStudent();
+              router.push("/courses");
+              router.refresh();
+            } catch (error) {
+              console.error("[AuthSession] Failed to sign out:", error);
+            }
+          }}
           title="Sign out"
           className={`mt-2 flex items-center text-[14.5px] ${collapsed ? "justify-center px-0" : "gap-3.5 px-[18px]"} w-full rounded-xl py-3 text-left font-bold text-[#ff5b5b] transition hover:bg-[#1d1d1d]`}
         >

@@ -5,52 +5,86 @@ import { getActiveStudentId } from "../auth/mock";
 import { createSupabaseBrowserClient } from "../supabase/client";
 import { getSupabaseStudentProfile, saveSupabaseStudentProfile } from "../student/supabaseProfileRepository";
 import { getStudentProfile as getLocalStudentProfile, saveStudentProfile as saveLocalStudentProfile } from "../student/profileRepository";
+import {
+  MISSING_STUDENT_RECORD_MESSAGE,
+  getSupabaseAuthUserId,
+  resolveAuthenticatedReadStudentId,
+} from "../student/readIdentity";
 
-// Use local storage for all progress to maintain demo student isolation
-// without creating fake Supabase records or modifying auth RLS policies.
-const dayProgressRepository = createProgressFactsRepository("local");
-const practiceRepository = createProgressFactsRepository("local");
-const assessmentRepository = createProgressFactsRepository("local");
+// Task 40E.2 — the module-scope `createProgressFactsRepository("local")`
+// constants that lived here are removed. They were referenced only by their own
+// definitions and became dead when the synchronous accessors were retired in
+// 40E.1.
+//
+// Demo/local student isolation is NOT removed. It still works through the live
+// `progressRepos(identity)` factory below, which selects the local repository
+// whenever the resolved identity is `mock`, so demo writes remain isolated
+// without fake Supabase records and without any RLS change.
 
 /** Task 40B identity boundary: real Supabase users resolve via students bridge. */
 export type ProgressIdentity =
   | { kind: "authenticated"; studentId: string }
   | { kind: "mock"; studentId: string };
 
+/**
+ * The cache is keyed by the Supabase Auth user id that produced it (null when
+ * there is no session). Task 40D.1: a previously unkeyed cache could survive a
+ * sign-out -> sign-in-as-another-user cycle inside one tab and hand the previous
+ * user's student id to a write. Keying it makes the cache self-validating in the
+ * same way lib/student/readIdentity already validates its own cache.
+ */
 let cachedIdentity: ProgressIdentity | null = null;
+let cachedAuthUserId: string | null | undefined;
 
 export function clearProgressIdentityCache() {
   cachedIdentity = null;
+  cachedAuthUserId = undefined;
 }
 
 /**
  * Resolve the student identity for progress writes. Authenticated Supabase
  * users NEVER fall back to local-student/mock storage; mock/demo mode stays
  * explicit via lib/auth/mock.
+ *
+ * The actual `auth.users.id -> students.auth_user_id -> students.id` lookup is
+ * owned by lib/student/readIdentity (Task 40C-1) so reads and writes can never
+ * drift into two incompatible identity algorithms. Its module cache makes this
+ * a no-op call when the identity was already resolved this session.
  */
 export async function resolveProgressIdentity(): Promise<ProgressIdentity> {
-  if (cachedIdentity) return cachedIdentity;
+  // A cached identity is only reusable when it was produced by the CURRENT
+  // session. getSupabaseAuthUserId() is served from the local session cache, so
+  // this costs no network round trip.
+  const currentAuthUserId = await getSupabaseAuthUserId();
+  if (cachedIdentity && cachedAuthUserId === currentAuthUserId) return cachedIdentity;
+
+  let studentId: string | null = null;
+  let resolutionError: unknown = null;
   try {
-    const client = createSupabaseBrowserClient();
-    const { data } = await client.auth.getSession();
-    const authUserId = data.session?.user?.id;
-    if (authUserId) {
-      const row = await client.from("students").select("id").eq("auth_user_id", authUserId).maybeSingle();
-      const studentId = (row.data as { id: string } | null)?.id;
-      if (studentId) {
-        cachedIdentity = { kind: "authenticated", studentId };
-        return cachedIdentity;
-      }
-      // Authenticated but trigger has not created the row yet: integrity error
-      // surface — do NOT silently fall back to mock identity.
-      throw new Error("Authenticated user has no student record.");
-    }
+    studentId = await resolveAuthenticatedReadStudentId();
   } catch (error) {
-    // Only fall through to mock when there is genuinely no session.
-    if (error instanceof Error && error.message.includes("no student record")) throw error;
+    resolutionError = error;
   }
+
+  if (!studentId) {
+    // A mock/local fallback is permissible ONLY when there is genuinely no
+    // Supabase session. If a session exists, surface the failure — an
+    // authenticated user must never silently downgrade to mock identity.
+    if (currentAuthUserId) {
+      throw resolutionError ?? new Error(MISSING_STUDENT_RECORD_MESSAGE);
+    }
+  }
+
+  if (studentId) {
+    cachedIdentity = { kind: "authenticated", studentId };
+    cachedAuthUserId = currentAuthUserId;
+    return cachedIdentity;
+  }
+
+  // Genuinely no Supabase session -> explicit mock/demo mode only.
   const mockId = getActiveStudentId();
   cachedIdentity = { kind: "mock", studentId: mockId };
+  cachedAuthUserId = null;
   return cachedIdentity;
 }
 
@@ -94,21 +128,12 @@ export function isPreviewMode() {
   return new URLSearchParams(window.location.search).get("preview") === "1";
 }
 
-export function getStudentProgress(): StudentProgress {
-  return localProgressRepository.read();
-}
-
-export function getCourseProgress(courseId: string): CourseProgress | undefined {
-  return getStudentProgress().courseProgress[courseId];
-}
-
-export function getWeekProgress(courseId: string, weekId: string): WeekProgress | undefined {
-  return getCourseProgress(courseId)?.weeks[weekId];
-}
-
-export function getDayProgress(courseId: string, weekId: string, dayId: string): DayProgress | undefined {
-  return getWeekProgress(courseId, weekId)?.days[dayId];
-}
+// Task 40E.1 — the synchronous local-document accessors below
+// (getStudentProgress / getCourseProgress / getWeekProgress / getDayProgress)
+// were removed with the legacy selector layer. Their only consumers were
+// lib/progress/selectors.ts. Current production surfaces read Supabase-backed
+// facts through lib/student/readProgress.ts and the targeted progress
+// repositories instead.
 
 function uid(prefix: string) {
   return createStableId(prefix);

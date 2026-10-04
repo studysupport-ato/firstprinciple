@@ -1,21 +1,55 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  CheckCircle2,
-  Layers,
-  Sparkles,
-  TrendingUp,
-  X,
-} from "lucide-react";
+import { CheckCircle2, Layers, Sparkles, TrendingUp, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { listMockStudents, loginMockStudent, MockStudent } from "@/lib/auth/mock";
+
 import { BrandLogo } from "@/components/branding/BrandLogo";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
-type AuthView = "select" | "success";
+type AuthMode = "login" | "signup";
+type AuthState = {
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const defaultAuthState: AuthState = {
+  email: "",
+  password: "",
+  confirmPassword: "",
+};
+
+function parseFriendlyAuthError(error: unknown): string {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error ?? "").toLowerCase();
+
+  if (message.includes("invalid login credentials") || message.includes("invalid credentials")) {
+    return "Incorrect email or password. Please try again.";
+  }
+
+  if (message.includes("already registered") || message.includes("user already")) {
+    return "An account with this email already exists. Please log in instead.";
+  }
+
+  if (message.includes("signup is disabled") || message.includes("signups are disabled")) {
+    return "New signups are temporarily disabled. Please try again later.";
+  }
+
+  if (message.includes("email") && message.includes("valid")) {
+    return "Please provide a valid email address.";
+  }
+
+  if (message.includes("password") && (message.includes("at least") || message.includes("minimum") || message.includes("too short"))) {
+    return "Password must be at least 8 characters long.";
+  }
+
+  if (message.includes("network") || message.includes("fetch")) {
+    return "We could not reach the authentication service. Please try again.";
+  }
+
+  return "Something went wrong while authenticating. Please try again.";
+}
 
 export function AuthModal({
   open,
@@ -25,53 +59,112 @@ export function AuthModal({
 }: {
   open: boolean;
   onClose: () => void;
-  initialView?: AuthView;
+  initialView?: "login" | "signup";
   redirectTo?: string;
   onSuccess?: (destination: string) => void;
 }) {
   const router = useRouter();
-  const [view, setView] = useState<AuthView>("select");
-  const [selectedStudent, setSelectedStudent] = useState<MockStudent | null>(null);
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [form, setForm] = useState<AuthState>(defaultAuthState);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const students = listMockStudents();
+  const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (open) {
-      setView("select");
-      setSelectedStudent(null);
-      setIsSubmitting(false);
-    }
+    if (!open) return;
+    setMode("login");
+    setForm(defaultAuthState);
+    setError(null);
+    setStatusMessage(null);
+    setIsSubmitting(false);
   }, [open]);
 
-  const handleSelectStudent = async (student: MockStudent) => {
-    setSelectedStudent(student);
-    setIsSubmitting(true);
-    await wait(900);
-    loginMockStudent(student.studentId);
-    setView("success");
-    setIsSubmitting(false);
+  const destination = redirectTo ?? "/courses?onboarding=true";
+
+  const finishLoginFlow = () => {
+    onClose();
+    onSuccess?.(destination);
+
+    if (destination === "/courses?onboarding=true") {
+      window.location.assign(destination);
+      return;
+    }
+
+    router.push(destination);
+    router.refresh();
   };
 
-  useEffect(() => {
-    if (view !== "success") return;
-    const destination = redirectTo ?? "/courses?onboarding=true";
-    const timeout = window.setTimeout(() => {
-      onClose();
-      onSuccess?.(destination);
-      if (destination === "/courses?onboarding=true") {
-        window.location.assign(destination);
-      } else {
-        router.push(destination);
-        router.refresh();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setStatusMessage(null);
+
+    const email = form.email.trim();
+    const password = form.password;
+
+    if (!email || !password) {
+      setError("Email and password are required.");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Please provide a valid email address.");
+      return;
+    }
+
+    if (mode === "signup") {
+      if (password.length < 8) {
+        setError("Password must be at least 8 characters long.");
+        return;
       }
-    }, 1400);
-    return () => window.clearTimeout(timeout);
-  }, [view, onClose, router, redirectTo, onSuccess]);
+
+      if (password !== form.confirmPassword) {
+        setError("Passwords do not match.");
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+
+      if (mode === "login") {
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) throw signInError;
+        if (!data.session) {
+          throw new Error("Unable to establish an authenticated session.");
+        }
+
+        setStatusMessage("Signing you in...");
+        setTimeout(() => finishLoginFlow(), 350);
+        return;
+      }
+
+      const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+      if (signUpError) throw signUpError;
+
+      if (data.session) {
+        setStatusMessage("Account created. Redirecting...");
+        setTimeout(() => finishLoginFlow(), 350);
+        return;
+      }
+
+      setStatusMessage("Check your email to confirm your account before logging in.");
+      setMode("login");
+      setForm({ ...defaultAuthState, email });
+    } catch (caughtError) {
+      setError(parseFriendlyAuthError(caughtError));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleClose = () => {
     onClose();
-    setView("select");
-    setSelectedStudent(null);
+    setForm(defaultAuthState);
+    setStatusMessage(null);
+    setError(null);
     setIsSubmitting(false);
   };
 
@@ -119,7 +212,6 @@ export function AuthModal({
                 </button>
 
                 <div className="grid h-full lg:grid-cols-[1fr_1.1fr]">
-                  {/* Left · Brand panel */}
                   <div className="relative hidden min-h-full overflow-hidden bg-[#0E0E10] lg:block">
                     <div className="absolute inset-0 bg-[radial-gradient(90%_60%_at_20%_0%,rgba(37,99,235,0.38),transparent_60%)]" />
                     <div className="absolute inset-0 bg-[radial-gradient(70%_50%_at_90%_100%,rgba(225,29,72,0.16),transparent_60%)]" />
@@ -198,109 +290,138 @@ export function AuthModal({
                     </div>
                   </div>
 
-                  {/* Right · Account selector / Success panel */}
                   <div className="relative flex min-h-full overflow-y-auto bg-[#FBFAF9] p-6 sm:p-10 lg:p-12">
                     <motion.div
-                      key={view}
+                      key={mode}
                       initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
                       className="mx-auto my-auto w-full max-w-[420px]"
                     >
-                      {view === "success" ? (
-                        <div className="space-y-7 text-center">
-                          <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
-                            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#059669] to-[#10B981] opacity-15 blur-md" />
-                            <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#10B981] to-[#059669] text-white shadow-[0_20px_45px_-15px_rgba(16,185,129,0.6)]">
-                              <CheckCircle2 size={30} />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <p className="text-[11px] font-sans font-semibold uppercase tracking-[0.24em] text-[#059669]">Access granted</p>
-                            <h2 id="auth-modal-title" className="font-serif text-4xl tracking-tight text-[#111111]">
-                              Welcome, {selectedStudent?.fullName?.split(" ")[0]}.
-                            </h2>
-                          </div>
-                          <p className="text-base text-[#666666]">Opening your learning workspace.</p>
-                          <div className="overflow-hidden rounded-full bg-[#EDEDEC] p-1">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: "100%" }}
-                              transition={{ duration: 1.4, ease: "easeInOut" }}
-                              className="h-2 rounded-full bg-gradient-to-r from-[#0E0E10] to-[#2563EB]"
-                            />
-                          </div>
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <div className="rounded-2xl border border-[#E5E5E5] bg-white p-4 text-left shadow-sm">
-                              <div className="flex items-center gap-2 text-[10px] font-sans font-bold uppercase tracking-[0.18em] text-[#666666]">
-                                <Layers size={13} className="text-[#2563EB]" /> Course
-                              </div>
-                              <div className="mt-3 font-serif text-2xl text-[#111111]">MATH 151</div>
-                            </div>
-                            <div className="rounded-2xl border border-[#E5E5E5] bg-white p-4 text-left shadow-sm">
-                              <div className="flex items-center gap-2 text-[10px] font-sans font-bold uppercase tracking-[0.18em] text-[#666666]">
-                                <TrendingUp size={13} className="text-[#059669]" /> Learning
-                              </div>
-                              <div className="mt-3 font-serif text-2xl text-[#111111]">In progress</div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-6">
-                          <div className="space-y-1.5">
-                            <p className="text-[11px] font-sans font-semibold uppercase tracking-[0.24em] text-[#9a9a9a]">
-                              Back2Basics with Kwamina
-                            </p>
-                            <h2 id="auth-modal-title" className="font-serif text-[34px] leading-tight tracking-tight text-[#111111]">
-                              Continue as
-                            </h2>
-                            <p className="text-[15px] text-[#666666]">Select your demo student account to continue.</p>
-                          </div>
-
-                          <div className="flex flex-col gap-3">
-                            {students.map((student) => {
-                              const isSelected = selectedStudent?.studentId === student.studentId;
-                              return (
-                                <button
-                                  key={student.studentId}
-                                  type="button"
-                                  disabled={isSubmitting}
-                                  onClick={() => handleSelectStudent(student)}
-                                  className={`flex items-center gap-4 rounded-2xl border px-5 py-4 text-left transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#111111] disabled:opacity-60 disabled:cursor-not-allowed ${
-                                    isSelected
-                                      ? "border-[#111111] bg-[#111111] text-white shadow-[0_8px_20px_rgba(17,17,17,0.18)]"
-                                      : "border-[#E5E5E5] bg-white hover:border-[#999999] hover:shadow-sm"
-                                  }`}
-                                >
-                                  <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold ${isSelected ? "bg-white/20 text-white" : "bg-[#F7F7F8] text-[#111111]"}`}>
-                                    {student.fullName.charAt(0)}
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className={`font-sans text-sm font-semibold ${isSelected ? "text-white" : "text-[#111111]"}`}>
-                                      {student.fullName}
-                                    </div>
-                                    <div className={`truncate font-sans text-xs ${isSelected ? "text-white/70" : "text-[#666666]"}`}>
-                                      {student.email}
-                                    </div>
-                                  </div>
-                                  {isSelected && isSubmitting && (
-                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                  )}
-                                  {!student.profileCompleted && (
-                                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${isSelected ? "bg-white/15 text-white/80" : "bg-[#FFF7ED] text-[#D97706]"}`}>
-                                      New
-                                    </span>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          <p className="text-center text-xs text-[#999999]">
-                            These are demo accounts for exploring the platform.
+                      <div className="space-y-6">
+                        <div className="space-y-1.5">
+                          <p className="text-[11px] font-sans font-semibold uppercase tracking-[0.24em] text-[#9a9a9a]">
+                            Back2Basics with Kwamina
+                          </p>
+                          <h2 id="auth-modal-title" className="font-serif text-[34px] leading-tight tracking-tight text-[#111111]">
+                            {mode === "login" ? "Welcome back" : "Create account"}
+                          </h2>
+                          <p className="text-[15px] text-[#666666]">
+                            {mode === "login"
+                              ? "Use your email and password to access your learning space."
+                              : "Create a dedicated student account using real Supabase Auth."}
                           </p>
                         </div>
-                      )}
+
+                        <div className="mb-4 flex rounded-full border border-[#E5E5E5] bg-[#F5F5F4] p-1">
+                          <button
+                            type="button"
+                            onClick={() => setMode("login")}
+                            className={`flex-1 rounded-full px-3 py-2 text-sm font-medium transition ${mode === "login" ? "bg-[#111111] text-white shadow-sm" : "text-[#666666]"}`}
+                          >
+                            Login
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setMode("signup")}
+                            className={`flex-1 rounded-full px-3 py-2 text-sm font-medium transition ${mode === "signup" ? "bg-[#111111] text-white shadow-sm" : "text-[#666666]"}`}
+                          >
+                            Sign up
+                          </button>
+                        </div>
+
+                        <form className="space-y-4" onSubmit={handleSubmit}>
+                          <div className="space-y-2">
+                            <label htmlFor="auth-email" className="text-[11px] font-sans font-bold uppercase tracking-[0.18em] text-[#666666]">
+                              Email
+                            </label>
+                            <input
+                              id="auth-email"
+                              type="email"
+                              value={form.email}
+                              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+                              className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3.5 py-3 text-sm text-[#111111] outline-none transition focus:border-[#111111]"
+                              placeholder="you@example.com"
+                              autoComplete="email"
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label htmlFor="auth-password" className="text-[11px] font-sans font-bold uppercase tracking-[0.18em] text-[#666666]">
+                              Password
+                            </label>
+                            <input
+                              id="auth-password"
+                              type="password"
+                              value={form.password}
+                              onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                              className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3.5 py-3 text-sm text-[#111111] outline-none transition focus:border-[#111111]"
+                              placeholder="Minimum 8 characters"
+                              autoComplete={mode === "login" ? "current-password" : "new-password"}
+                              required
+                            />
+                          </div>
+
+                          {mode === "signup" ? (
+                            <div className="space-y-2">
+                              <label htmlFor="auth-confirm-password" className="text-[11px] font-sans font-bold uppercase tracking-[0.18em] text-[#666666]">
+                                Confirm password
+                              </label>
+                              <input
+                                id="auth-confirm-password"
+                                type="password"
+                                value={form.confirmPassword}
+                                onChange={(event) => setForm((current) => ({ ...current, confirmPassword: event.target.value }))}
+                                className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3.5 py-3 text-sm text-[#111111] outline-none transition focus:border-[#111111]"
+                                placeholder="Repeat your password"
+                                autoComplete="new-password"
+                                required
+                              />
+                            </div>
+                          ) : null}
+
+                          {error ? (
+                            <div className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-sm text-[#991B1B]">
+                              {error}
+                            </div>
+                          ) : null}
+
+                          {statusMessage ? (
+                            <div className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-3 py-2 text-sm text-[#166534]">
+                              {statusMessage}
+                            </div>
+                          ) : null}
+
+                          <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="w-full rounded-full bg-[#111111] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1f1f1f] disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {isSubmitting
+                              ? mode === "login"
+                                ? "Signing in..."
+                                : "Creating account..."
+                              : mode === "login"
+                                ? "Log in"
+                                : "Create account"}
+                          </button>
+                        </form>
+
+                        <div className="flex items-center justify-between gap-3 text-xs text-[#666666]">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              router.push("/reset-password");
+                            }}
+                            className="font-medium text-[#111111] underline-offset-2 hover:underline"
+                          >
+                            Forgot password?
+                          </button>
+                          <span>Secure student access</span>
+                        </div>
+                      </div>
                     </motion.div>
                   </div>
                 </div>

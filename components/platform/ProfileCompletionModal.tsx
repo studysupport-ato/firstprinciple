@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, CheckCircle2, UserRound, Phone, Mail } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { getStudentProfile, saveStudentProfile } from "@/lib/student/profileRepository";
+import { getStudentProfile, saveStudentProfile as saveLocalProfile } from "@/lib/student/profileRepository";
 import { migrateLocalProfileOnce } from "@/lib/progress/access";
-import { saveSupabaseStudentProfile } from "@/lib/student/supabaseProfileRepository";
+import { saveSupabaseStudentProfile, getSupabaseStudentProfile } from "@/lib/student/supabaseProfileRepository";
+import { resolveAuthenticatedReadStudentId } from "@/lib/student/readIdentity";
 import { getActiveStudentId, getCurrentMockStudent } from "@/lib/auth/mock";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -47,19 +48,38 @@ export function ProfileCompletionModal() {
     if (pathname !== "/courses") return;
     if (authenticated !== true) return;
     if (hasDismissed) return;
+    let cancelled = false;
 
     // Use auth-user-aware onboarding key until the student profile mapping is built.
     const currentTourKey = user ? `${TOUR_KEY}:${user.id}` : TOUR_KEY;
     const isTourCompleted = localStorage.getItem(currentTourKey) === "true";
-    const profile = getStudentProfile();
 
-    if (isTourCompleted && !profile) {
-      // Delay slightly so it doesn't instantly flash after tour closes
-      const timer = setTimeout(() => {
-        setIsVisible(true);
-      }, 600);
-      return () => clearTimeout(timer);
-    }
+    void (async () => {
+      try {
+        // Task 40C-4: completion is judged on the SUPABASE profile for an
+        // authenticated user, never the localStorage profile. Falls back to the
+        // legacy local profile only when there is no Supabase session.
+        const studentId = await resolveAuthenticatedReadStudentId();
+        const completed = studentId
+          ? Boolean((await getSupabaseStudentProfile(createSupabaseBrowserClient(), studentId))?.fullName.trim())
+          : Boolean(getStudentProfile()?.fullName.trim());
+        if (cancelled) return;
+
+        if (isTourCompleted && !completed) {
+          const timer = setTimeout(() => {
+            setIsVisible(true);
+          }, 600);
+          return () => clearTimeout(timer);
+        }
+      } catch (error) {
+        console.error("[Back2Basics with Kwamina] Failed to check profile completion", error);
+        if (!cancelled) setIsVisible(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [pathname, authenticated, hasDismissed, user]);
 
   useEffect(() => {
@@ -112,34 +132,54 @@ export function ProfileCompletionModal() {
     
     // Normalize phone
     const normalizedPhone = normalizeGhanaPhoneNumber(phoneNumber);
-    
-    const now = new Date().toISOString();
-    const activeStudentId = user?.id ?? getActiveStudentId();
-    const resolvedEmail = email ?? user?.email ?? getCurrentMockStudent()?.email ?? null;
-    // Task 40B: Supabase row is source of truth for authenticated users.
-    if (user) {
+
+    // Task 40C-4 — canonical student identity.
+    //
+    // `user.id` is auth.users.id and MUST NOT be used as students.id. The
+    // students row is reached through students.auth_user_id, exactly like every
+    // other real-auth read/write in the app. A missing mapping surfaces the
+    // canonical error instead of silently degrading to local-student/mock.
+    if (authenticated === true) {
       try {
         const client = createSupabaseBrowserClient();
-        const row = await client.from("students").select("id").eq("auth_user_id", user.id).maybeSingle();
-        const studentId = (row.data as { id: string } | null)?.id;
-        if (studentId) {
-          await migrateLocalProfileOnce(studentId);
-          await saveSupabaseStudentProfile(client, studentId, { fullName: fullName.trim() });
+        const studentId = await resolveAuthenticatedReadStudentId();
+        if (!studentId) {
+          setErrors({ fullName: "Could not resolve your student account. Please sign in again." });
+          setIsSubmitting(false);
+          return;
         }
+
+        // One-time local -> server fill of an EMPTY display_name only.
+        await migrateLocalProfileOnce(studentId);
+        await saveSupabaseStudentProfile(client, studentId, { fullName: fullName.trim() });
+
+        // `students` has no phone_number column, so the phone remains a
+        // device-local UI value only (see supabaseProfileRepository). It is
+        // cached for immediate UI only and is never treated as authoritative.
+        saveLocalProfile({
+          studentId,
+          fullName: fullName.trim(),
+          phoneNumber: normalizedPhone,
+          email: email ?? user?.email ?? null,
+          profileCompleted: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
       } catch (profileError) {
         setErrors({ fullName: profileError instanceof Error ? profileError.message : "Could not save profile." });
         setIsSubmitting(false);
         return;
       }
     } else {
-      saveStudentProfile({
-        studentId: activeStudentId,
+      // No Supabase session: explicit demo/local mode only.
+      saveLocalProfile({
+        studentId: getActiveStudentId(),
         fullName: fullName.trim(),
         phoneNumber: normalizedPhone,
-        email: resolvedEmail,
+        email: email ?? user?.email ?? getCurrentMockStudent()?.email ?? null,
         profileCompleted: true,
-        createdAt: now,
-        updatedAt: now,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
     }
 

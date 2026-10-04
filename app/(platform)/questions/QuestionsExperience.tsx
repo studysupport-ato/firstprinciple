@@ -17,8 +17,9 @@ import { useMemo, useState, type ReactNode } from "react";
 import { EducationalText } from "@/components/learning/EducationalText";
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
 
-import { getChapters, getCourses, getStudentAssessments } from "@/lib/content/access";
 import type { Difficulty, Question } from "@/lib/content/types/question";
+import type { Course } from "@/lib/content/types/course";
+import type { Assessment } from "@/lib/content/types/assessment";
 
 const difficulties: Array<Difficulty | "all"> = ["all", "easy", "medium", "hard"];
 const questionCounts = [5, 10, 15, 20];
@@ -72,13 +73,16 @@ function FilterSelect({
 export default function QuestionsExperience({
   initialQuestions,
   initialCourseId,
+  courses,
+  assessments: allAssessments,
   preview,
 }: {
   initialQuestions: Question[];
   initialCourseId: string;
+  courses: Course[];
+  assessments: Assessment[];
   preview: boolean;
 }) {
-  const courses = useMemo(() => getCourses(), []);
   const [courseId, setCourseId] = useState(initialCourseId);
   const [topic, setTopic] = useState("");
   const [subtopic, setSubtopic] = useState("");
@@ -111,9 +115,16 @@ export default function QuestionsExperience({
     [matchingQuestions],
   );
 
-  const assessments = useMemo(() => getStudentAssessments(courseId, { preview }), [courseId, preview]);
-  const firstChapterId = getChapters(courseId)[0]?.id ?? "complex-numbers";
-  const selectedAssessmentChapter = (assessment: ReturnType<typeof getStudentAssessments>[number]) => assessment.blueprint.rules.find((rule) => rule.chapterId)?.chapterId ?? firstChapterId;
+  // Task 40F.6: assessments arrive from Supabase; the client only scopes them to
+  // the selected course, so switching course stays reactive without extra reads.
+  const assessments = useMemo(() => allAssessments.filter((assessment) => assessment.courseId === courseId), [allAssessments, courseId]);
+
+  // Authoritative chapter fallback: derived from the Supabase questions already
+  // in scope. The previous hardcoded "complex-numbers" fixture-era literal is
+  // gone, so a course without blueprint chapter data simply yields an empty
+  // chapter segment rather than a stale fixture id.
+  const firstChapterId = availableQuestions[0]?.chapterId ?? "";
+  const selectedAssessmentChapter = (assessment: Assessment) => assessment.blueprint.rules.find((rule) => rule.chapterId)?.chapterId ?? firstChapterId;
   const practiceHref = matchingQuestions.length
     ? `/courses/${courseId}/chapter/${matchingQuestions[0].chapterId}/practice?limit=${count}${topic ? `&topic=${encodeURIComponent(topic)}` : ""}${subtopic ? `&subtopic=${encodeURIComponent(subtopic)}` : ""}${difficulty !== "all" ? `&difficulty=${difficulty}` : ""}${preview ? "&preview=1" : ""}`
     : "#no-matches";

@@ -5,9 +5,9 @@ import { EducationalText } from "@/components/learning/EducationalText";
 import Link from "next/link";
 import { ArrowRight, BookOpen, CalendarDays } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { getContinueLearning, getCourseCompletion } from "@/lib/progress";
+import { readStudentDayProgressForCourses } from "@/lib/student/readProgress";
 import type { Course } from "@/lib/content/types/course";
-import { getCourseWeeks, getWeekDays } from "@/lib/curriculum";
+import type { PublishedCourseStructureSummary } from "@/lib/content/publishedStructure";
 
 type LibraryCourse = Course & { weeks: number; days: number };
 
@@ -21,37 +21,104 @@ function courseThumbnail(index: number) {
   return `/hero-images/img${slot}${slot === 5 ? ".webp" : ".jpg"}`;
 }
 
-export default function CourseLibraryClient({ courses }: { courses: Course[] }) {
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+/**
+ * Task 40C-3 / 40F.2 — completion + resume derived from real Supabase facts.
+ *
+ * The student's `student_day_progress` rows supply completion state (40C-3);
+ * the authoritative published Course -> Week -> Day structure supplies the day
+ * list and its order (40F.2), replacing the local curriculum fixtures that only
+ * represented 3 days while the published course has 25.
+ */
+function deriveCourseProgress(
+  summary: PublishedCourseStructureSummary | undefined,
+  statusByDayId: Map<string, string>,
+): CourseProgress {
+  const publishedDays = summary?.days ?? [];
+
+  const roadmapDays = publishedDays.map((day) => ({
+    dayId: day.dayId,
+    title: day.title,
+    state:
+      statusByDayId.get(day.dayId) === "completed"
+        ? ("completed" as const)
+        : statusByDayId.get(day.dayId) === "in_progress"
+          ? ("in_progress" as const)
+          : ("not_started" as const),
+  }));
+
+  // Completion: completed / total published days, clamped 0..100.
+  const completedDays = roadmapDays.filter((entry) => entry.state === "completed").length;
+  const totalDays = roadmapDays.length;
+  const percent = totalDays ? clampPercent((completedDays / totalDays) * 100) : 0;
+
+  // Resume: the first in-progress day, else the first not-started day.
+  // Null once every authored day is complete — same rule as before, including
+  // the existing empty-state copy, so the rendered text is unchanged.
+  const next = roadmapDays.find((entry) => entry.state !== "completed");
+
+  return {
+    percent,
+    resumeLesson: next
+      ? `${next.state === "in_progress" ? "Resume" : "Begin"}: ${next.title}`
+      : "Course content coming soon",
+  };
+}
+
+export default function CourseLibraryClient({
+  courses,
+  structure,
+}: {
+  courses: Course[];
+  structure: Record<string, PublishedCourseStructureSummary>;
+}) {
   const [progress, setProgress] = useState<Record<string, CourseProgress>>({});
 
   useEffect(() => {
-    setProgress(
-      Object.fromEntries(
-        courses.map((course) => {
-          const completion = getCourseCompletion(course.id);
-          const next = getContinueLearning(course.id);
-          return [
-            course.id,
-            {
-              percent: completion.percent,
-              resumeLesson: next
-                ? `${next.status === "in_progress" ? "Resume" : "Begin"}: ${next.lessonTitle}`
-                : "Course content coming soon",
-            },
-          ];
-        }),
-      ),
-    );
+    let active = true;
+
+    void (async () => {
+      try {
+        // ONE bounded query for every card. Returns null when signed out, so
+        // public browsing issues no private progress query at all.
+        const rows = await readStudentDayProgressForCourses(courses.map((course) => course.id));
+        if (!active) return;
+
+        const statusByDayId = new Map((rows ?? []).map((row) => [row.dayId, row.status]));
+
+        setProgress(
+          Object.fromEntries(
+            courses.map((course) => [course.id, deriveCourseProgress(structure[course.id], statusByDayId)]),
+          ),
+        );
+      } catch (error) {
+        console.error("[Back2Basics with Kwamina] Failed to read course library progress from Supabase", error);
+        if (!active) return;
+        // Signed-out / failed read: no local progress is consulted as a fallback.
+        setProgress(
+          Object.fromEntries(
+            courses.map((course) => [course.id, deriveCourseProgress(structure[course.id], new Map())]),
+          ),
+        );
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
   }, [courses]);
 
   const libraryCourses = useMemo<LibraryCourse[]>(
     () =>
       courses.map((course) => {
-        const weeks = getCourseWeeks(course.id);
-        const days = weeks.reduce((count, week) => count + getWeekDays(course.id, week).length, 0);
-        return { ...course, weeks: weeks.length, days };
+        // Task 40F.2: authoritative published week/day counts.
+        const summary = structure[course.id];
+        return { ...course, weeks: summary?.weekCount ?? 0, days: summary?.dayCount ?? 0 };
       }),
-    [courses],
+    [courses, structure],
   );
 
   return (

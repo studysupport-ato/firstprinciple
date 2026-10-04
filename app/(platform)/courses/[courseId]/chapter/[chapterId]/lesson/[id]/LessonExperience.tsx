@@ -12,8 +12,9 @@ import { EducationalText } from "@/components/learning/EducationalText";
 import type { LearningResource } from "@/lib/content/types/resource";
 import type { Lesson } from "@/lib/content/types/lesson";
 import type { Asset } from "@/lib/content/types/asset";
+import type { Question } from "@/lib/content/types/question";
 
-export function LessonExperience({ lesson, courseId, preview, week, supplementaryResources, assetsById }: { lesson: Lesson; courseId: string; preview: boolean; week?: string; supplementaryResources: LearningResource[]; assetsById?: Record<string, Asset> }) {
+export function LessonExperience({ lesson, courseId, preview, week, supplementaryResources, assetsById, questionsById }: { lesson: Lesson; courseId: string; preview: boolean; week?: string; supplementaryResources: LearningResource[]; assetsById?: Record<string, Asset>; questionsById?: Record<string, Question> }) {
   const [currentStep, setCurrentStep] = useState(0);
 
   const geoResource = useMemo(() => supplementaryResources.find((resource) => resource.type === "geogebra"), [supplementaryResources]);
@@ -55,7 +56,7 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
         {!isFullWidthInteractive && (
           <div className={`relative z-10 flex flex-col justify-between border-r border-[#E5E5E5] bg-white ${hasSideContent ? "w-full lg:w-[45%]" : "w-full"}`}>
             <div className="overflow-y-auto p-12 lg:p-16">
-              <LessonRenderer lesson={lesson} step={activeStep} assetsById={assetsById} />
+              <LessonRenderer lesson={lesson} step={activeStep} assetsById={assetsById} questionsById={questionsById} />
               {isComplete ? <><LessonVideo resources={supplementaryResources} /><SupplementaryResources resources={supplementaryResources} /></> : null}
             </div>
             {renderNavigation()}

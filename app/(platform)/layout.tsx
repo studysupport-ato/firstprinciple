@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { AuthModal } from "@/components/auth/AuthModal";
 import { Sidebar } from "@/components/platform/Sidebar";
 import { PreviewToolbar } from "@/components/platform/PreviewToolbar";
 import { OnboardingTour } from "@/components/platform/OnboardingTour";
@@ -12,6 +13,26 @@ export default function PlatformLayout({
   children: React.ReactNode;
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authRedirectTo, setAuthRedirectTo] = useState<string | undefined>();
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("auth") !== "required") return;
+
+    const requestedDestination = searchParams.get("next");
+    let destination = "/courses";
+    if (requestedDestination?.startsWith("/") && !requestedDestination.startsWith("//")) {
+      const parsedDestination = new URL(requestedDestination, window.location.origin);
+      if (parsedDestination.origin === window.location.origin) {
+        destination = `${parsedDestination.pathname}${parsedDestination.search}${parsedDestination.hash}`;
+      }
+    }
+
+    setAuthRedirectTo(destination);
+    setAuthOpen(true);
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
 
   useEffect(() => {
     const handleWelcomeDismissed = () => {
@@ -37,6 +58,11 @@ export default function PlatformLayout({
       </main>
       <OnboardingTour />
       <ProfileCompletionModal />
+      <AuthModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        redirectTo={authRedirectTo}
+      />
     </div>
   );
 }

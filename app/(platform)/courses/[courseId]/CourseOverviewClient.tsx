@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 import { Map, Play } from "lucide-react";
 import { EducationalText } from "@/components/learning/EducationalText";
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
-import { getActiveStudentId } from "@/lib/auth/mock";
-import { createProgressFactsRepository, type DayProgress } from "@/lib/progress";
+import { readStudentDayProgressMap } from "@/lib/student/readProgress";
+import type { DayProgress } from "@/lib/progress";
 import type { Course, Week } from "@/lib/content/types/course";
 import type { Lesson } from "@/lib/content/types/lesson";
 
@@ -15,16 +15,16 @@ export default function CourseOverviewClient({ course, weeks, days }: { course: 
 
   useEffect(() => {
     let active = true;
-    const repository = createProgressFactsRepository("local");
 
     void (async () => {
       try {
-        const studentId = getActiveStudentId();
-        const rows = await repository.listDayProgressForCourse(studentId, course.id);
+        // Task 40C-2: same Supabase day-progress source as Roadmap / Week view,
+        // so all three agree on completion. null when signed out.
+        const map = await readStudentDayProgressMap(course.id);
         if (!active) return;
-        setDayProgress(Object.fromEntries(rows.map((row) => [row.dayId, row])));
+        setDayProgress(map ?? {});
       } catch (error) {
-        console.error("[Back2Basics with Kwamina] Failed to read day progress from local", error);
+        console.error("[Back2Basics with Kwamina] Failed to read day progress from Supabase", error);
         if (active) setDayProgress({});
       }
     })();

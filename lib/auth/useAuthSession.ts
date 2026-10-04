@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  clearAuthenticatedReadStudentCache,
+  resolveAuthenticatedReadStudent,
+} from "@/lib/student/readIdentity";
 
 export interface AuthStudent {
   id: string;
@@ -22,33 +26,33 @@ export interface AuthSessionState {
 }
 
 // Module-level cache: one student fetch per session, never per-render.
+// Task 40C-1: the students lookup now lives in lib/student/readIdentity so
+// reads and writes share a single identity algorithm and a single cache. The
+// hook keeps its own resolved-value memo for React renders.
 let cachedUserId: string | null = null;
 let cachedStudent: AuthStudent | null = null;
-let inFlight: Promise<AuthStudent | null> | null = null;
 
 async function fetchStudentOnce(userId: string): Promise<AuthStudent | null> {
   if (cachedUserId === userId && cachedStudent) return cachedStudent;
-  if (inFlight && cachedUserId === userId) return inFlight;
   cachedUserId = userId;
-  inFlight = (async () => {
-    try {
-      const client = createSupabaseBrowserClient();
-      const { data, error } = await client.from("students").select("id,display_name,email").eq("auth_user_id", userId).maybeSingle();
-      if (error) {
-        cachedStudent = null;
-        return null;
-      }
-      const row = data as { id: string; display_name: string; email: string | null } | null;
-      cachedStudent = row ? { id: row.id, displayName: row.display_name, email: row.email } : null;
-      return cachedStudent;
-    } catch {
-      cachedStudent = null;
-      return null;
-    } finally {
-      inFlight = null;
-    }
-  })();
-  return inFlight;
+  try {
+    const resolved = await resolveAuthenticatedReadStudent();
+    cachedStudent = resolved
+      ? { id: resolved.id, displayName: resolved.displayName, email: resolved.email }
+      : null;
+  } catch {
+    // Integrity/lookup failure: the hook reports "no student" rather than
+    // throwing during render. Consumers that must not silently degrade
+    // (e.g. progress reads) call readIdentity directly and will see the throw.
+    cachedStudent = null;
+  }
+  return cachedStudent;
+}
+
+function resetStudentCache() {
+  cachedUserId = null;
+  cachedStudent = null;
+  clearAuthenticatedReadStudentCache();
 }
 
 export function useAuthSession(): AuthSessionState {
@@ -60,8 +64,7 @@ export function useAuthSession(): AuthSessionState {
   const [studentLoading, setStudentLoading] = useState(false);
 
   const signOut = useCallback(async () => {
-    cachedUserId = null;
-    cachedStudent = null;
+    resetStudentCache();
     const client = createSupabaseBrowserClient();
     const { error } = await client.auth.signOut();
     if (error) {
@@ -91,8 +94,7 @@ export function useAuthSession(): AuthSessionState {
           setStudentLoading(false);
         }
       } else {
-        cachedUserId = null;
-        cachedStudent = null;
+        resetStudentCache();
         setStudent(null);
       }
 
@@ -118,8 +120,7 @@ export function useAuthSession(): AuthSessionState {
           }
         });
       } else {
-        cachedUserId = null;
-        cachedStudent = null;
+        resetStudentCache();
         setStudent(null);
       }
     });
