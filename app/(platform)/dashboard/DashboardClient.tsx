@@ -12,6 +12,7 @@ import { ArrowUpRight, ArrowRight, Flame, Target, CheckCircle2, BookOpen, Calend
 import { listPublishedCourseStructureSummaries, type PublishedCourseStructureSummary } from "@/lib/content/publishedStructure";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { resolveAuthenticatedReadStudentId } from "@/lib/student/readIdentity";
+import { useAuthSession } from "@/lib/auth/useAuthSession";
 import {
   readRecentActivity,
   readStudentAttemptFacts,
@@ -214,6 +215,18 @@ export default function DashboardPage() {
   const [recentActivity, setRecentActivity] = useState<ActivityDisplay[]>([]);
   const [continueLearning, setContinueLearning] = useState<ContinueLearning | null>(null);
   const [courses, setCourses] = useState<DashboardCourse[]>([]);
+  // Real student identity: auth session -> students.display_name. Never a static
+  // demo name for an authenticated user.
+  const { student } = useAuthSession();
+  const displayName = (student?.displayName ?? "").trim();
+  const firstName = displayName.split(/\s+/)[0] ?? "";
+  const nameInitials =
+    displayName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "S";
 
   useEffect(() => {
     let active = true;
@@ -419,10 +432,10 @@ export default function DashboardPage() {
                 className="group flex items-center gap-2.5 rounded-full bg-black/[0.08] py-1 pl-1 pr-4 backdrop-blur-[2px]"
               >
                 <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#111111] text-[11px] font-black text-[#FFC700] transition-transform group-hover:scale-105">
-                  KM
+                  {nameInitials}
                 </span>
                 <span className="hidden text-left sm:block">
-                  <span className="block font-sans text-[13px] font-bold leading-tight text-[#111111]">Kwame Mensah</span>
+                  <span className="block font-sans text-[13px] font-bold leading-tight text-[#111111]">{displayName || "Student"}</span>
                   <span className="block font-sans text-[11px] leading-tight text-[#111111]/55">Student profile</span>
                 </span>
               </Link>
@@ -433,7 +446,7 @@ export default function DashboardPage() {
                 <p className="mb-[6px] mt-[26px] font-sans text-[15px] font-normal text-[#1d1d1d]">Good afternoon,</p>
                 <h1 className="max-w-[560px] font-sans text-[46px] font-black leading-[1.0] tracking-[-0.01em] text-[#0c0c0c] max-[900px]:text-[30px]">
                   WELCOME BACK,
-                  <span className="block">KWAME.</span>
+                  <span className="block">{(firstName || "STUDENT").toUpperCase()}.</span>
                 </h1>
                 <p className="mb-[20px] mt-[12px] max-w-[470px] text-[13.5px] leading-[1.55] text-[#333]/75">
                   Keep building from first principles — your next step in Real Number Theory is ready whenever you are.

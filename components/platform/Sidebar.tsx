@@ -25,7 +25,7 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { signOut } = useAuthSession();
+  const { signOut, authenticated } = useAuthSession();
 
   const isActive = (path: string) => {
     if (path === "/dashboard") return pathname === "/dashboard";
@@ -109,9 +109,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <Settings size={20} strokeWidth={2.5} />
           {!collapsed && <span>Settings</span>}
         </Link>
-        <button
-          type="button"
-          onClick={async () => {
+        {authenticated === true ? (
+          <button
+            type="button"
+            onClick={async () => {
             try {
               await signOut();
               logoutMockStudent();
@@ -126,7 +127,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         >
           <LogOut size={20} strokeWidth={2.5} />
           {!collapsed && <span>Sign out</span>}
-        </button>
+            </button>
+          ) : null}
       </div>
     </aside>
   );
