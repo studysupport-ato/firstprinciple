@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AdminTable } from "@/components/admin/AdminTable";
-import { getAdminDaysAction } from "@/lib/adminContentActions";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { getAdminDaysAction, deleteDayAction, reorderDaysAction } from "@/lib/adminContentActions";
 import type { AdminDayListRow } from "@/lib/content/adminContract";
 import Link from "next/link";
 
@@ -12,33 +13,108 @@ export default function AdminLessonsPage() {
   const [rows, setRows] = useState<AdminDayListRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<AdminDayListRow | null>(null);
+
+  async function loadData() {
+    try {
+      const result = await getAdminDaysAction();
+      if (result.ok) {
+        setRows(result.data);
+      } else {
+        setError(result.error);
+      }
+    } catch {
+      setError("An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const result = await getAdminDaysAction();
-        if (result.ok) {
-          setRows(result.data);
-        } else {
-          setError(result.error);
-        }
-      } catch (e) {
-        setError("An error occurred");
-      } finally {
-        setLoading(false);
-      }
-    }
     loadData();
   }, []);
+
+  // Reordering is scoped to a single Week: `reorderDaysAction` renumbers only the
+  // Days of the Week it is given, so each lesson must be moved within its own
+  // courseId + weekId sibling list. Building the per-week id lists here keeps a
+  // move from ever being sent as a cross-week reorder.
+  const weekGroups = useMemo(() => {
+    const groups = new Map<string, AdminDayListRow[]>();
+    for (const row of rows) {
+      const key = `${row.day.courseId}::${row.day.weekId}`;
+      const list = groups.get(key);
+      if (list) list.push(row);
+      else groups.set(key, [row]);
+    }
+    return groups;
+  }, [rows]);
+
+  function positionInWeek(row: AdminDayListRow) {
+    const group = weekGroups.get(`${row.day.courseId}::${row.day.weekId}`) ?? [];
+    return { index: group.findIndex((item) => item.day.id === row.day.id), length: group.length };
+  }
+
+  async function moveDay(row: AdminDayListRow, direction: -1 | 1) {
+    if (busy) return;
+    const group = weekGroups.get(`${row.day.courseId}::${row.day.weekId}`) ?? [];
+    const ordered = group.map((item) => item.day.id);
+    const index = ordered.indexOf(row.day.id);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= ordered.length) return;
+
+    const next = ordered.slice();
+    const [moved] = next.splice(index, 1);
+    next.splice(target, 0, moved);
+
+    setBusy(true);
+    const result = await reorderDaysAction(row.day.courseId, row.day.weekId, next);
+    setBusy(false);
+    if (result.ok) {
+      setActionError(null);
+      setNotice("Lesson order saved.");
+      await loadData();
+    } else {
+      // Surface the failure and re-read so the table shows the real persisted
+      // order rather than anything the UI might assume it wrote.
+      setNotice(null);
+      setActionError(`Could not save the new lesson order: ${result.error}`);
+      await loadData();
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget || busy) return;
+    const target = deleteTarget;
+    setBusy(true);
+    const result = await deleteDayAction(target.day.courseId, target.day.weekId, target.day.id);
+    setBusy(false);
+    if (result.ok) {
+      setDeleteTarget(null);
+      setActionError(null);
+      setNotice(`Lesson "${target.day.title}" was deleted.`);
+      await loadData();
+    } else {
+      // Keep the dialog open and show the error inline instead of removing the
+      // row optimistically, so the UI can never claim a delete that did not happen.
+      setNotice(null);
+      setActionError(`Could not delete this lesson: ${result.error}`);
+    }
+  }
 
   return (
     <div>
       <AdminPageHeader
         title="Lessons"
-        description="Review the structured teaching units powering the MATH 151 experience and manage the locally overrideable lesson content."
+        description="Manage the teaching sessions (Days) powering each course. Reorder or delete lessons here; the order students see on the roadmap is stored on the Day itself."
         actionLabel="Create lesson"
         actionHref="/admin/lessons/new"
       />
+
+      {notice ? <div className="mb-5 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm font-semibold text-[#166534]">{notice}</div> : null}
+      {actionError ? <div role="alert" className="mb-5 rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3 text-sm font-semibold text-[#991B1B]">{actionError}</div> : null}
 
       {loading && <div className="mt-8 text-center text-sm text-[#666666]">Loading lessons...</div>}
       {error && <div className="mt-8 text-center text-sm text-red-500">{error}</div>}
@@ -54,12 +130,66 @@ export default function AdminLessonsPage() {
                 </Link>
               ),
             },
-            { key: "chapter", label: "Chapter", render: (row) => row.chapterTitle },
-            { key: "week", label: "Week", render: (row) => row.week ? `Week ${row.week.weekNumber}` : row.day.weekId },
+            {
+              key: "course",
+              label: "Course",
+              render: (row) => row.course ? row.course.code : row.day.courseId,
+            },
+            {
+              key: "week",
+              label: "Week",
+              render: (row) => row.week ? `Week ${row.week.weekNumber}` : row.day.weekId,
+            },
             {
               key: "status",
               label: "Status",
               render: (row) => <AdminStatusBadge status={row.day.status ?? "draft"} />,
+            },
+            {
+              key: "actions",
+              label: "Actions",
+              render: (row) => {
+                const { index, length } = positionInWeek(row);
+                const isFirst = index <= 0;
+                const isLast = index < 0 || index >= length - 1;
+                return (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={busy || isFirst}
+                      onClick={() => moveDay(row, -1)}
+                      aria-label={`Move ${row.day.title} up`}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#E5E5E5] bg-white text-sm font-semibold text-[#111111] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || isLast}
+                      onClick={() => moveDay(row, 1)}
+                      aria-label={`Move ${row.day.title} down`}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#E5E5E5] bg-white text-sm font-semibold text-[#111111] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      ↓
+                    </button>
+                    <Link
+                      href={`/admin/lessons/${row.day.id}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-[#111111] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#2563EB]"
+                    >
+                      Edit
+                    </Link>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setDeleteTarget(row)}
+                      aria-label={`Delete ${row.day.title}`}
+                      className="inline-flex items-center gap-1 rounded-full border border-[#FCA5A5] bg-[#FEF2F2] px-3 py-1.5 text-xs font-semibold text-[#B91C1C] hover:bg-[#FEE2E2] disabled:opacity-40"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                );
+              },
             },
           ]}
           rows={rows}
@@ -67,6 +197,19 @@ export default function AdminLessonsPage() {
           emptyDescription="New lessons created for the curriculum will appear here."
         />
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete lesson"
+        description={
+          deleteTarget
+            ? `Delete "${deleteTarget.day.title}"? Its resource links and student progress records are removed too, and the remaining lessons in this week are renumbered.`
+            : "Delete this lesson?"
+        }
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
