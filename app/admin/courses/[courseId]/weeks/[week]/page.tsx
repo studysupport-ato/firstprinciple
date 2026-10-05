@@ -19,6 +19,7 @@ export default function AdminWeekWorkspace() {
   const [error, setError] = useState<string | null>(null);
   const [deleteLessonTarget, setDeleteLessonTarget] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
   const [reordering, setReordering] = useState(false);
 
@@ -71,11 +72,15 @@ export default function AdminWeekWorkspace() {
     const res = await deleteDayAction(course!.id, week.id, deleteLessonTarget);
     if (res.ok) {
       setDeleteLessonTarget(null);
+      setActionError(null);
       setNotice(`Day "${target?.title ?? deleteLessonTarget}" was deleted.`);
       setRefreshTick(t => t + 1);
       router.refresh();
     } else {
-      alert(res.error);
+      // Keep the dialog open and surface the failure inline rather than via a
+      // native alert(), which is easy to miss and leaves no persistent trace.
+      setNotice(null);
+      setActionError(`Could not delete this Day: ${res.error}`);
     }
   }
 
@@ -91,11 +96,13 @@ export default function AdminWeekWorkspace() {
     setReordering(true);
     const res = await reorderDaysAction(course.id, week.id, next);
     if (res.ok) {
+      setActionError(null);
       setNotice("Day order saved.");
       setRefreshTick(t => t + 1);
       router.refresh();
     } else {
-      alert(res.error);
+      setNotice(null);
+      setActionError(`Could not save the new Day order: ${res.error}`);
     }
     setReordering(false);
   }
@@ -113,6 +120,7 @@ export default function AdminWeekWorkspace() {
       />
 
       {notice ? <div className="mb-5 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm font-semibold text-[#166534]">{notice}</div> : null}
+      {actionError ? <div role="alert" className="mb-5 rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3 text-sm font-semibold text-[#991B1B]">{actionError}</div> : null}
 
       <div className="mb-6 flex items-center gap-3">
         <Link href={`/admin/courses/${course.id}`} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2 text-sm font-medium text-[#111111]">

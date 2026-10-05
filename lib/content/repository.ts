@@ -568,12 +568,16 @@ export function createCourseStructureSupabaseRepository(clientFactory: () => Sup
     void weekId; // accepted for API compatibility; actual week resolved from the row.
     if (rows.length > 0) {
       const staged = rows.map((sibling, index) => ({ id: sibling.id, order_index: -(index + 1) }));
+      // Scoped to the owning Course + Week, mirroring reorderDays, so a sibling
+      // id from another scope can never be renumbered by this call.
+      const scope = (query: ReturnType<typeof client.from>) =>
+        query.eq("course_id", courseId).eq("week_id", actualWeekId);
       for (const entry of staged) {
-        const { error: stageError } = await client.from("days").update({ order_index: entry.order_index } as never).eq("id", entry.id);
+        const { error: stageError } = await scope(client.from("days").update({ order_index: entry.order_index } as never).eq("id", entry.id));
         if (stageError) throw stageError;
       }
       for (const [index, entry] of staged.entries()) {
-        const { error: fixError } = await client.from("days").update({ order_index: index + 1 } as never).eq("id", entry.id);
+        const { error: fixError } = await scope(client.from("days").update({ order_index: index + 1 } as never).eq("id", entry.id));
         if (fixError) throw fixError;
       }
     }
