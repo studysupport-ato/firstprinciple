@@ -1,12 +1,15 @@
 import { config } from "dotenv";
 import { createResourceRepository } from "../lib/content/resourceRepository";
+import { createSupabaseAdminClient } from "../lib/supabase/client";
 import { createCourseMaterialsRepository } from "../lib/courseMaterialsRepository";
 import { createAssetRepository } from "../lib/content/assetRepository";
 
 config({ path: ".env.local" });
 
 async function main() {
-  const resources = createResourceRepository("supabase");
+  // Task 40G.6C: this script asserts on the full resource/placement set, so it
+  // states its privilege explicitly instead of inheriting an implicit default.
+  const resources = createResourceRepository("supabase", createSupabaseAdminClient);
   const courseMaterials = createCourseMaterialsRepository("supabase");
   const assets = createAssetRepository("supabase");
 

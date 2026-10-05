@@ -40,7 +40,11 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
 
   if (result.kind === "not-found") notFound();
 
-  const repository = createResourceRepository("supabase");
+  // Task 40G.6C: the request-scoped client created above is supplied explicitly so
+  // this student resource/placement read is constrained by the published-only
+  // learning_resources / resource_placements RLS policies from Task 40G.6B,
+  // instead of silently resolving a service-role client.
+  const repository = createResourceRepository("supabase", () => supabase);
   const assetIds = [...new Set(result.lesson.blocks.flatMap((block) => block.type === "image" && block.assetId ? [block.assetId] : []))];
   const assets = await createAssetSupabaseRepository(createSupabaseAdminClient).getAssetsByIds(assetIds);
   const assetsById = Object.fromEntries(assets.map((asset) => [asset.id, asset]));
