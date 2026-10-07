@@ -9,6 +9,13 @@ const MIN_HEIGHT = 280;
 const MAX_HEIGHT = 900;
 const LOAD_TIMEOUT = 12000;
 
+// A "board" is a visualizer written to fill the whole learning space. Its source carries this marker.
+export const BOARD_MARKER = "data-b2b-board";
+
+export function isBoardSource(source: string | undefined) {
+  return typeof source === "string" && source.includes(BOARD_MARKER);
+}
+
 function visualizerHeight(value: number | undefined) {
   return typeof value === "number" && Number.isFinite(value) ? Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, Math.round(value))) : DEFAULT_HEIGHT;
 }
@@ -39,8 +46,12 @@ ${source}
 </html>`;
 }
 
-export function VisualizerBlock({ source, title = "Custom visualizer", height }: VisualizerBlockData) {
+export function VisualizerBlock({ source, title = "Custom visualizer", height, fill = false }: VisualizerBlockData & { fill?: boolean }) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  // The iframe is only created in the browser. A server-rendered iframe can finish loading before React
+  // attaches onLoad, which left the first step stuck on "Loading visualizer...".
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const iframeSource = useMemo(() => buildSourceDocument(source), [source]);
   const frameHeight = visualizerHeight(height);
   const timeoutRef = useRef<number | undefined>(undefined);
@@ -68,24 +79,40 @@ export function VisualizerBlock({ source, title = "Custom visualizer", height }:
     };
   }, [iframeSource]);
 
+  const frame = mounted ? (
+    <iframe
+      title={title}
+      srcDoc={iframeSource}
+      sandbox="allow-scripts"
+      referrerPolicy="no-referrer"
+      className="h-full w-full border-0"
+      onLoad={markReady}
+    />
+  ) : null;
+
+  const overlay = status !== "ready" ? (
+    <div className={`absolute inset-0 z-10 flex items-center justify-center p-6 text-center ${fill ? "bg-[#12335A]" : "bg-white"}`}>
+      <p className={`max-w-sm text-xs leading-5 ${fill ? "text-[#9DB7D6]" : "text-[#666666]"}`}>
+        {status === "error" ? "This visualizer could not be loaded. Please ask an administrator to check its code." : "Loading visualizer..."}
+      </p>
+    </div>
+  ) : null;
+
+  // Board mode: no card, no caption. The board takes all the space its parent gives it.
+  if (fill) {
+    return (
+      <div className="relative h-full w-full bg-[#12335A]">
+        {overlay}
+        {frame}
+      </div>
+    );
+  }
+
   return (
     <figure className="overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white">
       <div className="relative w-full" style={{ height: frameHeight }}>
-        {status !== "ready" ? (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white p-6 text-center">
-            <p className="max-w-sm text-xs leading-5 text-[#666666]">
-              {status === "error" ? "This visualizer could not be loaded. Please ask an administrator to check its code." : "Loading visualizer..."}
-            </p>
-          </div>
-        ) : null}
-        <iframe
-          title={title}
-          srcDoc={iframeSource}
-          sandbox="allow-scripts"
-          referrerPolicy="no-referrer"
-          className="h-full w-full border-0"
-          onLoad={markReady}
-        />
+        {overlay}
+        {frame}
       </div>
       <figcaption className="border-t border-[#E5E5E5] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#666666]">
         Custom visualizer
