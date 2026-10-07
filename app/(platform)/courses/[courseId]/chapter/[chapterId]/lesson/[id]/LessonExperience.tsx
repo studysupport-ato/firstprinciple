@@ -31,12 +31,12 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
   const weekLabel = week ? `Week ${week.replace("w", "")}` : "Week";
 
   const renderNavigation = (compact = false) => (
-    <div className={`flex items-center justify-between border-t border-[#E5E5E5] bg-white ${compact ? "px-8 py-3" : "p-8"}`}>
+    <div className={`flex items-center justify-between border-t border-[#E5E5E5] bg-white ${compact ? "px-8 py-1.5" : "p-8"}`}>
       <button onClick={() => setCurrentStep((step) => Math.max(0, step - 1))} disabled={currentStep === 0} className="flex items-center gap-2 text-sm font-sans font-medium text-[#666666] transition-colors hover:text-[#111111] disabled:opacity-30"><ChevronLeft size={16} /> Previous</button>
       {!isComplete ? (
-        <button onClick={() => setCurrentStep((step) => Math.min(totalSteps - 1, step + 1))} className="flex items-center gap-2 rounded-full bg-[#111111] px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#FFBE00] hover:text-[#111111] hover:text-[#111111]">Continue <ChevronRight size={16} /></button>
+        <button onClick={() => setCurrentStep((step) => Math.min(totalSteps - 1, step + 1))} className={`flex items-center gap-2 rounded-full bg-[#111111] px-6 ${compact ? "py-2" : "py-3"} text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#FFBE00] hover:text-[#111111]`}>Continue <ChevronRight size={16} /></button>
       ) : (
-        <Link href={roadmapHref} onClick={() => { if (!preview) completeDay(lesson.courseId, lesson.weekId, lesson.id); }}><span className="flex items-center gap-2 rounded-full bg-[#059669] px-6 py-3 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-105">Complete Day <CheckCircle2 size={16} /></span></Link>
+        <Link href={roadmapHref} onClick={() => { if (!preview) completeDay(lesson.courseId, lesson.weekId, lesson.id); }}><span className={`flex items-center gap-2 rounded-full bg-[#059669] px-6 ${compact ? "py-2" : "py-3"} text-sm font-semibold text-white shadow-sm transition-transform hover:scale-105`}>Complete Day <CheckCircle2 size={16} /></span></Link>
       )}
     </div>
   );
@@ -57,7 +57,7 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
 
   return (
     <div className="flex h-screen flex-col bg-white">
-      <header className="z-20 flex h-16 flex-shrink-0 items-center justify-between border-b border-[#E5E5E5] bg-white px-8">
+      <header className={`z-20 flex ${boardBlock ? "h-10" : "h-16"} flex-shrink-0 items-center justify-between border-b border-[#E5E5E5] bg-white px-8`}>
         <div className="flex items-center gap-4"><Link href={roadmapHref} className="text-[#666666] transition-colors hover:text-[#111111]"><ChevronLeft size={20} /></Link><div className="flex items-center gap-2"><span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#666666]">{weekLabel}</span><span className="text-[#E5E5E5]">/</span><span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#111111]"><EducationalText text={lesson.title} /></span></div></div>
         <div className="flex items-center gap-2">{Array.from({ length: totalSteps }).map((_, index) => <div key={index} className={`h-2 w-2 rounded-full transition-colors duration-300 ${index <= currentStep ? "bg-[#FFBE00]" : "bg-[#E5E5E5]"}`} />)}</div>
       </header>
