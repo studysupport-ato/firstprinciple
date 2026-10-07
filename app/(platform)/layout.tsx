@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { Sidebar } from "@/components/platform/Sidebar";
 import { PreviewToolbar } from "@/components/platform/PreviewToolbar";
@@ -13,6 +14,8 @@ export default function PlatformLayout({
   children: React.ReactNode;
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const pathname = usePathname();
+  const inLesson = /\/lesson\//.test(pathname ?? "");
   const [authOpen, setAuthOpen] = useState(false);
   const [authRedirectTo, setAuthRedirectTo] = useState<string | undefined>();
 
@@ -33,6 +36,11 @@ export default function PlatformLayout({
     setAuthOpen(true);
     window.history.replaceState(null, "", window.location.pathname);
   }, []);
+
+  // Opening a lesson slims the sidebar so the board gets the room; leaving restores it.
+  useEffect(() => {
+    setSidebarCollapsed(inLesson);
+  }, [inLesson]);
 
   useEffect(() => {
     const handleWelcomeDismissed = () => {
