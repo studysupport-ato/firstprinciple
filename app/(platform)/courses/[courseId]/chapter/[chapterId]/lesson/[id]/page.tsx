@@ -46,7 +46,12 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
   // instead of silently resolving a service-role client.
   const repository = createResourceRepository("supabase", () => supabase);
   const assetIds = [...new Set(result.lesson.blocks.flatMap((block) => block.type === "image" && block.assetId ? [block.assetId] : []))];
-  const assets = await createAssetSupabaseRepository(createSupabaseAdminClient).getAssetsByIds(assetIds);
+  // Task 40G.7B: the request-scoped client created above is supplied explicitly so
+  // this student asset read is constrained by the published-only assets RLS
+  // policy (status = 'ready'). The service-role client that used to be passed
+  // here was silently ignored by the old repository, which resolved its own
+  // module-level browser client instead.
+  const assets = await createAssetSupabaseRepository(() => supabase).getAssetsByIds(assetIds);
   const assetsById = Object.fromEntries(assets.map((asset) => [asset.id, asset]));
   const supplementaryResources = await repository.listResourcesForScope(
     { dayId: result.lesson.id },

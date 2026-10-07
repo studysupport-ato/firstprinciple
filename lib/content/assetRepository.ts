@@ -1,8 +1,22 @@
 import { archiveAsset, createAsset, getAssetById, getAssets, restoreAsset, updateAsset } from "./assets";
 import type { Asset, AssetStatus, AssetType } from "./types/asset";
-import { createSupabaseBrowserClient } from "../supabase/client";
 import type { Database } from "../supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+
+/**
+ * Task 40G.7B: every Supabase-backed asset method resolves its client from this
+ * factory, so a caller must state its privilege explicitly.
+ *
+ *   - student server paths pass the request-scoped `createSupabaseServerClient()`
+ *     so reads carry the publishable key + user JWT and are constrained by the
+ *     `public_assets_select_ready` RLS policy (status = 'ready')
+ *   - admin authoring passes `createSupabaseAdminClient`
+ *
+ * This replaces a module-level repository whose read methods each constructed
+ * their own browser client, which meant a Server Component silently used a
+ * singleton with no request session.
+ */
+export type AssetSupabaseClientFactory = () => SupabaseClient<Database>;
 
 export type AssetRepositoryListOptions = { type?: AssetType; status?: AssetStatus; sourceKind?: "local" | "managed" | "external"; limit?: number };
 export type LessonImageUploadInput = { courseId: string; weekId: string; dayId: string; file: File; altText?: string };
@@ -42,20 +56,58 @@ function assetRow(asset: Asset) {
   return { id: asset.id, type: asset.type, name: asset.name, title: asset.title ?? null, description: asset.description ?? null, alt_text: asset.altText ?? null, source_kind: asset.source.kind, url: asset.source.url, size_bytes: asset.fileSize ?? null, mime_type: asset.mimeType ?? null, width: asset.width ?? null, height: asset.height ?? null, duration: asset.duration ?? null, metadata: asset.metadata ?? {}, tags: asset.tags ?? [], status: asset.status };
 }
 
-export const assetSupabaseRepository: AssetRepository = {
-  async listAssets(options = {}) { let query = createSupabaseBrowserClient().from("assets").select("*").order("created_at", { ascending: true }).order("id", { ascending: true }); if (options.type) query = query.eq("type", options.type); if (options.status) query = query.eq("status", options.status); if (options.sourceKind) query = query.eq("source_kind", options.sourceKind); if (options.limit && options.limit > 0) query = query.limit(options.limit); const { data, error } = await query; if (error) throw error; return ((data ?? []) as AssetRow[]).map(mapAsset); },
-  async getAsset(id) { const { data, error } = await createSupabaseBrowserClient().from("assets").select("*").eq("id", id).maybeSingle(); if (error) throw error; return data ? mapAsset(data as AssetRow) : undefined; },
-  async getAssetsByIds(ids) { if (!ids.length) return []; const { data, error } = await createSupabaseBrowserClient().from("assets").select("*").in("id", ids); if (error) throw error; return ((data ?? []) as AssetRow[]).map(mapAsset); },
-  async createAsset(input) { const now = new Date().toISOString(); const asset = { ...input, id: crypto.randomUUID(), createdAt: now, updatedAt: now } as Asset; const { error } = await createSupabaseBrowserClient().from("assets").insert(assetRow(asset) as never); if (error) throw error; return asset; },
-  async uploadLessonImage() { throw new Error("Lesson image uploads require the Supabase admin repository."); },
-  async updateAsset(id, patch) { const current = await this.getAsset(id); if (!current) return undefined; const updated = { ...current, ...patch, id, createdAt: current.createdAt, updatedAt: new Date().toISOString() } as Asset; const { error } = await createSupabaseBrowserClient().from("assets").update(assetRow(updated) as never).eq("id", id); if (error) throw error; return updated; },
-  async archiveAsset(id) { const { error } = await createSupabaseBrowserClient().from("assets").update({ status: "archived" } as never).eq("id", id); if (error) throw error; },
-  async restoreAsset(id) { const { error } = await createSupabaseBrowserClient().from("assets").update({ status: "ready" } as never).eq("id", id); if (error) throw error; },
-};
-
-export function createAssetSupabaseRepository(clientFactory: () => SupabaseClient<Database>): AssetRepository {
-  const repository: AssetRepository = {
-    ...assetSupabaseRepository,
+/**
+ * Task 40G.7B: builds the Supabase-backed repository around an explicit client
+ * factory. There is no module-level instance, so nothing can bind a privileged
+ * client at import time.
+ */
+export function createAssetSupabaseRepository(clientFactory: AssetSupabaseClientFactory): AssetRepository {
+  return {
+    async listAssets(options = {}) {
+      let query = clientFactory().from("assets").select("*").order("created_at", { ascending: true }).order("id", { ascending: true });
+      if (options.type) query = query.eq("type", options.type);
+      if (options.status) query = query.eq("status", options.status);
+      if (options.sourceKind) query = query.eq("source_kind", options.sourceKind);
+      if (options.limit && options.limit > 0) query = query.limit(options.limit);
+      const { data, error } = await query;
+      if (error) throw error;
+      return ((data ?? []) as AssetRow[]).map(mapAsset);
+    },
+    async getAsset(assetId) {
+      const { data, error } = await clientFactory().from("assets").select("*").eq("id", assetId).maybeSingle();
+      if (error) throw error;
+      return data ? mapAsset(data as AssetRow) : undefined;
+    },
+    async getAssetsByIds(assetIds) {
+      if (!assetIds.length) return [];
+      const { data, error } = await clientFactory().from("assets").select("*").in("id", assetIds);
+      if (error) throw error;
+      return ((data ?? []) as AssetRow[]).map(mapAsset);
+    },
+    async createAsset(input) {
+      const now = new Date().toISOString();
+      const asset = { ...input, id: crypto.randomUUID(), createdAt: now, updatedAt: now } as Asset;
+      const { error } = await clientFactory().from("assets").insert(assetRow(asset) as never);
+      if (error) throw error;
+      return asset;
+    },
+    async updateAsset(assetId, patch) {
+      const { data: current, error: readError } = await clientFactory().from("assets").select("*").eq("id", assetId).maybeSingle();
+      if (readError) throw readError;
+      if (!current) return undefined;
+      const merged = { ...mapAsset(current as AssetRow), ...patch, id: assetId, createdAt: (current as AssetRow).created_at, updatedAt: new Date().toISOString() } as Asset;
+      const { error } = await clientFactory().from("assets").update(assetRow(merged) as never).eq("id", assetId);
+      if (error) throw error;
+      return merged;
+    },
+    async archiveAsset(assetId) {
+      const { error } = await clientFactory().from("assets").update({ status: "archived" } as never).eq("id", assetId);
+      if (error) throw error;
+    },
+    async restoreAsset(assetId) {
+      const { error } = await clientFactory().from("assets").update({ status: "ready" } as never).eq("id", assetId);
+      if (error) throw error;
+    },
     async uploadLessonImage(input) {
       const allowed = new Set(["image/jpeg", "image/png", "image/webp"]);
       const maxBytes = 10 * 1024 * 1024;
@@ -91,8 +143,27 @@ export function createAssetSupabaseRepository(clientFactory: () => SupabaseClien
       return asset;
     },
   };
-  return repository;
 }
 
 export type AssetRepositorySource = "local" | "supabase";
-export function createAssetRepository(source: AssetRepositorySource = "local"): AssetRepository { return source === "supabase" ? assetSupabaseRepository : assetLocalRepository; }
+
+/**
+ * Task 40G.7B: requesting the "supabase" source without an explicit client
+ * factory is a hard error. This deletes the old module-level
+ * `assetSupabaseRepository` singleton, whose read methods each constructed their
+ * own browser client and therefore ignored any factory a caller passed in.
+ */
+export function createAssetRepository(
+  source: AssetRepositorySource = "local",
+  clientFactory?: AssetSupabaseClientFactory,
+): AssetRepository {
+  if (source === "local") return assetLocalRepository;
+  if (!clientFactory) {
+    throw new Error(
+      'createAssetRepository("supabase") requires an explicit Supabase client factory. ' +
+        "Student server paths must pass the authenticated server client so that the assets RLS policy applies; " +
+        "admin authoring must pass createSupabaseAdminClient explicitly.",
+    );
+  }
+  return createAssetSupabaseRepository(clientFactory);
+}

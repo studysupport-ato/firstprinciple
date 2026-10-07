@@ -12,6 +12,9 @@
     "smoke:questions-assessments": "tsx scripts/smoke-questions-assessments.ts",
     "verify:question-read-boundary": "tsx scripts/verify-question-read-boundary.ts",
     "verify:resource-read-boundary": "tsx scripts/verify-resource-read-boundary.ts",
+    "verify:asset-read-boundary": "tsx scripts/verify-asset-read-boundary.ts",
+    "verify:admin-session-boundary": "tsx scripts/verify-admin-session-boundary.ts",
+    "verify:day-transfer": "tsx scripts/verify-day-transfer.ts",
     "smoke:resources-course-materials-assets": "tsx scripts/smoke-resources-course-materials-assets.ts",
     "smoke:progress": "tsx scripts/smoke-progress.ts"
     ,"smoke:published-day": "tsx scripts/smoke-published-day.ts",

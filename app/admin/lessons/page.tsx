@@ -5,8 +5,8 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { getAdminDaysAction, deleteDayAction, reorderDaysAction } from "@/lib/adminContentActions";
-import type { AdminDayListRow } from "@/lib/content/adminContract";
+import { getAdminDaysAction, deleteDayAction, reorderDaysAction, getAdminCourseStructureAction, moveDayAction } from "@/lib/adminContentActions";
+import type { AdminDayListRow, Week } from "@/lib/content/adminContract";
 import Link from "next/link";
 
 export default function AdminLessonsPage() {
@@ -17,6 +17,12 @@ export default function AdminLessonsPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AdminDayListRow | null>(null);
+  // 40H.2 — transfer flow: pick a destination Week (same Course only), then
+  // confirm before the guarded server action runs.
+  const [moveTarget, setMoveTarget] = useState<AdminDayListRow | null>(null);
+  const [moveWeeks, setMoveWeeks] = useState<Week[]>([]);
+  const [moveDestWeekId, setMoveDestWeekId] = useState<string | null>(null);
+  const [moveConfirming, setMoveConfirming] = useState(false);
 
   async function loadData() {
     try {
@@ -104,11 +110,66 @@ export default function AdminLessonsPage() {
     }
   }
 
+  function weekLabel(week: Week) {
+    return `Week ${week.weekNumber} — ${week.title}`;
+  }
+
+  async function startMove(row: AdminDayListRow) {
+    if (busy) return;
+    setNotice(null);
+    setActionError(null);
+    const result = await getAdminCourseStructureAction(row.day.courseId);
+    if (result.ok && result.data) {
+      // Destination choices come from the existing Course -> Week read path and
+      // exclude the Day's current Week; Weeks of other Courses are never listed.
+      setMoveWeeks(result.data.weeks.map((view) => view.week).filter((week) => week.id !== row.day.weekId));
+      setMoveTarget(row);
+      setMoveDestWeekId(null);
+      setMoveConfirming(false);
+    } else {
+      setActionError(result.ok ? `Could not load Weeks for Course ${row.day.courseId}.` : `Could not load destination Weeks: ${result.error}`);
+    }
+  }
+
+  function moveSummary() {
+    if (!moveTarget || !moveDestWeekId) return undefined;
+    const from = moveTarget.week ? weekLabel(moveTarget.week) : moveTarget.day.weekId;
+    const destination = moveWeeks.find((week) => week.id === moveDestWeekId);
+    const to = destination ? weekLabel(destination) : moveDestWeekId;
+    return `Move "${moveTarget.day.title}" from ${from} to ${to}? The lesson content will remain unchanged.`;
+  }
+
+  async function confirmMove() {
+    if (!moveTarget || !moveDestWeekId || busy) return;
+    const target = moveTarget;
+    const destinationWeekId = moveDestWeekId;
+    const destination = moveWeeks.find((week) => week.id === destinationWeekId);
+    setBusy(true);
+    const result = await moveDayAction(target.day.courseId, target.day.id, destinationWeekId);
+    setBusy(false);
+    if (result.ok) {
+      setMoveTarget(null);
+      setMoveConfirming(false);
+      setMoveDestWeekId(null);
+      setMoveWeeks([]);
+      setActionError(null);
+      setNotice(destination ? `Lesson moved to ${weekLabel(destination)}.` : "Lesson moved.");
+      await loadData();
+    } else {
+      // Keep the truth visible: close only the confirm step, re-read the table,
+      // and surface the server error instead of claiming a move that failed.
+      setMoveConfirming(false);
+      setNotice(null);
+      setActionError(`Could not move this lesson: ${result.error}`);
+      await loadData();
+    }
+  }
+
   return (
     <div>
       <AdminPageHeader
         title="Lessons"
-        description="Manage the teaching sessions (Days) powering each course. Reorder or delete lessons here; the order students see on the roadmap is stored on the Day itself."
+        description="Manage the teaching sessions (Days) powering each course. Reorder, move between Weeks, or delete lessons here; the order students see on the roadmap is stored on the Day itself."
         actionLabel="Create lesson"
         actionHref="/admin/lessons/new"
       />
@@ -172,6 +233,15 @@ export default function AdminLessonsPage() {
                     >
                       ↓
                     </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => startMove(row)}
+                      aria-label={`Move ${row.day.title} to another week`}
+                      className="inline-flex items-center gap-1 rounded-full border border-[#E5E5E5] bg-white px-3 py-1.5 text-xs font-semibold text-[#111111] hover:border-[#2563EB] disabled:opacity-40"
+                    >
+                      Move to week
+                    </button>
                     <Link
                       href={`/admin/lessons/${row.day.id}`}
                       className="inline-flex items-center gap-1 rounded-full bg-[#111111] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#2563EB]"
@@ -209,6 +279,59 @@ export default function AdminLessonsPage() {
         confirmLabel="Delete"
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={!!moveTarget && !moveConfirming}
+        title="Move lesson"
+        description={
+          moveTarget
+            ? `"${moveTarget.day.title}" — current week: ${moveTarget.week ? weekLabel(moveTarget.week) : moveTarget.day.weekId}. Choose a destination Week from the same Course.`
+            : undefined
+        }
+        confirmLabel="Move lesson"
+        confirmDisabled={!moveDestWeekId}
+        onConfirm={() => setMoveConfirming(true)}
+        onCancel={() => {
+          setMoveTarget(null);
+          setMoveWeeks([]);
+          setMoveDestWeekId(null);
+          setMoveConfirming(false);
+        }}
+      >
+        {moveWeeks.length === 0 ? (
+          <p className="mt-4 text-sm text-[#666666]">This Course has no other Weeks to move this lesson into.</p>
+        ) : (
+          <fieldset className="mt-4">
+            <legend className="field-label mb-2">Move to</legend>
+            <div className="flex flex-col gap-2">
+              {moveWeeks.map((week) => (
+                <label
+                  key={week.id}
+                  className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${moveDestWeekId === week.id ? "border-[#111111] bg-[#F5F5F5]" : "border-[#E5E5E5] bg-white"}`}
+                >
+                  <input
+                    type="radio"
+                    name="move-destination-week"
+                    checked={moveDestWeekId === week.id}
+                    onChange={() => setMoveDestWeekId(week.id)}
+                    className="accent-[#111111]"
+                  />
+                  <span className="font-medium text-[#111111]">{weekLabel(week)}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={!!moveTarget && moveConfirming}
+        title="Move lesson?"
+        description={moveSummary()}
+        confirmLabel="Move lesson"
+        onConfirm={confirmMove}
+        onCancel={() => setMoveConfirming(false)}
       />
     </div>
   );

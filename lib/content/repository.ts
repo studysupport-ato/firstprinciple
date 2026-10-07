@@ -62,6 +62,14 @@ export interface CourseStructureRepository {
    * without issuing N+1 reads or touching unrelated Weeks.
    */
   reorderDays(courseId: string, weekId: string, orderedIds: string[]): Promise<Lesson[]>;
+  /**
+   * Move an existing Day to another Week of the SAME Course (Task 40H.2),
+   * appending it to the destination Week's end. Both Weeks are renumbered
+   * sequentially (dense 1..N, no duplicate (week_id, order_index)); the Day id
+   * and every other Day field are preserved, and dependent rows keep
+   * referencing the same Day id.
+   */
+  moveDay(courseId: string, dayId: string, destinationWeekId: string): Promise<Lesson>;
 }
 
 const localCourseStructureRepository: CourseStructureRepository = {
@@ -165,6 +173,28 @@ const localCourseStructureRepository: CourseStructureRepository = {
       return updated;
     });
   },
+  async moveDay(courseId, dayId, destinationWeekId) {
+    const current = getDay(dayId) ?? getLesson(dayId);
+    if (!current || current.courseId !== courseId) throw new Error(`Day ${dayId} was not found in the selected course.`);
+    if (current.weekId === destinationWeekId) throw new Error(`Day ${dayId} is already in Week ${destinationWeekId}.`);
+    const destination = await this.getWeek(courseId, destinationWeekId);
+    if (!destination || destination.courseId !== courseId) throw new Error(`Week ${destinationWeekId} was not found in Course ${courseId}.`);
+    const sourceWeekId = current.weekId;
+    const sourceWeek = await this.getWeek(courseId, sourceWeekId);
+    if (!sourceWeek || sourceWeek.courseId !== courseId) throw new Error(`Source Week ${sourceWeekId} was not found in Course ${courseId}.`);
+    const destinationDays = getDaysByWeek(destinationWeekId).filter((day) => day.courseId === courseId);
+    const moved: Lesson = { ...current, weekId: destinationWeekId, order: destinationDays.length + 1 };
+    saveLessonRecord(moved);
+    // Renumber both Weeks sequentially after the move (dense 1..N).
+    for (const weekId of [sourceWeekId, destinationWeekId]) {
+      getDaysByWeek(weekId)
+        .filter((day) => day.courseId === courseId)
+        .slice()
+        .sort((a, b) => a.order - b.order)
+        .forEach((day, index) => saveLessonRecord({ ...day, order: index + 1 }));
+    }
+    return { ...moved, order: destinationDays.length + 1 };
+  },
 };
 
 export const courseStructureLocalRepository = localCourseStructureRepository;
@@ -257,6 +287,28 @@ function dayPatchRow(patch: DayPatch) {
   if (patch.blocks !== undefined) row.content_blocks = patch.blocks;
   if (patch.status !== undefined) row.status = patch.status;
   return row;
+}
+
+/**
+ * Renumber one Week's Days to a dense 1..N sequence using the same two-phase
+ * negative-index staging as reorderDays/deleteDay, so UNIQUE(week_id,
+ * order_index) can never collide mid-write and no unrelated Week is touched.
+ * (Task 40H.2 — shared by moveDay's source/destination renumbering.)
+ */
+async function renumberWeekDays(client: SupabaseClient<Database>, courseId: string, weekId: string): Promise<void> {
+  const { data, error } = await client.from("days").select("id, order_index").eq("course_id", courseId).eq("week_id", weekId);
+  if (error) throw error;
+  const rows = ((data ?? []) as { id: string; order_index: number }[]).slice().sort((a, b) => a.order_index - b.order_index);
+  if (rows.length === 0) return;
+  const staged = rows.map((row, index) => ({ id: row.id, order_index: -(index + 1) }));
+  for (const entry of staged) {
+    const { error: stageError } = await client.from("days").update({ order_index: entry.order_index } as never).eq("id", entry.id).eq("course_id", courseId).eq("week_id", weekId);
+    if (stageError) throw stageError;
+  }
+  for (const [index, entry] of staged.entries()) {
+    const { error: fixError } = await client.from("days").update({ order_index: index + 1 } as never).eq("id", entry.id).eq("course_id", courseId).eq("week_id", weekId);
+    if (fixError) throw fixError;
+  }
 }
 
 export function createCourseStructureSupabaseRepository(clientFactory: () => SupabaseClient<Database> = createSupabaseBrowserClient): CourseStructureRepository {
@@ -614,6 +666,49 @@ export function createCourseStructureSupabaseRepository(clientFactory: () => Sup
       .order("order_index", { ascending: true });
     if (refreshError) throw refreshError;
     return ((refreshed ?? []) as SupabaseDayRow[]).map(mapDayRow);
+  },
+  async moveDay(courseId: string, dayId: string, destinationWeekId: string) {
+    const client = clientFactory();
+    // Resolve by primary key first (mirrors deleteDay), then re-verify the
+    // Course so client-supplied ids can never move a Day the caller does not
+    // own and no write happens before every id is validated server-side.
+    const { data: existing, error: lookupError } = await client.from("days").select("*").eq("id", dayId).maybeSingle();
+    if (lookupError) throw lookupError;
+    if (!existing) throw new Error(`Day ${dayId} was not found.`);
+    const day = existing as SupabaseDayRow;
+    if (day.course_id !== courseId) throw new Error(`Day ${dayId} does not belong to Course ${courseId}.`);
+    const sourceWeekId = day.week_id;
+    if (sourceWeekId === destinationWeekId) throw new Error(`Day ${dayId} is already in Week ${destinationWeekId}.`);
+    // Both Weeks must exist inside the SAME Course — a Week from another
+    // Course fails this scoped read, so cross-course transfers are impossible.
+    const { data: sourceWeek, error: sourceWeekError } = await client.from("weeks").select("id").eq("course_id", courseId).eq("id", sourceWeekId).maybeSingle();
+    if (sourceWeekError) throw sourceWeekError;
+    if (!sourceWeek) throw new Error(`Source Week ${sourceWeekId} was not found in Course ${courseId}.`);
+    const { data: destinationWeek, error: destinationWeekError } = await client.from("weeks").select("id").eq("course_id", courseId).eq("id", destinationWeekId).maybeSingle();
+    if (destinationWeekError) throw destinationWeekError;
+    if (!destinationWeek) throw new Error(`Destination Week ${destinationWeekId} was not found in Course ${courseId}.`);
+    // Destination position = append to the end of the destination Week.
+    const { data: destinationDays, error: destinationError } = await client
+      .from("days").select("order_index").eq("course_id", courseId).eq("week_id", destinationWeekId)
+      .order("order_index", { ascending: false }).limit(1);
+    if (destinationError) throw destinationError;
+    const destinationRows = (destinationDays ?? []) as { order_index: number }[];
+    const appendOrder = ((destinationRows[0]?.order_index as number | undefined) ?? 0) + 1;
+    // Two-phase move: park the Day at a negative index inside its source Week
+    // first, then jump Weeks in a single write — UNIQUE(week_id, order_index)
+    // can never collide, and student progress rows follow the Day through the
+    // composite FK's ON UPDATE CASCADE (20261004000000_task40h2 migration).
+    const { error: parkError } = await client.from("days").update({ order_index: -1 } as never).eq("id", dayId).eq("course_id", courseId).eq("week_id", sourceWeekId);
+    if (parkError) throw parkError;
+    const { error: moveError } = await client.from("days").update({ week_id: destinationWeekId, order_index: appendOrder } as never).eq("id", dayId).eq("course_id", courseId).eq("week_id", sourceWeekId);
+    if (moveError) throw moveError;
+    // Renumber BOTH Weeks sequentially (dense 1..N, no duplicates).
+    await renumberWeekDays(client, courseId, sourceWeekId);
+    await renumberWeekDays(client, courseId, destinationWeekId);
+    const { data: moved, error: movedError } = await client.from("days").select("*").eq("id", dayId).maybeSingle();
+    if (movedError) throw movedError;
+    if (!moved) throw new Error(`Day ${dayId} could not be read back after the move.`);
+    return mapDayRow(moved as SupabaseDayRow);
   },
   };
 }

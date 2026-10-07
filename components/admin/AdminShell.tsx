@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   BookOpen,
@@ -11,9 +11,10 @@ import {
   ImageIcon,
   LayoutDashboard,
   Library,
+  Link2,
+  LogOut,
   Menu,
   Plus,
-  Link2,
   Search,
   Settings,
   ShieldCheck,
@@ -21,6 +22,8 @@ import {
   X,
 } from "lucide-react";
 import { BrandLogo } from "@/components/branding/BrandLogo";
+import { setAdminAuthenticated } from "@/lib/adminAuth";
+import { adminLogoutAction } from "@/lib/adminContentActions";
 
 const navigation = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -45,7 +48,20 @@ function isNavActive(pathname: string, href: string) {
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  async function handleLogout() {
+    try {
+      await adminLogoutAction();
+    } catch (error) {
+      console.error("[AdminShell] admin logout action failed:", error);
+    }
+    // localStorage is UX-only; the signed server cookie was cleared by the action.
+    setAdminAuthenticated(false);
+    router.replace("/admin/login");
+    router.refresh();
+  }
 
   return (
     <div className="min-h-screen bg-[#F7F7F8] text-[#111111]">
@@ -153,6 +169,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                     <div className="text-[10px] text-[#666666]">Platform lead</div>
                   </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  aria-label="Sign out of admin"
+                  title="Sign out"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E5E5] text-[#666666] transition hover:bg-[#F7F7F8] hover:text-[#111111]"
+                >
+                  <LogOut size={16} />
+                </button>
               </div>
             </div>
           </header>

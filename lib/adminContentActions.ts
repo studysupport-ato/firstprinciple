@@ -31,6 +31,7 @@ import {
   listAdminQuestions,
   listAdminResourcePlacements,
   listAdminResources,
+  moveAdminDay,
   placeAdminResource,
   removeAdminResourcePlacement,
   reorderAdminCourseMaterials,
@@ -53,6 +54,13 @@ import {
   updateAdminWeek,
   uploadAdminLessonImage,
 } from "@/lib/content/adminService";
+import {
+  AdminUnauthorizedError,
+  destroyAdminSession,
+  establishAdminSession,
+  requireAdmin,
+  timingSafeStringEquals,
+} from "@/lib/adminSession";
 import type { ContentStatus } from "@/lib/content/lifecycle";
 import type { CoursePatch, DayPatch, WeekPatch } from "@/lib/content/repository";
 import type {
@@ -86,22 +94,26 @@ import type {
  * Task 39E — admin content write/read boundary (single client-callable surface).
  * ============================================================================
  *
- * ADMIN_AUTH_RLS_REQUIRED_BEFORE_PUBLIC_PRODUCTION
- *
- * TEMPORARY PRE-AUTH CONTENT-MANAGEMENT BOUNDARY — NOT a production security model.
+ * Task 40G.9 — SERVER-AUTHORIZED (40G.8 HIGH finding remediated).
  *
  * Every export below is a named content operation for an existing admin workflow.
  * There is deliberately NO generic table/query API here: a caller can only invoke
  * the operations the admin UI already performs.
  *
+ * AUTHORIZATION: every privileged action goes through run(), which calls
+ * requireAdmin() (lib/adminSession.ts) BEFORE any adminService / adminRepository
+ * / service-role work. The admin session is a signed, HttpOnly, server-verified
+ * cookie — localStorage (lib/adminAuth.ts) is UX only and grants nothing.
+ *
+ * An unauthenticated, tampered or expired request terminates inside run() with
+ * { ok: false } and never reaches the privileged repository.
+ *
  * The service-role key stays on the server; these actions never expose it, never
  * accept a Supabase client, and never accept raw SQL/table names.
- *
- * BEFORE PUBLIC PRODUCTION THIS MUST BE AUTHENTICATED:
- *   Admin Auth -> authenticated server boundary -> Supabase
  */
 
-async function run<T>(operation: () => Promise<T>): Promise<AdminActionResult<T>> {
+/** Error envelope shared by every admin action (no auth here). */
+async function respond<T>(operation: () => Promise<T>): Promise<AdminActionResult<T>> {
   try {
     return { ok: true, data: await operation() };
   } catch (error) {
@@ -110,13 +122,51 @@ async function run<T>(operation: () => Promise<T>): Promise<AdminActionResult<T>
   }
 }
 
+/**
+ * The ONE canonical authorization choke point for privileged admin actions.
+ * Reads and verifies the signed admin session cookie server-side; denies
+ * (fail-closed) before the operation — and therefore before adminService /
+ * adminRepository / the service-role client — is ever reached.
+ */
+async function run<T>(operation: () => Promise<T>): Promise<AdminActionResult<T>> {
+  try {
+    await requireAdmin();
+  } catch (error) {
+    if (error instanceof AdminUnauthorizedError) {
+      console.warn("[admin action denied] Missing or invalid admin session cookie.");
+      return { ok: false, error: "Unauthorized. A valid admin session is required." };
+    }
+    // Missing ADMIN_SESSION_SECRET or other guard failure: still fail closed.
+    console.error("[admin action denied] Admin session guard failed:", error);
+    return { ok: false, error: "Unauthorized. A valid admin session is required." };
+  }
+  return respond(operation);
+}
+
+/**
+ * Credential check happens entirely server-side; on success the signed,
+ * HttpOnly admin session cookie is established. Never returns the password
+ * or the signing secret to the client. This is the only action that runs
+ * WITHOUT requireAdmin() — because its whole purpose is to earn the session.
+ */
 export async function adminLoginAction(email: string, password: string): Promise<AdminActionResult<null>> {
-  return run(async () => {
+  return respond(async () => {
     const expectedEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
     const expectedPassword = process.env.ADMIN_PASSWORD;
-    if (!expectedEmail || !expectedPassword || email !== expectedEmail || password !== expectedPassword) {
+    const emailOk = expectedEmail ? timingSafeStringEquals(String(email ?? ""), expectedEmail) : false;
+    const passwordOk = expectedPassword ? timingSafeStringEquals(String(password ?? ""), expectedPassword) : false;
+    if (!expectedEmail || !expectedPassword || !emailOk || !passwordOk) {
       throw new Error("Invalid email or password.");
     }
+    await establishAdminSession();
+    return null;
+  });
+}
+
+/** Invalidates the admin session cookie server-side (idempotent). */
+export async function adminLogoutAction(): Promise<AdminActionResult<null>> {
+  return respond(async () => {
+    await destroyAdminSession();
     return null;
   });
 }
@@ -256,6 +306,15 @@ export async function deleteDayAction(courseId: string, weekId: string, dayId: s
 
 export async function reorderDaysAction(courseId: string, weekId: string, orderedIds: string[]): Promise<AdminActionResult<Lesson[]>> {
   return run(() => reorderAdminDays(courseId, weekId, orderedIds));
+}
+
+/**
+ * Transfer an existing Day to another Week of the same Course (Task 40H.2).
+ * Guarded by run() -> requireAdmin() exactly like delete/reorder; the
+ * service validates the Course/Week boundary before the repository writes.
+ */
+export async function moveDayAction(courseId: string, dayId: string, destinationWeekId: string): Promise<AdminActionResult<Lesson>> {
+  return run(() => moveAdminDay(courseId, dayId, destinationWeekId));
 }
 
 export async function saveDayContentAction(

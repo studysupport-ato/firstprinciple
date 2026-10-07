@@ -354,6 +354,42 @@ export async function reorderAdminDays(courseId: string, weekId: string, ordered
   return createCourseStructureAdminRepository().reorderDays(courseId, weekId, orderedIds);
 }
 
+/**
+ * Transfer an existing Day to another Week of the SAME Course (Task 40H.2).
+ *
+ * Validates the whole path server-side BEFORE any write: the Day must exist
+ * and belong to `courseId`, both Weeks must exist inside that Course, and the
+ * destination must differ from the Day's current Week. A destination Week that
+ * belongs to a different Course is rejected explicitly (cross-course transfers
+ * are never allowed). The repository then re-resolves and re-validates every
+ * id before mutating, and only `week_id` / `order_index` change — the Day id,
+ * content, questions, resources and progress rows all stay attached to the
+ * same Day.
+ */
+export async function moveAdminDay(courseId: string, dayId: string, destinationWeekId: string): Promise<Lesson> {
+  assertNonEmpty(courseId, "Course ID");
+  assertNonEmpty(dayId, "Day ID");
+  assertNonEmpty(destinationWeekId, "Destination Week ID");
+  const structure = createCourseStructureAdminRepository();
+  const day = await structure.getDayById(dayId);
+  if (!day) throw new Error(`Day ${dayId} was not found.`);
+  if (day.courseId !== courseId) throw new Error(`Day ${dayId} does not belong to Course ${courseId}.`);
+  if (day.weekId === destinationWeekId) throw new Error(`Day ${dayId} is already in Week ${destinationWeekId}.`);
+  const sourceWeek = await structure.getWeek(courseId, day.weekId);
+  if (!sourceWeek || sourceWeek.courseId !== courseId) throw new Error(`Source Week ${day.weekId} was not found in Course ${courseId}.`);
+  const destinationWeek = await structure.getWeek(courseId, destinationWeekId);
+  if (!destinationWeek) {
+    // Read-only distinction between "Week belongs to another Course" and
+    // "Week does not exist" so the admin sees an accurate error.
+    const allWeeks = await structure.listAllWeeks();
+    const foreign = allWeeks.find((week) => week.id === destinationWeekId);
+    if (foreign) throw new Error(`Week ${destinationWeekId} belongs to Course ${foreign.courseId}, not Course ${courseId}. Cross-course transfers are not allowed.`);
+    throw new Error(`Destination Week ${destinationWeekId} was not found.`);
+  }
+  if (destinationWeek.courseId !== courseId) throw new Error(`Week ${destinationWeekId} belongs to Course ${destinationWeek.courseId}, not Course ${courseId}. Cross-course transfers are not allowed.`);
+  return structure.moveDay(courseId, dayId, destinationWeekId);
+}
+
 /** Writes ONLY `days.content_blocks` for the scoped Day. */
 export async function saveAdminDayContent(courseId: string, weekId: string, dayId: string, blocks: ContentBlock[]): Promise<void> {
   validateDayBlocks(blocks);

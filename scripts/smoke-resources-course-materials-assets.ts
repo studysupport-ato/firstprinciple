@@ -11,7 +11,9 @@ async function main() {
   // states its privilege explicitly instead of inheriting an implicit default.
   const resources = createResourceRepository("supabase", createSupabaseAdminClient);
   const courseMaterials = createCourseMaterialsRepository("supabase");
-  const assets = createAssetRepository("supabase");
+  // Task 40G.7B: this script asserts on the full asset set, so it states its
+  // privilege explicitly instead of inheriting an implicit browser client.
+  const assets = createAssetRepository("supabase", createSupabaseAdminClient);
 
   const resourceRows = await resources.listResources();
   const placements = await resources.listPlacements();
