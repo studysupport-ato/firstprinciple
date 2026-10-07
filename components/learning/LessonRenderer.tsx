@@ -15,7 +15,7 @@ import { TextBlock } from "./blocks/TextBlock";
 import { WorkedExampleBlock } from "./blocks/WorkedExampleBlock";
 import { VisualizerBlock } from "./blocks/VisualizerBlock";
 
-function renderBlock(block: ContentBlock, assetsById?: Record<string, Asset>, questionsById?: Record<string, Question>) {
+export function renderBlock(block: ContentBlock, assetsById?: Record<string, Asset>, questionsById?: Record<string, Question>) {
   switch (block.type) {
     case "heading":
       return <HeadingBlock {...block} />;
