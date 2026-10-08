@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { Sidebar } from "@/components/platform/Sidebar";
 import { PreviewToolbar } from "@/components/platform/PreviewToolbar";
@@ -15,6 +16,26 @@ export default function PlatformLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authRedirectTo, setAuthRedirectTo] = useState<string | undefined>();
+  const pathname = usePathname();
+  const isLessonRoute = /\/lesson\//.test(pathname ?? "");
+  const collapsedBeforeLesson = useRef<boolean | null>(null);
+
+  // Entering a lesson folds the sidebar into a thin icon rail to give the board the room.
+  // Leaving the lesson restores whatever the learner had before.
+  useEffect(() => {
+    if (isLessonRoute) {
+      if (collapsedBeforeLesson.current === null) {
+        setSidebarCollapsed((current) => {
+          collapsedBeforeLesson.current = current;
+          return true;
+        });
+      }
+    } else if (collapsedBeforeLesson.current !== null) {
+      const previous = collapsedBeforeLesson.current;
+      collapsedBeforeLesson.current = null;
+      setSidebarCollapsed(previous);
+    }
+  }, [isLessonRoute]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -57,7 +78,7 @@ export default function PlatformLayout({
       />
 
       <main
-        className={`flex-1 relative ${sidebarCollapsed ? "ml-[104px]" : "ml-[224px]"} min-h-screen bg-[#FFC600] transition-[margin] duration-500 ease-in-out`}
+        className={`flex-1 relative ${sidebarCollapsed ? "ml-[68px]" : "ml-[224px]"} min-h-screen bg-[#FFC600] transition-[margin] duration-500 ease-in-out`}
       >
         <PreviewToolbar />
         {children}
