@@ -44,15 +44,15 @@ export function Sidebar({ collapsed, onToggle, onSignIn }: SidebarProps) {
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 ${collapsed ? "w-[104px]" : "w-[224px]"} z-20 flex flex-col bg-[#111111] p-5 text-white transition-[width] duration-200`}
+      className={`fixed inset-y-0 left-0 ${collapsed ? "w-[68px] px-2.5 py-4" : "w-[224px] p-5"} z-20 flex flex-col bg-[#111111] text-white transition-[width] duration-200`}
     >
-      <div className={`mb-8 flex items-center ${collapsed ? "justify-center" : "px-0"}`}>
+      <div className={`${collapsed ? "mb-6" : "mb-8"} flex items-center ${collapsed ? "justify-center" : "px-0"}`}>
         <Link href="/" className={`flex items-center ${collapsed ? "justify-center" : "w-full"}`} title="Back2Basics with Kwamina">
           {collapsed ? (
             <img
               src="/logobg.png"
               alt="Back2Basics with Kwamina"
-              className="h-10 w-10 rounded-xl object-cover"
+              className="h-9 w-9 rounded-lg object-cover"
             />
           ) : (
             <img
@@ -92,7 +92,7 @@ export function Sidebar({ collapsed, onToggle, onSignIn }: SidebarProps) {
           </Link>
         </nav>
 
-        <nav className="mt-10 flex flex-col gap-1.5">
+        <nav className={`${collapsed ? "mt-6" : "mt-10"} flex flex-col gap-1.5`}>
           {!collapsed && <div className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7a7a7a]">Performance</div>}
           <Link href="/progress" className={navItemClass("/progress")} title="Progress">
             <TrendingUp size={20} strokeWidth={2.5} />
