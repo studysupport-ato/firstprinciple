@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { readStudentDayProgressForCourses } from "@/lib/student/readProgress";
 import type { Course } from "@/lib/content/types/course";
 import type { PublishedCourseStructureSummary } from "@/lib/content/publishedStructure";
+import { useAuthSession } from "@/lib/auth/useAuthSession";
 
 type LibraryCourse = Course & { weeks: number; days: number };
 
@@ -75,7 +76,20 @@ export default function CourseLibraryClient({
   courses: Course[];
   structure: Record<string, PublishedCourseStructureSummary>;
 }) {
+  const { authenticated, student } = useAuthSession();
   const [progress, setProgress] = useState<Record<string, CourseProgress>>({});
+  const displayName = (student?.displayName ?? "").trim();
+  const profileLabel = authenticated === true ? (displayName || "Student") : "Sign in";
+  const profileSubLabel = authenticated === true ? "Student profile" : "Access your account";
+  const initials =
+    authenticated === true
+      ? displayName
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((part) => part[0]?.toUpperCase() ?? "")
+          .join("") || "S"
+      : "SI";
 
   useEffect(() => {
     let active = true;
@@ -151,17 +165,17 @@ export default function CourseLibraryClient({
               </div>
 
               <Link
-                href="/settings"
-                aria-label="Open profile settings"
-                title="Profile settings"
+                href={authenticated === true ? "/settings" : "/courses"}
+                aria-label={authenticated === true ? "Open profile settings" : "Sign in to your account"}
+                title={authenticated === true ? "Profile settings" : "Sign in"}
                 className="group flex items-center gap-2.5 rounded-full bg-black/[0.08] py-1 pl-1 pr-4 backdrop-blur-[2px]"
               >
                 <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#111111] text-[11px] font-black text-[#FFC700] transition-transform group-hover:scale-105">
-                  KM
+                  {initials}
                 </span>
                 <span className="hidden text-left sm:block">
-                  <span className="block font-sans text-[13px] font-bold leading-tight text-[#111111]">Kwame Mensah</span>
-                  <span className="block font-sans text-[11px] leading-tight text-[#111111]/55">Student profile</span>
+                  <span className="block font-sans text-[13px] font-bold leading-tight text-[#111111]">{profileLabel}</span>
+                  <span className="block font-sans text-[11px] leading-tight text-[#111111]/55">{profileSubLabel}</span>
                 </span>
               </Link>
             </div>

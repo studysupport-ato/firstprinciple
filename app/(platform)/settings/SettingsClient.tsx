@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { User, Bell, Shield, Monitor, LogOut, Check, Save, ChevronDown, Sparkles } from "lucide-react";
+import { User, Bell, Shield, Monitor, LogOut, Check, Save, ChevronDown, Sparkles, Pencil, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { resetStudentProgress } from "@/lib/progress";
 import { getStudentProfile, StudentProfile } from "@/lib/student/profileRepository";
-import { getSupabaseStudentProfile } from "@/lib/student/supabaseProfileRepository";
+import { getSupabaseStudentProfile, saveSupabaseStudentProfile } from "@/lib/student/supabaseProfileRepository";
 import { resolveAuthenticatedReadStudentId } from "@/lib/student/readIdentity";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getCurrentMockStudent, listMockStudents, loginMockStudent, logoutMockStudent, MockStudent } from "@/lib/auth/mock";
@@ -35,6 +35,12 @@ export default function SettingsPage() {
   const [streakReminders, setStreakReminders] = useState(true);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [currentMockStudent, setCurrentMockStudent] = useState<MockStudent | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const allStudents = listMockStudents();
 
   // Task 40C-4 — authoritative profile read.
@@ -64,6 +70,11 @@ export default function SettingsPage() {
           const loaded = await getSupabaseStudentProfile(createSupabaseBrowserClient(), studentId);
           if (cancelled) return;
           setProfile(loaded);
+          if (loaded) {
+            setEditName(loaded.fullName);
+            setEditEmail(loaded.email ?? "");
+            setEditPhone(loaded.phoneNumber);
+          }
         } catch (error) {
           console.error("[Back2Basics with Kwamina] Failed to load profile from Supabase", error);
           if (!cancelled) setProfile(null);
@@ -113,9 +124,43 @@ export default function SettingsPage() {
     }));
   }, [theme, density, reducedMotion, emailUpdates, streakReminders]);
 
-  const handleSave = () => {
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 2200);
+  const handleSave = async () => {
+    if (!profile) return;
+    const name = editName.trim();
+    if (!name) {
+      setEditError("Full name is required.");
+      return;
+    }
+    setSaving(true);
+    setEditError(null);
+    try {
+      const studentId = await resolveAuthenticatedReadStudentId();
+      if (!studentId) {
+        setEditError("Unable to resolve your student account. Please sign in again.");
+        setSaving(false);
+        return;
+      }
+      const updated = await saveSupabaseStudentProfile(createSupabaseBrowserClient(), studentId, {
+        fullName: name,
+        phoneNumber: editPhone,
+      });
+      setProfile(updated);
+      setIsEditing(false);
+      setSaved(true);
+      setNotice("Profile updated successfully.");
+      window.setTimeout(() => {
+        setSaved(false);
+        setNotice("");
+      }, 2200);
+    } catch (error) {
+      console.error("[Settings] Failed to save profile:", error);
+      const message = error instanceof Error ? error.message : "Failed to save profile. Please try again.";
+      setEditError(message);
+    } finally {
+      setSaving(false);
+      // Notify listening components that the profile now reflects the real name.
+      window.dispatchEvent(new CustomEvent("profile-updated"));
+    }
   };
 
   const showNotice = (message: string) => {
@@ -205,15 +250,101 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <div className="flex flex-col gap-2 md:col-span-2">
                 <label className="font-sans text-xs font-semibold uppercase tracking-widest text-[#666666]">Full Name</label>
-                <input type="text" value={profile?.fullName || ""} readOnly className="h-12 rounded-xl border border-[#E5E5E5] bg-transparent px-4 text-[#777777] outline-none cursor-not-allowed" />
+                {isEditing ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="h-12 rounded-xl border border-[#E5E5E5] bg-white px-4 text-[#111111] outline-none focus:border-[#FFBE00] focus:ring-1 focus:ring-[#FFBE00]"
+                      placeholder="Your display name"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditError(null);
+                        handleSave();
+                      }}
+                      disabled={saving}
+                      className="inline-flex h-12 items-center gap-1 rounded-full bg-[#111111] px-4 text-xs font-semibold text-white hover:bg-[#FFBE00] disabled:opacity-50"
+                    >
+                      {saving ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditError(null);
+                        setIsEditing(false);
+                      }}
+                      className="inline-flex h-12 items-center gap-1 rounded-full border border-[#E5E5E5] px-4 text-xs font-semibold text-[#666666] hover:bg-[#F5F5F4]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <input
+                      type="text"
+                      value={profile?.fullName || ""}
+                      readOnly
+                      className="h-12 rounded-xl border border-[#E5E5E5] bg-transparent px-4 text-[#111111] outline-none cursor-not-allowed"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditName(profile?.fullName ?? "");
+                        setEditEmail(profile?.email ?? "");
+                        setEditPhone("");
+                        setEditError(null);
+                        setIsEditing(true);
+                      }}
+                      className="inline-flex h-12 items-center gap-1 rounded-full border border-[#D9D9D9] px-4 text-xs font-semibold text-[#666666] hover:bg-[#F5F5F4]"
+                    >
+                      <Pencil size={13} /> Edit profile
+                    </button>
+                  </div>
+                )}
+                {editError && (
+                  <span className="text-xs font-medium text-[#E11D48] mt-1">{editError}</span>
+                )}
               </div>
               <div className="flex flex-col gap-2 md:col-span-2">
                 <label className="font-sans text-xs font-semibold uppercase tracking-widest text-[#666666]">Phone Number</label>
-                <input type="tel" value={profile?.phoneNumber || ""} readOnly className="h-12 rounded-xl border border-[#E5E5E5] bg-transparent px-4 text-[#777777] outline-none cursor-not-allowed" />
+                {isEditing ? (
+                  <input
+                    type="tel"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="h-12 rounded-xl border border-[#E5E5E5] bg-white px-4 text-[#111111] outline-none focus:border-[#FFBE00] focus:ring-1 focus:ring-[#FFBE00]"
+                    placeholder="Your phone number"
+                  />
+                ) : (
+                  <input
+                    type="tel"
+                    value={profile?.phoneNumber || ""}
+                    readOnly
+                    className="h-12 rounded-xl border border-[#E5E5E5] bg-transparent px-4 text-[#777777] outline-none cursor-not-allowed"
+                  />
+                )}
               </div>
               <div className="flex flex-col gap-2 md:col-span-2">
                 <label className="font-sans text-xs font-semibold uppercase tracking-widest text-[#666666]">Email Address</label>
-                <input type="email" value={profile?.email || ""} readOnly className="h-12 rounded-xl border border-[#E5E5E5] bg-transparent px-4 text-[#777777] outline-none cursor-not-allowed" />
+                {isEditing ? (
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="h-12 rounded-xl border border-[#E5E5E5] bg-white px-4 text-[#111111] outline-none focus:border-[#FFBE00] focus:ring-1 focus:ring-[#FFBE00]"
+                    placeholder="your.email@university.edu"
+                  />
+                ) : (
+                  <input
+                    type="email"
+                    value={profile?.email || ""}
+                    readOnly
+                    className="h-12 rounded-xl border border-[#E5E5E5] bg-transparent px-4 text-[#777777] outline-none cursor-not-allowed"
+                  />
+                )}
               </div>
             </div>
           </div>

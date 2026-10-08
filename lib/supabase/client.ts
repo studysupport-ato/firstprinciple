@@ -5,9 +5,14 @@ import type { Database } from "./types";
 
 let browserClient: SupabaseClient<Database> | null = null;
 
+export function resetSupabaseBrowserClient() {
+  browserClient = null;
+}
+
 /**
  * Single browser Supabase client used by the student auth layer and future browser repositories.
  * This keeps session state consistent and avoids creating competing clients in the same app session.
+ * Auth-state transitions reset the singleton so a fresh client is created after sign-in/sign-out.
  */
 export function createSupabaseBrowserClient(): SupabaseClient<Database> {
   if (browserClient) return browserClient;

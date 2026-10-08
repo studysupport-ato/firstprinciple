@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
 import { YouTubeEmbed } from "@/components/learning/YouTubeEmbed";
+import { useAuthSession } from "@/lib/auth/useAuthSession";
 import { getCourseMaterialVideoId, parseYouTubeVideoId } from "@/lib/youtube";
 import { createCourseMaterialsRepository, type CourseMaterialsRepository } from "@/lib/courseMaterialsRepository";
 import { type CourseMaterialEntry, type CourseMaterialsDepartment, type CourseMaterialsDirectory } from "@/lib/courseMaterials";
@@ -90,6 +91,20 @@ function getDeptInitials(name: string): string {
 // Shared by the department grid and the department detail view so both render an
 // identical frame.
 function CourseMaterialsChrome({ children }: { children: ReactNode }) {
+  const { authenticated, student } = useAuthSession();
+  const displayName = (student?.displayName ?? "").trim();
+  const profileLabel = authenticated === true ? (displayName || "Student") : "Sign in";
+  const profileSubLabel = authenticated === true ? "Student profile" : "Access your account";
+  const initials =
+    authenticated === true
+      ? displayName
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((part) => part[0]?.toUpperCase() ?? "")
+          .join("") || "S"
+      : "SI";
+
   return (
     <div className="relative min-h-screen overflow-x-clip bg-[#FFC700] pb-10">
       {/* BUILDING — true overflow: page-level, bleeds off the right edge, never clipped by a container */}
@@ -124,17 +139,17 @@ function CourseMaterialsChrome({ children }: { children: ReactNode }) {
               </div>
 
               <Link
-                href="/settings"
-                aria-label="Open profile settings"
-                title="Profile settings"
+                href={authenticated === true ? "/settings" : "/courses"}
+                aria-label={authenticated === true ? "Open profile settings" : "Sign in to your account"}
+                title={authenticated === true ? "Profile settings" : "Sign in"}
                 className="group flex items-center gap-2.5 rounded-full bg-black/[0.08] py-1 pl-1 pr-4 backdrop-blur-[2px]"
               >
                 <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#111111] text-[11px] font-black text-[#FFC700] transition-transform group-hover:scale-105">
-                  KM
+                  {initials}
                 </span>
                 <span className="hidden text-left sm:block">
-                  <span className="block font-sans text-[13px] font-bold leading-tight text-[#111111]">Kwame Mensah</span>
-                  <span className="block font-sans text-[11px] leading-tight text-[#111111]/55">Student profile</span>
+                  <span className="block font-sans text-[13px] font-bold leading-tight text-[#111111]">{profileLabel}</span>
+                  <span className="block font-sans text-[11px] leading-tight text-[#111111]/55">{profileSubLabel}</span>
                 </span>
               </Link>
             </div>

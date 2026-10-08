@@ -6,6 +6,8 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useAuthSession } from "@/lib/auth/useAuthSession";
 
 const TOUR_KEY = "first-principles-onboarding-v1";
+const FIRST_SIGNUP_KEY = "first-principles-first-signup-v1";
+const PROFILE_PROMPT_KEY = "first-principles-profile-prompt-v1";
 
 const STEPS = [
   {
@@ -44,30 +46,35 @@ export function OnboardingTour() {
     : { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const };
 
   useEffect(() => {
-    // Only check on the client
-    const currentTourKey = user ? `${TOUR_KEY}:${user.id}` : TOUR_KEY;
+    if (authenticated !== true || !user) return;
+
+    const currentTourKey = `${TOUR_KEY}:${user.id}`;
     const isCompleted = localStorage.getItem(currentTourKey) === "true";
     const urlParams = new URLSearchParams(window.location.search);
     const isPreview = urlParams.get("preview") === "1";
-    // ONLY trigger from explicit ?onboarding=true param — set by AuthModal after first login.
-    // Do NOT trigger just because the user is authenticated (that would fire on every return visit).
     const wantsOnboarding = urlParams.get("onboarding") === "true";
+    const signupPending =
+      localStorage.getItem(`${FIRST_SIGNUP_KEY}:${user.id}`) === "true" ||
+      localStorage.getItem(`${PROFILE_PROMPT_KEY}:${user.id}`) === "true";
     const isAdmin = pathname.startsWith("/admin");
     
-    // Only start on /courses, when the onboarding param is present, not completed, not preview, not admin
     if (
       pathname === "/courses" &&
       wantsOnboarding &&
+      signupPending &&
       !isCompleted &&
       !isPreview &&
       !isAdmin
     ) {
       const timer = setTimeout(() => {
+        setCurrentStep(0);
         setIsVisible(true);
-        // Clean the URL immediately so a refresh doesn't re-trigger
-        window.history.replaceState(null, '', pathname);
+        window.history.replaceState(null, "", pathname);
       }, 1000);
       return () => clearTimeout(timer);
+    }
+    if (pathname === "/courses" && wantsOnboarding && (isCompleted || !signupPending || isPreview)) {
+      window.history.replaceState(null, "", pathname);
     }
   }, [pathname, authenticated, user]);
 
@@ -102,9 +109,12 @@ export function OnboardingTour() {
   if (!isVisible) return null;
 
   const handleSkip = () => {
-    const currentTourKey = user ? `${TOUR_KEY}:${user.id}` : TOUR_KEY;
+    if (!user) return;
+    const currentTourKey = `${TOUR_KEY}:${user.id}`;
     localStorage.setItem(currentTourKey, "true");
+    localStorage.removeItem(`${FIRST_SIGNUP_KEY}:${user.id}`);
     setIsVisible(false);
+    window.dispatchEvent(new CustomEvent("onboarding-tour-completed"));
   };
 
 

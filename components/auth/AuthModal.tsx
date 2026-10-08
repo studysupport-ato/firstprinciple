@@ -2,20 +2,25 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, Layers, Sparkles, TrendingUp, X } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { BrandLogo } from "@/components/branding/BrandLogo";
+import { resolveAuthenticatedReadStudentId } from "@/lib/student/readIdentity";
+import { saveSupabaseStudentProfile } from "@/lib/student/supabaseProfileRepository";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type AuthMode = "login" | "signup";
 type AuthState = {
+  name: string;
   email: string;
   password: string;
   confirmPassword: string;
 };
 
 const defaultAuthState: AuthState = {
+  name: "",
   email: "",
   password: "",
   confirmPassword: "",
@@ -69,6 +74,7 @@ export function AuthModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -77,11 +83,10 @@ export function AuthModal({
     setError(null);
     setStatusMessage(null);
     setIsSubmitting(false);
+    setTermsAccepted(false);
   }, [open]);
 
-  const destination = redirectTo ?? "/courses?onboarding=true";
-
-  const finishLoginFlow = () => {
+  const finishLoginFlow = (destination: string) => {
     onClose();
     onSuccess?.(destination);
 
@@ -101,6 +106,7 @@ export function AuthModal({
 
     const email = form.email.trim();
     const password = form.password;
+    const name = form.name.trim();
 
     if (!email || !password) {
       setError("Email and password are required.");
@@ -113,6 +119,16 @@ export function AuthModal({
     }
 
     if (mode === "signup") {
+      if (!termsAccepted) {
+        setError("Please agree to the Terms and Conditions before creating an account.");
+        return;
+      }
+
+      if (!name) {
+        setError("Please enter your full name.");
+        return;
+      }
+
       if (password.length < 8) {
         setError("Password must be at least 8 characters long.");
         return;
@@ -136,20 +152,59 @@ export function AuthModal({
           throw new Error("Unable to establish an authenticated session.");
         }
 
+        const signupPending = data.user
+          ? localStorage.getItem(`first-principles-first-signup-v1:${data.user.id}`) === "true" ||
+            localStorage.getItem(`first-principles-profile-prompt-v1:${data.user.id}`) === "true"
+          : false;
+        const destination = signupPending ? "/courses?onboarding=true" : redirectTo ?? "/courses";
         setStatusMessage("Signing you in...");
-        setTimeout(() => finishLoginFlow(), 350);
+        setTimeout(() => finishLoginFlow(destination), 350);
         return;
       }
 
-      const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+      // `options.data` stores the name in auth user metadata; the canonical
+      // students row is written explicitly below because the student-creation
+      // trigger seeds display_name from the email prefix, not from metadata.
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { name } },
+      });
       if (signUpError) throw signUpError;
 
+      if (data.user) {
+        localStorage.setItem(`first-principles-first-signup-v1:${data.user.id}`, "true");
+        localStorage.setItem(`first-principles-profile-prompt-v1:${data.user.id}`, "true");
+      }
+
       if (data.session) {
+        // Email confirmation is disabled in this project, so signUp returns a
+        // live session. Persist the signup name to the canonical students row
+        // through the RLS-owned write boundary (auth.uid() -> auth_user_id).
+        // Non-blocking: if the profile write fails the account is still valid
+        // and the name can be corrected later in Settings.
+        if (name && data.user) {
+          try {
+            const studentId = await resolveAuthenticatedReadStudentId();
+            if (studentId) {
+              await saveSupabaseStudentProfile(supabase, studentId, { fullName: name });
+              // Drop any cached pre-write display_name so the dashboard
+              // greeting shows the real name without a full reload.
+              window.dispatchEvent(new CustomEvent("profile-updated"));
+            }
+          } catch (persistError) {
+            console.warn("[AuthModal] Could not persist signup name:", persistError);
+          }
+        }
+
+        const destination = "/courses?onboarding=true";
         setStatusMessage("Account created. Redirecting...");
-        setTimeout(() => finishLoginFlow(), 350);
+        setTimeout(() => finishLoginFlow(destination), 350);
         return;
       }
 
+      // Email confirmation is still enabled on the project: the user must
+      // verify before a session exists.
       setStatusMessage("Check your email to confirm your account before logging in.");
       setMode("login");
       setForm({ ...defaultAuthState, email });
@@ -316,14 +371,22 @@ export function AuthModal({
                         <div className="mb-4 flex rounded-full border border-[#E5E5E5] bg-[#F5F5F4] p-1">
                           <button
                             type="button"
-                            onClick={() => setMode("login")}
+                            onClick={() => {
+                              setMode("login");
+                              setTermsAccepted(false);
+                              setError(null);
+                            }}
                             className={`flex-1 rounded-full px-3 py-2 text-sm font-medium transition ${mode === "login" ? "bg-[#111111] text-white shadow-sm" : "text-[#666666]"}`}
                           >
                             Login
                           </button>
                           <button
                             type="button"
-                            onClick={() => setMode("signup")}
+                            onClick={() => {
+                              setMode("signup");
+                              setTermsAccepted(false);
+                              setError(null);
+                            }}
                             className={`flex-1 rounded-full px-3 py-2 text-sm font-medium transition ${mode === "signup" ? "bg-[#111111] text-white shadow-sm" : "text-[#666666]"}`}
                           >
                             Sign up
@@ -331,6 +394,24 @@ export function AuthModal({
                         </div>
 
                         <form className="space-y-4" onSubmit={handleSubmit}>
+                          {mode === "signup" ? (
+                            <div className="space-y-2">
+                              <label htmlFor="auth-name" className="text-[11px] font-sans font-bold uppercase tracking-[0.18em] text-[#666666]">
+                                Full name
+                              </label>
+                              <input
+                                id="auth-name"
+                                type="text"
+                                value={form.name}
+                                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                                className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3.5 py-3 text-sm text-[#111111] outline-none transition focus:border-[#111111]"
+                                placeholder="e.g. Ama Mensah"
+                                autoComplete="name"
+                                required
+                              />
+                            </div>
+                          ) : null}
+
                           <div className="space-y-2">
                             <label htmlFor="auth-email" className="text-[11px] font-sans font-bold uppercase tracking-[0.18em] text-[#666666]">
                               Email
@@ -379,6 +460,31 @@ export function AuthModal({
                                 required
                               />
                             </div>
+                          ) : null}
+
+                          {mode === "signup" ? (
+                            <label htmlFor="auth-terms" className="flex items-start gap-3 text-sm leading-6 text-[#4B4B4B]">
+                              <input
+                                id="auth-terms"
+                                type="checkbox"
+                                checked={termsAccepted}
+                                onChange={(event) => setTermsAccepted(event.target.checked)}
+                                required
+                                className="mt-1 h-4 w-4 shrink-0 accent-[#111111] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+                              />
+                              <span>
+                                I agree to the{" "}
+                                <Link
+                                  href="/terms"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-semibold text-[#111111] underline underline-offset-2"
+                                >
+                                  Terms and Conditions
+                                </Link>
+                                .
+                              </span>
+                            </label>
                           ) : null}
 
                           {error ? (

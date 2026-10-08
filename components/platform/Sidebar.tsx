@@ -78,15 +78,15 @@ export function Sidebar({ collapsed, onToggle, onSignIn }: SidebarProps) {
             <Compass size={20} strokeWidth={2.5} />
             {!collapsed && <span>Dashboard</span>}
           </Link>
-          <Link href="/courses" className={navItemClass("/courses")} title="Courses">
+          <Link href="/courses" data-tour="courses" className={navItemClass("/courses")} title="Courses">
             <BookOpen size={20} strokeWidth={2.5} />
             {!collapsed && <span>Courses</span>}
           </Link>
-          <Link href="/course-materials" className={navItemClass("/course-materials")} title="Course Materials">
+          <Link href="/course-materials" data-tour="course-materials" className={navItemClass("/course-materials")} title="Course Materials">
             <Library size={20} strokeWidth={2.5} />
             {!collapsed && <span>Course Materials</span>}
           </Link>
-          <Link href="/questions" className={navItemClass("/questions")} title="Questions">
+          <Link href="/questions" data-tour="questions" className={navItemClass("/questions")} title="Questions">
             <CircleHelp size={20} strokeWidth={2.5} />
             {!collapsed && <span>Questions</span>}
           </Link>
@@ -108,7 +108,7 @@ export function Sidebar({ collapsed, onToggle, onSignIn }: SidebarProps) {
       </div>
 
       <div className={`mt-auto border-t border-[#2a2a2a] pt-4 ${collapsed ? "flex flex-col items-center" : ""}`}>
-        <Link href="/settings" className={navItemClass("/settings")} title="Settings">
+        <Link href="/settings" data-tour="settings" className={navItemClass("/settings")} title="Settings">
           <Settings size={20} strokeWidth={2.5} />
           {!collapsed && <span>Settings</span>}
         </Link>
@@ -144,6 +144,11 @@ export function Sidebar({ collapsed, onToggle, onSignIn }: SidebarProps) {
             {!collapsed && <span>Sign in</span>}
           </button>
         ) : null}
+        {!collapsed && (
+          <p className="mt-4 px-[18px] text-[10px] font-medium tracking-wide text-[#7a7a7a]">
+            Built by <span className="font-semibold text-[#a3a3a3]">Kxy</span>
+          </p>
+        )}
       </div>
     </aside>
   );

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { createSupabaseBrowserClient, resetSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   clearAuthenticatedReadStudentCache,
   resolveAuthenticatedReadStudent,
@@ -63,8 +63,31 @@ export function useAuthSession(): AuthSessionState {
   const [student, setStudent] = useState<AuthStudent | null>(null);
   const [studentLoading, setStudentLoading] = useState(false);
 
+  // Listen for profile updates so the UI refreshes after Settings saves.
+  // The module cache must be reset first, otherwise fetchStudentOnce would
+  // return the stale pre-save student.
+  useEffect(() => {
+    const handleProfileUpdated = () => {
+      if (!user?.id) return;
+      resetStudentCache();
+      setStudentLoading(true);
+      void fetchStudentOnce(user.id).then((resolved) => {
+        setStudent(resolved);
+        setStudentLoading(false);
+      });
+    };
+    window.addEventListener("profile-updated", handleProfileUpdated);
+    return () => window.removeEventListener("profile-updated", handleProfileUpdated);
+  }, [user?.id]);
+
   const signOut = useCallback(async () => {
+    setSession(null);
+    setUser(null);
+    setAuthenticated(false);
+    setStudent(null);
+    setStudentLoading(false);
     resetStudentCache();
+    resetSupabaseBrowserClient();
     const client = createSupabaseBrowserClient();
     const { error } = await client.auth.signOut();
     if (error) {
@@ -95,6 +118,7 @@ export function useAuthSession(): AuthSessionState {
         }
       } else {
         resetStudentCache();
+        resetSupabaseBrowserClient();
         setStudent(null);
       }
 
@@ -121,6 +145,7 @@ export function useAuthSession(): AuthSessionState {
         });
       } else {
         resetStudentCache();
+        resetSupabaseBrowserClient();
         setStudent(null);
       }
     });
