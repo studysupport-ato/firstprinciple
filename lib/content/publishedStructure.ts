@@ -9,6 +9,40 @@ export type PublishedStructureResult<T> = { kind: "not-found" } | { kind: "succe
 
 function published<T extends { status?: string }>(value: T | undefined): value is T { return Boolean(value && value.status === "published"); }
 
+/**
+ * Structure-only Day read for the course page, roadmap and week list.
+ *
+ * These surfaces display id / title / description / week / order / status and
+ * nothing else, so `content_blocks` (the full lesson body, including every
+ * board visualizer's HTML) and `objectives` are deliberately NOT selected.
+ * A lesson's blocks are loaded only on that lesson's own page
+ * (`getPublishedDay`). The returned objects keep the `Lesson` shape with empty
+ * `blocks` / `objectives` so existing consumers are unchanged.
+ */
+const DAY_STRUCTURE_COLUMNS = "id, course_id, week_id, chapter_id, title, description, order_index, estimated_minutes, status";
+type DayStructureRow = { id: string; course_id: string; week_id: string; chapter_id: string | null; title: string; description: string; order_index: number; estimated_minutes: number; status: string };
+
+async function listDayStructure(clientFactory: ContentClientFactory | undefined, courseId: string, weekId?: string): Promise<Lesson[]> {
+  const client = (clientFactory ?? createSupabaseAdminClient)();
+  let query = client.from("days").select(DAY_STRUCTURE_COLUMNS).eq("course_id", courseId);
+  if (weekId) query = query.eq("week_id", weekId);
+  const { data, error } = await query.order("week_id", { ascending: true }).order("order_index", { ascending: true });
+  if (error) throw error;
+  return ((data ?? []) as DayStructureRow[]).map((row) => ({
+    id: row.id,
+    courseId: row.course_id,
+    chapterId: row.chapter_id ?? "",
+    weekId: row.week_id,
+    title: row.title,
+    description: row.description,
+    order: row.order_index,
+    estimatedMinutes: row.estimated_minutes,
+    objectives: [],
+    blocks: [],
+    status: row.status as Lesson["status"],
+  }));
+}
+
 export async function listPublishedCourses(clientFactory?: ContentClientFactory): Promise<Course[]> { return (await createCourseStructureServerRepository(clientFactory).listCourses()).filter(published); }
 
 export async function getPublishedCourse(courseId: string, clientFactory?: ContentClientFactory): Promise<PublishedStructureResult<Course>> {
@@ -20,7 +54,7 @@ export async function getPublishedRoadmap(courseId: string, clientFactory?: Cont
   const repository = createCourseStructureServerRepository(clientFactory);
   const course = await repository.getCourse(courseId);
   if (!published(course)) return { kind: "not-found" };
-  const [rawWeeks, rawDays] = await Promise.all([repository.listWeeksForCourse(courseId), repository.listDaysForCourse(courseId)]);
+  const [rawWeeks, rawDays] = await Promise.all([repository.listWeeksForCourse(courseId), listDayStructure(clientFactory, courseId)]);
   const weeks = rawWeeks.filter(published).sort((first, second) => first.weekNumber - second.weekNumber);
   const publishedWeekIds = new Set(weeks.map((week) => week.id));
   const dayEntries = rawDays.filter((day) => published(day) && publishedWeekIds.has(day.weekId)).reduce<Record<string, Lesson[]>>((groups, day) => {
@@ -41,7 +75,7 @@ export async function getPublishedWeek(courseId: string, weekReference: string, 
   const weeks = await repository.listWeeksForCourse(courseId);
   const week = weeks.find((candidate) => candidate.id === weekReference || String(candidate.weekNumber) === weekReference);
   if (!published(week)) return { kind: "not-found" };
-  const days = (await repository.listDaysForWeek(courseId, week.id)).filter(published);
+  const days = (await listDayStructure(clientFactory, courseId, week.id)).filter(published);
   return { kind: "success", value: { course, week, days } };
 }
 
