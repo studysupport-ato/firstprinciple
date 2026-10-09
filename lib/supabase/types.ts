@@ -70,8 +70,8 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["assets"]["Insert"]>;
       };
       students: {
-        Row: { id: string; auth_user_id: string | null; display_name: string; email: string | null; created_at: string; updated_at: string };
-        Insert: { id: string; auth_user_id?: string | null; display_name: string; email?: string | null; created_at?: string; updated_at?: string };
+        Row: { id: string; auth_user_id: string | null; display_name: string; email: string | null; phone_number: string | null; created_at: string; updated_at: string };
+        Insert: { id: string; auth_user_id?: string | null; display_name: string; email?: string | null; phone_number?: string | null; created_at?: string; updated_at?: string };
         Update: Partial<Database["public"]["Tables"]["students"]["Insert"]>;
       };
       student_day_progress: {

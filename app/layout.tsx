@@ -20,6 +20,11 @@ const newsreader = Newsreader({
 export const metadata: Metadata = {
   title: "Back2Basics with Kwamina | University Mathematics",
   description: "A premium interactive university learning platform.",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

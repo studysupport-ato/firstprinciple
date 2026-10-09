@@ -2,17 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { EducationalText } from "@/components/learning/EducationalText";
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
 import { ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { useAuthSession } from "@/lib/auth/useAuthSession";
-import { getActiveStudentId } from "@/lib/auth/mock";
-import { createProgressFactsRepository, type DayProgress } from "@/lib/progress";
+import { readStudentDayProgressMap } from "@/lib/student/readProgress";
+import type { DayProgress } from "@/lib/progress";
 import type { Course, Week } from "@/lib/content/types/course";
 import type { Lesson } from "@/lib/content/types/lesson";
 
-export default function WeekClient({ course, week, days }: { course: Course; week: Week; days: Lesson[] }) {
+export default function WeekClient({ course, week, days, preview = false }: { course: Course; week: Week; days: Lesson[]; preview?: boolean }) {
   const [dayProgress, setDayProgress] = useState<Record<string, DayProgress>>({});
   const { authenticated } = useAuthSession();
   const router = useRouter();
@@ -22,14 +23,15 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
 
   useEffect(() => {
     let active = true;
-    const repository = createProgressFactsRepository("local");
 
     void (async () => {
       try {
-        const studentId = getActiveStudentId();
-        const rows = await repository.listDayProgressForCourse(studentId, course.id);
+        // Task 40C-2: identical Supabase day-progress source as the Roadmap and
+        // Course Overview, so completion can never disagree between views.
+        // null when signed out -> public browsing shows the unpublished state.
+        const map = await readStudentDayProgressMap(course.id);
         if (!active) return;
-        setDayProgress(Object.fromEntries(rows.map((row) => [row.dayId, row])));
+        setDayProgress(map ?? {});
       } catch (error) {
         console.error("[Back2Basics with Kwamina] Failed to read day progress from Supabase", error);
         if (active) setDayProgress({});
@@ -52,7 +54,7 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
 
   function handleDayClick(event: React.MouseEvent, href: string) {
     // Preview mode: ?preview=1 is present — let the link through unconditionally.
-    if (new URLSearchParams(window.location.search).get("preview") === "1") return;
+    if (preview) return;
 
     // Authenticated: let the normal Link navigate.
     if (authenticated === true) return;
@@ -90,7 +92,7 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
           <div className="mb-5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#FFBE00]">
             {course.code} · Week {week.weekNumber}
           </div>
-          <h1 className="editorial-heading mb-5 text-5xl md:text-[5.5rem]">{week.title}</h1>
+          <h1 className="editorial-heading mb-5 text-5xl md:text-[5.5rem]"><EducationalText text={week.title} /></h1>
           <p className="editorial-body max-w-2xl text-lg leading-relaxed text-[#525252]">
             {week.description} Work through this week&apos;s published days.
           </p>
@@ -115,7 +117,8 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
       <div className="space-y-4">
         {days.map((day, index) => {
           const isComplete = dayProgress[day.id]?.status === "completed";
-          const href = `/courses/${course.id}/chapter/${day.chapterId}/lesson/${day.id}?week=${week.weekNumber}`;
+          const previewQuery = preview ? "&preview=1" : "";
+          const href = `/courses/${course.id}/chapter/${day.chapterId}/lesson/${day.id}?week=${week.weekNumber}${previewQuery}`;
 
           return (
             <AnimatedItem key={day.id} index={index} delay={0.06}>
@@ -135,8 +138,8 @@ export default function WeekClient({ course, week, days }: { course: Course; wee
                       </span>
                     ) : null}
                   </div>
-                  <h2 className="font-serif text-2xl text-[#111111] md:text-3xl">{day.title}</h2>
-                  <p className="mt-2 text-sm leading-relaxed text-[#666666]">{day.description}</p>
+                  <h2 className="font-serif text-2xl text-[#111111] md:text-3xl"><EducationalText text={day.title} /></h2>
+                  <p className="mt-2 text-sm leading-relaxed text-[#666666]"><EducationalText text={day.description} /></p>
                 </div>
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#E5E5E5] bg-transparent">
                   <ArrowRight size={15} />

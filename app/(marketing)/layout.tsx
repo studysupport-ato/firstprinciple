@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BuiltByKxy } from "@/components/marketing/BuiltByKxy";
+import { BrandLogo } from "@/components/branding/BrandLogo";
 import { AuthModal } from "@/components/auth/AuthModal";
 
 export default function MarketingLayout({
@@ -44,12 +45,7 @@ export default function MarketingLayout({
         }`}
       >
         <div className="flex min-w-0 items-center gap-3">
-          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-sm transition-colors duration-500 ${isSolid ? "bg-[#1A1714]" : "bg-white"}`}>
-            <span className={`text-[10px] font-black transition-colors duration-500 ${isSolid ? "text-white" : "text-[#1A1714]"}`}>B2</span>
-          </div>
-          <span className={`whitespace-nowrap font-serif text-lg font-medium tracking-tight transition-colors duration-500 ${isSolid ? "text-[#1A1714]" : "text-white"}`}>
-            Back2Basics with Kwamina
-          </span>
+          <BrandLogo className="h-10 w-48 rounded-sm" priority />
         </div>
 
         <nav className="hidden items-center gap-7 md:flex">

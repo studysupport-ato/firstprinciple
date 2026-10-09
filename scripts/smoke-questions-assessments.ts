@@ -1,11 +1,16 @@
 import { config } from "dotenv";
 import { createQuestionRepository } from "../lib/questions/repository";
 import { createAssessmentRepository } from "../lib/assessment/repository";
+import { createSupabaseAdminClient } from "../lib/supabase/client";
 
 config({ path: ".env.local" });
 
 async function main() {
-  const questionsRepository = createQuestionRepository("supabase");
+  // Task 40G.4: this read-only verification script runs outside a request scope,
+  // so there is no cookie session to bind. It explicitly requests the service-role
+  // client (the same privilege it always resolved implicitly) so it can assert on
+  // the full question set. Production student reads no longer use this path.
+  const questionsRepository = createQuestionRepository("supabase", createSupabaseAdminClient);
   const assessmentsRepository = createAssessmentRepository("supabase");
   const questions = await questionsRepository.listQuestions();
   const assessments = await assessmentsRepository.listAssessments();

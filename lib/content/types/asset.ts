@@ -1,5 +1,5 @@
 export type AssetType = "image" | "video" | "document" | "audio";
-export type AssetSourceKind = "local" | "external";
+export type AssetSourceKind = "local" | "managed" | "external";
 export type AssetStatus = "draft" | "ready" | "archived";
 
 export interface Asset {

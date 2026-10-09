@@ -2,15 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, CheckCircle2, UserRound, Phone, Mail } from "lucide-react";
+import { CheckCircle2, Phone } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { getStudentProfile, saveStudentProfile } from "@/lib/student/profileRepository";
+import { getStudentProfile, saveStudentProfile as saveLocalProfile } from "@/lib/student/profileRepository";
+import { saveSupabaseStudentProfile, getSupabaseStudentProfile } from "@/lib/student/supabaseProfileRepository";
+import { resolveAuthenticatedReadStudentId } from "@/lib/student/readIdentity";
 import { getActiveStudentId, getCurrentMockStudent } from "@/lib/auth/mock";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { useAuthSession } from "@/lib/auth/useAuthSession";
 
-const TOUR_KEY = "first-principles-onboarding-v1";
+function getProfilePromptKey(userId?: string) {
+  return userId ? `first-principles-profile-prompt-v1:${userId}` : "first-principles-profile-prompt-v1";
+}
+
+function getTourKey(userId: string) {
+  return `first-principles-onboarding-v1:${userId}`;
+}
 
 function validateGhanaPhoneNumber(phone: string): boolean {
   // Matches local format (e.g. 0241234567) or international format (e.g. +233241234567)
@@ -29,64 +36,76 @@ function normalizeGhanaPhoneNumber(phone: string): string {
 
 export function ProfileCompletionModal() {
   const [isVisible, setIsVisible] = useState(false);
-  const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [email, setEmail] = useState<string | null>(null);
   
-  const [errors, setErrors] = useState<{ fullName?: string; phoneNumber?: string }>({});
+  const [errors, setErrors] = useState<{ phoneNumber?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasDismissed, setHasDismissed] = useState(false); // temporary session dismiss
+  const [tourCompleted, setTourCompleted] = useState(false);
 
   const pathname = usePathname();
-  const { authenticated, student } = useAuthSession();
+  const { authenticated, user, student } = useAuthSession();
 
   useEffect(() => {
-    // Only check on client
+    if (!user) {
+      setTourCompleted(false);
+      return;
+    }
+
+    const syncTourState = () => {
+      setTourCompleted(localStorage.getItem(getTourKey(user.id)) === "true");
+    };
+    syncTourState();
+    window.addEventListener("onboarding-tour-completed", syncTourState);
+    return () => window.removeEventListener("onboarding-tour-completed", syncTourState);
+  }, [user]);
+
+  useEffect(() => {
     if (pathname !== "/courses") return;
     if (authenticated !== true) return;
-    if (hasDismissed) return;
+    if (!user || !tourCompleted) return;
+    let cancelled = false;
 
-    // Use student-aware onboarding key
-    const currentTourKey = student ? `${TOUR_KEY}:${student.studentId}` : TOUR_KEY;
-    const isTourCompleted = localStorage.getItem(currentTourKey) === "true";
-    const profile = getStudentProfile();
+    const promptKey = getProfilePromptKey(user?.id);
+    const shouldPrompt = localStorage.getItem(promptKey) === "true";
 
-    if (isTourCompleted && !profile) {
-      // Delay slightly so it doesn't instantly flash after tour closes
-      const timer = setTimeout(() => {
-        setIsVisible(true);
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [pathname, authenticated, hasDismissed, student]);
+    void (async () => {
+      try {
+        const studentId = await resolveAuthenticatedReadStudentId();
+        const profile = studentId
+          ? await getSupabaseStudentProfile(createSupabaseBrowserClient(), studentId)
+          : getStudentProfile();
+        const completed = Boolean(profile?.phoneNumber.trim());
+        if (cancelled) return;
 
-  useEffect(() => {
-    // Try email from mock student first, then Supabase if configured
-    if (isVisible && !email) {
-      const mockStudent = getCurrentMockStudent();
-      if (mockStudent?.email) {
-        setEmail(mockStudent.email);
-        return;
+        if (shouldPrompt && !completed) {
+          const timer = setTimeout(() => {
+            setIsVisible(true);
+          }, 600);
+          return () => clearTimeout(timer);
+        }
+
+        if (completed) {
+          localStorage.removeItem(promptKey);
+        }
+      } catch (error) {
+        console.error("[Back2Basics with Kwamina] Failed to check profile completion", error);
+        if (!cancelled && shouldPrompt) setIsVisible(true);
       }
-      if (isSupabaseConfigured()) {
-        const supabase = createSupabaseBrowserClient();
-        supabase.auth.getSession().then(({ data }) => {
-          if (data.session?.user?.email) {
-            setEmail(data.session.user.email);
-          }
-        });
-      }
-    }
-  }, [isVisible, email]);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, authenticated, tourCompleted, user]);
 
   const handleSubmit = (e: React.FormEvent) => {
+    void handleSubmitAsync(e);
+  };
+
+  const handleSubmitAsync = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const nextErrors: typeof errors = {};
-    if (!fullName.trim()) {
-      nextErrors.fullName = "Please enter your full name.";
-    }
-    
     if (!phoneNumber.trim()) {
       nextErrors.phoneNumber = "Please enter your phone number.";
     } else if (!validateGhanaPhoneNumber(phoneNumber)) {
@@ -100,31 +119,61 @@ export function ProfileCompletionModal() {
     
     // Normalize phone
     const normalizedPhone = normalizeGhanaPhoneNumber(phoneNumber);
-    
-    const now = new Date().toISOString();
-    const activeStudentId = getActiveStudentId();
-    // Pre-fill email from the mock student if not already loaded from Supabase
-    const resolvedEmail = email ?? getCurrentMockStudent()?.email ?? null;
-    saveStudentProfile({
-      studentId: activeStudentId,
-      fullName: fullName.trim(),
-      phoneNumber: normalizedPhone,
-      email: resolvedEmail,
-      profileCompleted: true,
-      createdAt: now,
-      updatedAt: now,
-    });
+
+    // Resolve the existing student record; signup already captured and saved
+    // the student's name. This prompt only collects the missing phone number.
+    if (authenticated === true) {
+      try {
+        const client = createSupabaseBrowserClient();
+        const studentId = await resolveAuthenticatedReadStudentId();
+        if (!studentId) {
+          setErrors({ phoneNumber: "Could not resolve your student account. Please sign in again." });
+          setIsSubmitting(false);
+          return;
+        }
+
+        const savedProfile = await saveSupabaseStudentProfile(client, studentId, { phoneNumber: normalizedPhone });
+        saveLocalProfile({
+          studentId,
+          fullName: savedProfile.fullName,
+          phoneNumber: normalizedPhone,
+          email: savedProfile.email ?? user?.email ?? null,
+          profileCompleted: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (profileError) {
+        setErrors({ phoneNumber: profileError instanceof Error ? profileError.message : "Could not save your phone number." });
+        setIsSubmitting(false);
+        return;
+      }
+    } else {
+      // No Supabase session: explicit demo/local mode only.
+      saveLocalProfile({
+        studentId: getActiveStudentId(),
+        fullName: student?.displayName ?? getCurrentMockStudent()?.fullName ?? "",
+        phoneNumber: normalizedPhone,
+        email: user?.email ?? getCurrentMockStudent()?.email ?? null,
+        profileCompleted: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    if (user?.id) {
+      localStorage.removeItem(getProfilePromptKey(user.id));
+    }
+
+    // Same contract as the Settings save path: tell useAuthSession to drop its
+    // module cache and re-read students.display_name so the dashboard greeting
+    // reflects the just-saved canonical name without a full page reload.
+    window.dispatchEvent(new CustomEvent("profile-updated"));
 
     // Briefly show success state then close
     setTimeout(() => {
       setIsVisible(false);
       setIsSubmitting(false);
     }, 400);
-  };
-
-  const handleDismiss = () => {
-    setHasDismissed(true);
-    setIsVisible(false);
   };
 
   return (
@@ -138,7 +187,6 @@ export function ProfileCompletionModal() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            onClick={handleDismiss}
           />
 
           {/* Modal Content */}
@@ -149,53 +197,18 @@ export function ProfileCompletionModal() {
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             role="dialog"
+            aria-modal="true"
             aria-labelledby="profile-modal-title"
           >
             <div className="p-8 md:p-10">
-              <button
-                type="button"
-                onClick={handleDismiss}
-                className="absolute top-6 right-6 p-2 rounded-full text-[#999999] hover:bg-[#F7F7F8] hover:text-[#111111] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFBE00]"
-                aria-label="Close profile setup"
-              >
-                <X size={18} />
-              </button>
-
               <div className="mb-8">
-                <h2 id="profile-modal-title" className="font-serif text-3xl text-[#111111] mb-3">
-                  Complete your profile
-                </h2>
+                <h2 id="profile-modal-title" className="font-serif text-3xl text-[#111111] mb-3">One last thing</h2>
                 <p className="font-sans text-sm text-[#666666] leading-relaxed">
-                  Just a few details so we know who we&apos;re helping. This helps us support you during your learning journey.
+                  Your name is already on your account. Add a phone number so we can provide student support and course updates.
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="fullName" className="text-xs font-bold uppercase tracking-widest text-[#777777]">
-                    Full Name
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#999999]">
-                      <UserRound size={16} />
-                    </div>
-                    <input
-                      id="fullName"
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => {
-                        setFullName(e.target.value);
-                        if (errors.fullName) setErrors({ ...errors, fullName: undefined });
-                      }}
-                      className={`w-full pl-10 pr-4 py-3 rounded-xl border ${errors.fullName ? "border-[#E11D48] bg-[#E11D48]/5" : "border-[#E5E5E5] bg-white"} text-sm text-[#111111] placeholder-[#999999] focus:outline-none focus:border-[#FFBE00] focus:ring-1 focus:ring-[#FFBE00] transition-all`}
-                      placeholder="e.g. Kwame Boateng"
-                    />
-                  </div>
-                  {errors.fullName && (
-                    <span className="text-xs font-medium text-[#E11D48] ml-1">{errors.fullName}</span>
-                  )}
-                </div>
-
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="phoneNumber" className="text-xs font-bold uppercase tracking-widest text-[#777777]">
                     Phone Number
@@ -224,26 +237,6 @@ export function ProfileCompletionModal() {
                   </p>
                 </div>
 
-                {email && (
-                  <div className="flex flex-col gap-1.5 opacity-70 cursor-not-allowed">
-                    <label htmlFor="emailDisplay" className="text-xs font-bold uppercase tracking-widest text-[#777777]">
-                      Email Address
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#999999]">
-                        <Mail size={16} />
-                      </div>
-                      <input
-                        id="emailDisplay"
-                        type="text"
-                        value={email}
-                        readOnly
-                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] text-sm text-[#666666] cursor-not-allowed"
-                      />
-                    </div>
-                  </div>
-                )}
-
                 <div className="mt-4">
                   <button
                     type="submit"
@@ -254,7 +247,7 @@ export function ProfileCompletionModal() {
                       "Saving..."
                     ) : (
                       <>
-                        Save profile <CheckCircle2 size={16} />
+                        Save phone number <CheckCircle2 size={16} />
                       </>
                     )}
                   </button>

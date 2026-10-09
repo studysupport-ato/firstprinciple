@@ -2,6 +2,9 @@
 
 import type { ReactNode } from "react";
 import { MathText } from "./MathText";
+import { EducationalText } from "../EducationalText";
+
+export { InlineMathText } from "../EducationalText";
 
 function safeHref(value: string) {
   const href = value.trim();
@@ -15,10 +18,11 @@ function safeHref(value: string) {
 }
 
 function inlineContent(value: string, keyPrefix: string): ReactNode[] {
-  const tokens = value.split(/(\$[^$\n]+\$|\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]]+\]\([^\)]+\))/g).filter(Boolean);
+  const tokens = value.split(/(\$\$[^$]+\$\$|\$[^$\n]+\$|\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]]+\]\([^\)]+\))/g).filter(Boolean);
 
   return tokens.map((token, index) => {
     const key = `${keyPrefix}-${index}`;
+    if (token.startsWith("$$") && token.endsWith("$$")) return <MathText key={key} math={token.slice(2, -2)} block />;
     if (token.startsWith("$") && token.endsWith("$")) return <MathText key={key} math={token.slice(1, -1)} />;
     if (token.startsWith("**") && token.endsWith("**")) return <strong key={key}>{inlineContent(token.slice(2, -2), key)}</strong>;
     if (token.startsWith("*") && token.endsWith("*")) return <em key={key}>{inlineContent(token.slice(1, -1), key)}</em>;
@@ -65,6 +69,22 @@ export function MarkdownBlock({ markdown }: { markdown: string }) {
       while (index < lines.length && !lines[index].trim().startsWith(fence)) { codeLines.push(lines[index]); index += 1; }
       if (index < lines.length) index += 1;
       output.push(<pre key={`code-${index}`} className="my-5 overflow-x-auto rounded-2xl bg-[#111111] p-4 font-mono text-sm leading-6 text-white"><code>{codeLines.join("\n")}</code></pre>);
+      continue;
+    }
+
+    if (line.trim() === "$$") {
+      const mathLines: string[] = [];
+      index += 1;
+      while (index < lines.length && lines[index].trim() !== "$$") {
+        mathLines.push(lines[index].trim());
+        index += 1;
+      }
+      if (index < lines.length) index += 1;
+      output.push(
+        <div key={`display-math-${index}`} className="my-4 max-w-full overflow-x-auto px-1">
+          <MathText math={mathLines.join("\n")} block />
+        </div>,
+      );
       continue;
     }
 

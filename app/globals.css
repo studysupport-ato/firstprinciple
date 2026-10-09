@@ -88,6 +88,14 @@
   .math-display {
     @apply font-serif text-xl tracking-wide;
   }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* GSAP SplitText utility - hides overflow for clean reveals */

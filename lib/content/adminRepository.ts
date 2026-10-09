@@ -4,6 +4,7 @@ import { createQuestionSupabaseRepository } from "../questions/repository";
 import { createAssessmentSupabaseRepository } from "../assessment/repository";
 import { createResourceSupabaseRepository } from "./resourceRepository";
 import { createCourseMaterialsSupabaseRepository } from "../courseMaterialsRepository";
+import { createAssetSupabaseRepository } from "./assetRepository";
 
 /**
  * ============================================================================
@@ -63,4 +64,8 @@ export function createResourceAdminRepository() {
 
 export function createCourseMaterialsAdminRepository() {
   return createCourseMaterialsSupabaseRepository(createSupabaseAdminClient);
+}
+
+export function createAssetAdminRepository() {
+  return createAssetSupabaseRepository(createSupabaseAdminClient);
 }

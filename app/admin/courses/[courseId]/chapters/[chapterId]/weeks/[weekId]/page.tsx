@@ -1,83 +1,38 @@
-import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
-import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
-import { getLessonsByWeek, getWeek } from "@/lib/content/access";
-import { ArrowRight, BookOpen, Clock3 } from "lucide-react";
-import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getAdminCourseStructureAction } from "@/lib/adminContentActions";
 
-export default async function AdminWeekDetailPage({
+/**
+ * Retired legacy chapter-routed Week page.
+ *
+ * This page previously rendered Days from `getWeek()` / `getLessonsByWeek()`
+ * (`lib/content/access.ts`), i.e. fixtures + localStorage overrides, so it never
+ * reflected the authoritative Supabase `days` table. That is why Days deleted in
+ * the canonical workspace kept reappearing here.
+ *
+ * Rather than maintaining a second, competing Week management UI, deep links are
+ * preserved by resolving the real Week through the same Supabase-backed admin
+ * structure the canonical page uses, then redirecting to it. The canonical Week
+ * page is addressed by `week_number`, which is why an id -> number lookup is
+ * needed rather than a plain string substitution.
+ *
+ * No second Day/delete/reorder implementation is introduced here.
+ */
+export default async function AdminLegacyWeekRedirect({
   params,
 }: {
   params: Promise<{ courseId: string; chapterId: string; weekId: string }>;
 }) {
-  const { courseId, chapterId, weekId } = await params;
-  const week = getWeek(weekId) ?? {
-    id: weekId,
-    courseId,
-    chapterIds: [chapterId],
-    title: "Week",
-    description: "Academic week overview.",
-    weekNumber: 1,
-    sessionIds: [],
-  };
-  const lessons = getLessonsByWeek(weekId);
+  const { courseId, weekId } = await params;
 
-  return (
-    <div>
-      <AdminPageHeader
-        title={`Week ${week.weekNumber}: ${week.title}`}
-        description={week.description}
-        breadcrumbs={[
-          { label: "Courses", href: "/admin/courses" },
-          { label: "MATH 151", href: `/admin/courses/${courseId}` },
-          { label: "Chapter", href: `/admin/courses/${courseId}/chapters/${chapterId}` },
-          { label: `Week ${week.weekNumber}` },
-        ]}
-      />
+  const courseHref = `/admin/courses/${encodeURIComponent(courseId)}`;
+  const res = await getAdminCourseStructureAction(courseId);
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-[24px] border border-[#E5E5E5] bg-white p-5 shadow-[0_8px_24px_rgba(17,17,17,0.02)]">
-          <div className="flex items-center justify-between">
-            <span className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">Lessons</span>
-            <BookOpen size={16} className="text-[#111111]" />
-          </div>
-          <div className="mt-6 font-serif text-4xl text-[#111111]">{lessons.length}</div>
-        </div>
+  // Authoritative read failed or the Week is unknown: fall back to the Course page
+  // rather than rendering anything fixture-derived.
+  if (!res.ok || !res.data) redirect(courseHref);
 
-        <div className="rounded-[24px] border border-[#E5E5E5] bg-white p-5 shadow-[0_8px_24px_rgba(17,17,17,0.02)]">
-          <div className="flex items-center justify-between">
-            <span className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">Sessions</span>
-            <Clock3 size={16} className="text-[#111111]" />
-          </div>
-          <div className="mt-6 font-serif text-4xl text-[#111111]">{week.sessionIds.length}</div>
-        </div>
+  const match = res.data.weeks.find((entry) => entry.week.id === weekId);
+  if (!match) redirect(courseHref);
 
-        <div className="rounded-[24px] border border-[#E5E5E5] bg-white p-5 shadow-[0_8px_24px_rgba(17,17,17,0.02)]">
-          <div className="flex items-center justify-between">
-            <span className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">Status</span>
-            <span className="text-[#111111]">•</span>
-          </div>
-          <div className="mt-4"><AdminStatusBadge status="Published" /></div>
-        </div>
-      </div>
-
-      <section className="mt-8 rounded-[28px] border border-[#E5E5E5] bg-white p-6 shadow-[0_8px_24px_rgba(17,17,17,0.02)]">
-        <div className="mb-6 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">Lessons in this week</div>
-        <div className="space-y-3">
-          {lessons.map((lesson) => (
-            <Link
-              key={lesson.id}
-              href={`/admin/courses/${courseId}/chapters/${chapterId}/weeks/${weekId}/lessons/${lesson.id}`}
-              className="flex items-center justify-between gap-4 rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] p-4 transition-colors hover:border-[#111111]"
-            >
-              <div>
-                <div className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">Lesson {lesson.order}</div>
-                <div className="mt-2 font-medium text-[#111111]">{lesson.title}</div>
-              </div>
-              <ArrowRight size={15} className="text-[#666666]" />
-            </Link>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
+  redirect(`/admin/courses/${encodeURIComponent(courseId)}/weeks/${match.week.weekNumber}`);
 }
