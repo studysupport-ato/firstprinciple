@@ -15,6 +15,8 @@ import type { Lesson } from "@/lib/content/types/lesson";
 import type { Asset } from "@/lib/content/types/asset";
 import type { Question } from "@/lib/content/types/question";
 
+const CHECK_MARKER = "data-b2b-check";
+
 export function LessonExperience({ lesson, courseId, preview, week, supplementaryResources, assetsById, questionsById }: { lesson: Lesson; courseId: string; preview: boolean; week?: string; supplementaryResources: LearningResource[]; assetsById?: Record<string, Asset>; questionsById?: Record<string, Question> }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [notesOpen, setNotesOpen] = useState(false);
@@ -30,11 +32,34 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
   const roadmapHref = week ? `/courses/${courseId}/roadmap/week/${week}` : `/courses/${courseId}/roadmap`;
   const weekLabel = week ? `Week ${week.replace("w", "")}` : "Week";
 
+  // After-lesson check: a board whose source carries CHECK_MARKER must be finished before the day can be
+  // completed. The board runs in a sandboxed iframe and reports completion with a postMessage.
+  const hasCheck = useMemo(() => lesson.blocks.some((block) => block.type === "visualizer" && typeof block.source === "string" && block.source.includes(CHECK_MARKER)), [lesson.blocks]);
+  const checkKey = `b2b-check-done:${lesson.id}`;
+  const [checkDone, setCheckDone] = useState(false);
+  useEffect(() => {
+    try { setCheckDone(window.localStorage.getItem(checkKey) === "1"); } catch { setCheckDone(false); }
+  }, [checkKey]);
+  useEffect(() => {
+    if (!hasCheck) return;
+    function onMessage(event: MessageEvent) {
+      const data = event.data as { type?: string; status?: string } | null;
+      if (!data || data.type !== "b2b-lesson-check" || data.status !== "complete") return;
+      setCheckDone(true);
+      try { window.localStorage.setItem(checkKey, "1"); } catch { /* storage unavailable: unlocked for this visit only */ }
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [hasCheck, checkKey]);
+  const completeLocked = hasCheck && !checkDone && !preview;
+
   const renderNavigation = (compact = false) => (
     <div className={`flex items-center justify-between border-t border-[#E5E5E5] bg-white ${compact ? "px-5 py-1.5" : "px-8 py-3"}`}>
       <button onClick={() => setCurrentStep((step) => Math.max(0, step - 1))} disabled={currentStep === 0} className="flex items-center gap-2 text-sm font-sans font-medium text-[#666666] transition-colors hover:text-[#111111] disabled:opacity-30"><ChevronLeft size={16} /> Previous</button>
       {!isComplete ? (
         <button onClick={() => setCurrentStep((step) => Math.min(totalSteps - 1, step + 1))} className={`flex items-center gap-2 rounded-full bg-[#111111] px-6 ${compact ? "py-2" : "py-3"} text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#FFBE00] hover:text-[#111111]`}>Continue <ChevronRight size={16} /></button>
+      ) : completeLocked ? (
+        <button type="button" disabled aria-disabled="true" className={`flex cursor-not-allowed items-center gap-2 rounded-full bg-[#E5E5E5] px-6 ${compact ? "py-2" : "py-3"} text-sm font-semibold text-[#555555]`}>Answer the check to complete the day</button>
       ) : (
         <Link href={roadmapHref} onClick={() => { if (!preview) completeDay(lesson.courseId, lesson.weekId, lesson.id); }}><span className={`flex items-center gap-2 rounded-full bg-[#059669] px-6 ${compact ? "py-2" : "py-3"} text-sm font-semibold text-white shadow-sm transition-transform hover:scale-105`}>Complete Day <CheckCircle2 size={16} /></span></Link>
       )}
