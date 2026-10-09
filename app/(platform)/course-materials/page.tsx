@@ -5,26 +5,18 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
-  Building2,
   BookOpenText,
   Bookmark,
-  CircuitBoard,
-  Cog,
-  Compass,
-  DraftingCompass,
-  Factory,
   FileText,
   FolderOpen,
   Globe,
-  Mountain,
   Play,
   Search,
-  Ship,
   X,
-  type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
+import { DepartmentDrawing } from "@/components/course-materials/DepartmentDrawing";
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
 import { YouTubeEmbed } from "@/components/learning/YouTubeEmbed";
 import { useAuthSession } from "@/lib/auth/useAuthSession";
@@ -87,34 +79,7 @@ function FilterPills({ label, options, value, onChange }: { label: string; optio
   );
 }
 
-const departmentBlueprintIcons: LucideIcon[] = [
-  CircuitBoard,
-  Cog,
-  Factory,
-  DraftingCompass,
-  Ship,
-  Building2,
-  Compass,
-  Mountain,
-];
-
-function DepartmentBlueprint({ name, index }: { name: string; index: number }) {
-  const normalizedName = name.toLowerCase();
-  const icon = normalizedName.includes("electrical") || normalizedName.includes("electronics")
-    ? CircuitBoard
-    : normalizedName.includes("mechanical")
-      ? Cog
-      : normalizedName.includes("petroleum")
-        ? Factory
-        : normalizedName.includes("geomatic")
-          ? DraftingCompass
-          : normalizedName.includes("marine")
-            ? Ship
-            : normalizedName.includes("civil")
-              ? Building2
-              : departmentBlueprintIcons[index % departmentBlueprintIcons.length];
-  const Icon = icon;
-
+function DepartmentBlueprint({ name }: { name: string }) {
   return (
     <div
       aria-hidden="true"
@@ -126,9 +91,9 @@ function DepartmentBlueprint({ name, index }: { name: string; index: number }) {
         maskImage: "linear-gradient(90deg, transparent 0%, #000 42%, #000 100%)",
       }}
     >
-      <Icon
-        className="absolute -right-1 top-1/2 h-36 w-36 -translate-y-1/2 text-white/30"
-        strokeWidth={0.65}
+      <DepartmentDrawing
+        name={name}
+        className="absolute -right-1 top-1/2 h-36 w-56 -translate-y-1/2 text-white/30"
       />
     </div>
   );
@@ -569,7 +534,7 @@ export default function CourseMaterialsPage() {
               return (
                 <AnimatedItem key={department.id} index={index} className="flex">
                   <article className="group relative flex min-h-[162px] w-full flex-col items-start overflow-hidden rounded-[22px] bg-[#171717] p-5 text-white shadow-[0_4px_12px_rgba(17,17,17,0.12)] transition-transform duration-300 hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0 md:p-[22px]">
-                    <DepartmentBlueprint name={department.name} index={index} />
+                    <DepartmentBlueprint name={department.name} />
                     <div className="relative z-10 flex min-h-full w-full flex-1 flex-col items-start">
                       <h2 className="relative z-10 max-w-[78%] font-serif text-[21px] font-bold leading-[1.12] tracking-[-0.02em] text-white md:text-[23px]">
                         {department.name}
