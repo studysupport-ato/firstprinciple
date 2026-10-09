@@ -1,20 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import {
-  ArrowLeft,
-  ArrowUpRight,
-  BookOpenText,
-  Bookmark,
-  FileText,
-  FolderOpen,
-  Globe,
-  Search,
-  X,
-} from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpenText, FileText, FolderOpen, Globe, Play, Search, X } from "lucide-react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
+import { DepartmentDrawing } from "@/components/course-materials/DepartmentDrawing";
 import { YouTubeEmbed } from "@/components/learning/YouTubeEmbed";
 import { useAuthSession } from "@/lib/auth/useAuthSession";
 import { getCourseMaterialVideoId, parseYouTubeVideoId } from "@/lib/youtube";
@@ -25,10 +16,19 @@ type MaterialType = "PDF Document" | "Lecture Slides" | "Past Questions" | "Vide
 
 type MaterialRow = CourseMaterialEntry & {
   type: MaterialType;
+  year: Year;
 };
 
-const RESOURCE_TYPES: Array<"ALL" | MaterialType> = ["ALL", "PDF Document", "Lecture Slides", "Past Questions", "Video Lecture", "External Link"];
-const BOOKMARK_STORAGE_KEY = "b2b-course-material-bookmarks-v1";
+type Year = 1 | 2 | 3 | 4;
+
+const GEORGIA: CSSProperties = { fontFamily: 'Georgia, "Times New Roman", serif' };
+const BODY_FONT: CSSProperties = { fontFamily: 'var(--font-inter), ui-sans-serif, system-ui, sans-serif' };
+const YEARS: Array<{ year: Year; label: string }> = [
+  { year: 1, label: "First year" },
+  { year: 2, label: "Second year" },
+  { year: 3, label: "Third year" },
+  { year: 4, label: "Fourth year" },
+];
 
 function deriveMaterialType(entry: CourseMaterialEntry): MaterialType {
   if (entry.kind === "youtube" || parseYouTubeVideoId(entry.url) || parseYouTubeVideoId(entry.provider)) return "Video Lecture";
@@ -41,49 +41,26 @@ function deriveMaterialType(entry: CourseMaterialEntry): MaterialType {
   return "External Link";
 }
 
+// KNUST course codes carry the year in the first digit of the number (ME 161 is a first-year course).
+// Materials without a course code stay in First year, where everything uploaded so far belongs.
+function deriveYear(entry: CourseMaterialEntry): Year {
+  const digit = entry.courseCode?.match(/\d/)?.[0];
+  const year = digit ? Number(digit) : 1;
+  return year >= 1 && year <= 4 ? (year as Year) : 1;
+}
+
 function getTypeIcon(type: MaterialType) {
   switch (type) {
-    case "PDF Document":
-      return <FileText className="h-4 w-4 text-red-500" />;
-    case "Lecture Slides":
-      return <BookOpenText className="h-4 w-4 text-amber-500" />;
-    case "Past Questions":
-      return <FileText className="h-4 w-4 text-indigo-500" />;
     case "Video Lecture":
-      return <Globe className="h-4 w-4 text-sky-500" />;
+      return <Play className="h-[18px] w-[18px] fill-[#141414] text-[#141414]" />;
+    case "Lecture Slides":
+      return <BookOpenText className="h-[18px] w-[18px] text-[#141414]" />;
+    case "PDF Document":
+    case "Past Questions":
+      return <FileText className="h-[18px] w-[18px] text-[#141414]" />;
     default:
-      return <Globe className="h-4 w-4 text-emerald-500" />;
+      return <Globe className="h-[18px] w-[18px] text-[#141414]" />;
   }
-}
-
-function FilterPills({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="mr-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#111111]/45">{label}</span>
-      {options.map((opt) => (
-        <button
-          key={opt}
-          type="button"
-          onClick={() => onChange(opt)}
-          className={`rounded-full px-[14px] py-[8px] text-[12px] font-bold transition ${
-            value === opt ? "bg-[#0e0e0e] text-[#FFC700]" : "border-[1.2px] border-black/50 text-[#0e0e0e] hover:bg-black/5"
-          }`}
-        >
-          {opt}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// Derive initials for the department icon placeholder
-function getDeptInitials(name: string): string {
-  return name
-    .split(" ")
-    .filter((w) => w.length > 2)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
 }
 
 // ─── Shared page chrome ────────────────────────────────────────────────────
@@ -106,7 +83,7 @@ function CourseMaterialsChrome({ children }: { children: ReactNode }) {
       : "SI";
 
   return (
-    <div className="relative min-h-screen overflow-x-clip bg-[#FFC700] pb-10">
+    <div className="relative min-h-screen overflow-x-clip bg-[#FFC700] pb-10" style={GEORGIA}>
       {/* BUILDING — true overflow: page-level, bleeds off the right edge, never clipped by a container */}
       <div
         aria-hidden
@@ -155,13 +132,13 @@ function CourseMaterialsChrome({ children }: { children: ReactNode }) {
             </div>
 
             <div className="relative mb-[10px]">
-              <p className="mb-[6px] mt-[26px] font-sans text-[15px] font-normal text-[#1d1d1d]">Your library,</p>
-              <h1 className="max-w-[560px] font-sans text-[46px] font-black leading-[1.0] tracking-[-0.01em] text-[#0c0c0c] max-[900px]:text-[30px]">
-                COURSE
-                <span className="block">MATERIALS.</span>
+              <p className="mb-[6px] mt-[26px] text-[17px] italic text-[#1d1d1d]">Your library,</p>
+              <h1 className="max-w-[560px] text-[52px] font-bold leading-[1.0] tracking-[-0.01em] text-[#0c0c0c] max-[900px]:text-[34px]">
+                Course
+                <span className="block">Materials.</span>
               </h1>
-              <p className="mb-[20px] mt-[12px] max-w-[470px] text-[13.5px] leading-[1.55] text-[#333]/75">
-                Browse resources by department. Find past questions, lecture slides and more.
+              <p className="mb-[20px] mt-[12px] max-w-[470px] text-[16px] leading-[1.55] text-[#3a3000]">
+                Pick your department, then your year.
               </p>
             </div>
 
@@ -176,12 +153,10 @@ function CourseMaterialsChrome({ children }: { children: ReactNode }) {
 export default function CourseMaterialsPage() {
   const [directory, setDirectory] = useState<CourseMaterialsDirectory>({ departments: [], entries: [] });
   const [query, setQuery] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState("ALL");
-  const [typeFilter, setTypeFilter] = useState<"ALL" | MaterialType>("ALL");
-  const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
-  const [bookmarks, setBookmarks] = useState<string[]>([]);
-  const [selectedMaterial, setSelectedMaterial] = useState<MaterialRow | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<CourseMaterialsDepartment | null>(null);
+  const [selectedYear, setSelectedYear] = useState<Year>(1);
+  const [poppedId, setPoppedId] = useState<string | null>(null);
+  const [openVideoId, setOpenVideoId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -216,384 +191,239 @@ export default function CourseMaterialsPage() {
 
     void loadDirectory();
 
-    try {
-      const saved = JSON.parse(window.localStorage.getItem(BOOKMARK_STORAGE_KEY) ?? "[]");
-      setBookmarks(Array.isArray(saved) ? saved.filter((value): value is string => typeof value === "string") : []);
-    } catch {
-      setBookmarks([]);
-    }
-
     return () => {
       active = false;
     };
   }, [repository]);
 
-  useEffect(() => {
-    if (!ready) return;
-    window.localStorage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(bookmarks));
-  }, [bookmarks, ready]);
+  const publishedDepartments = useMemo(
+    () => directory.departments.filter((department) => department.status === "published"),
+    [directory.departments],
+  );
 
   const rows = useMemo<MaterialRow[]>(() => {
     return directory.entries
-      .filter((entry) => directory.departments.some((department) => department.id === entry.departmentId && department.status === "published"))
-      .map((entry) => ({ ...entry, type: deriveMaterialType(entry) }));
-  }, [directory]);
+      .filter((entry) => publishedDepartments.some((department) => department.id === entry.departmentId))
+      .map((entry) => ({ ...entry, type: deriveMaterialType(entry), year: deriveYear(entry) }));
+  }, [directory.entries, publishedDepartments]);
 
-  const filteredRows = useMemo(() => {
+  const visibleDepartments = useMemo(() => {
     const normalized = query.trim().toLowerCase();
+    if (!normalized) return publishedDepartments;
+    return publishedDepartments.filter((department) => `${department.name} ${department.shortName ?? ""}`.toLowerCase().includes(normalized));
+  }, [publishedDepartments, query]);
 
-    return rows.filter((entry) => {
-      const department = directory.departments.find((item) => item.id === entry.departmentId);
-      const inDepartment = departmentFilter === "ALL" || department?.name === departmentFilter;
-      const inType = typeFilter === "ALL" || entry.type === typeFilter;
-      const isBookmarked = bookmarks.includes(entry.id);
-      const matchesText =
-        !normalized ||
-        `${department?.name ?? ""} ${department?.shortName ?? ""} ${entry.courseCode ?? ""} ${entry.courseTitle} ${entry.provider ?? ""} ${entry.description ?? ""}`
-          .toLowerCase()
-          .includes(normalized);
-
-      return inDepartment && inType && (!showBookmarksOnly || isBookmarked) && matchesText;
-    });
-  }, [bookmarks, departmentFilter, directory.departments, query, rows, showBookmarksOnly, typeFilter]);
-
-  // For the department card view: group entries by department
-  const departmentsWithEntries = useMemo(
-    () =>
-      directory.departments
-        .filter((d) => d.status === "published")
-        .map((department) => ({
-          department,
-          entries: rows.filter((entry) => entry.departmentId === department.id),
-          filteredEntries: filteredRows.filter((entry) => entry.departmentId === department.id),
-        })),
-    [directory.departments, rows, filteredRows],
-  );
-
-  // Departments matching search that have at least 1 material
-  const departmentNames = useMemo(
-    () =>
-      directory.departments
-        .filter((d) => d.status === "published")
-        .map((d) => d.name),
-    [directory]
-  );
-
-  const visibleDepartments = useMemo(
-    () =>
-      departmentsWithEntries.filter(({ department, filteredEntries }) => {
-        if (filteredEntries.length === 0 && (query || showBookmarksOnly || typeFilter !== "ALL")) return false;
-        if (departmentFilter !== "ALL" && department.name !== departmentFilter) return false;
-        if (filteredEntries.length === 0 && !query && !showBookmarksOnly && typeFilter === "ALL") return true; // show even empty unless filtered
-        return true;
-      }),
-    [departmentsWithEntries, query, showBookmarksOnly, typeFilter, departmentFilter],
-  );
-
-  function clearFilters() {
-    setQuery("");
-    setDepartmentFilter("ALL");
-    setTypeFilter("ALL");
-    setShowBookmarksOnly(false);
+  function openDepartment(department: CourseMaterialsDepartment) {
+    setSelectedDepartment(department);
+    setSelectedYear(1);
+    setOpenVideoId(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function toggleBookmark(materialId: string) {
-    setBookmarks((current) => (current.includes(materialId) ? current.filter((id) => id !== materialId) : [...current, materialId]));
-  }
-
-  const activeFilters = [
-    showBookmarksOnly ? "Saved only" : null,
-    departmentFilter !== "ALL" ? departmentFilter : null,
-    typeFilter !== "ALL" ? typeFilter : null,
-    query ? `Query: "${query}"` : null,
-  ].filter(Boolean) as string[];
-
-  // ─── Department detail panel ───────────────────────────────────────────────
+  // ─── Inside a department: year groups ─────────────────────────────────────
   if (selectedDepartment) {
-    const deptEntries = filteredRows.filter((e) => e.departmentId === selectedDepartment.id);
-    const deptInitials = getDeptInitials(selectedDepartment.name);
+    const departmentRows = rows.filter((entry) => entry.departmentId === selectedDepartment.id);
+    const yearRows = departmentRows.filter((entry) => entry.year === selectedYear);
+    const selectedYearLabel = YEARS.find((item) => item.year === selectedYear)?.label ?? "First year";
 
     return (
       <CourseMaterialsChrome>
         <button
           type="button"
           onClick={() => setSelectedDepartment(null)}
-          className="inline-flex items-center gap-2 rounded-full border-[1.2px] border-black/50 px-[16px] py-[9px] text-[12px] font-bold text-[#0e0e0e] transition hover:bg-black/5"
+          className="inline-flex min-h-[44px] items-center gap-2 rounded-full border-[1.5px] border-black/60 px-[18px] text-[15px] font-bold text-[#0e0e0e] transition hover:bg-black/5"
         >
-          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.4} />
-          Back to Departments
+          <ArrowLeft className="h-4 w-4" strokeWidth={2.4} />
+          All departments
         </button>
 
-        <div className="mt-4 rounded-[20px] bg-white px-[20px] pb-[20px] pt-[18px] shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-          <div className="flex flex-wrap items-start gap-4">
-            <div className="flex h-[74px] w-[74px] shrink-0 items-center justify-center rounded-[20px] bg-[#FCF5E3] ring-1 ring-[#F2E6C6]">
-              <span className="text-[22px] font-black tracking-tight text-[#121212]">{deptInitials}</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="inline-flex w-fit items-center rounded-full bg-[#FDF0C6] px-[13px] py-[6px] text-[10.5px] font-black uppercase tracking-[0.16em] text-[#C2891B]">
-                {selectedDepartment.shortName ?? "DEPT"}
-              </div>
-              <h2 className="mt-[12px] font-sans text-[24px] font-extrabold leading-[1.15] tracking-[-0.015em] text-[#141414]">
-                {selectedDepartment.name}
-              </h2>
-            </div>
-          </div>
+        <h2 className="mt-5 text-[40px] font-bold leading-[1.05] tracking-[-0.01em] text-[#141414] max-[900px]:text-[30px]">
+          {selectedDepartment.name}
+        </h2>
 
-          <p className="mt-[16px] text-[14px] leading-[1.6] text-[#111111]/55">
-            {selectedDepartment.description ?? `Explore the academic excellence and innovative initiatives of the ${selectedDepartment.name} at KNUST.`}
-          </p>
-
-          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[#111111]/10 pt-4">
-            <div className="flex items-center gap-2 rounded-full bg-[#111111] px-4 py-2.5 text-[12.5px] font-black text-[#FFC700]">
-              {deptEntries.length} {deptEntries.length === 1 ? "Resource" : "Resources"}
-            </div>
-            <FilterPills
-              label="Type"
-              options={RESOURCE_TYPES}
-              value={typeFilter}
-              onChange={(v) => setTypeFilter(v as "ALL" | MaterialType)}
-            />
-          </div>
+        <div role="tablist" aria-label="Year" className="mt-5 grid grid-cols-2 gap-[10px] md:grid-cols-4">
+          {YEARS.map(({ year, label }) => {
+            const count = departmentRows.filter((entry) => entry.year === year).length;
+            const selected = year === selectedYear;
+            return (
+              <button
+                key={year}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => {
+                  setSelectedYear(year);
+                  setOpenVideoId(null);
+                }}
+                className={`min-h-[76px] rounded-[16px] border-2 px-[18px] py-[14px] text-left transition ${
+                  selected ? "border-[#141414] bg-[#141414] text-white" : "border-transparent bg-white text-[#141414] hover:border-[#141414]"
+                }`}
+              >
+                <span className="block text-[19px] font-bold">{label}</span>
+                <span className="mt-1 block text-[14px] italic opacity-75">
+                  {count} {count === 1 ? "material" : "materials"}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        {deptEntries.length === 0 ? (
-          <div className="mt-4 rounded-[20px] border border-dashed border-[#111111]/30 bg-white p-12 text-center shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-            <FolderOpen className="mx-auto h-10 w-10 text-[#111111]/30" />
-            <h3 className="mt-5 font-black text-[#111111]">No materials found</h3>
-            <p className="mx-auto mt-2 max-w-sm text-sm font-medium text-[#111111]/65">
-              No resources match this filter for {selectedDepartment.shortName ?? selectedDepartment.name} yet.
-            </p>
-          </div>
-        ) : (
-          <div className="mt-4 grid gap-[22px] md:grid-cols-2 xl:grid-cols-3">
-            {deptEntries.map((entry, index) => {
-              const isSaved = bookmarks.includes(entry.id);
-              const videoId = getCourseMaterialVideoId(entry);
+        <section aria-live="polite" className="mt-4 rounded-[20px] bg-white p-[22px] shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+          <h3 className="mb-2 text-[22px] font-bold text-[#141414]">{selectedYearLabel}</h3>
 
-              return (
-                <AnimatedItem key={entry.id} index={index} className="flex">
-                  <article className="group relative flex w-full flex-col justify-between overflow-hidden rounded-[26px] border border-black/[0.05] bg-white p-[28px] shadow-[0_2px_10px_rgba(16,16,16,0.06)] transition-[transform,box-shadow,border-color] duration-300 ease-out will-change-transform hover:-translate-y-[8px] hover:border-black/[0.09] hover:shadow-[0_30px_60px_-22px_rgba(16,16,16,0.35)] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
-                    {/* Yellow accent bar that grows across the top on hover */}
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute left-0 top-0 h-[4px] w-0 rounded-r-full bg-[#FFC700] transition-[width] duration-500 ease-out group-hover:w-full"
-                    />
-
-                    <div className="relative">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#FCF5E3] ring-1 ring-[#F2E6C6]">
-                            {getTypeIcon(entry.type)}
-                          </span>
-                          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-[#C2891B]">{entry.type}</span>
-                        </div>
+          {!ready ? (
+            <p className="border-t border-[#ECE7D6] py-8 text-center text-[16px] italic text-[#5c5c5c]">Loading materials…</p>
+          ) : yearRows.length === 0 ? (
+            <div className="border-t border-[#ECE7D6] px-1 py-9 text-center">
+              <FolderOpen className="mx-auto h-9 w-9 text-[#141414]/30" />
+              <p className="mt-3 text-[18px] font-bold text-[#141414]">Nothing here yet.</p>
+              <p className="mt-1 text-[15px] text-[#5c5c5c]">Materials for this year will appear here once they are added.</p>
+            </div>
+          ) : (
+            <ul className="m-0 list-none p-0">
+              {yearRows.map((entry) => {
+                const videoId = getCourseMaterialVideoId(entry);
+                const isVideo = Boolean(videoId);
+                const isOpen = isVideo && openVideoId === entry.id;
+                const meta = entry.courseCode ? `${entry.type} · ${entry.courseCode}` : entry.type;
+                return (
+                  <li key={entry.id} className="border-t border-[#ECE7D6] py-3">
+                    <div className="flex items-center gap-4 px-1">
+                      <span
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] ${isVideo ? "bg-[#FFC700]" : "bg-[#FFF3C4]"}`}
+                      >
+                        {getTypeIcon(entry.type)}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[14px] italic text-[#5c5c5c]">{meta}</div>
+                        <div className="mt-0.5 text-[17px] font-bold leading-snug text-[#141414]">{entry.courseTitle}</div>
+                      </div>
+                      {isVideo ? (
                         <button
                           type="button"
-                          onClick={() => toggleBookmark(entry.id)}
-                          aria-label={isSaved ? "Remove from saved materials" : "Save this material"}
-                          title={isSaved ? "Remove from saved" : "Save material"}
-                          className="rounded-full p-1.5 transition hover:bg-black/5"
+                          aria-expanded={isOpen}
+                          onClick={() => setOpenVideoId(isOpen ? null : entry.id)}
+                          className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full bg-[#141414] px-[18px] text-[14px] font-bold text-white transition hover:bg-black"
                         >
-                          <Bookmark className={`h-4 w-4 ${isSaved ? "fill-[#C2891B] text-[#C2891B]" : "text-[#111111]/30"}`} />
+                          {isOpen ? "Close" : "Watch"}
                         </button>
-                      </div>
-
-                      {entry.courseCode ? (
-                        <span className="mt-[18px] block text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#111111]/35">
-                          {entry.courseCode}
-                        </span>
-                      ) : null}
-
-                      <h3 className="mt-[8px] font-sans text-[20px] font-extrabold leading-[1.2] tracking-[-0.015em] text-[#141414]">
-                        {entry.courseTitle}
-                      </h3>
-                      <p className="mt-[14px] line-clamp-3 text-[14px] leading-[1.6] text-[#111111]/55">
-                        {entry.description ?? "Course material resource for this department."}
-                      </p>
-
-                      {videoId ? (
-                        <div className="mt-[18px]">
-                          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-[#FFC700]/25 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#7a5b00]">
-                            YouTube video · plays here
-                          </div>
-                          <YouTubeEmbed videoId={videoId} title={entry.courseTitle} />
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="relative mt-[24px] flex items-center justify-between gap-3 border-t border-[#111111]/10 pt-[18px]">
-                      <span className="text-[12px] font-medium text-[#111111]/45">{videoId ? "YouTube" : entry.provider ?? "Academic source"}</span>
-                      {videoId ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0B0B0F] px-[18px] py-[11px] text-[13px] font-extrabold tracking-[-0.01em] text-white">
-                          Embedded above
-                        </span>
                       ) : (
-                      <a
-                        href={entry.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-full bg-[#0B0B0F] px-[18px] py-[11px] text-[13px] font-extrabold tracking-[-0.01em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] transition-[transform,background-color,box-shadow] duration-300 ease-out hover:bg-[#1b1b23] hover:shadow-[0_18px_32px_-16px_rgba(11,11,15,0.95)]"
-                      >
-                        Open <ArrowUpRight className="h-3.5 w-3.5" />
-                      </a>
+                        <a
+                          href={entry.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full bg-[#141414] px-[18px] text-[14px] font-bold text-white transition hover:bg-black"
+                        >
+                          Open <ArrowUpRight className="h-3.5 w-3.5" />
+                        </a>
                       )}
                     </div>
-                  </article>
-                </AnimatedItem>
-              );
-            })}
-          </div>
-        )}
+                    {isOpen && videoId ? (
+                      <div className="mt-3 px-1">
+                        {entry.description ? (
+                          <p className="mb-3 max-w-[70ch] text-[15px] leading-[1.6] text-[#333]" style={BODY_FONT}>
+                            {entry.description}
+                          </p>
+                        ) : null}
+                        <YouTubeEmbed videoId={videoId} title={entry.courseTitle} />
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       </CourseMaterialsChrome>
     );
   }
 
-  // ─── Department card grid (main view) ─────────────────────────────────────
+  // ─── Department tiles (main view) ─────────────────────────────────────────
   return (
     <CourseMaterialsChrome>
-      <div className="rounded-[20px] bg-white px-[20px] pb-[20px] pt-[18px] shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-        <div className="relative">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#111111]/60" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search departments by name or abbreviation..."
-              className="w-full rounded-full border border-[#111111]/15 bg-white/75 py-3.5 pl-11 pr-10 text-sm font-medium text-[#111111] shadow-sm outline-none placeholder:text-[#111111]/45"
-              aria-label="Search course materials"
-            />
-            {query ? (
-              <button type="button" onClick={() => setQuery("")} className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-[#111111]/10 text-[#111111]/60 transition hover:bg-[#111111]/20" aria-label="Clear search">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            ) : null}
-          </div>
+      <div className="flex items-center gap-3 rounded-[18px] bg-white py-[10px] pl-[18px] pr-[10px] shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+        <Search className="h-5 w-5 shrink-0 text-[#5c5c5c]" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search departments"
+          className="min-w-0 flex-1 bg-transparent py-3 text-[17px] text-[#141414] outline-none placeholder:text-[#141414]/45"
+          aria-label="Search departments"
+        />
+        {query ? (
+          <button type="button" onClick={() => setQuery("")} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#141414]/10 text-[#141414]/70 transition hover:bg-[#141414]/20" aria-label="Clear search">
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
+        <span className="whitespace-nowrap px-2 text-[15px] italic text-[#5c5c5c] max-[600px]:hidden">
+          {publishedDepartments.length} departments
+        </span>
+      </div>
 
-          <div className="flex flex-wrap items-center gap-3 border-t border-[#111111]/10 pt-4">
-            <div className="flex items-center gap-2 rounded-full bg-[#111111] px-4 py-2.5 text-[12.5px] font-black text-[#FFC700]">
-              {directory.departments.filter((d) => d.status === "published").length} Departments
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowBookmarksOnly((c) => !c)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-[16px] py-[9px] text-[12px] font-bold transition ${
-                showBookmarksOnly ? "bg-[#0e0e0e] text-[#FFC700]" : "border-[1.2px] border-black/50 text-[#0e0e0e] hover:bg-black/5"
-              }`}
-            >
-              <Bookmark className={`h-3.5 w-3.5 ${showBookmarksOnly ? "fill-current" : ""}`} />
-              Saved
-            </button>
-            <FilterPills
-              label="Type"
-              options={RESOURCE_TYPES}
-              value={typeFilter}
-              onChange={(v) => setTypeFilter(v as "ALL" | MaterialType)}
-            />
-          </div>
+      {!ready ? (
+        <div className="mt-4 rounded-[20px] bg-white p-10 text-center text-[16px] italic text-[#141414]/65">Loading departments…</div>
+      ) : error ? (
+        <div className="mt-4 rounded-[20px] bg-white p-10 text-center">
+          <h3 className="text-[18px] font-bold text-[#141414]">Course materials unavailable</h3>
+          <p className="mt-2 text-[15px] text-[#141414]/65">{error}</p>
         </div>
-
-        {activeFilters.length > 0 && (
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#111111]/10 pt-4 text-xs">
-            <span className="font-black text-[#111111]">Filters:</span>
-            {activeFilters.map((f) => (
-              <span key={f} className="rounded-full bg-[#111111]/5 px-2.5 py-1 font-bold text-[#111111]">
-                {f}
-              </span>
-            ))}
-            <button type="button" onClick={clearFilters} className="font-black text-[#111111] underline underline-offset-2">
-              Reset All
-            </button>
-          </div>
-        )}
-
-        {!ready ? (
-          <div className="mt-4 rounded-[20px] bg-white p-10 text-center font-bold text-[#111111]/65 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-            Loading departments...
-          </div>
-        ) : error ? (
-          <div className="mt-4 rounded-[20px] bg-white p-10 text-center shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-            <h3 className="text-base font-black text-[#111111]">Course materials unavailable</h3>
-            <p className="mt-2 text-sm font-medium text-[#111111]/65">{error}</p>
-          </div>
-        ) : visibleDepartments.length === 0 ? (
-          <div className="mt-4 rounded-[20px] border border-dashed border-[#111111]/30 bg-white p-12 text-center shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-            <FolderOpen className="mx-auto h-10 w-10 text-[#111111]/30" />
-            <h3 className="mt-5 font-black text-[#111111]">No departments found</h3>
-            <p className="mx-auto mt-2 max-w-sm text-sm font-medium text-[#111111]/65">
-              We could not find any departments matching your search.
-            </p>
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#111111] px-5 py-2.5 text-xs font-black text-[#FFC600]"
-            >
-              Reset Filters
-            </button>
-          </div>
-        ) : (
-          <div className="mt-4 grid gap-[22px] md:grid-cols-2 xl:grid-cols-3">
-            {visibleDepartments.map(({ department, entries, filteredEntries }, index) => {
-              const totalCount = entries.length;
-              const initials = getDeptInitials(department.name);
-
-              return (
-                <AnimatedItem key={department.id} index={index} className="flex">
-                  <div className="group relative flex w-full flex-col overflow-hidden rounded-[26px] border border-black/[0.05] bg-white p-[28px] shadow-[0_2px_10px_rgba(16,16,16,0.06)] transition-[transform,box-shadow,border-color] duration-300 ease-out will-change-transform hover:-translate-y-[8px] hover:scale-[1.012] hover:border-black/[0.09] hover:shadow-[0_30px_60px_-22px_rgba(16,16,16,0.35)] focus-within:border-black/[0.09] focus-within:shadow-[0_24px_48px_-24px_rgba(16,16,16,0.3)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100">
-                    {/* Yellow accent bar that grows across the top on hover */}
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute left-0 top-0 h-[4px] w-0 rounded-r-full bg-[#FFC700] transition-[width] duration-500 ease-out group-hover:w-full"
-                    />
-
-                    {/* Soft radial warmth that fades in */}
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute -right-[70px] -top-[70px] h-[200px] w-[200px] rounded-full bg-[#FFC700]/25 opacity-0 blur-[48px] transition-opacity duration-500 ease-out group-hover:opacity-100"
-                    />
-
-                    {/* Sheen sweep on hover */}
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[42%] -translate-x-[130%] -skew-x-12 bg-gradient-to-r from-transparent via-[#FFC700]/25 to-transparent transition-transform duration-[900ms] ease-out group-hover:translate-x-[330%]"
-                    />
-
-                    <div className="relative flex items-start justify-between gap-3">
-                      <div className="flex h-[74px] w-[74px] shrink-0 items-center justify-center rounded-[20px] bg-[#FCF5E3] ring-1 ring-[#F2E6C6] transition-[transform,box-shadow,background-color] duration-300 ease-out group-hover:-rotate-[5deg] group-hover:scale-[1.07] group-hover:bg-[#FDEECB] group-hover:shadow-[0_16px_26px_-14px_rgba(214,160,32,0.8)]">
-                        <span className="text-[22px] font-black tracking-tight text-[#121212]">{initials}</span>
-                      </div>
-                      <div className="pt-[8px] text-right text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#111111]/35 transition-colors duration-300 group-hover:text-[#111111]/55">
-                        {totalCount} {totalCount === 1 ? "Resource" : "Resources"}
-                        {filteredEntries.length !== totalCount && (
-                          <span className="mt-[2px] block text-[#111111]/50">{filteredEntries.length} matching</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="relative mt-[26px] inline-flex w-fit items-center rounded-full bg-[#FDF0C6] px-[13px] py-[6px] text-[10.5px] font-black uppercase tracking-[0.16em] text-[#C2891B] transition-[background-color,transform] duration-300 ease-out group-hover:scale-[1.05] group-hover:bg-[#FBE38F]">
-                      {department.shortName ?? "DEPT"}
-                    </div>
-
-                    <h2 className="relative mt-[16px] line-clamp-2 font-sans text-[24px] font-extrabold leading-[1.15] tracking-[-0.015em] text-[#141414] transition-colors duration-300 group-hover:text-[#0B0B0F]">
-                      {department.name}
-                    </h2>
-                    <p className="relative mt-[16px] line-clamp-3 text-[14px] leading-[1.6] text-[#111111]/55 transition-colors duration-300 group-hover:text-[#111111]/70">
-                      {department.description ?? `Explore the academic excellence and innovative initiatives of the ${department.name} at KNUST.`}
-                    </p>
-
-                    <div className="relative mt-auto pt-[28px]">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedDepartment(department)}
-                        className="w-full rounded-full bg-[#0B0B0F] py-[17px] text-[16px] font-extrabold tracking-[-0.01em] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] transition-[transform,background-color,box-shadow] duration-300 ease-out hover:bg-[#1b1b23] hover:shadow-[0_18px_32px_-16px_rgba(11,11,15,0.95)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#111111]/30 focus-visible:ring-offset-2 group-hover:-translate-y-[3px] active:translate-y-0 active:scale-[0.99]"
-                      >
-                        View Department
-                      </button>
-                    </div>
-                  </div>
-                </AnimatedItem>
-              );
-            })}
-          </div>
-        )}
+      ) : visibleDepartments.length === 0 ? (
+        <div className="mt-4 rounded-[20px] border border-dashed border-[#141414]/30 bg-white p-12 text-center">
+          <FolderOpen className="mx-auto h-10 w-10 text-[#141414]/30" />
+          <h3 className="mt-5 text-[18px] font-bold text-[#141414]">No departments found</h3>
+          <p className="mx-auto mt-2 max-w-sm text-[15px] text-[#141414]/65">We could not find any departments matching your search.</p>
+          <button type="button" onClick={() => setQuery("")} className="mt-5 inline-flex min-h-[44px] items-center rounded-full bg-[#141414] px-5 text-[14px] font-bold text-[#FFC700]">
+            Clear search
+          </button>
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-[14px] md:grid-cols-2">
+          {visibleDepartments.map((department, index) => {
+            const popped = poppedId === department.id;
+            return (
+              <AnimatedItem key={department.id} index={index} className="flex">
+                <div
+                  className={`group relative flex min-h-[172px] w-full flex-col items-start justify-between gap-[18px] overflow-hidden rounded-[18px] border-2 p-[22px] transition-[transform,box-shadow,border-color] duration-300 [transition-timing-function:cubic-bezier(.34,1.56,.64,1)] motion-reduce:transition-none ${
+                    popped ? "-translate-y-[5px] border-[#FFC700] shadow-[0_16px_30px_rgba(40,30,0,0.35)]" : "border-transparent hover:border-[#FFC700]"
+                  }`}
+                  style={{
+                    backgroundColor: "#141414",
+                    backgroundImage: "linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px)",
+                    backgroundSize: "18px 18px",
+                  }}
+                >
+                  <DepartmentDrawing
+                    name={department.name}
+                    className={`pointer-events-none absolute -bottom-1 -right-1.5 h-auto w-[58%] max-w-[330px] origin-[70%_60%] transition-[transform,opacity,color] duration-500 [transition-timing-function:cubic-bezier(.34,1.56,.64,1)] motion-reduce:transition-none max-[640px]:w-[70%] ${
+                      popped
+                        ? "rotate-[-5deg] scale-[1.16] text-[#FFC700] opacity-100"
+                        : "text-[#D9D4C3] opacity-[.38] group-hover:rotate-[-2deg] group-hover:scale-[1.04] group-hover:opacity-60"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    aria-label={`Show the ${department.name} drawing`}
+                    aria-pressed={popped}
+                    onClick={() => setPoppedId(popped ? null : department.id)}
+                    className="absolute inset-0 z-[1] rounded-[18px] focus-visible:outline focus-visible:outline-[3px] focus-visible:-outline-offset-4 focus-visible:outline-[#FFC700]"
+                  />
+                  <h2 className="pointer-events-none relative m-0 max-w-[62%] text-[21px] font-bold leading-[1.2] text-white max-[640px]:max-w-[80%]">
+                    {department.name}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => openDepartment(department)}
+                    className="relative z-[2] inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#FFC700] px-4 text-[15px] font-bold text-[#141414] transition hover:brightness-95"
+                  >
+                    View course materials
+                    <ArrowRight className="h-4 w-4" strokeWidth={2.4} />
+                  </button>
+                </div>
+              </AnimatedItem>
+            );
+          })}
+        </div>
+      )}
     </CourseMaterialsChrome>
   );
 }
