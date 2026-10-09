@@ -46,12 +46,27 @@ export function clearAuthenticatedReadStudentCache() {
  * but the student mapping is missing — that is a trigger integrity error and
  * must never be papered over with a mock/local identity.
  */
+function normalizeStudentDisplayName(row: { display_name: string | null; email: string | null }, userMeta?: Record<string, unknown>): string {
+  const rawDisplayName = (row.display_name ?? "").trim();
+  const emailLocalPart = (row.email ?? "").split("@")[0]?.trim() ?? "";
+  const metaName = [userMeta?.full_name, userMeta?.name]
+    .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .find(Boolean) ?? "";
+
+  if (metaName && metaName !== emailLocalPart) return metaName;
+  if (rawDisplayName && rawDisplayName !== emailLocalPart) return rawDisplayName;
+  if (metaName) return metaName;
+  if (rawDisplayName) return rawDisplayName;
+  return "Student";
+}
+
 export async function resolveAuthenticatedReadStudent(): Promise<AuthenticatedReadStudent | null> {
   const client = createSupabaseBrowserClient();
 
   // getSession() is served from the local session cache — no network round trip.
   const { data } = await client.auth.getSession();
   const authUserId = data.session?.user?.id;
+  const userMeta = data.session?.user?.user_metadata as Record<string, unknown> | undefined;
 
   if (!authUserId) {
     if (cachedAuthUserId !== null) clearAuthenticatedReadStudentCache();
@@ -88,7 +103,7 @@ export async function resolveAuthenticatedReadStudent(): Promise<AuthenticatedRe
     const student: AuthenticatedReadStudent = {
       id: studentRow.id,
       authUserId: studentRow.auth_user_id,
-      displayName: studentRow.display_name ?? "",
+      displayName: normalizeStudentDisplayName(studentRow, userMeta),
       email: studentRow.email,
     };
     cachedStudent = student;

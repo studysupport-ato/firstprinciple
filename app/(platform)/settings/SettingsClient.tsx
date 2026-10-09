@@ -251,54 +251,56 @@ export default function SettingsPage() {
               <div className="flex flex-col gap-2 md:col-span-2">
                 <label className="font-sans text-xs font-semibold uppercase tracking-widest text-[#666666]">Full Name</label>
                 {isEditing ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <input
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="h-12 rounded-xl border border-[#E5E5E5] bg-white px-4 text-[#111111] outline-none focus:border-[#FFBE00] focus:ring-1 focus:ring-[#FFBE00]"
+                      className="h-12 w-full min-w-0 flex-1 rounded-xl border border-[#E5E5E5] bg-white px-4 text-[#111111] outline-none focus:border-[#FFBE00] focus:ring-1 focus:ring-[#FFBE00]"
                       placeholder="Your display name"
                     />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditError(null);
-                        handleSave();
-                      }}
-                      disabled={saving}
-                      className="inline-flex h-12 items-center gap-1 rounded-full bg-[#111111] px-4 text-xs font-semibold text-white hover:bg-[#FFBE00] disabled:opacity-50"
-                    >
-                      {saving ? "Saving..." : "Save"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditError(null);
-                        setIsEditing(false);
-                      }}
-                      className="inline-flex h-12 items-center gap-1 rounded-full border border-[#E5E5E5] px-4 text-xs font-semibold text-[#666666] hover:bg-[#F5F5F4]"
-                    >
-                      Cancel
-                    </button>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditError(null);
+                          handleSave();
+                        }}
+                        disabled={saving}
+                        className="inline-flex h-12 items-center gap-1 rounded-full bg-[#111111] px-4 text-xs font-semibold text-white hover:bg-[#FFBE00] disabled:opacity-50"
+                      >
+                        {saving ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditError(null);
+                          setIsEditing(false);
+                        }}
+                        className="inline-flex h-12 items-center gap-1 rounded-full border border-[#E5E5E5] px-4 text-xs font-semibold text-[#666666] hover:bg-[#F5F5F4]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
                     <input
                       type="text"
                       value={profile?.fullName || ""}
                       readOnly
-                      className="h-12 rounded-xl border border-[#E5E5E5] bg-transparent px-4 text-[#111111] outline-none cursor-not-allowed"
+                      className="h-12 min-w-0 flex-1 rounded-xl border border-[#E5E5E5] bg-transparent px-4 text-[#111111] outline-none cursor-not-allowed"
                     />
                     <button
                       type="button"
                       onClick={() => {
                         setEditName(profile?.fullName ?? "");
                         setEditEmail(profile?.email ?? "");
-                        setEditPhone("");
+                        setEditPhone(profile?.phoneNumber ?? "");
                         setEditError(null);
                         setIsEditing(true);
                       }}
-                      className="inline-flex h-12 items-center gap-1 rounded-full border border-[#D9D9D9] px-4 text-xs font-semibold text-[#666666] hover:bg-[#F5F5F4]"
+                      className="inline-flex h-12 shrink-0 items-center gap-1 rounded-full border border-[#D9D9D9] px-4 text-xs font-semibold text-[#666666] hover:bg-[#F5F5F4]"
                     >
                       <Pencil size={13} /> Edit profile
                     </button>

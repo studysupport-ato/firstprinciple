@@ -47,7 +47,7 @@ export default function RoadmapClient({ course, weeks, daysByWeek, preview = fal
         <span>Roadmap</span>
       </div>
 
-      <div className="mb-14 grid gap-8 xl:grid-cols-12 xl:items-end">
+      <div className="mb-14 grid gap-8 overflow-x-clip xl:grid-cols-12 xl:items-end">
         <AnimatedItem className="xl:col-span-8">
           <div className="mb-5 font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#FFBE00]">{course.code}</div>
           <h1 className="editorial-heading mb-5 text-5xl md:text-[5.2rem]"><EducationalText text={course.title} /> roadmap</h1>

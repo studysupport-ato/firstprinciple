@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test:mobile": "playwright test tests/mobile-experience.spec.ts",
     "typecheck": "tsc --noEmit",
     "smoke:course-structure": "tsx scripts/smoke-course-structure.ts",
     "smoke:day-content": "tsx scripts/smoke-course-structure.ts",
@@ -47,6 +48,7 @@
     "three": "^0.186.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

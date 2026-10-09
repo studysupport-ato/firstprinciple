@@ -448,7 +448,7 @@ export function AssessmentPageClient({
                         setSelectedValue(session.answers[question.id]?.value ?? null);
                       }
                     }}
-                    className={`flex h-10 w-10 items-center justify-center rounded-full border text-xs font-bold transition ${current ? "border-[#111111] bg-[#111111] text-white" : answered ? "border-[#059669] bg-[#ECFDF5] text-[#059669]" : "border-[#E5E5E5] bg-white text-[#666666]"}`}
+                    className={`flex h-[44px] w-[44px] items-center justify-center rounded-full border text-xs font-bold transition md:h-10 md:w-10 ${current ? "border-[#111111] bg-[#111111] text-white" : answered ? "border-[#059669] bg-[#ECFDF5] text-[#059669]" : "border-[#E5E5E5] bg-white text-[#666666]"}`}
                   >
                     {index + 1}
                   </button>

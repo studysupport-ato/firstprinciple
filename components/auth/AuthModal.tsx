@@ -168,7 +168,7 @@ export function AuthModal({
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { name } },
+        options: { data: { name, full_name: name } },
       });
       if (signUpError) throw signUpError;
 
@@ -260,7 +260,7 @@ export function AuthModal({
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="absolute right-5 top-5 z-30 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E5E5E5] bg-white/90 text-[#111111] shadow-sm backdrop-blur transition-all duration-200 hover:scale-105 hover:border-[#111111] active:scale-95"
+                  className="absolute right-5 top-5 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#E5E5E5] bg-white/90 text-[#111111] shadow-sm backdrop-blur transition-all duration-200 hover:scale-105 hover:border-[#111111] active:scale-95"
                   aria-label="Close authentication panel"
                 >
                   <X size={16} />
@@ -376,7 +376,7 @@ export function AuthModal({
                               setTermsAccepted(false);
                               setError(null);
                             }}
-                            className={`flex-1 rounded-full px-3 py-2 text-sm font-medium transition ${mode === "login" ? "bg-[#111111] text-white shadow-sm" : "text-[#666666]"}`}
+                            className={`flex-1 rounded-full px-3 py-3 text-sm font-medium transition md:py-2 ${mode === "login" ? "bg-[#111111] text-white shadow-sm" : "text-[#666666]"}`}
                           >
                             Login
                           </button>
@@ -387,7 +387,7 @@ export function AuthModal({
                               setTermsAccepted(false);
                               setError(null);
                             }}
-                            className={`flex-1 rounded-full px-3 py-2 text-sm font-medium transition ${mode === "signup" ? "bg-[#111111] text-white shadow-sm" : "text-[#666666]"}`}
+                            className={`flex-1 rounded-full px-3 py-3 text-sm font-medium transition md:py-2 ${mode === "signup" ? "bg-[#111111] text-white shadow-sm" : "text-[#666666]"}`}
                           >
                             Sign up
                           </button>
@@ -521,7 +521,7 @@ export function AuthModal({
                               onClose();
                               router.push("/reset-password");
                             }}
-                            className="font-medium text-[#111111] underline-offset-2 hover:underline"
+                            className="inline-flex min-h-11 items-center font-medium text-[#111111] underline-offset-2 hover:underline md:min-h-0"
                           >
                             Forgot password?
                           </button>

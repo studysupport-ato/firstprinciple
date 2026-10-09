@@ -56,7 +56,7 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
   const isFullWidthInteractive = hasSideContent && !hasBlocks;
 
   return (
-    <div className="flex h-screen flex-col bg-white">
+    <div className={`flex flex-col bg-white ${preview ? "h-[calc(100dvh-104px)] md:h-[calc(100dvh-48px)]" : "h-[calc(100dvh-56px)] md:h-screen"}`}>
       <header className="z-20 flex h-9 flex-shrink-0 items-center justify-between border-b border-[#E5E5E5] bg-white px-5">
         <div className="flex items-center gap-4"><Link href={roadmapHref} className="text-[#666666] transition-colors hover:text-[#111111]"><ChevronLeft size={16} /></Link><div className="flex items-center gap-2"><span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#666666]">{weekLabel}</span><span className="text-[#E5E5E5]">/</span><span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#111111]"><EducationalText text={lesson.title} /></span></div></div>
         <div className="flex items-center gap-2">{Array.from({ length: totalSteps }).map((_, index) => <div key={index} className={`h-1.5 w-1.5 rounded-full transition-colors duration-300 ${index <= currentStep ? "bg-[#FFBE00]" : "bg-[#E5E5E5]"}`} />)}</div>

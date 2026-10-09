@@ -19,10 +19,31 @@ import { createSupabaseBrowserClient } from "../supabase/client";
  * Student day progress for one course, keyed by dayId.
  * null when there is no authenticated session (public browsing).
  */
+const dayProgressRequestsInFlight = new Map<string, Promise<Record<string, DayProgress>>>();
+
 export async function readStudentDayProgressMap(courseId: string): Promise<Record<string, DayProgress> | null> {
   const studentId = await resolveAuthenticatedReadStudentId();
   if (!studentId) return null;
 
+  const requestKey = `${studentId}:${courseId}`;
+  const existingRequest = dayProgressRequestsInFlight.get(requestKey);
+  if (existingRequest) return existingRequest;
+
+  const request = fetchStudentDayProgressMap(studentId, courseId);
+  dayProgressRequestsInFlight.set(requestKey, request);
+  try {
+    return await request;
+  } finally {
+    if (dayProgressRequestsInFlight.get(requestKey) === request) {
+      dayProgressRequestsInFlight.delete(requestKey);
+    }
+  }
+}
+
+async function fetchStudentDayProgressMap(
+  studentId: string,
+  courseId: string,
+): Promise<Record<string, DayProgress>> {
   // Throws if the authenticated student mapping is missing — never falls back.
   const repository = createProgressFactsRepository("supabase");
   const rows = await repository.listDayProgressForCourse(studentId, courseId);

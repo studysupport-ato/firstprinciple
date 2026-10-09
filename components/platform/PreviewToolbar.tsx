@@ -27,19 +27,19 @@ export function PreviewToolbar() {
   const exitHref = courseId ? `/admin/courses/${courseId}` : "/admin/courses";
 
   return (
-    <div className="sticky top-0 z-40 flex min-h-12 flex-wrap items-center justify-between gap-3 border-b border-[#E5E5E5] bg-[#FBFBFA]/95 px-5 py-2 backdrop-blur-sm md:px-8">
-      <div className="flex items-center gap-3">
+    <div className="sticky top-0 z-40 flex h-12 min-h-12 flex-nowrap items-center justify-between gap-2 border-b border-[#E5E5E5] bg-[#FBFBFA]/95 px-3 py-1 backdrop-blur-sm md:px-8">
+      <div className="flex min-w-0 items-center gap-2">
         <span className="inline-flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#FFBE00]">
           <span className="h-1.5 w-1.5 rounded-full bg-[#FFBE00]" />
           Preview mode
         </span>
         <span className="hidden text-xs text-[#666666] sm:inline">Viewing the student experience</span>
       </div>
-      <div className="flex items-center gap-2">
-        {editHref ? <Link href={editHref} className="inline-flex items-center gap-1.5 rounded-full border border-[#E5E5E5] bg-white px-3 py-1.5 text-xs font-semibold text-[#111111] hover:border-[#111111]"><Pencil size={13} />Edit Day</Link> : null}
+      <div className="flex shrink-0 items-center gap-1.5">
+        {editHref ? <Link href={editHref} className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-[#E5E5E5] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#111111] hover:border-[#111111]"><Pencil size={13} />Edit Day</Link> : null}
         {chapterId && lessonId ? <Link href={`/courses/${courseId}/chapter/${chapterId}/practice?preview=1`} className="hidden rounded-full border border-[#E5E5E5] bg-white px-3 py-1.5 text-xs font-semibold text-[#111111] hover:border-[#111111] sm:inline-flex">Practice</Link> : null}
         {chapterId && assessment ? <Link href={`/courses/${courseId}/chapter/${chapterId}/assessment/${assessment.id}?preview=1`} className="hidden rounded-full border border-[#E5E5E5] bg-white px-3 py-1.5 text-xs font-semibold text-[#111111] hover:border-[#111111] sm:inline-flex">Assessment</Link> : null}
-        <Link href={exitHref} className="inline-flex items-center gap-1.5 rounded-full border border-[#E5E5E5] bg-white px-3 py-1.5 text-xs font-semibold text-[#111111] hover:border-[#111111]"><X size={13} />Exit preview</Link>
+        <Link href={exitHref} className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-[#E5E5E5] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#111111] hover:border-[#111111]"><X size={13} />Exit preview</Link>
         <Link href={pathname} target="_blank" className="hidden items-center gap-1.5 text-xs text-[#666666] hover:text-[#111111] md:inline-flex" aria-label="Open student view in a new tab"><ExternalLink size={13} /></Link>
       </div>
     </div>

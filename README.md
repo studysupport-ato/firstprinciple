@@ -195,6 +195,7 @@ Run these commands from the repository root:
 | `npm run typecheck` | Run TypeScript checking without emitting files |
 | `npm run build` | Build the production app |
 | `npm run start` | Start the production build |
+| `npm run test:mobile` | Run the mobile and desktop Playwright experience checks |
 | `npm run seed:math151` | Seed the Math 151 course data |
 | `npm run seed:math151:check` | Check the Math 151 seed data without applying it |
 
@@ -204,6 +205,7 @@ The project provides targeted smoke and verification scripts. Run them from the 
 
 ```powershell
 npm run typecheck
+npm run test:mobile
 npm run smoke:course-structure
 npm run smoke:questions-assessments
 npm run smoke:resources-course-materials-assets
@@ -221,6 +223,8 @@ npm run verify:admin-session-boundary
 ```
 
 The smoke scripts cover published curriculum, questions and assessments, resources, progress, and course content. Verification scripts check profile editing, persistence, transfer behavior, and selected data-access boundaries. Some checks may require valid local Supabase configuration or database state. Run the relevant focused checks after changing the corresponding feature; `npm run build` is also recommended before deployment.
+
+The mobile Playwright suite uses an iPhone 13 Chromium context with touch emulation and checks the 375 × 667, 390 × 844, and 412 × 915 phone viewports, plus desktop regressions. It covers the course library, navigation, course materials, roadmap, lesson, questions, practice, assessment, signup, and the signed-out settings boundary. On a fresh checkout, run `npx playwright install chromium` once to install the browser. The Playwright config starts the development server when one is not already available at `http://localhost:3000`; set `PLAYWRIGHT_BASE_URL` to use another local URL.
 
 ## Deployment
 

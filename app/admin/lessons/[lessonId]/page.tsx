@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { LessonRenderer } from "@/components/learning/LessonRenderer";
 import { createDefaultBlock } from "@/lib/content/overrides";
 import { getAdminDayAction, getAdminDayContentAction, saveDayContentAction, setDayStatusAction, updateDayAction, uploadLessonImageAction } from "@/lib/adminContentActions";
+import { validateLessonImageFile } from "@/lib/content/lessonImageUpload";
 import type { ContentBlock, GeoGebraInteractiveConfig, Lesson } from "@/lib/content/types";
 import { MathText } from "@/components/learning/blocks/MathText";
 import { MarkdownBlock } from "@/components/learning/blocks/MarkdownBlock";
@@ -177,6 +178,11 @@ export default function AdminLessonEditorPage() {
 
   async function uploadImage(block: Extract<ContentBlock, { type: "image" }>, file: File) {
     if (!baseLesson) return;
+    const validationError = validateLessonImageFile(file);
+    if (validationError) {
+      triggerSaveError(validationError);
+      return;
+    }
     setUploadingBlockId(block.id);
     setSaveError(null);
     const result = await uploadLessonImageAction(baseLesson.courseId, baseLesson.weekId, baseLesson.id, file, block.alt);
@@ -382,6 +388,7 @@ export default function AdminLessonEditorPage() {
                 onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadImage(block, file); event.currentTarget.value = ""; }}
                 className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
               />
+              <p className="text-xs text-[#666666]">JPEG, PNG, or WebP. Maximum 10 MB per file.</p>
               {uploadingBlockId === block.id ? <p className="text-xs text-[#666666]">Uploading image...</p> : null}
             <AssetPicker type="image" value={block.assetId} onChange={(asset) => updateBlock(block.id, (item) => ({ ...item, type: "image", assetId: asset?.id, src: asset?.source.url ?? block.src, alt: asset?.altText ?? block.alt } as ContentBlock))} />
             <input

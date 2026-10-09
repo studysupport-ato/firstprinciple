@@ -202,7 +202,12 @@ async function dumpQuestionIds(c: SupabaseClient): Promise<string[]> {
 }
 
 const stripVolatile = (rows: Row[]): Row[] => rows.map(({ updated_at, ...rest }) => rest);
-const stable = (value: unknown) => JSON.stringify(value);
+const stable = (value: unknown) =>
+  JSON.stringify(value, (_key, entry: unknown) =>
+    entry && typeof entry === "object" && !Array.isArray(entry)
+      ? Object.fromEntries(Object.entries(entry).sort(([left], [right]) => left.localeCompare(right)))
+      : entry,
+  );
 
 async function weekRows(c: SupabaseClient, weekId: string): Promise<Row[]> {
   return must(

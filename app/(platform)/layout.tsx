@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { Menu, X } from "lucide-react";
+import Link from "next/link";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { Sidebar } from "@/components/platform/Sidebar";
 import { PreviewToolbar } from "@/components/platform/PreviewToolbar";
@@ -14,6 +16,7 @@ export default function PlatformLayout({
   children: React.ReactNode;
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const pathname = usePathname();
   const inLesson = /\/lesson\//.test(pathname ?? "");
   const [authOpen, setAuthOpen] = useState(false);
@@ -36,6 +39,19 @@ export default function PlatformLayout({
       setSidebarCollapsed(previous);
     }
   }, [inLesson]);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileNavOpen]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -69,6 +85,8 @@ export default function PlatformLayout({
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((current) => !current)}
+        mobileOpen={mobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
         onSignIn={() => {
           // Signed-in users never see this, but clear any stale destination from
           // a previous ?auth=required redirect so the modal uses its default.
@@ -76,10 +94,33 @@ export default function PlatformLayout({
           setAuthOpen(true);
         }}
       />
+      {mobileNavOpen ? (
+        <button
+          type="button"
+          aria-label="Close navigation menu"
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      ) : null}
 
       <main
-        className={`flex-1 relative ${sidebarCollapsed ? "ml-[68px]" : "ml-[224px]"} min-h-screen bg-[#FFC600] transition-[margin] duration-500 ease-in-out`}
+        className={`relative min-h-screen w-full min-w-0 flex-1 bg-[#FFC600] transition-[margin] duration-500 ease-in-out ${sidebarCollapsed ? "md:ml-[68px]" : "md:ml-[224px]"}`}
       >
+        <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between border-b border-black/10 bg-[#FFC600] px-4 pt-[env(safe-area-inset-top)] md:hidden">
+          <Link href="/" aria-label="Back2Basics with Kwamina home" className="flex min-h-11 items-center">
+            <img src="/logobg.png" alt="Back2Basics with Kwamina" className="h-9 max-w-[180px] rounded-md object-contain object-left" />
+          </Link>
+          <button
+            type="button"
+            aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={mobileNavOpen}
+            aria-controls="platform-sidebar"
+            onClick={() => setMobileNavOpen((open) => !open)}
+            className="flex h-11 w-11 items-center justify-center rounded-full text-[#111111] transition hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111111]"
+          >
+            {mobileNavOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </header>
         <PreviewToolbar />
         {children}
       </main>

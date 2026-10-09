@@ -87,7 +87,7 @@ export default function WeekClient({ course, week, days, preview = false }: { co
         <span>Week {week.weekNumber}</span>
       </div>
 
-      <div className="mb-14 grid gap-8 lg:grid-cols-[1fr_300px] lg:items-end">
+      <div className="mb-14 grid gap-8 overflow-x-clip lg:grid-cols-[1fr_300px] lg:items-end">
         <AnimatedItem>
           <div className="mb-5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#FFBE00]">
             {course.code} · Week {week.weekNumber}

@@ -2,6 +2,7 @@ import { archiveAsset, createAsset, getAssetById, getAssets, restoreAsset, updat
 import type { Asset, AssetStatus, AssetType } from "./types/asset";
 import type { Database } from "../supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { MAX_LESSON_IMAGE_SIZE_BYTES, validateLessonImageFile } from "./lessonImageUpload";
 
 /**
  * Task 40G.7B: every Supabase-backed asset method resolves its client from this
@@ -109,10 +110,8 @@ export function createAssetSupabaseRepository(clientFactory: AssetSupabaseClient
       if (error) throw error;
     },
     async uploadLessonImage(input) {
-      const allowed = new Set(["image/jpeg", "image/png", "image/webp"]);
-      const maxBytes = 10 * 1024 * 1024;
-      if (!allowed.has(input.file.type)) throw new Error("Only JPEG, PNG, and WebP images are supported.");
-      if (input.file.size <= 0 || input.file.size > maxBytes) throw new Error("Images must be smaller than 10 MB.");
+      const validationError = validateLessonImageFile(input.file);
+      if (validationError) throw new Error(validationError);
       const bytes = new Uint8Array(await input.file.arrayBuffer());
       const validSignature = input.file.type === "image/jpeg"
         ? bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
