@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { getStudentAssessment } from "@/lib/content/access";
+import { createAssessmentSupabaseRepository } from "@/lib/assessment/repository";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { selectAssessmentQuestionsFromSupabase } from "@/lib/assessment/selection";
 import { AssessmentPageClient } from "./AssessmentPageClient";
 
@@ -12,13 +13,26 @@ export default async function AssessmentPage({ params, searchParams }: Assessmen
   const route = await params;
   const query = await searchParams;
   const preview = query.preview === "1";
-  const assessment = getStudentAssessment(route.assessmentId, { preview });
+
+  // Task 40F.5 — the assessment definition and its blueprint are now read from
+  // Supabase through the existing assessment repository, so an admin edit to the
+  // blueprint immediately changes how student questions are selected.
+  //
+  // Uses the cookie-aware server client (the signed-in user's JWT, RLS-respecting)
+  // rather than a service-role client. A missing or non-visible assessment is a
+  // hard not-found: there is deliberately NO fallback to the Math 151 fixture.
+  const client = await createSupabaseServerClient();
+  const assessmentRepository = createAssessmentSupabaseRepository(() => client);
+  const assessment = await assessmentRepository.getAssessment(route.assessmentId, {
+    visibility: "student",
+    includeDraft: preview,
+  });
 
   if (!assessment) {
     notFound();
   }
 
-  const initialQuestions = await selectAssessmentQuestionsFromSupabase(assessment, { includeDraft: preview });
+  const initialQuestions = await selectAssessmentQuestionsFromSupabase(assessment, { includeDraft: preview }, () => client);
 
   if (!initialQuestions.length) {
     notFound();

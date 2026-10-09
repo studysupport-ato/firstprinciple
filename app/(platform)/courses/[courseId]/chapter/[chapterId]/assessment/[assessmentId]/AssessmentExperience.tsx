@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Check, CheckCircle2, ChevronLeft, Trophy, XCircle } from "lucide-react";
 import Link from "next/link";
-import katex from "katex";
+import { EducationalText } from "@/components/learning/EducationalText";
 
 import type { Question, QuestionOption } from "@/lib/content/types/question";
 import {
@@ -19,18 +19,6 @@ import { evaluateAssessmentQuestion } from "@/lib/assessment/evaluation";
 import { calculateAssessmentScore } from "@/lib/assessment/scoring";
 import { generateAssessmentResult } from "@/lib/assessment/result";
 import { getPersistedAssessmentAttempt, recordAssessmentStart, recordAssessmentSubmit } from "@/lib/progress";
-
-function MathText({ math, block = false }: { math: string; block?: boolean }) {
-  const html = katex.renderToString(math, { displayMode: block, throwOnError: false });
-  return <span dangerouslySetInnerHTML={{ __html: html }} className={`font-serif ${block ? "my-6 block text-center text-xl" : "inline"}`} />;
-}
-
-function renderInlineMath(text: string) {
-  return text.split(/(\$.*?\$)/g).map((part, index) => {
-    if (part.startsWith("$") && part.endsWith("$")) return <MathText key={index} math={part.slice(1, -1)} />;
-    return <span key={index}>{part}</span>;
-  });
-}
 
 function QuestionRenderer({
   question,
@@ -49,7 +37,7 @@ function QuestionRenderer({
     <div className="space-y-8">
       <div className="rounded-2xl border border-[#E5E5E5] bg-transparent p-5">
         <span className="font-sans text-[10px] font-bold uppercase tracking-[0.24em] text-[#2563EB]">Assessment question</span>
-        <h2 className="mt-4 editorial-heading text-2xl md:text-3xl text-[#111111] leading-relaxed">{renderInlineMath(question.prompt)}</h2>
+        <h2 className="mt-4 editorial-heading text-2xl md:text-3xl text-[#111111] leading-relaxed"><EducationalText text={question.prompt} /></h2>
       </div>
 
       {question.type === "multiple-choice" && options.length > 0 ? (
@@ -71,7 +59,7 @@ function QuestionRenderer({
               <button key={option.id} type="button" onClick={() => onSelect(option.id)} disabled={submitted} className={`flex w-full items-center justify-between rounded-2xl border-2 px-5 py-4 text-left transition-all ${stateClass}`}>
                 <span className="font-sans text-base text-[#111111]">
                   <span className="mr-3 font-semibold text-[#666666]">{option.label}</span>
-                  {renderInlineMath(option.text)}
+                  <EducationalText text={option.text} />
                 </span>
                 {submitted && isCorrect && <CheckCircle2 className="text-[#059669]" size={20} />}
                 {submitted && isSelected && !isCorrect && <XCircle className="text-[#E11D48]" size={20} />}
@@ -102,7 +90,7 @@ function QuestionRenderer({
             {evaluateAssessmentQuestion(question, { questionId: question.id, value: selectedValue, answeredAt: new Date().toISOString() }).isCorrect ? <Check size={14} className="text-[#059669]" /> : <XCircle size={14} className="text-[#E11D48]" />}
             {evaluateAssessmentQuestion(question, { questionId: question.id, value: selectedValue, answeredAt: new Date().toISOString() }).isCorrect ? "Correct" : "Feedback"}
           </div>
-          <p className="mt-3 font-sans text-sm leading-relaxed text-[#111111]">{renderInlineMath(question.explanation)}</p>
+          <p className="mt-3 font-sans text-sm leading-relaxed text-[#111111]"><EducationalText text={question.explanation} /></p>
         </motion.div>
       )}
     </div>
@@ -344,7 +332,7 @@ export default function AssessmentExperience({
                         {item.isCorrect ? "Correct" : "Incorrect"}
                       </span>
                     </div>
-                    <p className="font-sans text-sm text-[#111111]">{renderInlineMath(question.prompt)}</p>
+                    <p className="font-sans text-sm text-[#111111]"><EducationalText text={question.prompt} /></p>
                     <div className="mt-3 grid gap-2 text-sm text-[#666666]">
                       <div className="rounded-xl bg-transparent p-3">
                         <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-[#666666]">Your answer</span>
@@ -355,7 +343,7 @@ export default function AssessmentExperience({
                         <div className="mt-1 font-sans text-[#111111]">{String(item.correctAnswer)}</div>
                       </div>
                     </div>
-                    <p className="mt-3 font-sans text-sm leading-relaxed text-[#111111]">{renderInlineMath(item.explanation)}</p>
+                    <p className="mt-3 font-sans text-sm leading-relaxed text-[#111111]"><EducationalText text={item.explanation} /></p>
                   </div>
                 );
               })}

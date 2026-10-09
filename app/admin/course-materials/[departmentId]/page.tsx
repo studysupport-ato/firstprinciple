@@ -24,6 +24,8 @@ import {
 } from "@/lib/adminContentActions";
 import type { CourseMaterialEntry, CourseMaterialsDepartment } from "@/lib/content/adminContract";
 import type { ContentStatus } from "@/lib/content/lifecycle";
+import { YouTubeEmbed } from "@/components/learning/YouTubeEmbed";
+import { parseYouTubeVideoId } from "@/lib/youtube";
 
 const statuses: ContentStatus[] = ["draft", "published", "archived"];
 
@@ -34,7 +36,8 @@ export default function AdminCourseMaterialsDepartmentPage() {
   const [showEntryForm, setShowEntryForm] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [departmentForm, setDepartmentForm] = useState({ name: "", shortName: "", description: "", status: "draft" as ContentStatus });
-  const [entryForm, setEntryForm] = useState({ courseCode: "", courseTitle: "", description: "", url: "", provider: "", status: "draft" as ContentStatus });
+  const [entryForm, setEntryForm] = useState({ courseCode: "", courseTitle: "", description: "", url: "", provider: "", kind: "link" as "link" | "youtube", status: "draft" as ContentStatus });
+  const entryVideoId = entryForm.kind === "youtube" ? parseYouTubeVideoId(entryForm.url) ?? parseYouTubeVideoId(entryForm.provider) : undefined;
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmEntry, setConfirmEntry] = useState<CourseMaterialEntry | null>(null);
@@ -89,18 +92,20 @@ export default function AdminCourseMaterialsDepartmentPage() {
 
   function startNewEntry() {
     setEditingEntryId(null);
-    setEntryForm({ courseCode: "", courseTitle: "", description: "", url: "", provider: "", status: "draft" });
+    setEntryForm({ courseCode: "", courseTitle: "", description: "", url: "", provider: "", kind: "link", status: "draft" });
     setShowEntryForm(true);
   }
 
   function startEditEntry(entry: CourseMaterialEntry) {
+    const kind = (entry as Partial<CourseMaterialEntry>).kind ?? (parseYouTubeVideoId(entry.url) ?? parseYouTubeVideoId(entry.provider) ? "youtube" : "link");
     setEditingEntryId(entry.id);
     setEntryForm({
       courseCode: entry.courseCode ?? "",
       courseTitle: entry.courseTitle,
       description: entry.description ?? "",
       url: entry.url,
-      provider: entry.provider ?? "",
+      provider: kind === "youtube" ? parseYouTubeVideoId(entry.provider) ?? parseYouTubeVideoId(entry.url) ?? entry.provider ?? "" : entry.provider ?? "",
+      kind,
       status: entry.status,
     });
     setShowEntryForm(true);
@@ -108,13 +113,16 @@ export default function AdminCourseMaterialsDepartmentPage() {
 
   async function saveEntry() {
     try {
+      // No iframe HTML stored: for YouTube, provider carries only the validated video ID.
+      const videoId = entryForm.kind === "youtube" ? parseYouTubeVideoId(entryForm.url) ?? parseYouTubeVideoId(entryForm.provider) : undefined;
+      if (entryForm.kind === "youtube" && !videoId) throw new Error("A valid YouTube URL or video ID is required (e.g. https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID).");
       const input = {
         departmentId,
         courseCode: entryForm.courseCode.trim() || undefined,
         courseTitle: entryForm.courseTitle.trim(),
         description: entryForm.description.trim() || undefined,
-        url: entryForm.url.trim(),
-        provider: entryForm.provider.trim() || undefined,
+        url: entryForm.kind === "youtube" && videoId ? `https://www.youtube.com/watch?v=${videoId}` : entryForm.url.trim(),
+        provider: entryForm.kind === "youtube" ? videoId : entryForm.provider.trim() || undefined,
         status: entryForm.status,
       };
       let result;
@@ -304,11 +312,19 @@ export default function AdminCourseMaterialsDepartmentPage() {
         <section id="material-form" className="mb-8 rounded-[24px] border border-[#E5E5E5] bg-white p-6">
           <div className="mb-5">
             <div className="field-label">{editingEntryId ? "Edit course material" : "New course material"}</div>
-            <h2 className="mt-1 font-serif text-2xl">External link details</h2>
-            <p className="mt-2 text-sm text-[#666666]">Only metadata and the external destination are stored. No external page is embedded or imported.</p>
+            <h2 className="mt-1 font-serif text-2xl">Material details</h2>
+            <p className="mt-2 text-sm text-[#666666]">Only metadata and the destination are stored. YouTube videos store only the video ID/URL — no video files, no iframe HTML.</p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-2">
+              <span className="field-label">Material type</span>
+              <select value={entryForm.kind} onChange={(event) => setEntryForm({ ...entryForm, kind: event.target.value as "link" | "youtube" })} className="admin-input">
+                <option value="link">External Link</option>
+                <option value="youtube">YouTube Video</option>
+              </select>
+            </label>
+            <div />
             <label className="space-y-2">
               <span className="field-label">Course code</span>
               <input value={entryForm.courseCode} onChange={(event) => setEntryForm({ ...entryForm, courseCode: event.target.value })} className="admin-input" placeholder="Optional" />
@@ -320,9 +336,19 @@ export default function AdminCourseMaterialsDepartmentPage() {
             </label>
 
             <label className="space-y-2 md:col-span-2">
-              <span className="field-label">External URL</span>
-              <input value={entryForm.url} onChange={(event) => setEntryForm({ ...entryForm, url: event.target.value })} className="admin-input" placeholder="https://example.com/materials" />
+              <span className="field-label">{entryForm.kind === "youtube" ? "YouTube URL or video ID" : "External URL"}</span>
+              <input value={entryForm.url} onChange={(event) => setEntryForm({ ...entryForm, url: event.target.value })} className="admin-input" placeholder={entryForm.kind === "youtube" ? "https://www.youtube.com/watch?v=VIDEO_ID" : "https://example.com/materials"} />
             </label>
+
+            {entryForm.kind === "youtube" && entryVideoId ? (
+              <div className="md:col-span-2">
+                <span className="field-label">Preview (video ID: {entryVideoId})</span>
+                <div className="mt-2 max-w-md"><YouTubeEmbed videoId={entryVideoId} title={entryForm.courseTitle || "YouTube preview"} /></div>
+              </div>
+            ) : null}
+            {entryForm.kind === "youtube" && !entryVideoId && entryForm.url.trim() ? (
+              <p className="text-sm text-[#E11D48] md:col-span-2">That YouTube URL is not recognised. Use a watch, youtu.be, embed, shorts, or live URL.</p>
+            ) : null}
 
             <label className="space-y-2 md:col-span-2">
               <span className="field-label">Description</span>
@@ -330,8 +356,8 @@ export default function AdminCourseMaterialsDepartmentPage() {
             </label>
 
             <label className="space-y-2">
-              <span className="field-label">Provider or source</span>
-              <input value={entryForm.provider} onChange={(event) => setEntryForm({ ...entryForm, provider: event.target.value })} className="admin-input" placeholder="Optional" />
+              <span className="field-label">{entryForm.kind === "youtube" ? "Video ID (auto-filled)" : "Provider or source"}</span>
+              <input value={entryForm.provider} onChange={(event) => setEntryForm({ ...entryForm, provider: event.target.value })} className="admin-input" placeholder={entryForm.kind === "youtube" ? "Auto-filled from URL" : "Optional"} readOnly={entryForm.kind === "youtube"} />
             </label>
 
             <label className="space-y-2">
@@ -367,15 +393,19 @@ export default function AdminCourseMaterialsDepartmentPage() {
             {
               key: "entry",
               label: "Course material",
-              render: (row) => (
+              render: (row) => {
+                const kind = (row.entry as Partial<CourseMaterialEntry>).kind ?? (parseYouTubeVideoId(row.entry.url) ?? parseYouTubeVideoId(row.entry.provider) ? "youtube" : "link");
+                return (
                 <div>
                   <div className="font-medium text-[#111111]">
                     {row.entry.courseCode ? `${row.entry.courseCode} · ` : ""}
                     {row.entry.courseTitle}
+                    {kind === "youtube" ? <span className="ml-2 rounded-full bg-[#FFC700]/30 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#7a5b00]">YouTube</span> : null}
                   </div>
-                  <div className="mt-1 max-w-[280px] truncate text-xs text-[#666666]">{row.entry.provider ?? row.entry.url}</div>
+                  <div className="mt-1 max-w-[280px] truncate text-xs text-[#666666]">{kind === "youtube" ? parseYouTubeVideoId(row.entry.provider) ?? parseYouTubeVideoId(row.entry.url) ?? row.entry.url : row.entry.provider ?? row.entry.url}</div>
                 </div>
-              ),
+                );
+              },
             },
             {
               key: "status",

@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, BookOpen, Trash2 } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { getAdminCourseStructureAction, deleteDayAction } from "@/lib/adminContentActions";
+import { getAdminCourseStructureAction, deleteDayAction, reorderDaysAction } from "@/lib/adminContentActions";
 import type { AdminCourseStructure } from "@/lib/content/adminContract";
 
 export default function AdminWeekWorkspace() {
@@ -18,7 +18,10 @@ export default function AdminWeekWorkspace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLessonTarget, setDeleteLessonTarget] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [reordering, setReordering] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -65,14 +68,43 @@ export default function AdminWeekWorkspace() {
   async function confirmDeleteLesson() {
     if (!week || !deleteLessonTarget) return;
 
+    const target = days.find((day) => day.lessonId === deleteLessonTarget);
     const res = await deleteDayAction(course!.id, week.id, deleteLessonTarget);
     if (res.ok) {
       setDeleteLessonTarget(null);
+      setActionError(null);
+      setNotice(`Day "${target?.title ?? deleteLessonTarget}" was deleted.`);
       setRefreshTick(t => t + 1);
       router.refresh();
     } else {
-      alert(res.error);
+      // Keep the dialog open and surface the failure inline rather than via a
+      // native alert(), which is easy to miss and leaves no persistent trace.
+      setNotice(null);
+      setActionError(`Could not delete this Day: ${res.error}`);
     }
+  }
+
+  async function moveDay(lessonId: string, direction: -1 | 1) {
+    if (!week || !course || reordering) return;
+    const ordered = (adminWeek?.days ?? []).map((lesson) => lesson.id);
+    const index = ordered.indexOf(lessonId);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= ordered.length) return;
+    const next = ordered.slice();
+    const [moved] = next.splice(index, 1);
+    next.splice(target, 0, moved);
+    setReordering(true);
+    const res = await reorderDaysAction(course.id, week.id, next);
+    if (res.ok) {
+      setActionError(null);
+      setNotice("Day order saved.");
+      setRefreshTick(t => t + 1);
+      router.refresh();
+    } else {
+      setNotice(null);
+      setActionError(`Could not save the new Day order: ${res.error}`);
+    }
+    setReordering(false);
   }
 
   return (
@@ -86,6 +118,9 @@ export default function AdminWeekWorkspace() {
           { label: `Week ${week.weekNumber}` },
         ]}
       />
+
+      {notice ? <div className="mb-5 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm font-semibold text-[#166534]">{notice}</div> : null}
+      {actionError ? <div role="alert" className="mb-5 rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3 text-sm font-semibold text-[#991B1B]">{actionError}</div> : null}
 
       <div className="mb-6 flex items-center gap-3">
         <Link href={`/admin/courses/${course.id}`} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2 text-sm font-medium text-[#111111]">
@@ -134,6 +169,24 @@ export default function AdminWeekWorkspace() {
 
                 {day.lesson ? (
                   <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={reordering}
+                      onClick={() => moveDay(day.lesson.id, -1)}
+                      aria-label={`Move ${day.title} up`}
+                      className="inline-flex items-center gap-1 rounded-full border border-[#E5E5E5] bg-white px-3 py-2 text-sm font-semibold text-[#111111] disabled:opacity-50"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      disabled={reordering}
+                      onClick={() => moveDay(day.lesson.id, 1)}
+                      aria-label={`Move ${day.title} down`}
+                      className="inline-flex items-center gap-1 rounded-full border border-[#E5E5E5] bg-white px-3 py-2 text-sm font-semibold text-[#111111] disabled:opacity-50"
+                    >
+                      ↓
+                    </button>
                     <Link
                       href={`/admin/lessons/${day.lesson.id}`}
                       className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2563EB]"
@@ -165,8 +218,8 @@ export default function AdminWeekWorkspace() {
 
       <ConfirmDialog
         open={!!deleteLessonTarget}
-        title="Delete lesson"
-        description="Delete this lesson from the week and remove its local lesson record?"
+        title="Delete day"
+        description={deleteLessonTarget ? `Permanently delete the Day "${days.find((day) => day.lessonId === deleteLessonTarget)?.title ?? deleteLessonTarget}" from this week? Its content blocks and Day-targeted resource placements will be removed by the existing cascade rules.` : "Delete this Day?"}
         confirmLabel="Delete"
         onConfirm={confirmDeleteLesson}
         onCancel={() => setDeleteLessonTarget(null)}

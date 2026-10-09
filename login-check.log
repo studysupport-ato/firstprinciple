@@ -1,0 +1,11 @@
+
+> firstprinciples-app@0.1.0 dev
+> next dev
+
+▲ Next.js 16.3.4 (Turbopack)
+- Local:         http://localhost:3001
+- Network:       http://192.168.56.1:3001
+- Environments: .env.local
+✓ Ready in 1780ms
+✓ Running next.config.ts took 120ms
+[?25h

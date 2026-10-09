@@ -13,7 +13,6 @@ import {
 } from "./resources";
 import { getLesson, getWeek } from "./access";
 import type { LearningResource, LearningResourceInput, LearningResourceStatus, ResourcePlacement, ResourcePlacementTarget } from "./types/resource";
-import { createSupabaseAdminClient, createSupabaseBrowserClient } from "../supabase/client";
 import type { Database } from "../supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -33,7 +32,7 @@ export interface ResourceRepository {
   updateResource(resourceId: string, patch: Partial<Omit<LearningResource, "id" | "createdAt" | "updatedAt">>): Promise<LearningResource | undefined>;
   archiveResource(resourceId: string): Promise<LearningResource | undefined>;
   restoreResource(resourceId: string): Promise<LearningResource | undefined>;
-  listPlacements(scope?: ResourcePlacementTarget): Promise<ResourcePlacement[]>;
+  listPlacements(scope?: ResourcePlacementTarget & { resourceId?: string }): Promise<ResourcePlacement[]>;
   createPlacement(resourceId: string, target: ResourcePlacementTarget): Promise<ResourcePlacement>;
   deletePlacement(resourceId: string, target: ResourcePlacementTarget): Promise<void>;
   listResourcesForScope(scope: ResourcePlacementTarget, options?: ResourceRepositoryListOptions): Promise<LearningResource[]>;
@@ -73,7 +72,7 @@ export const resourceLocalRepository: ResourceRepository = {
     return restoreResource(resourceId);
   },
   async listPlacements(scope = {}) {
-    return getResourcePlacements().filter((placement) => (!scope.courseId || placement.courseId === scope.courseId) && (!scope.weekId || placement.weekId === scope.weekId) && (!scope.dayId || placement.dayId === scope.dayId));
+    return getResourcePlacements().filter((placement) => (!scope.resourceId || placement.resourceId === scope.resourceId) && (!scope.courseId || placement.courseId === scope.courseId) && (!scope.weekId || placement.weekId === scope.weekId) && (!scope.dayId || placement.dayId === scope.dayId));
   },
   async createPlacement(resourceId, target) {
     const errors = validateResourcePlacement(resourceId, target);
@@ -102,9 +101,19 @@ export const resourceLocalRepository: ResourceRepository = {
 type ResourceRow = Database["public"]["Tables"]["learning_resources"]["Row"];
 type PlacementRow = Database["public"]["Tables"]["resource_placements"]["Row"];
 
-function defaultResourceClientFactory() {
-  return typeof window === "undefined" ? createSupabaseAdminClient() : createSupabaseBrowserClient();
-}
+/**
+ * Task 40G.6C: callers must state their privilege explicitly.
+ *
+ *   - student server paths pass the request-scoped `createSupabaseServerClient()`
+ *     so reads carry the publishable key + user JWT and are constrained by the
+ *     published-only `learning_resources` / `resource_placements` RLS policies
+ *   - admin authoring passes `createSupabaseAdminClient`
+ *
+ * This replaces the old `defaultResourceClientFactory`, which guessed with
+ * `typeof window === "undefined"` and silently handed a service-role client to
+ * every server-side student read.
+ */
+export type ResourceSupabaseClientFactory = () => SupabaseClient<Database>;
 
 function mapResource(row: ResourceRow): LearningResource {
   const resource = {
@@ -154,7 +163,7 @@ function resourceRow(resource: LearningResource) {
  * server-only admin content boundary (Task 39E) can supply the service-role
  * client without duplicating this implementation.
  */
-export function createResourceSupabaseRepository(clientFactory: () => SupabaseClient<Database> = defaultResourceClientFactory): ResourceRepository {
+export function createResourceSupabaseRepository(clientFactory: ResourceSupabaseClientFactory): ResourceRepository {
   return {
   async listResources(options = {}) {
     const client = clientFactory();
@@ -196,6 +205,7 @@ export function createResourceSupabaseRepository(clientFactory: () => SupabaseCl
   },
   async listPlacements(scope = {}) {
     let query = clientFactory().from("resource_placements").select("*").order("order_index", { ascending: true }).order("created_at", { ascending: true });
+    if (scope.resourceId) query = query.eq("resource_id", scope.resourceId);
     if (scope.courseId) query = query.eq("course_id", scope.courseId);
     if (scope.weekId) query = query.eq("week_id", scope.weekId);
     if (scope.dayId) query = query.eq("day_id", scope.dayId);
@@ -257,9 +267,25 @@ export function createResourceSupabaseRepository(clientFactory: () => SupabaseCl
   };
 }
 
-export const resourceSupabaseRepository: ResourceRepository = createResourceSupabaseRepository();
-
 export type ResourceRepositorySource = "local" | "supabase";
-export function createResourceRepository(source: ResourceRepositorySource = "local"): ResourceRepository {
-  return source === "supabase" ? resourceSupabaseRepository : resourceLocalRepository;
+
+/**
+ * Task 40G.6C: requesting the "supabase" source without an explicit client
+ * factory is a hard error. This deletes the old module-level
+ * `resourceSupabaseRepository` singleton, which bound the service-role client
+ * at import time and let any student call site inherit it silently.
+ */
+export function createResourceRepository(
+  source: ResourceRepositorySource = "local",
+  clientFactory?: ResourceSupabaseClientFactory,
+): ResourceRepository {
+  if (source === "local") return resourceLocalRepository;
+  if (!clientFactory) {
+    throw new Error(
+      'createResourceRepository("supabase") requires an explicit Supabase client factory. ' +
+        "Student server paths must pass the authenticated server client so that the learning_resources / resource_placements RLS policies apply; " +
+        "admin authoring must pass createSupabaseAdminClient explicitly.",
+    );
+  }
+  return createResourceSupabaseRepository(clientFactory);
 }

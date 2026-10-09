@@ -59,6 +59,7 @@ export type AdminCourseMaterialInput = Pick<CourseMaterialEntry, "departmentId" 
   courseCode?: string;
   description?: string;
   provider?: string;
+  kind?: CourseMaterialEntry["kind"];
 };
 
 export type AdminPlacementTarget = ResourcePlacementTarget;

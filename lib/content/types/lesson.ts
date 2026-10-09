@@ -9,6 +9,7 @@ export type ContentBlockType =
   | "image"
   | "video"
   | "interactive"
+  | "visualizer"
   | "question"
   | "markdown";
 
@@ -40,6 +41,8 @@ export interface WorkedExampleBlock extends BaseContentBlock {
   title: string;
   prompt: string;
   solution: string;
+  /** Optional Markdown-first content; prompt/solution remain the legacy fallback. */
+  markdown?: string;
 }
 
 export interface CalloutBlock extends BaseContentBlock {
@@ -83,6 +86,13 @@ export interface InteractiveBlock extends BaseContentBlock {
   config: Record<string, unknown> | GeoGebraInteractiveConfig;
 }
 
+export interface VisualizerBlock extends BaseContentBlock {
+  type: "visualizer";
+  source: string;
+  title?: string;
+  height?: number;
+}
+
 export interface QuestionBlock extends BaseContentBlock {
   type: "question";
   questionId: string;
@@ -102,6 +112,7 @@ export type ContentBlock =
   | ImageBlock
   | VideoBlock
   | InteractiveBlock
+  | VisualizerBlock
   | QuestionBlock
   | MarkdownBlock;
 

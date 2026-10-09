@@ -125,30 +125,11 @@ function assessmentRows() {
   }));
 }
 
+// Only Argand Plane has a GeoGebra resource. Real Numbers does not.
+// The "Real Number Systems Explorer" resource was removed because GeoGebra has no
+// pedagogical role in the Real Numbers lesson. The incorrect placement
+// (placement-math151-real-numbers-resource) was deleted from Supabase.
 const RESOURCE_SEEDS = [
-  {
-    id: "math151-real-numbers-resource",
-    type: "geogebra",
-    title: "Real Number Systems Explorer",
-    description: "A GeoGebra activity for the real number hierarchy and bounded sets.",
-    tags: ["math-151", "real-numbers", "number-systems"],
-    metadata: { lessonId: "math151-real-numbers", canonical: true },
-    data: {
-      materialId: "dtrhtr3h",
-      appName: "graphing",
-      config: {
-        visualizer: "geogebra",
-        appName: "graphing",
-        materialId: "dtrhtr3h",
-        height: 420,
-        showToolbar: true,
-        showAlgebraInput: false,
-        showMenuBar: false,
-        showResetIcon: true,
-        showNotes: true,
-      },
-    },
-  },
   {
     id: "math151-argand-plane-resource",
     type: "geogebra",
@@ -175,7 +156,7 @@ const RESOURCE_SEEDS = [
 ] as const;
 
 const RESOURCE_PLACEMENTS = [
-  { id: "placement-math151-real-numbers-resource", resource_id: "math151-real-numbers-resource", day_id: "math151-real-numbers", order_index: 0 },
+  // Real Numbers: no GeoGebra placement (intentional).
   { id: "placement-math151-argand-plane-resource", resource_id: "math151-argand-plane-resource", day_id: "math151-argand-plane", order_index: 0 },
 ] as const;
 
