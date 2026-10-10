@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, BookOpen, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Save, Trash2 } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { getAdminCourseStructureAction, deleteDayAction, reorderDaysAction } from "@/lib/adminContentActions";
+import { getAdminCourseStructureAction, deleteDayAction, reorderDaysAction, updateWeekAction } from "@/lib/adminContentActions";
 import type { AdminCourseStructure } from "@/lib/content/adminContract";
+import type { ContentStatus } from "@/lib/content/lifecycle";
 
 export default function AdminWeekWorkspace() {
   const router = useRouter();
@@ -22,6 +23,8 @@ export default function AdminWeekWorkspace() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
   const [reordering, setReordering] = useState(false);
+  const [weekForm, setWeekForm] = useState({ title: "", description: "", weekNumber: "", status: "draft" as ContentStatus, comingSoon: false });
+  const [savingWeek, setSavingWeek] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -44,6 +47,53 @@ export default function AdminWeekWorkspace() {
   const weekNumber = Number(weekParam);
   const adminWeek = structure?.weeks.find(w => w.week.weekNumber === weekNumber);
   const week = adminWeek?.week;
+
+  useEffect(() => {
+    if (!week) return;
+    setWeekForm({
+      title: week.title,
+      description: week.description,
+      weekNumber: String(week.weekNumber),
+      status: week.status ?? "draft",
+      comingSoon: week.comingSoon ?? false,
+    });
+  }, [week]);
+
+  async function saveWeekDetails() {
+    if (!week || !course || savingWeek) return;
+    const nextWeekNumber = Number(weekForm.weekNumber);
+    if (!weekForm.title.trim()) {
+      setActionError("Week title is required.");
+      return;
+    }
+    if (!Number.isInteger(nextWeekNumber) || nextWeekNumber < 1) {
+      setActionError("Week number must be a positive integer.");
+      return;
+    }
+
+    setSavingWeek(true);
+    setActionError(null);
+    const result = await updateWeekAction(course.id, week.id, {
+      title: weekForm.title.trim(),
+      description: weekForm.description.trim(),
+      weekNumber: nextWeekNumber,
+      status: weekForm.status,
+      comingSoon: weekForm.comingSoon,
+    });
+    setSavingWeek(false);
+
+    if (!result.ok) {
+      setActionError(`Could not save Week details: ${result.error}`);
+      return;
+    }
+
+    setNotice("Week details saved.");
+    setRefreshTick((tick) => tick + 1);
+    router.refresh();
+    if (nextWeekNumber !== week.weekNumber) {
+      router.replace(`/admin/courses/${encodeURIComponent(course.id)}/weeks/${nextWeekNumber}`);
+    }
+  }
   
   if (loading) return <div className="p-8 text-sm text-[#666666]">Loading...</div>;
   if (error) return <div className="p-8 text-sm text-[#E11D48]">{error}</div>;
@@ -128,6 +178,49 @@ export default function AdminWeekWorkspace() {
         </Link>
         <AdminStatusBadge status={days.every((day) => day.lesson && day.lesson.blocks && day.lesson.blocks.length > 0) ? "Ready" : "Needs content"} />
       </div>
+
+      <section className="mb-6 rounded-[28px] border border-[#E5E5E5] bg-white p-6 shadow-[0_8px_24px_rgba(17,17,17,0.02)]">
+        <div className="mb-5">
+          <div className="field-label">Week settings</div>
+          <h2 className="mt-2 font-serif text-3xl text-[#111111]">Edit week details</h2>
+          <p className="mt-2 text-sm text-[#666666]">These saved details are used by the student course roadmap.</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="space-y-2">
+            <span className="field-label">Week title</span>
+            <input value={weekForm.title} onChange={(event) => setWeekForm((current) => ({ ...current, title: event.target.value }))} className="admin-input" />
+          </label>
+          <label className="space-y-2">
+            <span className="field-label">Week number</span>
+            <input type="number" min="1" step="1" value={weekForm.weekNumber} onChange={(event) => setWeekForm((current) => ({ ...current, weekNumber: event.target.value }))} className="admin-input" />
+          </label>
+          <label className="space-y-2 md:col-span-2">
+            <span className="field-label">Description</span>
+            <textarea value={weekForm.description} onChange={(event) => setWeekForm((current) => ({ ...current, description: event.target.value }))} rows={3} className="admin-input" />
+          </label>
+          <label className="space-y-2">
+            <span className="field-label">Publication status</span>
+            <select value={weekForm.status} onChange={(event) => setWeekForm((current) => ({ ...current, status: event.target.value as ContentStatus }))} className="admin-input">
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="archived">Archived</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-3 self-end pb-3 text-sm font-medium text-[#111111]">
+            <input
+              type="checkbox"
+              checked={weekForm.comingSoon}
+              onChange={(event) => setWeekForm((current) => ({ ...current, comingSoon: event.target.checked }))}
+              className="h-4 w-4 accent-[#111111]"
+            />
+            Show as Coming Soon (students cannot open this week)
+          </label>
+        </div>
+        <button type="button" disabled={savingWeek} onClick={saveWeekDetails} className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#111111] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#2563EB] disabled:cursor-wait disabled:opacity-60">
+          <Save size={15} />
+          {savingWeek ? "Saving..." : "Save week"}
+        </button>
+      </section>
 
       <section className="rounded-[28px] border border-[#E5E5E5] bg-white p-6 shadow-[0_8px_24px_rgba(17,17,17,0.02)]">
         <div className="mb-6 flex items-start justify-between">

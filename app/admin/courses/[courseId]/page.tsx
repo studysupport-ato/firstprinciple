@@ -11,8 +11,9 @@ import {
   getAdminAssessmentsAction,
   createWeekAction,
   deleteWeekAction,
+  updateWeekAction,
 } from "@/lib/adminContentActions";
-import { BookOpen, FileText, Plus, Trash2, Upload } from "lucide-react";
+import { BookOpen, FileText, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import type { AdminCourseStructure, Question, Assessment } from "@/lib/content/adminContract";
 
@@ -31,6 +32,9 @@ export default function AdminCourseCommandCenter() {
   const [chapterTitle, setChapterTitle] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<{ weekId: string; title: string } | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [savingComingSoonWeekId, setSavingComingSoonWeekId] = useState<string | null>(null);
+  const [weekActionMessage, setWeekActionMessage] = useState<string | null>(null);
+  const [weekActionError, setWeekActionError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -132,6 +136,28 @@ export default function AdminCourseCommandCenter() {
     }
   }
 
+  async function toggleWeekComingSoon(weekId: string, weekTitle: string, comingSoon: boolean) {
+    if (!course || savingComingSoonWeekId) return;
+    setSavingComingSoonWeekId(weekId);
+    setWeekActionMessage(null);
+    setWeekActionError(null);
+
+    try {
+      const result = await updateWeekAction(course.id, weekId, { comingSoon });
+      if (!result.ok) {
+        setWeekActionError(`Could not update "${weekTitle}": ${result.error}`);
+        return;
+      }
+      setWeekActionMessage(`"${weekTitle}" is ${comingSoon ? "now Coming Soon" : "available to students"}.`);
+      setRefreshTick((value) => value + 1);
+      router.refresh();
+    } catch (actionError) {
+      setWeekActionError(actionError instanceof Error ? actionError.message : `Could not update "${weekTitle}".`);
+    } finally {
+      setSavingComingSoonWeekId(null);
+    }
+  }
+
   if (loading) return <div className="p-8 text-sm text-[#666666]">Loading...</div>;
   if (error) return <div className="p-8 text-sm text-[#E11D48]">{error}</div>;
   if (!course) return <div className="p-8 text-sm text-[#666666]">Course not found.</div>;
@@ -141,6 +167,8 @@ export default function AdminCourseCommandCenter() {
       <AdminPageHeader title={course.title} description={course.description} breadcrumbs={[{ label: "Courses", href: "/admin/courses" }, { label: course.code }]} />
       <div className="mb-8 flex flex-wrap gap-3"><Link href={`/courses/${course.id}/roadmap?preview=1`} target="_blank" className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#2563EB]">Preview as student</Link><Link href={`/admin/courses/${course.id}/import`} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2.5 text-sm font-medium text-[#111111]"><Upload size={15} />Import material</Link><button type="button" onClick={() => setIsCreatingWeek((current) => !current)} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2.5 text-sm font-medium text-[#111111] hover:border-[#111111]"><Plus size={15} />Create week</button><Link href={`/admin/lessons/new?courseId=${course.id}`} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2.5 text-sm font-medium text-[#111111]"><Plus size={15} />Create day</Link><Link href={`/admin/courses/${course.id}/quality`} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2.5 text-sm font-medium text-[#111111]">Review quality</Link></div>
       {isCreatingWeek ? <div className="mb-6 rounded-[24px] border border-[#E5E5E5] bg-white p-5 shadow-[0_8px_24px_rgba(17,17,17,0.02)]"><div className="grid gap-4 md:grid-cols-2"><label className="space-y-2"><span className="field-label">Week title</span><input value={weekTitle} onChange={(event) => setWeekTitle(event.target.value)} className="admin-input" placeholder={`Week ${nextWeekNumber}`} /></label><label className="space-y-2"><span className="field-label">Chapter title</span><input value={chapterTitle} onChange={(event) => setChapterTitle(event.target.value)} className="admin-input" placeholder={chapters[0]?.title ?? "Chapter 1"} /></label></div><div className="mt-4 flex gap-3"><button type="button" onClick={handleCreateWeek} className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2563EB]">Create week</button><button type="button" onClick={() => { setIsCreatingWeek(false); setWeekTitle(""); setChapterTitle(""); }} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2 text-sm font-medium text-[#111111]">Cancel</button></div></div> : null}
+      {weekActionMessage ? <div role="status" className="mb-4 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm font-semibold text-[#166534]">{weekActionMessage}</div> : null}
+      {weekActionError ? <div role="alert" className="mb-4 rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3 text-sm font-semibold text-[#991B1B]">{weekActionError}</div> : null}
       <ConfirmDialog open={!!deleteTarget} title="Delete week" description={deleteTarget ? `Delete "${deleteTarget.title}" and remove its lesson records from this course?` : "Delete this week?"} confirmLabel="Delete" onConfirm={confirmDeleteWeek} onCancel={() => setDeleteTarget(null)} />
       <div className="grid gap-4 md:grid-cols-4"><Metric label="Weeks" value={weeks.length} /><Metric label="Days" value={allDays.length} /><Metric label="Questions" value={questions.length} /><Metric label="Assessments" value={assessments.length} /></div>
       {quality ? <section className="mt-6 flex flex-col gap-4 rounded-[24px] border border-[#E5E5E5] bg-white p-5 md:flex-row md:items-center md:justify-between"><div><div className="field-label">Course readiness</div><div className="mt-2 flex flex-wrap items-center gap-3"><AdminStatusBadge status={quality.readiness} /><span className="text-sm text-[#666666]">{quality.metrics.daysWithContent} / {quality.metrics.days} Days with content · {quality.errors} errors · {quality.warnings} warnings</span></div></div><Link href={`/admin/courses/${course.id}/quality`} className="text-sm font-semibold text-[#111111] hover:text-[#2563EB]">Open quality report</Link></section> : null}
@@ -153,7 +181,7 @@ export default function AdminCourseCommandCenter() {
         })) ?? [];
         const weekReport = quality?.weeks.find((item) => item.week.id === week.id); 
         const createDayHref = `/admin/lessons/new?courseId=${course.id}&weekId=${week.id}`; 
-        return <div key={week.id} className="rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] p-5 transition-colors hover:border-[#111111]"><div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between"><div><div className="field-label">Week {week.weekNumber}</div><h3 className="mt-2 font-serif text-2xl text-[#111111]">{week.title}</h3><p className="mt-2 text-sm leading-6 text-[#666666]">{week.description}</p></div><div className="flex items-center gap-3"><div className="flex items-center gap-2 text-sm text-[#666666]"><BookOpen size={15} />{weekReport?.readyDayCount ?? 0} / {weekDays.length} Days ready</div><Link href={createDayHref} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-3 py-1.5 text-xs font-semibold text-[#111111] hover:border-[#111111]">Create day</Link><button type="button" onClick={() => handleDeleteWeek(week.id, week.title)} className="inline-flex items-center gap-2 rounded-full border border-[#FCA5A5] bg-[#FEF2F2] px-3 py-1.5 text-xs font-semibold text-[#B91C1C] hover:bg-[#FEE2E2]"><Trash2 size={13} />Delete</button></div></div><div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">{weekDays.map((day) => <Link key={day.lessonId} href={day.lesson ? `/admin/lessons/${day.lesson.id}` : createDayHref} className="block rounded-xl border border-[#E5E5E5] bg-white px-3 py-3 hover:border-[#111111]"><div className="field-label">Day {day.dayNumber}</div><div className="mt-2 line-clamp-2 text-sm font-medium text-[#111111]">{day.title}</div><div className="mt-1 text-xs text-[#666666]">{day.lesson ? `${day.lesson.blocks?.length || 0} blocks` : "Needs content"}</div></Link>)}</div></div>; })}</div></section>
+        return <div key={week.id} className="rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] p-5 transition-colors hover:border-[#111111]"><div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between"><div><div className="field-label">Week {week.weekNumber}</div><h3 className="mt-2 font-serif text-2xl text-[#111111]">{week.title}</h3><p className="mt-2 text-sm leading-6 text-[#666666]">{week.description}</p><div className="mt-2 flex flex-wrap items-center gap-2"><AdminStatusBadge status={week.status ?? "draft"} />{week.comingSoon ? <span className="rounded-full bg-[#E5E5E5] px-2.5 py-1 text-xs font-semibold text-[#555555]">Coming Soon</span> : null}</div></div><div className="flex flex-wrap items-center gap-3"><div className="flex items-center gap-2 text-sm text-[#666666]"><BookOpen size={15} />{weekReport?.readyDayCount ?? 0} / {weekDays.length} Days ready</div><button type="button" disabled={savingComingSoonWeekId !== null} onClick={() => toggleWeekComingSoon(week.id, week.title, !week.comingSoon)} className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold disabled:cursor-wait disabled:opacity-60 ${week.comingSoon ? "border-[#D4D4D4] bg-[#E5E5E5] text-[#444444] hover:bg-white" : "border-[#E5E5E5] bg-white text-[#111111] hover:border-[#111111]"}`}>{savingComingSoonWeekId === week.id ? "Saving..." : week.comingSoon ? "Make available" : "Set Coming Soon"}</button><Link href={`/admin/courses/${course.id}/weeks/${week.weekNumber}`} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-3 py-1.5 text-xs font-semibold text-[#111111] hover:border-[#111111]"><Pencil size={13} />Edit week</Link><Link href={createDayHref} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-3 py-1.5 text-xs font-semibold text-[#111111] hover:border-[#111111]">Create day</Link><button type="button" onClick={() => handleDeleteWeek(week.id, week.title)} className="inline-flex items-center gap-2 rounded-full border border-[#FCA5A5] bg-[#FEF2F2] px-3 py-1.5 text-xs font-semibold text-[#B91C1C] hover:bg-[#FEE2E2]"><Trash2 size={13} />Delete</button></div></div><div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">{weekDays.map((day) => <Link key={day.lessonId} href={day.lesson ? `/admin/lessons/${day.lesson.id}` : createDayHref} className="block rounded-xl border border-[#E5E5E5] bg-white px-3 py-3 hover:border-[#111111]"><div className="field-label">Day {day.dayNumber}</div><div className="mt-2 line-clamp-2 text-sm font-medium text-[#111111]">{day.title}</div><div className="mt-1 text-xs text-[#666666]">{day.lesson ? `${day.lesson.blocks?.length || 0} blocks` : "Needs content"}</div></Link>)}</div></div>; })}</div></section>
       <div className="mt-8 grid gap-4 md:grid-cols-2"><Link href={`/admin/questions?courseId=${course.id}`} className="rounded-2xl border border-[#E5E5E5] bg-white p-5 hover:border-[#111111]"><FileText size={17} /><div className="mt-4 font-serif text-2xl text-[#111111]">Question bank</div><p className="mt-2 text-sm text-[#666666]">Manage {questions.length} questions for {course.code}.</p></Link><Link href={`/admin/assessments?courseId=${course.id}`} className="rounded-2xl border border-[#E5E5E5] bg-white p-5 hover:border-[#111111]"><BookOpen size={17} /><div className="mt-4 font-serif text-2xl text-[#111111]">Assessments</div><p className="mt-2 text-sm text-[#666666]">Manage {assessments.length} assessment definitions.</p></Link></div>
     </div>
   );

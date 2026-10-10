@@ -1,6 +1,7 @@
 export type CourseMaterialsStatus = "draft" | "published" | "archived";
 
 export type CourseMaterialKind = "link" | "youtube";
+export type CourseMaterialYear = 1 | 2 | 3 | 4;
 
 export interface CourseMaterialsDepartment {
   id: string;
@@ -18,6 +19,7 @@ export interface CourseMaterialEntry {
   departmentId: string;
   courseCode?: string;
   courseTitle: string;
+  studyYear?: CourseMaterialYear | null;
   description?: string;
   url: string;
   provider?: string;
@@ -115,6 +117,7 @@ export function validateCourseMaterial(entry: CourseMaterialEntryInput | CourseM
   const errors: string[] = [];
   if (!entry.departmentId.trim()) errors.push("A department is required.");
   if (!entry.courseTitle.trim()) errors.push("Course title is required.");
+  if (entry.studyYear != null && ![1, 2, 3, 4].includes(entry.studyYear)) errors.push("Course material year must be between first and fourth year.");
   if (!isHttpUrl(entry.url.trim())) errors.push("A valid HTTP or HTTPS URL is required.");
   const kind = (entry as Partial<CourseMaterialEntry>).kind ?? "link";
   if (kind !== "link" && kind !== "youtube") errors.push("Course material type is invalid.");

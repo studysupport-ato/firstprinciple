@@ -4,7 +4,7 @@ import type { ContentBlock, Lesson } from "./types/lesson";
 import type { Question } from "./types/question";
 import type { LearningResource, LearningResourceInput, ResourcePlacement, ResourcePlacementTarget } from "./types/resource";
 import type { ContentStatus } from "./lifecycle";
-import type { CourseMaterialEntry, CourseMaterialsDepartment } from "../courseMaterials";
+import type { CourseMaterialEntry, CourseMaterialYear, CourseMaterialsDepartment } from "../courseMaterials";
 
 /**
  * Task 39E — Admin content write contract (shared, client-safe types only).
@@ -56,6 +56,7 @@ export type AdminDepartmentInput = Pick<CourseMaterialsDepartment, "name" | "sta
 };
 
 export type AdminCourseMaterialInput = Pick<CourseMaterialEntry, "departmentId" | "courseTitle" | "url" | "status"> & {
+  studyYear: CourseMaterialYear;
   courseCode?: string;
   description?: string;
   provider?: string;

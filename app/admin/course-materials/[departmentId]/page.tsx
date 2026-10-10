@@ -23,11 +23,18 @@ import {
   archiveCourseMaterialAction,
 } from "@/lib/adminContentActions";
 import type { CourseMaterialEntry, CourseMaterialsDepartment } from "@/lib/content/adminContract";
+import type { CourseMaterialYear } from "@/lib/courseMaterials";
 import type { ContentStatus } from "@/lib/content/lifecycle";
 import { YouTubeEmbed } from "@/components/learning/YouTubeEmbed";
 import { parseYouTubeVideoId } from "@/lib/youtube";
 
 const statuses: ContentStatus[] = ["draft", "published", "archived"];
+const studyYears: Array<{ value: CourseMaterialYear; label: string }> = [
+  { value: 1, label: "First year" },
+  { value: 2, label: "Second year" },
+  { value: 3, label: "Third year" },
+  { value: 4, label: "Fourth year" },
+];
 
 export default function AdminCourseMaterialsDepartmentPage() {
   const { departmentId } = useParams<{ departmentId: string }>();
@@ -36,7 +43,7 @@ export default function AdminCourseMaterialsDepartmentPage() {
   const [showEntryForm, setShowEntryForm] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [departmentForm, setDepartmentForm] = useState({ name: "", shortName: "", description: "", status: "draft" as ContentStatus });
-  const [entryForm, setEntryForm] = useState({ courseCode: "", courseTitle: "", description: "", url: "", provider: "", kind: "link" as "link" | "youtube", status: "draft" as ContentStatus });
+  const [entryForm, setEntryForm] = useState({ courseCode: "", courseTitle: "", description: "", url: "", provider: "", studyYear: "", kind: "link" as "link" | "youtube", status: "draft" as ContentStatus });
   const entryVideoId = entryForm.kind === "youtube" ? parseYouTubeVideoId(entryForm.url) ?? parseYouTubeVideoId(entryForm.provider) : undefined;
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -92,7 +99,7 @@ export default function AdminCourseMaterialsDepartmentPage() {
 
   function startNewEntry() {
     setEditingEntryId(null);
-    setEntryForm({ courseCode: "", courseTitle: "", description: "", url: "", provider: "", kind: "link", status: "draft" });
+    setEntryForm({ courseCode: "", courseTitle: "", description: "", url: "", provider: "", studyYear: "", kind: "link", status: "draft" });
     setShowEntryForm(true);
   }
 
@@ -105,6 +112,7 @@ export default function AdminCourseMaterialsDepartmentPage() {
       description: entry.description ?? "",
       url: entry.url,
       provider: kind === "youtube" ? parseYouTubeVideoId(entry.provider) ?? parseYouTubeVideoId(entry.url) ?? entry.provider ?? "" : entry.provider ?? "",
+      studyYear: entry.studyYear?.toString() ?? "",
       kind,
       status: entry.status,
     });
@@ -116,10 +124,13 @@ export default function AdminCourseMaterialsDepartmentPage() {
       // No iframe HTML stored: for YouTube, provider carries only the validated video ID.
       const videoId = entryForm.kind === "youtube" ? parseYouTubeVideoId(entryForm.url) ?? parseYouTubeVideoId(entryForm.provider) : undefined;
       if (entryForm.kind === "youtube" && !videoId) throw new Error("A valid YouTube URL or video ID is required (e.g. https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID).");
+      const studyYear = studyYears.find((year) => year.value.toString() === entryForm.studyYear)?.value;
+      if (!editingEntryId && !studyYear) throw new Error("Choose the academic year for this material.");
       const input = {
         departmentId,
         courseCode: entryForm.courseCode.trim() || undefined,
         courseTitle: entryForm.courseTitle.trim(),
+        studyYear: studyYear ?? null,
         description: entryForm.description.trim() || undefined,
         url: entryForm.kind === "youtube" && videoId ? `https://www.youtube.com/watch?v=${videoId}` : entryForm.url.trim(),
         provider: entryForm.kind === "youtube" ? videoId : entryForm.provider.trim() || undefined,
@@ -129,7 +140,8 @@ export default function AdminCourseMaterialsDepartmentPage() {
       if (editingEntryId) {
         result = await updateCourseMaterialAction(editingEntryId, input);
       } else {
-        result = await createCourseMaterialAction(input);
+        if (!studyYear) throw new Error("Choose the academic year for this material.");
+        result = await createCourseMaterialAction({ ...input, studyYear });
       }
       
       if (!result.ok) throw new Error(result.error);
@@ -331,6 +343,19 @@ export default function AdminCourseMaterialsDepartmentPage() {
             </label>
 
             <label className="space-y-2">
+              <span className="field-label">Academic year</span>
+              <select
+                value={entryForm.studyYear}
+                onChange={(event) => setEntryForm({ ...entryForm, studyYear: event.target.value })}
+                className="admin-input"
+                required={!editingEntryId}
+              >
+                <option value="">{editingEntryId ? "Unassigned — choose a year" : "Choose a year"}</option>
+                {studyYears.map((year) => <option key={year.value} value={year.value}>{year.label}</option>)}
+              </select>
+            </label>
+
+            <label className="space-y-2">
               <span className="field-label">Course title</span>
               <input value={entryForm.courseTitle} onChange={(event) => setEntryForm({ ...entryForm, courseTitle: event.target.value })} className="admin-input" />
             </label>
@@ -402,7 +427,11 @@ export default function AdminCourseMaterialsDepartmentPage() {
                     {row.entry.courseTitle}
                     {kind === "youtube" ? <span className="ml-2 rounded-full bg-[#FFC700]/30 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#7a5b00]">YouTube</span> : null}
                   </div>
-                  <div className="mt-1 max-w-[280px] truncate text-xs text-[#666666]">{kind === "youtube" ? parseYouTubeVideoId(row.entry.provider) ?? parseYouTubeVideoId(row.entry.url) ?? row.entry.url : row.entry.provider ?? row.entry.url}</div>
+                  <div className="mt-1 max-w-[280px] truncate text-xs text-[#666666]">
+                    {studyYears.find((year) => year.value === row.entry.studyYear)?.label ?? "Unassigned"}
+                    {" · "}
+                    {kind === "youtube" ? parseYouTubeVideoId(row.entry.provider) ?? parseYouTubeVideoId(row.entry.url) ?? row.entry.url : row.entry.provider ?? row.entry.url}
+                  </div>
                 </div>
                 );
               },

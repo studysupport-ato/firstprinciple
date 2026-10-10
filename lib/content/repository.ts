@@ -21,7 +21,7 @@ export type CourseStructureDay = Lesson;
 
 /** Admin-authored patch shapes: only the fields a caller explicitly supplies are written. */
 export type CoursePatch = Partial<Pick<Course, "code" | "title" | "shortTitle" | "description" | "department" | "status">>;
-export type WeekPatch = Partial<Pick<Week, "title" | "description" | "weekNumber" | "status">>;
+export type WeekPatch = Partial<Pick<Week, "title" | "description" | "weekNumber" | "status" | "comingSoon">>;
 export type DayPatch = Partial<
   Pick<Lesson, "chapterId" | "title" | "description" | "order" | "estimatedMinutes" | "objectives" | "blocks" | "status">
 >;
@@ -216,6 +216,7 @@ type SupabaseWeekRow = {
   description: string;
   week_number: number;
   status: string;
+  coming_soon: boolean;
 };
 
 type SupabaseDayRow = {
@@ -256,6 +257,7 @@ function mapWeekRow(row: SupabaseWeekRow): Week {
     weekNumber: row.week_number,
     sessionIds: [],
     status: row.status as Week["status"],
+    comingSoon: row.coming_soon,
   };
 }
 
@@ -503,6 +505,7 @@ export function createCourseStructureSupabaseRepository(clientFactory: () => Sup
       description: week.description,
       week_number: week.weekNumber,
       status: week.status ?? "draft",
+      coming_soon: week.comingSoon ?? false,
     };
     const { data, error } = await client.from("weeks").insert(row as never).select("*").single();
     if (error) throw error;
@@ -515,6 +518,7 @@ export function createCourseStructureSupabaseRepository(clientFactory: () => Sup
     if (patch.description !== undefined) row.description = patch.description;
     if (patch.weekNumber !== undefined) row.week_number = patch.weekNumber;
     if (patch.status !== undefined) row.status = patch.status;
+    if (patch.comingSoon !== undefined) row.coming_soon = patch.comingSoon;
     if (Object.keys(row).length === 0) throw new Error("No Week fields were supplied to update.");
     const { data, error } = await client.from("weeks").update(row as never).eq("course_id", courseId).eq("id", weekId).select("*").single();
     if (error) throw error;

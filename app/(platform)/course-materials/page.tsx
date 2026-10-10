@@ -22,7 +22,7 @@ import { YouTubeEmbed } from "@/components/learning/YouTubeEmbed";
 import { useAuthSession } from "@/lib/auth/useAuthSession";
 import { getCourseMaterialVideoId, parseYouTubeVideoId } from "@/lib/youtube";
 import { createCourseMaterialsRepository, type CourseMaterialsRepository } from "@/lib/courseMaterialsRepository";
-import { type CourseMaterialEntry, type CourseMaterialsDepartment, type CourseMaterialsDirectory } from "@/lib/courseMaterials";
+import { type CourseMaterialEntry, type CourseMaterialYear, type CourseMaterialsDepartment, type CourseMaterialsDirectory } from "@/lib/courseMaterials";
 
 type MaterialType = "PDF Document" | "Lecture Slides" | "Past Questions" | "Video Lecture" | "External Link";
 
@@ -31,6 +31,12 @@ type MaterialRow = CourseMaterialEntry & {
 };
 
 const RESOURCE_TYPES: Array<"ALL" | MaterialType> = ["ALL", "PDF Document", "Lecture Slides", "Past Questions", "Video Lecture", "External Link"];
+const STUDY_YEARS: Array<{ value: CourseMaterialYear; label: string }> = [
+  { value: 1, label: "First year" },
+  { value: 2, label: "Second year" },
+  { value: 3, label: "Third year" },
+  { value: 4, label: "Fourth year" },
+];
 const BOOKMARK_STORAGE_KEY = "b2b-course-material-bookmarks-v1";
 
 function deriveMaterialType(entry: CourseMaterialEntry): MaterialType {
@@ -171,6 +177,7 @@ export default function CourseMaterialsPage() {
   const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialRow | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<CourseMaterialsDepartment | null>(null);
+  const [selectedStudyYear, setSelectedStudyYear] = useState<CourseMaterialYear | null>(1);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -299,17 +306,12 @@ export default function CourseMaterialsPage() {
 
   // ─── Department detail panel ───────────────────────────────────────────────
   if (selectedDepartment) {
-    const deptEntries = filteredRows.filter((e) => e.departmentId === selectedDepartment.id);
     const departmentEntries = rows.filter((entry) => entry.departmentId === selectedDepartment.id);
-    const filterLabel: Record<"ALL" | MaterialType, string> = {
-      ALL: "All materials",
-      "PDF Document": "PDFs",
-      "Lecture Slides": "Slides",
-      "Past Questions": "Past questions",
-      "Video Lecture": "Videos",
-      "External Link": "Links",
-    };
-
+    const hasUnassignedEntries = departmentEntries.some((entry) => entry.studyYear == null);
+    const deptEntries = filteredRows.filter((entry) =>
+      entry.departmentId === selectedDepartment.id &&
+      (entry.studyYear ?? null) === selectedStudyYear
+    );
     return (
       <CourseMaterialsChrome>
         <button
@@ -334,31 +336,30 @@ export default function CourseMaterialsPage() {
 
         <div
           role="tablist"
-          aria-label="Filter materials by type"
-          className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6"
+          aria-label="Filter materials by academic year"
+          className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4"
         >
-          {RESOURCE_TYPES.map((type) => {
-            const count = type === "ALL"
-              ? departmentEntries.length
-              : departmentEntries.filter((entry) => entry.type === type).length;
-            const selected = typeFilter === type;
+          {[
+            ...STUDY_YEARS.map((year) => ({ value: year.value, label: year.label })),
+            ...(hasUnassignedEntries ? [{ value: null, label: "Unassigned" }] : []),
+          ].map((year) => {
+            const count = departmentEntries.filter((entry) => (entry.studyYear ?? null) === year.value).length;
+            const selected = selectedStudyYear === year.value;
 
             return (
               <button
-                key={type}
+                key={year.label}
                 type="button"
                 role="tab"
                 aria-selected={selected}
-                onClick={() => setTypeFilter(type)}
+                onClick={() => setSelectedStudyYear(year.value)}
                 className={`min-h-[72px] rounded-[16px] px-4 py-3 text-left transition ${
                   selected
                     ? "bg-[#111111] text-white shadow-[0_8px_20px_rgba(17,17,17,0.12)]"
                     : "bg-white text-[#111111] hover:bg-[#fffaf0]"
                 }`}
               >
-                <span className="block font-serif text-[15px] font-bold leading-tight">
-                  {filterLabel[type]}
-                </span>
+                <span className="block font-serif text-[15px] font-bold leading-tight">{year.label}</span>
                 <span className={`mt-1 block text-[12px] font-semibold ${selected ? "text-white/65" : "text-[#111111]/50"}`}>
                   {count} {count === 1 ? "material" : "materials"}
                 </span>
@@ -367,12 +368,32 @@ export default function CourseMaterialsPage() {
           })}
         </div>
 
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <FilterPills
+            label="Material type"
+            options={RESOURCE_TYPES}
+            value={typeFilter}
+            onChange={(value) => setTypeFilter(value as "ALL" | MaterialType)}
+          />
+          <button
+            type="button"
+            onClick={() => setShowBookmarksOnly((current) => !current)}
+            aria-pressed={showBookmarksOnly}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-bold transition ${
+              showBookmarksOnly ? "bg-[#111111] text-[#FFC700]" : "border border-black/30 bg-white/60 text-[#111111] hover:bg-white"
+            }`}
+          >
+            <Bookmark className={`h-3.5 w-3.5 ${showBookmarksOnly ? "fill-current" : ""}`} />
+            Saved
+          </button>
+        </div>
+
         {deptEntries.length === 0 ? (
           <div className="mt-5 rounded-[22px] border border-dashed border-[#111111]/30 bg-white p-12 text-center shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
             <FolderOpen className="mx-auto h-10 w-10 text-[#111111]/30" />
             <h3 className="mt-5 font-black text-[#111111]">No materials found</h3>
             <p className="mx-auto mt-2 max-w-sm text-sm font-medium text-[#111111]/65">
-              No resources match this filter for {selectedDepartment.shortName ?? selectedDepartment.name} yet.
+              No {selectedStudyYear === null ? "unassigned" : STUDY_YEARS.find((year) => year.value === selectedStudyYear)?.label.toLowerCase()} materials match these filters for {selectedDepartment.shortName ?? selectedDepartment.name}.
             </p>
           </div>
         ) : (
@@ -542,7 +563,10 @@ export default function CourseMaterialsPage() {
                       <div className="mt-auto pt-6">
                       <button
                         type="button"
-                        onClick={() => setSelectedDepartment(department)}
+                        onClick={() => {
+                          setSelectedStudyYear(1);
+                          setSelectedDepartment(department);
+                        }}
                         className="inline-flex min-h-[42px] items-center gap-2 rounded-full bg-[#FFC700] px-4 py-2 text-[13px] font-bold text-[#111111] transition-colors hover:bg-[#FFD633] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#171717] active:scale-[0.98]"
                       >
                         View course materials

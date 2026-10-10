@@ -25,8 +25,8 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["courses"]["Insert"]>;
       };
       weeks: {
-        Row: { id: string; course_id: string; title: string; description: string; week_number: number; status: ContentStatus; created_at: string; updated_at: string };
-        Insert: { id: string; course_id: string; title: string; description: string; week_number: number; status?: ContentStatus; created_at?: string; updated_at?: string };
+        Row: { id: string; course_id: string; title: string; description: string; week_number: number; status: ContentStatus; coming_soon: boolean; created_at: string; updated_at: string };
+        Insert: { id: string; course_id: string; title: string; description: string; week_number: number; status?: ContentStatus; coming_soon?: boolean; created_at?: string; updated_at?: string };
         Update: Partial<Database["public"]["Tables"]["weeks"]["Insert"]>;
       };
       days: {
@@ -60,8 +60,8 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["departments"]["Insert"]>;
       };
       course_materials: {
-        Row: { id: string; department_id: string; course_code: string | null; course_title: string; description: string | null; url: string; provider: string | null; order_index: number; status: ContentStatus; created_at: string; updated_at: string };
-        Insert: { id: string; department_id: string; course_code?: string | null; course_title: string; description?: string | null; url: string; provider?: string | null; order_index?: number; status?: ContentStatus; created_at?: string; updated_at?: string };
+        Row: { id: string; department_id: string; course_code: string | null; course_title: string; study_year: number | null; description: string | null; url: string; provider: string | null; order_index: number; status: ContentStatus; created_at: string; updated_at: string };
+        Insert: { id: string; department_id: string; course_code?: string | null; course_title: string; study_year?: number | null; description?: string | null; url: string; provider?: string | null; order_index?: number; status?: ContentStatus; created_at?: string; updated_at?: string };
         Update: Partial<Database["public"]["Tables"]["course_materials"]["Insert"]>;
       };
       assets: {

@@ -66,28 +66,50 @@ export default function RoadmapClient({ course, weeks, daysByWeek, preview = fal
         {weeks.map((week, index) => {
           const days = daysByWeek[week.id] ?? [];
           const completed = days.filter((day) => dayProgress[day.id]?.status === "completed").length;
+          const comingSoon = week.comingSoon ?? false;
+          const cardClassName = `group block h-full rounded-[26px] border p-6 transition-all md:p-8 ${
+            comingSoon
+              ? "cursor-not-allowed border-[#D4D4D4] bg-[#E5E5E5] text-[#777777] grayscale"
+              : "border-[#E7E5E2] bg-[#F7F6F3] hover:-translate-y-1 hover:bg-white"
+          }`;
+          const cardContent = (
+            <>
+              <span className={`mb-3 block text-[10px] font-bold uppercase tracking-[0.24em] ${comingSoon ? "text-[#888888]" : "text-[#FFBE00]"}`}>Week {week.weekNumber}</span>
+              <h2 className={`font-serif text-3xl md:text-4xl ${comingSoon ? "text-[#666666]" : "text-[#111111]"}`}><EducationalText text={week.title} /></h2>
+              <p className={`mt-4 text-sm leading-relaxed ${comingSoon ? "text-[#777777]" : "text-[#666666]"}`}><EducationalText text={week.description} /></p>
+              <div className={`mt-8 border-t pt-5 ${comingSoon ? "border-[#D0D0D0]" : "border-[#E5E5E5]"}`}>
+                <div className="mb-3 flex justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-[#777777]">
+                  <span>{completed} of {days.length} days</span>
+                  {comingSoon ? (
+                    <span>Coming Soon</span>
+                  ) : completed === days.length && days.length ? (
+                    <span className="inline-flex items-center gap-1 text-[#059669]"><Check size={14} /> Complete</span>
+                  ) : <span>Available</span>}
+                </div>
+                <div className={`h-1.5 overflow-hidden rounded-full ${comingSoon ? "bg-[#D4D4D4]" : "bg-white"}`}>
+                  <div
+                    className={`h-full rounded-full ${comingSoon ? "bg-[#B8B8B8]" : "bg-[#FFBE00]"}`}
+                    style={{ width: `${days.length ? completed / days.length * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            </>
+          );
 
           return (
             <AnimatedItem key={week.id} delay={index * 0.06}>
-              <Link
-                href={`/courses/${course.id}/roadmap/week/${week.weekNumber}${previewQuery}`}
-                className="group block h-full rounded-[26px] border border-[#E7E5E2] bg-[#F7F6F3] p-6 transition-all hover:-translate-y-1 hover:bg-white md:p-8"
-              >
-                <span className="mb-3 block text-[10px] font-bold uppercase tracking-[0.24em] text-[#FFBE00]">Week {week.weekNumber}</span>
-                <h2 className="font-serif text-3xl text-[#111111] md:text-4xl"><EducationalText text={week.title} /></h2>
-                <p className="mt-4 text-sm leading-relaxed text-[#666666]"><EducationalText text={week.description} /></p>
-                <div className="mt-8 border-t border-[#E5E5E5] pt-5">
-                  <div className="mb-3 flex justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-[#777777]">
-                    <span>{completed} of {days.length} days</span>
-                    {completed === days.length && days.length ? (
-                      <span className="inline-flex items-center gap-1 text-[#059669]"><Check size={14} /> Complete</span>
-                    ) : <span>Available</span>}
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-white">
-                    <div className="h-full rounded-full bg-[#FFBE00]" style={{ width: `${days.length ? completed / days.length * 100 : 0}%` }} />
-                  </div>
+              {comingSoon ? (
+                <div aria-disabled="true" className={cardClassName}>
+                  {cardContent}
                 </div>
-              </Link>
+              ) : (
+                <Link
+                  href={`/courses/${course.id}/roadmap/week/${week.weekNumber}${previewQuery}`}
+                  className={cardClassName}
+                >
+                  {cardContent}
+                </Link>
+              )}
             </AnimatedItem>
           );
         })}

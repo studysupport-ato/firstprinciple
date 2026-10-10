@@ -107,8 +107,8 @@ export default function PlatformLayout({
         className={`relative min-h-screen w-full min-w-0 flex-1 bg-[#FFC600] transition-[margin] duration-500 ease-in-out ${sidebarCollapsed ? "md:ml-[68px]" : "md:ml-[224px]"}`}
       >
         <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between border-b border-black/10 bg-[#FFC600] px-4 pt-[env(safe-area-inset-top)] md:hidden">
-          <Link href="/" aria-label="Back2Basics with Kwamina home" className="flex min-h-11 items-center">
-            <img src="/logobg.png" alt="Back2Basics with Kwamina" className="h-9 max-w-[180px] rounded-md object-contain object-left" />
+          <Link href="/" aria-label="Back2Basics with Kwamina home" className="flex h-12 w-[200px] max-w-[calc(100vw-80px)] items-center overflow-hidden">
+            <img src="/logobg.png" alt="Back2Basics with Kwamina" className="h-full w-full object-cover object-center" />
           </Link>
           <button
             type="button"

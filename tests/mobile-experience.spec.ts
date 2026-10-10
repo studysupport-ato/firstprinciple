@@ -155,8 +155,52 @@ test.describe("mobile student experience", () => {
     const boardBox = await board.boundingBox();
     expect(boardBox).not.toBeNull();
     expect(boardBox!.width).toBeLessThanOrEqual(phoneSizes[1].width);
-    await expect(page.getByRole("button", { name: "Continue" })).toBeVisible();
-    await page.getByRole("button", { name: "Continue" }).click();
+    const boardFrame = page.frameLocator("iframe");
+    await expect(boardFrame.locator("#lb .lb-vp")).toHaveCSS("touch-action", "none");
+    const boardScroller = boardFrame.locator("#lb .lb-lines").first();
+    await expect(boardScroller).toHaveCSS("overflow-y", "auto");
+    const boardScrollMetrics = await boardScroller.evaluate((element) => ({
+      scrollHeight: element.scrollHeight,
+      clientHeight: element.clientHeight,
+    }));
+    expect(boardScrollMetrics.scrollHeight).toBeGreaterThan(boardScrollMetrics.clientHeight);
+    await boardScroller.evaluate((element) => {
+      element.scrollTop = 0;
+      const startTouch = new Touch({ identifier: 1, target: element, clientX: 40, clientY: 220 });
+      const endTouch = new Touch({ identifier: 1, target: element, clientX: 40, clientY: 150 });
+      element.dispatchEvent(new TouchEvent("touchstart", { touches: [startTouch], changedTouches: [startTouch], bubbles: true, cancelable: true }));
+      element.dispatchEvent(new TouchEvent("touchmove", { touches: [endTouch], changedTouches: [endTouch], bubbles: true, cancelable: true }));
+      element.dispatchEvent(new TouchEvent("touchend", { touches: [], changedTouches: [endTouch], bubbles: true, cancelable: true }));
+    });
+    await expect.poll(() => boardScroller.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+    const boardProgress = () => boardFrame.locator("#lb-prog span i").evaluateAll((segments) => segments.map((segment) => (segment as HTMLElement).style.width));
+    const nextBoardButton = page.getByRole("button", { name: "Next board" });
+    await expect(nextBoardButton).toBeVisible();
+    await expect(page.getByRole("button", { name: "Back one board" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Play board|Pause board playback|Replay board/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Scroll lesson content/ })).toHaveCount(0);
+    const progressBeforeNext = await boardProgress();
+    await nextBoardButton.click();
+    await expect.poll(boardProgress).not.toEqual(progressBeforeNext);
+    await expect(page.getByRole("button", { name: "Open lesson notes" })).toBeVisible();
+    const continueButton = page.getByRole("button", { name: "Continue" });
+    await expect(continueButton).toBeDisabled();
+
+    const finalQuiz = boardFrame.locator("#lb .lb-quiz:visible");
+    for (let attempt = 0; attempt < 20 && !(await finalQuiz.count()); attempt++) {
+      const progressBeforeAdvance = await boardProgress();
+      await nextBoardButton.click();
+      await expect.poll(boardProgress).not.toEqual(progressBeforeAdvance);
+    }
+    await expect(finalQuiz).toBeVisible();
+    const wrongAnswer = finalQuiz.locator(".lb-opt").filter({ hasNotText: /Integers/i }).first();
+    await wrongAnswer.click();
+    await expect(wrongAnswer).toHaveClass(/lb-no/);
+    await expect(continueButton).toBeDisabled();
+
+    await finalQuiz.getByRole("button", { name: /Integers/i }).click();
+    await expect(continueButton).toBeEnabled();
+    await continueButton.click();
     await expectNoHorizontalOverflow(page);
     await expectNoVerticalOverflow(page);
 

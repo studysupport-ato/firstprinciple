@@ -294,6 +294,13 @@ export async function createAdminWeek(input: AdminWeekInput): Promise<Week> {
 }
 
 export async function updateAdminWeek(courseId: string, weekId: string, patch: WeekPatch): Promise<Week> {
+  if (patch.title !== undefined && !patch.title.trim()) throw new Error("Week title is required.");
+  if (patch.weekNumber !== undefined && (!Number.isInteger(patch.weekNumber) || patch.weekNumber < 1)) {
+    throw new Error("Week number must be a positive integer.");
+  }
+  if (patch.status !== undefined && !["draft", "published", "archived"].includes(patch.status)) {
+    throw new Error("Week status is invalid.");
+  }
   return createCourseStructureAdminRepository().updateWeek(courseId, weekId, patch);
 }
 
@@ -513,6 +520,9 @@ export async function setAdminDepartmentStatus(departmentId: string, status: Con
 }
 
 export async function createAdminCourseMaterial(input: AdminCourseMaterialInput): Promise<CourseMaterialEntry> {
+  if (![1, 2, 3, 4].includes(input.studyYear)) {
+    throw new Error("Choose a valid academic year for this material.");
+  }
   const errors = validateCourseMaterial(input);
   if (errors.length > 0) throw new Error(errors.join(" "));
   return createCourseMaterialsAdminRepository().createCourseMaterial(input);
@@ -551,6 +561,4 @@ export async function deleteAdminDepartment(departmentId: string): Promise<void>
 export async function deleteAdminCourseMaterial(materialId: string): Promise<void> {
   await createCourseMaterialsAdminRepository().deleteCourseMaterial(materialId);
 }
-
-
 

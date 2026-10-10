@@ -31,4 +31,5 @@ export interface Week {
   /** Canonical Day references. The internal Lesson record is the Day model. */
   sessionIds: string[];
   status?: ContentStatus;
+  comingSoon?: boolean;
 }

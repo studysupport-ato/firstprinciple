@@ -18,6 +18,7 @@ import type { Question } from "@/lib/content/types/question";
 export function LessonExperience({ lesson, courseId, preview, week, supplementaryResources, assetsById, questionsById }: { lesson: Lesson; courseId: string; preview: boolean; week?: string; supplementaryResources: LearningResource[]; assetsById?: Record<string, Asset>; questionsById?: Record<string, Question> }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [boardQuestionState, setBoardQuestionState] = useState<{ step: number; status: "not-required" | "unanswered" | "answered" }>({ step: -1, status: "unanswered" });
   useEffect(() => { setNotesOpen(false); }, [currentStep]);
 
   const geoResource = useMemo(() => supplementaryResources.find((resource) => resource.type === "geogebra"), [supplementaryResources]);
@@ -30,17 +31,6 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
   const roadmapHref = week ? `/courses/${courseId}/roadmap/week/${week}` : `/courses/${courseId}/roadmap`;
   const weekLabel = week ? `Week ${week.replace("w", "")}` : "Week";
 
-  const renderNavigation = (compact = false) => (
-    <div className={`flex items-center justify-between border-t border-[#E5E5E5] bg-white ${compact ? "px-5 py-1.5" : "px-8 py-3"}`}>
-      <button onClick={() => setCurrentStep((step) => Math.max(0, step - 1))} disabled={currentStep === 0} className="flex items-center gap-2 text-sm font-sans font-medium text-[#666666] transition-colors hover:text-[#111111] disabled:opacity-30"><ChevronLeft size={16} /> Previous</button>
-      {!isComplete ? (
-        <button onClick={() => setCurrentStep((step) => Math.min(totalSteps - 1, step + 1))} className={`flex items-center gap-2 rounded-full bg-[#111111] px-6 ${compact ? "py-2" : "py-3"} text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#FFBE00] hover:text-[#111111]`}>Continue <ChevronRight size={16} /></button>
-      ) : (
-        <Link href={roadmapHref} onClick={() => { if (!preview) completeDay(lesson.courseId, lesson.weekId, lesson.id); }}><span className={`flex items-center gap-2 rounded-full bg-[#059669] px-6 ${compact ? "py-2" : "py-3"} text-sm font-semibold text-white shadow-sm transition-transform hover:scale-105`}>Complete Day <CheckCircle2 size={16} /></span></Link>
-      )}
-    </div>
-  );
-
   const activeBlocks = useMemo(() => lesson.blocks.filter((block) => block.step === activeStep), [lesson.blocks, activeStep]);
   
   const hasBlocks = activeBlocks.length > 0;
@@ -51,29 +41,55 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
   // Board mode: a step that carries a board gives the whole learning space to it.
   // Every other block in the step (markdown, callouts, worked examples, questions) moves into the notes whiteboard.
   const boardBlock = !geoResource ? activeBlocks.find((block) => block.type === "visualizer" && isBoardSource(block.source)) : undefined;
+  const currentBoardQuestionStatus = boardQuestionState.step === currentStep ? boardQuestionState.status : "unanswered";
+  const boardQuestionBlocked = Boolean(boardBlock) && currentBoardQuestionStatus !== "not-required" && currentBoardQuestionStatus !== "answered";
   const noteBlocks = boardBlock ? activeBlocks.filter((block) => block !== boardBlock) : [];
   const hasNotes = noteBlocks.length > 0 || (isComplete && supplementaryResources.length > 0);
   const isFullWidthInteractive = hasSideContent && !hasBlocks;
 
+  const renderNavigation = (compact = false) => (
+    <div className={`flex items-center justify-between border-t border-[#E5E5E5] bg-white ${compact ? "px-5 py-1.5" : "px-8 py-3"}`}>
+      <button onClick={() => setCurrentStep((step) => Math.max(0, step - 1))} disabled={currentStep === 0} className="flex items-center gap-2 text-sm font-sans font-medium text-[#666666] transition-colors hover:text-[#111111] disabled:opacity-30"><ChevronLeft size={16} /> Previous</button>
+      {boardQuestionBlocked ? <span className="px-2 text-center text-[10px] leading-3 text-[#666666] sm:text-xs">Answer the board&apos;s final question to continue.</span> : null}
+      {!isComplete ? (
+        <button onClick={() => setCurrentStep((step) => Math.min(totalSteps - 1, step + 1))} disabled={boardQuestionBlocked} title={boardQuestionBlocked ? "Answer the board's final question to continue." : undefined} className={`flex items-center gap-2 rounded-full bg-[#111111] px-6 ${compact ? "py-2" : "py-3"} text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#FFBE00] hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-40`}>Continue <ChevronRight size={16} /></button>
+      ) : boardQuestionBlocked ? (
+        <button type="button" disabled title="Answer the board's final question to continue." className={`flex items-center gap-2 rounded-full bg-[#059669] px-6 ${compact ? "py-2" : "py-3"} text-sm font-semibold text-white shadow-sm opacity-40`}>Complete Day <CheckCircle2 size={16} /></button>
+      ) : (
+        <Link href={roadmapHref} onClick={() => { if (!preview) completeDay(lesson.courseId, lesson.weekId, lesson.id); }}><span className={`flex items-center gap-2 rounded-full bg-[#059669] px-6 ${compact ? "py-2" : "py-3"} text-sm font-semibold text-white shadow-sm transition-transform hover:scale-105`}>Complete Day <CheckCircle2 size={16} /></span></Link>
+      )}
+    </div>
+  );
+
   return (
     <div className={`flex flex-col bg-white ${preview ? "h-[calc(100dvh-104px)] md:h-[calc(100dvh-48px)]" : "h-[calc(100dvh-56px)] md:h-screen"}`}>
       <header className="z-20 flex h-9 flex-shrink-0 items-center justify-between border-b border-[#E5E5E5] bg-white px-5">
-        <div className="flex items-center gap-4"><Link href={roadmapHref} className="text-[#666666] transition-colors hover:text-[#111111]"><ChevronLeft size={16} /></Link><div className="flex items-center gap-2"><span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#666666]">{weekLabel}</span><span className="text-[#E5E5E5]">/</span><span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#111111]"><EducationalText text={lesson.title} /></span></div></div>
-        <div className="flex items-center gap-2">{Array.from({ length: totalSteps }).map((_, index) => <div key={index} className={`h-1.5 w-1.5 rounded-full transition-colors duration-300 ${index <= currentStep ? "bg-[#FFBE00]" : "bg-[#E5E5E5]"}`} />)}</div>
+        <div className="flex min-w-0 items-center gap-4"><Link href={roadmapHref} className="shrink-0 text-[#666666] transition-colors hover:text-[#111111]"><ChevronLeft size={16} /></Link><div className="flex min-w-0 items-center gap-2"><span className="shrink-0 font-sans text-[10px] font-bold uppercase tracking-widest text-[#666666]">{weekLabel}</span><span className="shrink-0 text-[#E5E5E5]">/</span><span className="truncate font-sans text-[10px] font-bold uppercase tracking-widest text-[#111111]"><EducationalText text={lesson.title} /></span></div></div>
+        <div className="ml-2 flex shrink-0 items-center gap-2">{Array.from({ length: totalSteps }).map((_, index) => <div key={index} className={`h-1.5 w-1.5 rounded-full transition-colors duration-300 ${index <= currentStep ? "bg-[#FFBE00]" : "bg-[#E5E5E5]"}`} />)}</div>
       </header>
       {boardBlock && boardBlock.type === "visualizer" ? (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="relative min-h-0 flex-1 overflow-hidden bg-[#12335A]">
-            <VisualizerBlock key={boardBlock.id} {...boardBlock} fill />
+            <VisualizerBlock
+              key={boardBlock.id}
+              {...boardBlock}
+              fill
+              onQuestionRequirementChange={(required, answered) => setBoardQuestionState({
+                step: currentStep,
+                status: required ? (answered ? "answered" : "unanswered") : "not-required",
+              })}
+            />
             {hasNotes ? (
               <>
                 <button
                   type="button"
                   onClick={() => setNotesOpen(true)}
+                  aria-label="Open lesson notes"
+                  title="Open lesson notes"
                   aria-expanded={notesOpen}
-                  className="absolute bottom-5 left-6 z-20 flex h-[46px] items-center gap-2 rounded-full border-2 border-[#EAF2FF]/50 bg-[#12335A]/90 px-5 font-sans text-sm font-extrabold text-[#EAF2FF] transition-colors hover:border-[#FFC700]"
+                  className="absolute bottom-5 left-6 z-20 flex h-11 w-11 items-center justify-center rounded-full border-2 border-[#EAF2FF]/50 bg-[#12335A]/90 font-sans text-sm font-extrabold text-[#EAF2FF] transition-colors hover:border-[#FFC700] md:h-[46px] md:w-auto md:gap-2 md:px-5"
                 >
-                  <ChevronUp size={16} /> Notes
+                  <ChevronUp size={16} /><span className="sr-only md:not-sr-only">Notes</span>
                 </button>
                 <div
                   onClick={() => setNotesOpen(false)}
@@ -91,7 +107,7 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
                       <ChevronDown size={16} /> Back to the board
                     </button>
                   </div>
-                  <div className="flex flex-col gap-6 overflow-y-auto px-8 py-8 lg:px-12">
+                  <div className="min-h-0 flex-1 flex flex-col gap-6 overflow-y-auto overscroll-contain touch-pan-y px-5 py-6 sm:px-8 sm:py-8 lg:px-12">
                     {noteBlocks.map((block) => (
                       <div key={block.id}>{renderBlock(block, assetsById, questionsById)}</div>
                     ))}
@@ -104,10 +120,10 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
           {renderNavigation(true)}
         </div>
       ) : (
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         {!isFullWidthInteractive && (
-          <div className={`relative z-10 flex flex-col justify-between border-r border-[#E5E5E5] bg-white ${hasSideContent ? "w-full lg:w-[45%]" : "w-full"}`}>
-            <div className="overflow-y-auto p-12 lg:p-16">
+          <div className={`relative z-10 flex min-h-0 flex-col justify-between border-r border-[#E5E5E5] bg-white ${hasSideContent ? "w-full lg:w-[45%]" : "w-full"}`}>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y p-5 md:p-12 lg:p-16">
               <LessonRenderer lesson={lesson} step={activeStep} assetsById={assetsById} questionsById={questionsById} />
               {isComplete ? <><LessonVideo resources={supplementaryResources} /><SupplementaryResources resources={supplementaryResources} /></> : null}
             </div>
