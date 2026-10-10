@@ -367,15 +367,16 @@ export default function AdminLessonEditorPage() {
                 updateBlock(block.id, (item) => ({ ...item, type: "video", title: event.target.value } as ContentBlock))
               }
               className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
-              placeholder="Video title"
+              placeholder="Heading, e.g. the lesson title (shown as: Video — “title”)"
             />
-            <input
+            <textarea
               value={block.src}
+              rows={4}
               onChange={(event) =>
                 updateBlock(block.id, (item) => ({ ...item, type: "video", src: event.target.value } as ContentBlock))
               }
               className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
-              placeholder="Video URL"
+              placeholder={"Paste YouTube links, one per line.\nOptional custom title: link | title\nSeveral links become a slider."}
             />
           </div>
         );

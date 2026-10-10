@@ -2,6 +2,7 @@
 
 import type { ImageBlock as ImageBlockData, VideoBlock as VideoBlockData } from "@/lib/content/types/lesson";
 import { assetUrl, getAssetById } from "@/lib/content/assets";
+import { VideoGallery, parseYouTubeLinks } from "./VideoGallery";
 
 export function ImageBlock({ assetId, src, alt, caption }: ImageBlockData) {
   const asset = assetId ? getAssetById(assetId) : undefined;
@@ -9,6 +10,8 @@ export function ImageBlock({ assetId, src, alt, caption }: ImageBlockData) {
 }
 
 export function VideoBlock({ assetId, src, title }: VideoBlockData) {
+  const youtube = !assetId ? parseYouTubeLinks(src) : [];
+  if (youtube.length) return <VideoGallery heading={title} videos={youtube} />;
   const asset = assetId ? getAssetById(assetId) : undefined;
   const poster = typeof asset?.metadata?.poster === "string" && asset.metadata.poster ? asset.metadata.poster : undefined;
   const duration = typeof asset?.duration === "number" ? asset.duration : undefined;
