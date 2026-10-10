@@ -4,6 +4,7 @@ import type { ImageBlock as ImageBlockData, VideoBlock as VideoBlockData } from 
 import type { Asset } from "@/lib/content/types/asset";
 import { assetUrl, getAssetById } from "@/lib/content/assets";
 import { EducationalText } from "@/components/learning/EducationalText";
+import { VideoGallery, parseYouTubeLinks } from "./VideoGallery";
 
 export function ImageBlock({ assetId, src, alt, caption, asset }: ImageBlockData & { asset?: Asset }) {
   const resolvedAsset = asset ?? (assetId ? getAssetById(assetId) : undefined);
@@ -11,6 +12,8 @@ export function ImageBlock({ assetId, src, alt, caption, asset }: ImageBlockData
 }
 
 export function VideoBlock({ assetId, src, title }: VideoBlockData) {
+  const youtube = !assetId ? parseYouTubeLinks(src) : [];
+  if (youtube.length) return <VideoGallery heading={title} videos={youtube} />;
   const asset = assetId ? getAssetById(assetId) : undefined;
   const poster = typeof asset?.metadata?.poster === "string" && asset.metadata.poster ? asset.metadata.poster : undefined;
   const duration = typeof asset?.duration === "number" ? asset.duration : undefined;
