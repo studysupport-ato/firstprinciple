@@ -143,6 +143,7 @@ test.describe("mobile student experience", () => {
   test("course roadmap and a published lesson remain usable across phone sizes", async ({ page }) => {
     await page.setViewportSize(phoneSizes[0]);
     await page.goto("/courses/math-151/roadmap");
+    await expect(page.getByTestId("mobile-bottom-navigation")).toBeVisible();
     for (const size of phoneSizes) {
       await page.setViewportSize(size);
       await expect(page.getByRole("heading", { name: "Algebra", exact: true })).toBeVisible();
@@ -162,6 +163,7 @@ test.describe("mobile student experience", () => {
     const lessonUrl = new URL((await firstLesson.getAttribute("href"))!, page.url());
     lessonUrl.searchParams.set("preview", "1");
     await page.goto(lessonUrl.toString());
+    await expect(page.getByTestId("mobile-bottom-navigation")).toHaveCount(0);
 
     const board = page.locator("iframe");
     await expect(board).toBeVisible();
@@ -197,7 +199,7 @@ test.describe("mobile student experience", () => {
     await expect.poll(boardProgress).not.toEqual(progressBeforeNext);
     await expect(page.getByRole("button", { name: "Open lesson notes" })).toBeVisible();
     const continueButton = page.getByRole("button", { name: "Continue" });
-    await expect(continueButton).toBeDisabled();
+    await expect(continueButton).toBeEnabled();
 
     const finalQuiz = boardFrame.locator("#lb .lb-quiz:visible");
     for (let attempt = 0; attempt < 20 && !(await finalQuiz.count()); attempt++) {
@@ -209,11 +211,11 @@ test.describe("mobile student experience", () => {
     const wrongAnswer = finalQuiz.locator(".lb-opt").filter({ hasNotText: /Integers/i }).first();
     await wrongAnswer.click();
     await expect(wrongAnswer).toHaveClass(/lb-no/);
-    await expect(continueButton).toBeDisabled();
-
-    await finalQuiz.getByRole("button", { name: /Integers/i }).click();
     await expect(continueButton).toBeEnabled();
+    const currentLessonStep = Number(await page.getByTestId("lesson-step-indicator").getAttribute("data-current-step"));
     await continueButton.click();
+    await expect.poll(async () => Number(await page.getByTestId("lesson-step-indicator").getAttribute("data-current-step")))
+      .toBeGreaterThan(currentLessonStep);
     await expectNoHorizontalOverflow(page);
     await expectNoVerticalOverflow(page);
 
@@ -222,6 +224,7 @@ test.describe("mobile student experience", () => {
       await expectNoHorizontalOverflow(page);
       await expectNoVerticalOverflow(page);
     }
+
   });
 
   test("questions, practice, assessment, and protected settings fit on mobile", async ({ page }) => {

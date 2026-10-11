@@ -105,7 +105,7 @@ export default function PlatformLayout({
       />
 
       <main
-        className={`relative min-h-screen w-full min-w-0 flex-1 transition-[margin] duration-500 ease-in-out md:pb-0 pb-[80px] ${sidebarCollapsed ? "md:ml-[68px]" : "md:ml-[220px]"}`}
+        className={`relative min-h-screen w-full min-w-0 flex-1 transition-[margin] duration-500 ease-in-out md:pb-0 ${inLesson ? "pb-0" : "pb-[80px]"} ${sidebarCollapsed ? "md:ml-[68px]" : "md:ml-[220px]"}`}
       >
         <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between bg-[#1A1814] px-4 pt-[env(safe-area-inset-top)] md:hidden">
           <button
@@ -130,12 +130,14 @@ export default function PlatformLayout({
         {children}
 
         {/* Mobile Bottom Navigation */}
-        <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-[76px] items-center justify-around bg-[#1A1814] pb-[env(safe-area-inset-bottom)] px-2 md:hidden">
-          <MobileNavItem href="/" icon="Compass" label="Home" current={pathname === "/"} />
-          <MobileNavItem href="/courses" icon="BookOpen" label="Courses" current={pathname === "/courses" || pathname?.startsWith("/courses/")} />
-          <MobileNavItem href="/course-materials" icon="Library" label="Materials" current={pathname === "/course-materials"} />
-          <MobileNavItem href="/questions" icon="HelpCircle" label="Questions" current={pathname === "/questions"} />
-        </nav>
+        {!inLesson ? (
+          <nav data-testid="mobile-bottom-navigation" className="fixed bottom-0 left-0 right-0 z-40 flex h-[76px] items-center justify-around bg-[#1A1814] pb-[env(safe-area-inset-bottom)] px-2 md:hidden">
+            <MobileNavItem href="/" icon="Compass" label="Home" current={pathname === "/"} />
+            <MobileNavItem href="/courses" icon="BookOpen" label="Courses" current={pathname === "/courses" || pathname?.startsWith("/courses/")} />
+            <MobileNavItem href="/course-materials" icon="Library" label="Materials" current={pathname === "/course-materials"} />
+            <MobileNavItem href="/questions" icon="HelpCircle" label="Questions" current={pathname === "/questions"} />
+          </nav>
+        ) : null}
       </main>
       <OnboardingTour />
       <ProfileCompletionModal />

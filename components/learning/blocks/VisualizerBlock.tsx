@@ -62,74 +62,10 @@ document.addEventListener('touchmove', function (event) {
 function clearActiveLines() { activeLines = null; }
 document.addEventListener('touchend', clearActiveLines, { capture: true, passive: true });
 document.addEventListener('touchcancel', clearActiveLines, { capture: true, passive: true });
-var boardConfig = null;
-var finalQuestionRequired = false;
-var cfgScript = Array.from(document.scripts).find(function (script) {
-  var text = script.textContent || '';
-  var start = text.indexOf('var CFG = ');
-  return start >= 0 && text[start + 'var CFG = '.length] === '{';
-});
-if (cfgScript) {
-  try {
-    var cfgText = cfgScript.textContent || '';
-    var cfgStart = cfgText.indexOf('var CFG = ');
-    var objectStart = cfgText.indexOf('{', cfgStart);
-    var objectEnd = -1;
-    var depth = 0;
-    var inString = false;
-    var escaped = false;
-    for (var i = objectStart; objectStart >= 0 && i < cfgText.length; i++) {
-      var character = cfgText[i];
-      if (inString) {
-        if (escaped) escaped = false;
-        else if (character === '\\\\') escaped = true;
-        else if (character === '"') inString = false;
-      } else if (character === '"') inString = true;
-      else if (character === '{') depth++;
-      else if (character === '}' && --depth === 0) {
-        objectEnd = i + 1;
-        break;
-      }
-    }
-    if (objectStart < 0 || objectEnd < 0) throw new Error('The board configuration is incomplete.');
-    boardConfig = JSON.parse(cfgText.slice(objectStart, objectEnd));
-    var finalPart = boardConfig.parts[boardConfig.parts.length - 1];
-    var finalStep = finalPart && finalPart.steps[finalPart.steps.length - 1];
-    finalQuestionRequired = Boolean(finalStep && finalStep.quiz);
-  } catch (error) {
-    console.error('[lesson board] Could not read final-question requirement; lesson continuation remains locked.', error);
-  }
-}
-var lastQuestionReport = null;
-function reportQuestionRequirement(force) {
-  if (!finalQuestionRequired) {
-    if (!force && lastQuestionReport === 'not-required') return;
-    lastQuestionReport = 'not-required';
-    window.parent.postMessage({ source: 'b2b-board-question', required: false, answered: false }, '*');
-    return;
-  }
-  var lastPart = boardConfig && boardConfig.parts[boardConfig.parts.length - 1];
-  var lastStepIndex = lastPart ? lastPart.steps.length - 1 : -1;
-  var finalQuiz = document.querySelector('#lb .lb-quiz[data-s="' + lastStepIndex + '"]');
-  var answered = Boolean(finalQuiz && finalQuiz.querySelector('.lb-opt.lb-yes'));
-  var report = answered ? 'answered' : 'unanswered';
-  if (!force && lastQuestionReport === report) return;
-  lastQuestionReport = report;
-  window.parent.postMessage({ source: 'b2b-board-question', required: true, answered: answered }, '*');
-}
-reportQuestionRequirement(true);
-new MutationObserver(function () { reportQuestionRequirement(false); }).observe(document.body, {
-  attributes: true,
-  attributeFilter: ['class', 'hidden'],
-  childList: true,
-  subtree: true
-});
 window.addEventListener('message', function (event) {
   if (event.source !== window.parent) return;
   if (event.data?.source === 'b2b-board-controls' && event.data.action === 'next') {
     document.getElementById('lb-next')?.click();
-  } else if (event.data?.source === 'b2b-board-question' && event.data.action === 'status') {
-    reportQuestionRequirement(true);
   }
 });
 </script>`
@@ -161,7 +97,7 @@ ${mobileBoardStyles}
 </html>`;
 }
 
-export function VisualizerBlock({ source, title = "Custom visualizer", height, fill = false, onQuestionRequirementChange }: VisualizerBlockData & { fill?: boolean; onQuestionRequirementChange?: (required: boolean, answered: boolean) => void }) {
+export function VisualizerBlock({ source, title = "Custom visualizer", height, fill = false }: VisualizerBlockData & { fill?: boolean }) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   // The iframe is only created in the browser. A server-rendered iframe can finish loading before React
   // attaches onLoad, which left the first step stuck on "Loading visualizer...".
@@ -173,24 +109,12 @@ export function VisualizerBlock({ source, title = "Custom visualizer", height, f
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const sendNextBoard = () => iframeRef.current?.contentWindow?.postMessage({ source: "b2b-board-controls", action: "next" }, "*");
 
-  useEffect(() => {
-    if (!onQuestionRequirementChange) return;
-    const reportQuestionChange = onQuestionRequirementChange;
-    function handleBoardMessage(event: MessageEvent) {
-      if (event.source !== iframeRef.current?.contentWindow || event.data?.source !== "b2b-board-question") return;
-      reportQuestionChange(event.data.required === true, event.data.answered === true);
-    }
-    window.addEventListener("message", handleBoardMessage);
-    return () => window.removeEventListener("message", handleBoardMessage);
-  }, [onQuestionRequirementChange]);
-
   const markReady = () => {
     if (timeoutRef.current !== undefined) {
       window.clearTimeout(timeoutRef.current);
       timeoutRef.current = undefined;
     }
     setStatus("ready");
-    iframeRef.current?.contentWindow?.postMessage({ source: "b2b-board-question", action: "status" }, "*");
   };
 
   useEffect(() => {
