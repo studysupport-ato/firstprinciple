@@ -36,6 +36,7 @@ export async function proxy(request: NextRequest) {
   forwardedHeaders.set("x-perf-request-id", requestId);
   forwardedHeaders.set("x-perf-sampled", sampled ? "1" : "0");
   let response = NextResponse.next({ request: { headers: forwardedHeaders } });
+  if (sampled) response.headers.set("x-perf-request-id", requestId);
   const startedAt = performance.now();
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -77,6 +78,7 @@ export async function proxy(request: NextRequest) {
         forwardedHeaders.set("cookie", request.cookies.toString());
         // ...and onto the response so the browser actually stores it.
         response = NextResponse.next({ request: { headers: forwardedHeaders } });
+        if (sampled) response.headers.set("x-perf-request-id", requestId);
         cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
       },
     },

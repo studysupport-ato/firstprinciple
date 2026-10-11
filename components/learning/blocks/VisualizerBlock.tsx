@@ -114,6 +114,7 @@ export function VisualizerBlock({ source, title = "Custom visualizer", height, f
       window.clearTimeout(timeoutRef.current);
       timeoutRef.current = undefined;
     }
+    window.performance.mark("b2b-visualizer-iframe-onload");
     setStatus("ready");
   };
 

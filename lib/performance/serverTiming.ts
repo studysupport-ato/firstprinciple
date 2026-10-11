@@ -1,10 +1,9 @@
 import { headers } from "next/headers";
+import { after } from "next/server";
+import type { ServerTimingContext } from "./timingSpans";
+export { recordServerTimingDuration, withServerTimingSpan } from "./timingSpans";
 
-export type ServerTimingContext = {
-  route: string;
-  requestId: string;
-  sampled: boolean;
-};
+export type { ServerTimingContext } from "./timingSpans";
 
 export async function withServerRouteTiming<T>(
   route: string,
@@ -16,6 +15,19 @@ export async function withServerRouteTiming<T>(
   if (!sampled) return operation({ route, requestId, sampled });
 
   const startedAt = performance.now();
+  let operationDurationMs: number | null = null;
+  after(() => {
+    console.info(
+      JSON.stringify({
+        event: "server_response_timing",
+        route,
+        requestId,
+        operationDurationMs,
+        operationToResponseFinishMs: Math.round(performance.now() - startedAt),
+      }),
+    );
+  });
+
   let outcome: "returned" | "threw" = "returned";
   try {
     return await operation({ route, requestId, sampled });
@@ -23,12 +35,13 @@ export async function withServerRouteTiming<T>(
     outcome = "threw";
     throw error;
   } finally {
+    operationDurationMs = Math.round(performance.now() - startedAt);
     console.info(
       JSON.stringify({
         event: "server_route_timing",
         route,
         requestId,
-        durationMs: Math.round(performance.now() - startedAt),
+        durationMs: operationDurationMs,
         outcome,
       }),
     );
@@ -56,6 +69,37 @@ export function createTimedSupabaseFetch(context: ServerTimingContext): typeof f
       status = response.status;
       contentLength = response.headers.get("content-length");
       contentRange = response.headers.get("content-range");
+      if (service === "rest") {
+        const readText = response.text.bind(response);
+        Object.defineProperty(response, "text", {
+          configurable: true,
+          value: async () => {
+            const bodyStartedAt = performance.now();
+            let bodyCharacterCount: number | null = null;
+            let bodyOutcome: "returned" | "threw" = "returned";
+            try {
+              const body = await readText();
+              bodyCharacterCount = body.length;
+              return body;
+            } catch (error) {
+              bodyOutcome = "threw";
+              throw error;
+            } finally {
+              console.info(
+                JSON.stringify({
+                  event: "supabase_response_body_timing",
+                  route: context.route,
+                  requestId: context.requestId,
+                  resource,
+                  durationMs: Math.round(performance.now() - bodyStartedAt),
+                  bodyCharacterCount,
+                  outcome: bodyOutcome,
+                }),
+              );
+            }
+          },
+        });
+      }
       return response;
     } catch (error) {
       networkError = true;
@@ -68,6 +112,7 @@ export function createTimedSupabaseFetch(context: ServerTimingContext): typeof f
           requestId: context.requestId,
           service,
           resource,
+          phase: "fetch_until_response_headers",
           durationMs: Math.round(performance.now() - startedAt),
           status,
           contentLength,

@@ -18,6 +18,18 @@ import type { Database } from "../supabase/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type CourseStructureDay = Lesson;
+export type RepositoryTiming = {
+  withSpan: <T>(phase: string, operation: () => Promise<T> | PromiseLike<T>) => Promise<T>;
+  recordDuration: (phase: string, durationMs: number, outcome?: "returned" | "threw") => void;
+};
+
+async function withRepositoryTiming<T>(
+  timing: RepositoryTiming | undefined,
+  phase: string,
+  operation: () => Promise<T> | PromiseLike<T>,
+): Promise<T> {
+  return timing ? timing.withSpan(phase, operation) : operation();
+}
 
 /** Admin-authored patch shapes: only the fields a caller explicitly supplies are written. */
 export type CoursePatch = Partial<Pick<Course, "code" | "title" | "shortTitle" | "description" | "department" | "status">>;
@@ -34,6 +46,7 @@ export interface CourseStructureRepository {
   getWeek(courseId: string, weekId: string): Promise<Week | undefined>;
   listDaysForWeek(courseId: string, weekId: string): Promise<CourseStructureDay[]>;
   getDay(courseId: string, weekId: string, dayId: string, options?: { validateContent?: boolean }): Promise<CourseStructureDay | undefined>;
+  getDayForCourse(courseId: string, dayId: string, options?: { validateContent?: boolean }): Promise<CourseStructureDay | undefined>;
   /** Single-row Day read by primary key (admin editor deep link). */
   getDayById(dayId: string): Promise<CourseStructureDay | undefined>;
   /** Scoped index reads for admin list pages (single query each — never N+1 per course). */
@@ -97,6 +110,11 @@ const localCourseStructureRepository: CourseStructureRepository = {
     if (!day) return undefined;
     if (courseId && day.courseId !== courseId) return undefined;
     if (day.weekId !== weekId) return undefined;
+    return day;
+  },
+  async getDayForCourse(courseId: string, dayId: string) {
+    const day = getDay(dayId) ?? getLesson(dayId);
+    if (!day || (courseId && day.courseId !== courseId)) return undefined;
     return day;
   },
   async listAllWeeks() {
@@ -265,7 +283,7 @@ function mapWeekRow(row: SupabaseWeekRow): Week {
   };
 }
 
-function mapDayRow(row: SupabaseDayRow, validateContent = false): Lesson {
+function mapDayRow(row: SupabaseDayRow, validateContent = false, timing?: RepositoryTiming): Lesson {
   return {
     id: row.id,
     courseId: row.course_id,
@@ -277,7 +295,7 @@ function mapDayRow(row: SupabaseDayRow, validateContent = false): Lesson {
     estimatedMinutes: row.estimated_minutes,
     objectives: Array.isArray(row.objectives) ? (row.objectives as string[]) : [],
     blocks: validateContent
-      ? parseContentBlocks(row.content_blocks)
+      ? parseContentBlocks(row.content_blocks, timing)
       : Array.isArray(row.content_blocks)
         ? (row.content_blocks as Lesson["blocks"])
         : [],
@@ -321,7 +339,25 @@ async function renumberWeekDays(client: SupabaseClient<Database>, courseId: stri
   }
 }
 
-export function createCourseStructureSupabaseRepository(clientFactory: () => SupabaseClient<Database> = createSupabaseBrowserClient): CourseStructureRepository {
+export function createCourseStructureSupabaseRepository(
+  clientFactory: () => SupabaseClient<Database> = createSupabaseBrowserClient,
+  timing?: RepositoryTiming,
+): CourseStructureRepository {
+  async function getDayInScope(courseId: string, dayId: string, weekId?: string, validateContent = false) {
+    let query = clientFactory()
+      .from("days")
+      .select("id,course_id,week_id,chapter_id,title,description,order_index,estimated_minutes,objectives,content_blocks,status")
+      .eq("course_id", courseId)
+      .eq("id", dayId);
+    if (weekId) query = query.eq("week_id", weekId);
+    const { data, error } = await withRepositoryTiming(timing, "day_query_consume_ms", () => query.maybeSingle());
+    if (error) throw error;
+    if (!data) return undefined;
+    return withRepositoryTiming(timing, "day_mapping_ms", () =>
+      Promise.resolve().then(() => mapDayRow(data as SupabaseDayRow, validateContent, timing)),
+    );
+  }
+
   return {
   async listCourses() {
     const client = clientFactory();
@@ -342,37 +378,41 @@ export function createCourseStructureSupabaseRepository(clientFactory: () => Sup
   },
   async getCourse(courseId: string) {
     const client = clientFactory();
-    const { data, error } = await client.from("courses").select("*").eq("id", courseId).maybeSingle();
+    const { data, error } = await withRepositoryTiming(timing, "course_query_consume_ms", () =>
+      client.from("courses").select("*").eq("id", courseId).maybeSingle(),
+    );
     if (error) throw error;
     if (!data) return undefined;
     const row = data as SupabaseCourseRow;
-    return {
-      id: row.id,
-      code: row.code,
-      title: row.title,
-      shortTitle: row.short_title,
-      description: row.description,
-      department: row.department ?? undefined,
-      chapterIds: [],
-      weekIds: [],
-      status: row.status as Course["status"],
-    };
+    return withRepositoryTiming(timing, "course_mapping_ms", () => Promise.resolve({
+        id: row.id,
+        code: row.code,
+        title: row.title,
+        shortTitle: row.short_title,
+        description: row.description,
+        department: row.department ?? undefined,
+        chapterIds: [],
+        weekIds: [],
+        status: row.status as Course["status"],
+      }));
   },
   async listWeeksForCourse(courseId: string) {
     const client = clientFactory();
-    const { data, error } = await client.from("weeks").select("*").eq("course_id", courseId).order("week_number", { ascending: true });
+    const { data, error } = await withRepositoryTiming(timing, "weeks_query_consume_ms", () =>
+      client.from("weeks").select("*").eq("course_id", courseId).order("week_number", { ascending: true }),
+    );
     if (error) throw error;
     const rows = (data ?? []) as SupabaseWeekRow[];
-    return rows.map((row) => ({
-      id: row.id,
-      courseId: row.course_id,
-      chapterIds: [],
-      title: row.title,
-      description: row.description,
-      weekNumber: row.week_number,
-      sessionIds: [],
-      status: row.status as Week["status"],
-    }));
+    return withRepositoryTiming(timing, "weeks_mapping_ms", () => Promise.resolve(rows.map((row) => ({
+        id: row.id,
+        courseId: row.course_id,
+        chapterIds: [],
+        title: row.title,
+        description: row.description,
+        weekNumber: row.week_number,
+        sessionIds: [],
+        status: row.status as Week["status"],
+      }))));
   },
   async listDaysForCourse(courseId: string) {
     const client = clientFactory();
@@ -430,17 +470,10 @@ export function createCourseStructureSupabaseRepository(clientFactory: () => Sup
     }));
   },
   async getDay(courseId: string, weekId: string, dayId: string, options: { validateContent?: boolean } = {}) {
-    const client = clientFactory();
-    const { data, error } = await client
-      .from("days")
-      .select("id,course_id,week_id,chapter_id,title,description,order_index,estimated_minutes,objectives,content_blocks,status")
-      .eq("course_id", courseId)
-      .eq("week_id", weekId)
-      .eq("id", dayId)
-      .maybeSingle();
-    if (error) throw error;
-    if (!data) return undefined;
-    return mapDayRow(data as SupabaseDayRow, options.validateContent);
+    return getDayInScope(courseId, dayId, weekId, options.validateContent);
+  },
+  async getDayForCourse(courseId: string, dayId: string, options: { validateContent?: boolean } = {}) {
+    return getDayInScope(courseId, dayId, undefined, options.validateContent);
   },
   async listAllWeeks() {
     const client = clientFactory();
@@ -759,13 +792,22 @@ function validateContentBlocks(content: ContentBlock[]) {
   }
 }
 
-function parseContentBlocks(value: unknown): ContentBlock[] {
+function parseContentBlocks(value: unknown, timing?: RepositoryTiming): ContentBlock[] {
   if (!Array.isArray(value)) {
     throw new Error("Supabase day content is not a content block array.");
   }
 
   const content = value as ContentBlock[];
-  validateContentBlocks(content);
+  const startedAt = performance.now();
+  let outcome: "returned" | "threw" = "returned";
+  try {
+    validateContentBlocks(content);
+  } catch (error) {
+    outcome = "threw";
+    throw error;
+  } finally {
+    timing?.recordDuration("day_content_validation_ms", performance.now() - startedAt, outcome);
+  }
   return content;
 }
 

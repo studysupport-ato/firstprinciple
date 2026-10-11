@@ -1,7 +1,8 @@
 import { createSupabaseAdminClient } from "../supabase/client";
-import { createCourseStructureSupabaseRepository, createDayContentSupabaseRepository } from "./repository";
+import { createCourseStructureSupabaseRepository, createDayContentSupabaseRepository, type RepositoryTiming } from "./repository";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../supabase/types";
+import { recordServerTimingDuration, withServerTimingSpan, type ServerTimingContext } from "../performance/timingSpans";
 
 export type ContentClientFactory = () => SupabaseClient<Database>;
 
@@ -22,8 +23,17 @@ export type ContentClientFactory = () => SupabaseClient<Database>;
  * No client is created at module scope and none is cached: the factory is
  * invoked per repository instance, per request.
  */
-export function createCourseStructureServerRepository(clientFactory: ContentClientFactory = createSupabaseAdminClient) {
-  return createCourseStructureSupabaseRepository(clientFactory);
+export function createCourseStructureServerRepository(
+  clientFactory: ContentClientFactory = createSupabaseAdminClient,
+  timing?: ServerTimingContext,
+) {
+  const repositoryTiming: RepositoryTiming | undefined = timing
+    ? {
+        withSpan: (phase, operation) => withServerTimingSpan(timing, phase, operation),
+        recordDuration: (phase, durationMs, outcome) => recordServerTimingDuration(timing, phase, durationMs, outcome),
+      }
+    : undefined;
+  return createCourseStructureSupabaseRepository(clientFactory, repositoryTiming);
 }
 
 export function createDayContentServerRepository(clientFactory: ContentClientFactory = createSupabaseAdminClient) {

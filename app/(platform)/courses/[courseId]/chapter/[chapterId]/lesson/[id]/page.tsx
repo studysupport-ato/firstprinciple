@@ -7,6 +7,7 @@ import { createQuestionRepository } from "@/lib/questions/repository";
 import type { Question } from "@/lib/content/types/question";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { withServerRouteTiming } from "@/lib/performance/serverTiming";
+import { withServerTimingSpan } from "@/lib/performance/timingSpans";
 
 type LessonPageProps = {
   params: Promise<{ courseId: string; chapterId: string; id: string }>;
@@ -22,11 +23,11 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
   // the student question read below, so question reads carry the signed-in user's
   // session and are constrained by the `public_questions_select_published` RLS
   // policy instead of silently resolving a service-role client.
-  const supabase = await createSupabaseServerClient(timing);
+  const supabase = await withServerTimingSpan(timing, "supabase_client_create_ms", () => createSupabaseServerClient(timing));
 
   if (query.preview !== "1") {
     // The authenticated server client is created above (Task 40G.4) and reused here.
-    const { data, error } = await supabase.auth.getUser();
+    const { data, error } = await withServerTimingSpan(timing, "auth_get_user_ms", () => supabase.auth.getUser());
 
     if (error || !data.user) {
       const weekQuery = query.week ? `?week=${encodeURIComponent(query.week)}` : "";
@@ -37,7 +38,9 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
 
   // Task 40G.5C: reuse the request-scoped client created above so the Day read is
   // constrained by the hardened published-only RLS policies.
-  const result = await getPublishedDay(route.courseId, query.week, route.id, () => supabase);
+  const result = await withServerTimingSpan(timing, "published_day_resolution_ms", () =>
+    getPublishedDay(route.courseId, query.week, route.id, () => supabase, timing),
+  );
 
   if (result.kind === "not-found") notFound();
 
@@ -67,24 +70,70 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
   );
 
   const [assets, supplementaryResources, questions] = await Promise.all([
-    createAssetSupabaseRepository(() => supabase).getAssetsByIds(assetIds),
-    repository.listResourcesForScope(
-      { courseId: result.lesson.courseId, weekId: result.lesson.weekId, dayId: result.lesson.id },
-      {
-        visibility: query.preview === "1" ? "all" : "student",
-        includeDraft: query.preview === "1",
-      },
+    withServerTimingSpan(timing, "asset_lookup_consume_ms", () =>
+      createAssetSupabaseRepository(() => supabase).getAssetsByIds(assetIds),
     ),
-    questionIds.length > 0
-      ? createQuestionRepository("supabase", () => supabase).listQuestions({
-        ids: questionIds,
-        visibility: query.preview === "1" ? "all" : "student",
-        includeDraft: query.preview === "1",
-      })
-      : Promise.resolve([]),
+    withServerTimingSpan(timing, "resource_placement_lookup_consume_ms", () =>
+      repository.listResourcesForScope(
+        { courseId: result.lesson.courseId, weekId: result.lesson.weekId, dayId: result.lesson.id },
+        {
+          visibility: query.preview === "1" ? "all" : "student",
+          includeDraft: query.preview === "1",
+        },
+      ),
+    ),
+    withServerTimingSpan(timing, "question_lookup_consume_ms", () =>
+      questionIds.length > 0
+        ? createQuestionRepository("supabase", () => supabase).listQuestions({
+          ids: questionIds,
+          visibility: query.preview === "1" ? "all" : "student",
+          includeDraft: query.preview === "1",
+        })
+        : Promise.resolve([]),
+    ),
   ]);
-  const assetsById = Object.fromEntries(assets.map((asset) => [asset.id, asset]));
-  const questionsById: Record<string, Question> = Object.fromEntries(questions.map((question) => [question.id, question]));
+  const { assetsById, questionsById } = await withServerTimingSpan(timing, "lesson_reference_mapping_ms", () =>
+    Promise.resolve({
+      assetsById: Object.fromEntries(assets.map((asset) => [asset.id, asset])),
+      questionsById: Object.fromEntries(questions.map((question) => [question.id, question])) as Record<string, Question>,
+    }),
+  );
+
+  if (timing.sampled) {
+    const steps = new Map<number, { blockCount: number; typeCounts: Record<string, number>; visualizerSourceChars: number }>();
+    for (const block of result.lesson.blocks) {
+      const step = block.step ?? 1;
+      const stats = steps.get(step) ?? { blockCount: 0, typeCounts: {}, visualizerSourceChars: 0 };
+      stats.blockCount += 1;
+      stats.typeCounts[block.type] = (stats.typeCounts[block.type] ?? 0) + 1;
+      if (block.type === "visualizer") stats.visualizerSourceChars += block.source.length;
+      steps.set(step, stats);
+    }
+    const orderedSteps = [...steps.entries()].sort(([left], [right]) => left - right);
+    const [firstStep, firstStepStats] = orderedSteps[0] ?? [1, { blockCount: 0, typeCounts: {}, visualizerSourceChars: 0 }];
+    const laterStats = { blockCount: 0, typeCounts: {} as Record<string, number>, visualizerSourceChars: 0 };
+    for (const [, stats] of orderedSteps.slice(1)) {
+      laterStats.blockCount += stats.blockCount;
+      laterStats.visualizerSourceChars += stats.visualizerSourceChars;
+      for (const [type, count] of Object.entries(stats.typeCounts)) {
+        laterStats.typeCounts[type] = (laterStats.typeCounts[type] ?? 0) + count;
+      }
+    }
+    console.info(JSON.stringify({
+      event: "lesson_payload_shape",
+      route: timing.route,
+      requestId: timing.requestId,
+      blockCount: result.lesson.blocks.length,
+      stepCount: orderedSteps.length,
+      firstStep,
+      firstStepBlockCount: firstStepStats.blockCount,
+      firstStepTypeCounts: firstStepStats.typeCounts,
+      firstStepVisualizerSourceChars: firstStepStats.visualizerSourceChars,
+      laterStepBlockCount: laterStats.blockCount,
+      laterStepTypeCounts: laterStats.typeCounts,
+      laterStepVisualizerSourceChars: laterStats.visualizerSourceChars,
+    }));
+  }
 
   return <LessonExperience lesson={result.lesson} courseId={route.courseId} preview={query.preview === "1"} week={query.week} supplementaryResources={supplementaryResources} assetsById={assetsById} questionsById={questionsById} />;
   });

@@ -83,6 +83,23 @@ async function expectNoVerticalOverflow(page: Page) {
 }
 
 test.describe("mobile student experience", () => {
+  test("opening Dashboard while signed out prompts for sign-in on desktop and mobile", async ({ page }) => {
+    for (const size of [{ width: 1440, height: 900 }, phoneSizes[1]]) {
+      await page.setViewportSize(size);
+      await page.goto("/courses");
+
+      if (size.width < 768) {
+        await page.locator('header button[aria-controls="platform-sidebar"]').click();
+      }
+
+      await page.locator('#platform-sidebar a[href="/dashboard"]').click();
+      await expect(page).toHaveURL(/\/courses$/);
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await expect(page.getByLabel("Email")).toBeVisible();
+      await expect(page.getByLabel("Password")).toBeVisible();
+    }
+  });
+
   test("course library, mobile navigation, and auth forms fit at phone sizes", async ({ page }) => {
     for (const size of phoneSizes) {
       await page.setViewportSize(size);
@@ -225,6 +242,17 @@ test.describe("mobile student experience", () => {
       await expectNoVerticalOverflow(page);
     }
 
+  });
+
+  test("hidden lesson notes do not initialize GeoGebra until opened", async ({ page }) => {
+    await page.setViewportSize(phoneSizes[1]);
+    await page.goto(
+      "/courses/math-151/chapter/real-number-theory/lesson/math-151-d618bd6e7053-case-2-inequalities?week=1&preview=1",
+    );
+
+    await expect(page.getByRole("button", { name: "Open lesson notes" })).toBeVisible();
+    await page.waitForFunction(() => performance.getEntriesByName("b2b-lesson-hydrated").length > 0);
+    await expect(page.locator(".geogebra-responsive-container")).toHaveCount(0);
   });
 
   test("questions, practice, assessment, and protected settings fit on mobile", async ({ page }) => {

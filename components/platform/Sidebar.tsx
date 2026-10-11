@@ -49,7 +49,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, onSign
   return (
     <aside
       id="platform-sidebar"
-      className={`mobile-nav-drawer fixed inset-y-0 left-0 z-50 flex w-[min(84vw,280px)] flex-col bg-[#1A1814] p-5 pb-[calc(1rem+env(safe-area-inset-bottom))] text-white md:visible md:z-20 md:translate-x-0 ${mobileOpen ? "is-open visible translate-x-0" : "invisible pointer-events-none -translate-x-full"} ${collapsed ? "md:w-[68px] md:px-2.5 md:py-4" : "md:w-[220px] md:p-5"}`}
+      className={`mobile-nav-drawer fixed inset-y-0 left-0 z-50 flex w-[min(84vw,280px)] flex-col bg-[#1A1814] p-5 pb-[calc(1rem+env(safe-area-inset-bottom))] text-white md:visible md:pointer-events-auto md:z-20 md:translate-x-0 ${mobileOpen ? "is-open visible translate-x-0" : "is-closed"} ${collapsed ? "md:w-[68px] md:px-2.5 md:py-4" : "md:w-[220px] md:p-5"}`}
     >
       <div className={`${compact ? "mb-6" : "mb-7"} flex items-center ${compact ? "justify-center" : "px-0"}`}>
         <Link href="/" onClick={onMobileClose} className={`flex items-center ${compact ? "justify-center" : "w-full"}`} title="Back2Basics with Kwamina">

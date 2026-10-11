@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { Suspense, useState, useEffect, useRef, useCallback } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { AuthModal } from "@/components/auth/AuthModal";
@@ -10,6 +10,30 @@ import { Sidebar } from "@/components/platform/Sidebar";
 import { PreviewToolbar } from "@/components/platform/PreviewToolbar";
 import { OnboardingTour } from "@/components/platform/OnboardingTour";
 import { ProfileCompletionModal } from "@/components/platform/ProfileCompletionModal";
+
+function AuthRedirectHandler({ onRequireAuth }: { onRequireAuth: (destination: string) => void }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (searchParams.get("auth") !== "required") return;
+
+    const requestedDestination = searchParams.get("next");
+    let destination = "/courses";
+    if (requestedDestination?.startsWith("/") && !requestedDestination.startsWith("//")) {
+      const parsedDestination = new URL(requestedDestination, window.location.origin);
+      if (parsedDestination.origin === window.location.origin) {
+        destination = `${parsedDestination.pathname}${parsedDestination.search}${parsedDestination.hash}`;
+      }
+    }
+
+    onRequireAuth(destination);
+    router.replace(pathname, { scroll: false });
+  }, [onRequireAuth, pathname, router, searchParams]);
+
+  return null;
+}
 
 export default function PlatformLayout({
   children,
@@ -23,6 +47,10 @@ export default function PlatformLayout({
   const [authOpen, setAuthOpen] = useState(false);
   const [authRedirectTo, setAuthRedirectTo] = useState<string | undefined>();
   const collapsedBeforeLesson = useRef<boolean | null>(null);
+  const requireAuth = useCallback((destination: string) => {
+    setAuthRedirectTo(destination);
+    setAuthOpen(true);
+  }, []);
 
   // Entering a lesson folds the sidebar into a thin icon rail to give the board the room.
   // Leaving the lesson restores whatever the learner had before.
@@ -55,24 +83,6 @@ export default function PlatformLayout({
   }, [mobileNavOpen]);
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.get("auth") !== "required") return;
-
-    const requestedDestination = searchParams.get("next");
-    let destination = "/courses";
-    if (requestedDestination?.startsWith("/") && !requestedDestination.startsWith("//")) {
-      const parsedDestination = new URL(requestedDestination, window.location.origin);
-      if (parsedDestination.origin === window.location.origin) {
-        destination = `${parsedDestination.pathname}${parsedDestination.search}${parsedDestination.hash}`;
-      }
-    }
-
-    setAuthRedirectTo(destination);
-    setAuthOpen(true);
-    window.history.replaceState(null, "", window.location.pathname);
-  }, []);
-
-  useEffect(() => {
     const handleWelcomeDismissed = () => {
       setSidebarCollapsed(false);
     };
@@ -95,6 +105,9 @@ export default function PlatformLayout({
           setAuthOpen(true);
         }}
       />
+      <Suspense fallback={null}>
+        <AuthRedirectHandler onRequireAuth={requireAuth} />
+      </Suspense>
       <div
         aria-hidden={!mobileNavOpen}
         role="presentation"

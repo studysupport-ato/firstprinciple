@@ -118,6 +118,7 @@ export function GeoGebraProvider({ config, title, adminHint = false }: { config:
             appletOnLoad: (loadedApi) => {
               if (!active) return;
               api = loadedApi;
+              window.performance.mark("b2b-geogebra-applet-ready");
               if (timer !== undefined) window.clearTimeout(timer);
               setStatus("ready");
             },
@@ -197,4 +198,3 @@ export function GeoGebraProvider({ config, title, adminHint = false }: { config:
     </figure>
   );
 }
-

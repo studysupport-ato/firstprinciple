@@ -1,5 +1,6 @@
 import { createCourseStructureServerRepository, type ContentClientFactory } from "./serverRepository";
 import type { Lesson } from "./types/lesson";
+import { withServerTimingSpan, type ServerTimingContext } from "../performance/timingSpans";
 
 export type PublishedDayResult = { kind: "not-found" } | { kind: "success"; lesson: Lesson };
 
@@ -8,21 +9,35 @@ export type PublishedDayResult = { kind: "not-found" } | { kind: "success"; less
  * RLS-constrained (student server pages pass `createSupabaseServerClient`).
  * Omitting it keeps the service-role default for admin/infra/test callers.
  */
-export async function getPublishedDay(courseId: string, weekReference: string | undefined, dayId: string, clientFactory?: ContentClientFactory): Promise<PublishedDayResult> {
-  const structure = createCourseStructureServerRepository(clientFactory);
-  const [course, weeks] = await Promise.all([
+export async function getPublishedDay(
+  courseId: string,
+  weekReference: string | undefined,
+  dayId: string,
+  clientFactory?: ContentClientFactory,
+  timing?: ServerTimingContext,
+): Promise<PublishedDayResult> {
+  if (!weekReference) return { kind: "not-found" };
+
+  const structure = createCourseStructureServerRepository(clientFactory, timing);
+  const [course, weeks, day] = await Promise.all([
     structure.getCourse(courseId),
-    weekReference ? structure.listWeeksForCourse(courseId) : Promise.resolve([]),
+    structure.listWeeksForCourse(courseId),
+    structure.getDayForCourse(courseId, dayId, { validateContent: true }),
   ]);
-  if (!course || !weekReference) return { kind: "not-found" };
 
-  const week = weeks.find((candidate) => candidate.id === weekReference || String(candidate.weekNumber) === weekReference);
-  const day = week
-    ? await structure.getDay(courseId, week.id, dayId, { validateContent: true })
-    : undefined;
+  const validation = await withServerTimingSpan(timing, "publication_hierarchy_validation_ms", async () => {
+    const week = weeks.find((candidate) => candidate.id === weekReference || String(candidate.weekNumber) === weekReference);
+    return Boolean(
+      course &&
+      week &&
+      day &&
+      day.weekId === week.id &&
+      course.status === "published" &&
+      week.status === "published" &&
+      day.status === "published",
+    );
+  });
 
-  if (!course || !week || !day) return { kind: "not-found" };
-  if (course.status !== "published" || week.status !== "published" || day.status !== "published") return { kind: "not-found" };
-
+  if (!validation || !day) return { kind: "not-found" };
   return { kind: "success", lesson: day };
 }

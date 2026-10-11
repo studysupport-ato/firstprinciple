@@ -18,6 +18,8 @@ import type { Question } from "@/lib/content/types/question";
 export function LessonExperience({ lesson, courseId, preview, week, supplementaryResources, assetsById, questionsById }: { lesson: Lesson; courseId: string; preview: boolean; week?: string; supplementaryResources: LearningResource[]; assetsById?: Record<string, Asset>; questionsById?: Record<string, Question> }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [notesContentStep, setNotesContentStep] = useState<number | null>(null);
+  useEffect(() => { window.performance.mark("b2b-lesson-hydrated"); }, []);
   useEffect(() => { setNotesOpen(false); }, [currentStep]);
 
   const geoResource = useMemo(() => supplementaryResources.find((resource) => resource.type === "geogebra"), [supplementaryResources]);
@@ -73,7 +75,10 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
               <>
                 <button
                   type="button"
-                  onClick={() => setNotesOpen(true)}
+                  onClick={() => {
+                    setNotesContentStep(activeStep);
+                    setNotesOpen(true);
+                  }}
                   aria-label="Open lesson notes"
                   title="Open lesson notes"
                   aria-expanded={notesOpen}
@@ -97,12 +102,14 @@ export function LessonExperience({ lesson, courseId, preview, week, supplementar
                       <ChevronDown size={16} /> Back to the board
                     </button>
                   </div>
-                  <div className="min-h-0 flex-1 flex flex-col gap-6 overflow-y-auto overscroll-contain touch-pan-y px-5 py-6 sm:px-8 sm:py-8 lg:px-12">
-                    {noteBlocks.map((block) => (
-                      <div key={block.id}>{renderBlock(block, assetsById, questionsById)}</div>
-                    ))}
-                    {isComplete ? <><LessonVideo resources={supplementaryResources} /><SupplementaryResources resources={supplementaryResources} /></> : null}
-                  </div>
+                  {notesContentStep === activeStep ? (
+                    <div className="min-h-0 flex-1 flex flex-col gap-6 overflow-y-auto overscroll-contain touch-pan-y px-5 py-6 sm:px-8 sm:py-8 lg:px-12">
+                      {noteBlocks.map((block) => (
+                        <div key={block.id}>{renderBlock(block, assetsById, questionsById)}</div>
+                      ))}
+                      {isComplete ? <><LessonVideo resources={supplementaryResources} /><SupplementaryResources resources={supplementaryResources} /></> : null}
+                    </div>
+                  ) : null}
                 </section>
               </>
             ) : null}
