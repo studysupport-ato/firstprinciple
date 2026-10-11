@@ -189,6 +189,8 @@ test.describe("mobile student experience", () => {
     expect(boardBox!.width).toBeLessThanOrEqual(phoneSizes[1].width);
     const boardFrame = page.frameLocator("iframe");
     await expect(boardFrame.locator("#lb .lb-vp")).toHaveCSS("touch-action", "none");
+    await expect(page.getByRole("button", { name: "Back one board" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Show all boards" })).toBeVisible();
     const boardScroller = boardFrame.locator("#lb .lb-lines").first();
     await expect(boardScroller).toHaveCSS("overflow-y", "auto");
     const boardScrollMetrics = await boardScroller.evaluate((element) => ({
@@ -208,13 +210,19 @@ test.describe("mobile student experience", () => {
     const boardProgress = () => boardFrame.locator("#lb-prog span i").evaluateAll((segments) => segments.map((segment) => (segment as HTMLElement).style.width));
     const nextBoardButton = page.getByRole("button", { name: "Next board" });
     await expect(nextBoardButton).toBeVisible();
-    await expect(page.getByRole("button", { name: "Back one board" })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /Play board|Pause board playback|Replay board/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Show all boards" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Scroll lesson content/ })).toHaveCount(0);
     const progressBeforeNext = await boardProgress();
     await nextBoardButton.click();
     await expect.poll(boardProgress).not.toEqual(progressBeforeNext);
-    await expect(page.getByRole("button", { name: "Open lesson notes" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Open lesson notes" })).toHaveCount(0);
+    await expect(page.locator(".geogebra-responsive-container")).toHaveCount(0);
+    const lessonBlockTypes = await page.getByTestId("lesson-content-block").evaluateAll((blocks) =>
+      blocks.map((block) => block.getAttribute("data-block-type")),
+    );
+    const boardIndex = lessonBlockTypes.indexOf("visualizer");
+    expect(boardIndex).toBeGreaterThan(0);
+    expect(boardIndex).toBeLessThan(lessonBlockTypes.length - 1);
     const continueButton = page.getByRole("button", { name: "Continue" });
     await expect(continueButton).toBeEnabled();
 
@@ -244,15 +252,68 @@ test.describe("mobile student experience", () => {
 
   });
 
-  test("hidden lesson notes do not initialize GeoGebra until opened", async ({ page }) => {
+  test("lesson blocks stay in order and GeoGebra loads only when requested", async ({ page }) => {
     await page.setViewportSize(phoneSizes[1]);
     await page.goto(
       "/courses/math-151/chapter/real-number-theory/lesson/math-151-d618bd6e7053-case-2-inequalities?week=1&preview=1",
     );
 
-    await expect(page.getByRole("button", { name: "Open lesson notes" })).toBeVisible();
-    await page.waitForFunction(() => performance.getEntriesByName("b2b-lesson-hydrated").length > 0);
+    const blocks = page.getByTestId("lesson-content-block");
+    const blockTypes = await blocks.evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute("data-block-type")),
+    );
+    const boardIndex = blockTypes.indexOf("visualizer");
+    expect(boardIndex).toBeGreaterThan(0);
+    expect(boardIndex).toBeLessThan(blockTypes.length - 1);
+    await expect(blocks.nth(boardIndex).getByTestId("lesson-board")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Next board" })).toBeVisible();
+    await expect(blocks.nth(boardIndex - 1)).toHaveAttribute("data-block-type", "markdown");
+    await expect(blocks.nth(boardIndex + 1)).toHaveAttribute("data-block-type", "markdown");
     await expect(page.locator(".geogebra-responsive-container")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Open board full screen" }).click();
+    const fullScreenBoard = page.getByRole("dialog");
+    await expect(fullScreenBoard).toBeVisible();
+    await expect(fullScreenBoard.getByRole("button", { name: "Close full-screen board" })).toBeVisible();
+    await expect(fullScreenBoard.getByRole("button", { name: "Zoom in on board" })).toBeVisible();
+    await expect(fullScreenBoard.getByRole("button", { name: "Zoom out on board" })).toBeVisible();
+    const boardFrame = page.frameLocator("iframe");
+    await boardFrame.locator("#lb-zi").evaluate((element) => {
+      element.addEventListener("click", () => element.setAttribute("data-zoom-action", "received"), { once: true });
+    });
+    await fullScreenBoard.getByRole("button", { name: "Zoom in on board" }).click();
+    await expect(boardFrame.locator("#lb-zi")).toHaveAttribute("data-zoom-action", "received");
+    await boardFrame.locator("#lb-zo").evaluate((element) => {
+      element.addEventListener("click", () => element.setAttribute("data-zoom-action", "received"), { once: true });
+    });
+    await fullScreenBoard.getByRole("button", { name: "Zoom out on board" }).click();
+    await expect(boardFrame.locator("#lb-zo")).toHaveAttribute("data-zoom-action", "received");
+    await boardFrame.locator("#lb-all").evaluate((element) => {
+      element.addEventListener("click", () => element.setAttribute("data-all-action", "received"), { once: true });
+    });
+    await fullScreenBoard.getByRole("button", { name: "Show all boards" }).click();
+    await expect(boardFrame.locator("#lb-all")).toHaveAttribute("data-all-action", "received");
+    const progressLabel = fullScreenBoard.locator(".tabular-nums");
+    await expect(progressLabel).toHaveText(/^\d+ \/ \d+$/);
+    const boardProgress = () => boardFrame.locator("#lb-prog span i").evaluateAll((segments) =>
+      segments.map((segment) => (segment as HTMLElement).style.width),
+    );
+    const progressBeforeNext = await boardProgress();
+    await fullScreenBoard.getByRole("button", { name: "Next board" }).click();
+    await expect.poll(boardProgress).not.toEqual(progressBeforeNext);
+    if (await fullScreenBoard.getByRole("button", { name: "Back one board" }).isEnabled()) {
+      const progressBeforePrevious = await boardProgress();
+      await fullScreenBoard.getByRole("button", { name: "Back one board" }).click();
+      await expect.poll(boardProgress).not.toEqual(progressBeforePrevious);
+    }
+    const playButton = fullScreenBoard.getByRole("button", { name: "Play board automatically" });
+    await playButton.click();
+    await expect(fullScreenBoard.getByRole("button", { name: "Pause board playback" })).toBeVisible();
+    await fullScreenBoard.getByRole("button", { name: "Pause board playback" }).click();
+    await expect(fullScreenBoard.getByRole("button", { name: "Play board automatically" })).toBeVisible();
+    await fullScreenBoard.getByRole("button", { name: "Close full-screen board" }).click();
+    await expect(page.getByRole("button", { name: "Open board full screen" })).toBeVisible();
+    await expect(boardFrame.locator("#lb-thm")).toContainText("Dark page");
   });
 
   test("questions, practice, assessment, and protected settings fit on mobile", async ({ page }) => {

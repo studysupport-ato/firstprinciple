@@ -120,23 +120,23 @@ export default function PlatformLayout({
       <main
         className={`relative min-h-screen w-full min-w-0 flex-1 transition-[margin] duration-500 ease-in-out md:pb-0 ${inLesson ? "pb-0" : "pb-[80px]"} ${sidebarCollapsed ? "md:ml-[68px]" : "md:ml-[220px]"}`}
       >
-        <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between bg-[#1A1814] px-4 pt-[env(safe-area-inset-top)] md:hidden">
+        <header className={`sticky top-0 z-30 flex items-center justify-between bg-[#1A1814] px-4 pt-[env(safe-area-inset-top)] md:hidden ${inLesson ? "h-7 min-h-7 px-2" : "min-h-16"}`}>
           <button
             type="button"
             aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={mobileNavOpen}
             aria-controls="platform-sidebar"
             onClick={() => setMobileNavOpen((open) => !open)}
-            className="flex h-11 w-11 shrink-0 items-center justify-start text-[#F6EFDC] transition focus-visible:outline-none"
+            className={`flex shrink-0 items-center justify-start text-[#F6EFDC] transition focus-visible:outline-none ${inLesson ? "h-6 w-8" : "h-11 w-11"}`}
           >
-            {mobileNavOpen ? <X size={24} /> : <Menu size={24} />}
+            {mobileNavOpen ? <X size={inLesson ? 16 : 24} /> : <Menu size={inLesson ? 16 : 24} />}
           </button>
           
           <Link href="/" aria-label="Back2Basics with Kwamina home" className="flex items-center justify-center">
-            <BrandLogo className="h-12 w-40" priority />
+            <BrandLogo className={inLesson ? "h-5 w-24" : "h-12 w-40"} priority />
           </Link>
 
-          <div className="w-11 shrink-0" /> {/* Spacer for centering */}
+          <div className={`shrink-0 ${inLesson ? "w-8" : "w-11"}`} /> {/* Spacer for centering */}
         </header>
 
         <PreviewToolbar />

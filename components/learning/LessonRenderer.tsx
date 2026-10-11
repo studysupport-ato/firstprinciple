@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment, useState } from "react";
 import type { ContentBlock, Lesson } from "@/lib/content/types";
 import type { Asset } from "@/lib/content/types/asset";
 import type { Question } from "@/lib/content/types/question";
@@ -13,7 +14,7 @@ import { MarkdownBlock } from "./blocks/MarkdownBlock";
 import { QuestionBlock } from "./blocks/QuestionBlock";
 import { TextBlock } from "./blocks/TextBlock";
 import { WorkedExampleBlock } from "./blocks/WorkedExampleBlock";
-import { VisualizerBlock } from "./blocks/VisualizerBlock";
+import { isBoardSource, VisualizerBlock } from "./blocks/VisualizerBlock";
 
 export function renderBlock(block: ContentBlock, assetsById?: Record<string, Asset>, questionsById?: Record<string, Question>) {
   switch (block.type) {
@@ -44,11 +45,80 @@ export function renderBlock(block: ContentBlock, assetsById?: Record<string, Ass
   }
 }
 
-export function LessonRenderer({ lesson, step, assetsById, questionsById }: { lesson: Lesson; step: number; assetsById?: Record<string, Asset>; questionsById?: Record<string, Question> }) {
-  const blocks = (lesson?.blocks ?? []).filter((block) => block.step === step);
+function LessonContentBlock({
+  block,
+  assetsById,
+  questionsById,
+  deferGeoGebra,
+  onFullscreenChange,
+}: {
+  block: ContentBlock;
+  assetsById?: Record<string, Asset>;
+  questionsById?: Record<string, Question>;
+  deferGeoGebra: boolean;
+  onFullscreenChange?: (open: boolean) => void;
+}) {
+  const [geoGebraOpened, setGeoGebraOpened] = useState(false);
+  const isDeferredGeoGebra = deferGeoGebra && block.type === "interactive" && block.provider === "geogebra";
+
+  if (isDeferredGeoGebra && !geoGebraOpened) {
+    return (
+      <button
+        type="button"
+        onClick={() => setGeoGebraOpened(true)}
+        className="inline-flex min-h-11 items-center rounded-full border border-[#B8B2A5] bg-white px-4 py-2 text-sm font-semibold text-[#26231D] transition-colors hover:border-[#111111]"
+      >
+        Open interactive activity
+      </button>
+    );
+  }
+
+  if (block.type === "visualizer" && isBoardSource(block.source)) {
+    return (
+      <div
+        data-testid="lesson-board"
+        className="my-1 w-full"
+      >
+        <VisualizerBlock {...block} fill onFullscreenChange={onFullscreenChange} />
+      </div>
+    );
+  }
+
+  return renderBlock(block, assetsById, questionsById);
+}
+
+export function LessonRenderer({
+  lesson,
+  step,
+  assetsById,
+  questionsById,
+  deferGeoGebra = false,
+  onFullscreenChange,
+}: {
+  lesson: Lesson;
+  step: number;
+  assetsById?: Record<string, Asset>;
+  questionsById?: Record<string, Question>;
+  deferGeoGebra?: boolean;
+  onFullscreenChange?: (open: boolean) => void;
+}) {
+  const blocks = (lesson?.blocks ?? []).filter((block) => (block.step ?? 1) === step);
   const uniqueSteps = Array.from(new Set((lesson?.blocks ?? []).map(b => b.step ?? 1))).sort((a, b) => a - b);
-  const totalSteps = uniqueSteps.length;
-  const displayStep = uniqueSteps.indexOf(step) + 1 || 1;
+  const currentStepIndex = Math.max(0, uniqueSteps.indexOf(step));
+  const progress = (
+    <div
+      aria-label={`Lesson progress: step ${currentStepIndex + 1} of ${uniqueSteps.length}`}
+      className="lesson-step-progress flex w-full gap-1.5"
+    >
+      {uniqueSteps.map((lessonStep, index) => (
+        <span
+          key={lessonStep}
+          aria-hidden
+          className={`h-[3px] flex-1 rounded-full ${index <= currentStepIndex ? "bg-[#E9BC3A]" : "bg-[#D9D6CF]"}`}
+        />
+      ))}
+    </div>
+  );
 
   return (
     <AnimatePresence mode="wait">
@@ -58,13 +128,26 @@ export function LessonRenderer({ lesson, step, assetsById, questionsById }: { le
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.4 }}
-        className="flex flex-col gap-6"
+        className="lesson-guided-step flex flex-col gap-6"
       >
-        <span className="font-sans text-xs font-semibold uppercase tracking-wider text-[#111111]">
-          Step {displayStep} of {totalSteps}
-        </span>
+        {blocks[0]?.type === "heading" ? null : progress}
         {blocks.map((block) => (
-          <div key={block.id}>{renderBlock(block, assetsById, questionsById)}</div>
+          <Fragment key={block.id}>
+            <div
+              data-testid="lesson-content-block"
+              data-block-id={block.id}
+              data-block-type={block.type}
+            >
+              <LessonContentBlock
+                block={block}
+                assetsById={assetsById}
+                questionsById={questionsById}
+                deferGeoGebra={deferGeoGebra}
+                onFullscreenChange={onFullscreenChange}
+              />
+            </div>
+            {block === blocks[0] && block.type === "heading" ? progress : null}
+          </Fragment>
         ))}
       </motion.div>
     </AnimatePresence>
