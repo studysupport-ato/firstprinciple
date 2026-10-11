@@ -33,12 +33,13 @@ export interface CourseStructureRepository {
   listDaysForCourse(courseId: string): Promise<CourseStructureDay[]>;
   getWeek(courseId: string, weekId: string): Promise<Week | undefined>;
   listDaysForWeek(courseId: string, weekId: string): Promise<CourseStructureDay[]>;
-  getDay(courseId: string, weekId: string, dayId: string): Promise<CourseStructureDay | undefined>;
+  getDay(courseId: string, weekId: string, dayId: string, options?: { validateContent?: boolean }): Promise<CourseStructureDay | undefined>;
   /** Single-row Day read by primary key (admin editor deep link). */
   getDayById(dayId: string): Promise<CourseStructureDay | undefined>;
   /** Scoped index reads for admin list pages (single query each — never N+1 per course). */
   listAllWeeks(): Promise<Week[]>;
   listAllDays(): Promise<CourseStructureDay[]>;
+  listDayCourseIds(): Promise<string[]>;
 
   // --- Task 39E admin write operations (Course -> Week -> Day) -------------
   createCourse(course: Course): Promise<Course>;
@@ -103,6 +104,9 @@ const localCourseStructureRepository: CourseStructureRepository = {
   },
   async listAllDays() {
     return getLessons();
+  },
+  async listDayCourseIds() {
+    return getLessons().map((day) => day.courseId);
   },
   async getDayById(dayId: string) {
     return getDay(dayId) ?? getLesson(dayId);
@@ -261,7 +265,7 @@ function mapWeekRow(row: SupabaseWeekRow): Week {
   };
 }
 
-function mapDayRow(row: SupabaseDayRow): Lesson {
+function mapDayRow(row: SupabaseDayRow, validateContent = false): Lesson {
   return {
     id: row.id,
     courseId: row.course_id,
@@ -272,7 +276,11 @@ function mapDayRow(row: SupabaseDayRow): Lesson {
     order: row.order_index,
     estimatedMinutes: row.estimated_minutes,
     objectives: Array.isArray(row.objectives) ? (row.objectives as string[]) : [],
-    blocks: Array.isArray(row.content_blocks) ? (row.content_blocks as Lesson["blocks"]) : [],
+    blocks: validateContent
+      ? parseContentBlocks(row.content_blocks)
+      : Array.isArray(row.content_blocks)
+        ? (row.content_blocks as Lesson["blocks"])
+        : [],
     status: row.status as Lesson["status"],
   };
 }
@@ -421,25 +429,18 @@ export function createCourseStructureSupabaseRepository(clientFactory: () => Sup
       status: row.status as Lesson["status"],
     }));
   },
-  async getDay(courseId: string, weekId: string, dayId: string) {
+  async getDay(courseId: string, weekId: string, dayId: string, options: { validateContent?: boolean } = {}) {
     const client = clientFactory();
-    const { data, error } = await client.from("days").select("*").eq("course_id", courseId).eq("week_id", weekId).eq("id", dayId).maybeSingle();
+    const { data, error } = await client
+      .from("days")
+      .select("id,course_id,week_id,chapter_id,title,description,order_index,estimated_minutes,objectives,content_blocks,status")
+      .eq("course_id", courseId)
+      .eq("week_id", weekId)
+      .eq("id", dayId)
+      .maybeSingle();
     if (error) throw error;
     if (!data) return undefined;
-    const row = data as SupabaseDayRow;
-    return {
-      id: row.id,
-      courseId: row.course_id,
-      chapterId: row.chapter_id ?? "",
-      weekId: row.week_id,
-      title: row.title,
-      description: row.description,
-      order: row.order_index,
-      estimatedMinutes: row.estimated_minutes,
-      objectives: Array.isArray(row.objectives) ? (row.objectives as string[]) : [],
-      blocks: Array.isArray(row.content_blocks) ? (row.content_blocks as Lesson["blocks"]) : [],
-      status: row.status as Lesson["status"],
-    };
+    return mapDayRow(data as SupabaseDayRow, options.validateContent);
   },
   async listAllWeeks() {
     const client = clientFactory();
@@ -451,7 +452,13 @@ export function createCourseStructureSupabaseRepository(clientFactory: () => Sup
     const client = clientFactory();
     const { data, error } = await client.from("days").select("*").order("course_id", { ascending: true }).order("week_id", { ascending: true }).order("order_index", { ascending: true });
     if (error) throw error;
-    return ((data ?? []) as SupabaseDayRow[]).map(mapDayRow);
+    return ((data ?? []) as SupabaseDayRow[]).map((row) => mapDayRow(row));
+  },
+  async listDayCourseIds() {
+    const client = clientFactory();
+    const { data, error } = await client.from("days").select("course_id");
+    if (error) throw error;
+    return ((data ?? []) as Array<{ course_id: string }>).map((row) => row.course_id);
   },
   async getDayById(dayId: string) {
     const client = clientFactory();
@@ -669,7 +676,7 @@ export function createCourseStructureSupabaseRepository(clientFactory: () => Sup
       .eq("week_id", weekId)
       .order("order_index", { ascending: true });
     if (refreshError) throw refreshError;
-    return ((refreshed ?? []) as SupabaseDayRow[]).map(mapDayRow);
+    return ((refreshed ?? []) as SupabaseDayRow[]).map((row) => mapDayRow(row));
   },
   async moveDay(courseId: string, dayId: string, destinationWeekId: string) {
     const client = clientFactory();

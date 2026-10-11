@@ -111,11 +111,15 @@ function validateDayBlocks(blocks: ContentBlock[]) {
 
 export async function listAdminCourses(): Promise<AdminCourseListRow[]> {
   const structure = createCourseStructureAdminRepository();
-  const [courses, weeks, days] = await Promise.all([structure.listCourses(), structure.listAllWeeks(), structure.listAllDays()]);
+  const [courses, weeks, dayCourseIds] = await Promise.all([
+    structure.listCourses(),
+    structure.listAllWeeks(),
+    structure.listDayCourseIds(),
+  ]);
   const weekCounts = new Map<string, number>();
   for (const week of weeks) weekCounts.set(week.courseId, (weekCounts.get(week.courseId) ?? 0) + 1);
   const dayCounts = new Map<string, number>();
-  for (const day of days) dayCounts.set(day.courseId, (dayCounts.get(day.courseId) ?? 0) + 1);
+  for (const courseId of dayCourseIds) dayCounts.set(courseId, (dayCounts.get(courseId) ?? 0) + 1);
   return courses
     .map((course) => ({ course, weekCount: weekCounts.get(course.id) ?? 0, dayCount: dayCounts.get(course.id) ?? 0 }))
     .sort((first, second) => first.course.title.localeCompare(second.course.title));
@@ -561,4 +565,3 @@ export async function deleteAdminDepartment(departmentId: string): Promise<void>
 export async function deleteAdminCourseMaterial(materialId: string): Promise<void> {
   await createCourseMaterialsAdminRepository().deleteCourseMaterial(materialId);
 }
-

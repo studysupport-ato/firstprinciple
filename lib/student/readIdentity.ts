@@ -79,7 +79,7 @@ export async function resolveAuthenticatedReadStudent(): Promise<AuthenticatedRe
   cachedAuthUserId = authUserId;
   cachedStudent = null;
 
-  inFlight = (async () => {
+  const request = (async () => {
     const { data: row, error } = await client
       .from("students")
       .select("id,auth_user_id,display_name,email")
@@ -87,6 +87,10 @@ export async function resolveAuthenticatedReadStudent(): Promise<AuthenticatedRe
       .maybeSingle();
 
     if (error) throw error;
+    const currentAuthUserId = (await client.auth.getSession()).data.session?.user?.id ?? null;
+    if (cachedAuthUserId !== authUserId || currentAuthUserId !== authUserId) {
+      throw new Error("Authentication changed while resolving the student identity.");
+    }
 
     const studentRow = row as {
       id: string;
@@ -109,11 +113,12 @@ export async function resolveAuthenticatedReadStudent(): Promise<AuthenticatedRe
     cachedStudent = student;
     return student;
   })();
+  inFlight = request;
 
   try {
-    return await inFlight;
+    return await request;
   } finally {
-    inFlight = null;
+    if (inFlight === request) inFlight = null;
   }
 }
 

@@ -28,6 +28,8 @@ export interface QuestionRepository {
   deleteQuestion(questionId: string): Promise<void>;
 }
 
+export type QuestionDirectorySummary = Pick<Question, "courseId" | "chapterId">;
+
 function applyStudentVisibility(questions: Question[], options: QuestionRepositoryListOptions) {
   if (options.visibility !== "student") return questions;
   return questions.filter((question) => isPreviewVisible(legacyStatus(question.metadata?.status), { preview: options.includeDraft }));
@@ -118,6 +120,35 @@ function applyQuestionFilters(query: any, options: QuestionRepositoryListOptions
     next = options.includeDraft ? next.in("status", ["published", "draft"]) : next.eq("status", "published");
   }
   return next;
+}
+
+export async function listQuestionDirectorySummaries(
+  clientFactory: QuestionSupabaseClientFactory,
+  options: Pick<QuestionRepositoryListOptions, "courseId" | "visibility" | "includeDraft"> = {},
+): Promise<QuestionDirectorySummary[]> {
+  const pageSize = 500;
+  const summaries: QuestionDirectorySummary[] = [];
+  let offset = 0;
+
+  for (;;) {
+    let query = clientFactory()
+      .from("questions")
+      .select("course_id,chapter_id")
+      .order("id", { ascending: true });
+    if (options.courseId) query = query.eq("course_id", options.courseId);
+    if (options.visibility === "student") {
+      query = options.includeDraft
+        ? query.in("status", ["published", "draft"])
+        : query.eq("status", "published");
+    }
+
+    const { data, error } = await query.range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as Array<{ course_id: string; chapter_id: string | null }>;
+    summaries.push(...rows.map((row) => ({ courseId: row.course_id, chapterId: row.chapter_id ?? "" })));
+    if (rows.length < pageSize) return summaries;
+    offset += pageSize;
+  }
 }
 
 function toQuestionRow(question: Question) {
@@ -269,4 +300,3 @@ export async function listQuestionsForAssessment(
 ): Promise<Question[]> {
   return listStudentQuestions(filters, options, clientFactory);
 }
-

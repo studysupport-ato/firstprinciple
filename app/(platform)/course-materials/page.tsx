@@ -89,24 +89,23 @@ function DepartmentBlueprint({ name }: { name: string }) {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 overflow-hidden rounded-[22px]"
+      className="pointer-events-none absolute inset-0 overflow-hidden rounded-[24px]"
       style={{
         backgroundImage:
-          "linear-gradient(rgba(255,255,255,0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.055) 1px, transparent 1px)",
-        backgroundSize: "18px 18px",
-        maskImage: "linear-gradient(90deg, transparent 0%, #000 42%, #000 100%)",
+          "linear-gradient(#E9BC3A 1px, transparent 1px), linear-gradient(90deg, #E9BC3A 1px, transparent 1px)",
+        backgroundSize: "24px 24px",
+        opacity: 0.08,
       }}
     >
       <DepartmentDrawing
         name={name}
-        className="absolute -right-1 top-1/2 h-36 w-56 -translate-y-1/2 text-white/30"
+        className="absolute -right-1 top-1/2 h-[140px] w-[220px] -translate-y-1/2 text-[#F6EFDC] opacity-100"
       />
     </div>
   );
 }
 
 // ─── Shared page chrome ────────────────────────────────────────────────────
-// Shared page chrome for the department grid and department detail view.
 function CourseMaterialsChrome({ children }: { children: ReactNode }) {
   const { authenticated, student } = useAuthSession();
   const displayName = (student?.displayName ?? "").trim();
@@ -123,41 +122,45 @@ function CourseMaterialsChrome({ children }: { children: ReactNode }) {
       : "SI";
 
   return (
-    <div className="relative min-h-screen overflow-x-clip bg-[#FFC700] pb-10">
+    <div
+      className="relative min-h-screen overflow-x-clip pb-10"
+      style={{ background: "linear-gradient(135deg, #f0c84a 0%, #E9BC3A 45%, #d4a82e 100%)" }}
+    >
+      {/* PAGE BACKGROUND GRID */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.05]"
+        style={{
+          backgroundImage: "linear-gradient(#1A1814 1px, transparent 1px), linear-gradient(90deg, #1A1814 1px, transparent 1px)",
+          backgroundSize: "64px 64px",
+        }}
+      />
+
       <div className="relative z-10 px-[40px] pt-[22px] max-[900px]:px-[18px] max-[900px]:pt-5">
         <div className="mx-auto max-w-[1220px]">
           <div className="relative overflow-visible">
+            
+            {/* ── TOP BAR ── */}
             <div className="mb-[14px] flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.1em] text-[#111111]/60">
+              <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.1em] text-[#26231C]/55">
                 <span>Learning space</span>
-                <span className="text-[8px]">●</span>
-                <span className="text-[#111111]/80">MATH 151</span>
+                <span className="text-[8px]">·</span>
+                <span className="text-[#26231C]/80">MATH 151</span>
               </div>
 
               <Link
                 href={authenticated === true ? "/settings" : "/courses"}
                 aria-label={authenticated === true ? "Open profile settings" : "Sign in to your account"}
                 title={authenticated === true ? "Profile settings" : "Sign in"}
-                className="group flex items-center gap-2.5 rounded-full bg-black/[0.08] py-1 pl-1 pr-4 backdrop-blur-[2px]"
+                className="group flex items-center gap-2.5 rounded-full bg-[#1A1814]/[0.10] py-1 pl-1 pr-4 backdrop-blur-[2px]"
               >
-                <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#111111] text-[11px] font-black text-[#FFC700] transition-transform group-hover:scale-105">
+                <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#1A1814] text-[11px] font-black text-[#E9BC3A] transition-transform group-hover:scale-105">
                   {initials}
                 </span>
                 <span className="hidden text-left sm:block">
-                  <span className="block font-sans text-[13px] font-bold leading-tight text-[#111111]">{profileLabel}</span>
-                  <span className="block font-sans text-[11px] leading-tight text-[#111111]/55">{profileSubLabel}</span>
+                  <span className="block font-sans text-[13px] font-bold leading-tight text-[#1A1814]">{profileLabel}</span>
+                  <span className="block font-sans text-[11px] leading-tight text-[#1A1814]/50">{profileSubLabel}</span>
                 </span>
               </Link>
-            </div>
-
-            <div className="relative mb-7">
-              <p className="mb-1 mt-6 font-serif text-[18px] italic leading-tight text-[#111111]">Your library,</p>
-              <h1 className="font-serif text-[clamp(3rem,7vw,4.5rem)] font-bold leading-[0.98] tracking-[-0.045em] text-[#0c0c0c]">
-                Course Materials.
-              </h1>
-              <p className="mt-2 max-w-[470px] font-serif text-[16px] leading-[1.4] text-[#333]/80">
-                Pick your department, then your year.
-              </p>
             </div>
 
             {children}
@@ -177,6 +180,7 @@ export default function CourseMaterialsPage() {
   const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialRow | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<CourseMaterialsDepartment | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   const [selectedStudyYear, setSelectedStudyYear] = useState<CourseMaterialYear | null>(1);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -312,156 +316,368 @@ export default function CourseMaterialsPage() {
       entry.departmentId === selectedDepartment.id &&
       (entry.studyYear ?? null) === selectedStudyYear
     );
+
+    const coursesMap = new Map<string, {
+      courseCode: string;
+      courseTitle: string;
+      materials: MaterialRow[];
+      semester: 1 | 2;
+      isNew: boolean;
+    }>();
+
+    for (const entry of deptEntries) {
+      const code = (entry.courseCode || "").trim();
+      const title = entry.courseTitle;
+      const key = `${code}-${title}`;
+      if (!coursesMap.has(key)) {
+        let semester: 1 | 2 = 1;
+        const match = code.match(/(\d+)$/);
+        if (match) {
+          semester = parseInt(match[1].slice(-1), 10) % 2 === 0 ? 2 : 1;
+        }
+        coursesMap.set(key, { courseCode: code, courseTitle: title, materials: [], semester, isNew: false });
+      }
+      const c = coursesMap.get(key)!;
+      c.materials.push(entry);
+      // Rough heuristic for 'NEW' tag: if any material is less than 14 days old
+      if (Date.now() - new Date(entry.createdAt).getTime() < 14 * 24 * 60 * 60 * 1000) {
+        c.isNew = true;
+      }
+    }
+    const courses = Array.from(coursesMap.values());
+    const semester1 = courses.filter(c => c.semester === 1);
+    const semester2 = courses.filter(c => c.semester === 2);
+
+    const activeCourseKey = selectedCourse;
+    const activeCourse = activeCourseKey ? courses.find(c => `${c.courseCode}-${c.courseTitle}` === activeCourseKey) : null;
+    const activeMaterials = activeCourse ? activeCourse.materials : deptEntries;
+
     return (
       <CourseMaterialsChrome>
-        <button
-          type="button"
-          onClick={() => setSelectedDepartment(null)}
-          className="inline-flex items-center gap-2 rounded-full px-1 py-2 font-serif text-[14px] font-bold text-[#111111] transition hover:opacity-65"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.4} />
-          All departments
-        </button>
+        {activeCourse ? (
+          <div>
+            {/* ── BACK ── */}
+            <button
+              type="button"
+              onClick={() => setSelectedCourse(null)}
+              className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#1A1814]/60 transition hover:text-[#1A1814]"
+            >
+              <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+              {STUDY_YEARS.find(y => y.value === selectedStudyYear)?.label || "First year"} · Semester {activeCourse.semester}
+            </button>
 
-        <div className="mt-5">
-          <h2 className="max-w-[900px] font-serif text-[clamp(2.6rem,7vw,4.5rem)] font-bold leading-[0.98] tracking-[-0.045em] text-[#0c0c0c]">
-            {selectedDepartment.name}
-          </h2>
-          {selectedDepartment.description ? (
-            <p className="mt-3 max-w-[680px] font-serif text-[15px] leading-[1.5] text-[#111111]/65">
-              {selectedDepartment.description}
-            </p>
-          ) : null}
-        </div>
-
-        <div
-          role="tablist"
-          aria-label="Filter materials by academic year"
-          className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4"
-        >
-          {[
-            ...STUDY_YEARS.map((year) => ({ value: year.value, label: year.label })),
-            ...(hasUnassignedEntries ? [{ value: null, label: "Unassigned" }] : []),
-          ].map((year) => {
-            const count = departmentEntries.filter((entry) => (entry.studyYear ?? null) === year.value).length;
-            const selected = selectedStudyYear === year.value;
-
-            return (
-              <button
-                key={year.label}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                onClick={() => setSelectedStudyYear(year.value)}
-                className={`min-h-[72px] rounded-[16px] px-4 py-3 text-left transition ${
-                  selected
-                    ? "bg-[#111111] text-white shadow-[0_8px_20px_rgba(17,17,17,0.12)]"
-                    : "bg-white text-[#111111] hover:bg-[#fffaf0]"
-                }`}
-              >
-                <span className="block font-serif text-[15px] font-bold leading-tight">{year.label}</span>
-                <span className={`mt-1 block text-[12px] font-semibold ${selected ? "text-white/65" : "text-[#111111]/50"}`}>
-                  {count} {count === 1 ? "material" : "materials"}
+            {/* ── COURSE BADGE + TITLE ── */}
+            {activeCourse.courseCode && (
+              <div className="mb-3">
+                <span className="rounded-[6px] bg-[#E9BC3A] px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#1A1814]">
+                  {activeCourse.courseCode}
                 </span>
-              </button>
-            );
-          })}
-        </div>
+              </div>
+            )}
+            <h1 className="font-sans text-[clamp(2.2rem,6vw,4rem)] font-black leading-[1.0] tracking-[-0.02em] text-[#1A1814]">
+              {activeCourse.courseTitle}
+            </h1>
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-          <FilterPills
-            label="Material type"
-            options={RESOURCE_TYPES}
-            value={typeFilter}
-            onChange={(value) => setTypeFilter(value as "ALL" | MaterialType)}
-          />
-          <button
-            type="button"
-            onClick={() => setShowBookmarksOnly((current) => !current)}
-            aria-pressed={showBookmarksOnly}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-bold transition ${
-              showBookmarksOnly ? "bg-[#111111] text-[#FFC700]" : "border border-black/30 bg-white/60 text-[#111111] hover:bg-white"
-            }`}
-          >
-            <Bookmark className={`h-3.5 w-3.5 ${showBookmarksOnly ? "fill-current" : ""}`} />
-            Saved
-          </button>
-        </div>
+            {/* ── STATS ── */}
+            {(() => {
+              const typeCounts = activeCourse.materials.reduce((acc, m) => {
+                let short = "";
+                if (m.type === "PDF Document") short = "PDF";
+                else if (m.type === "Lecture Slides") short = "slides";
+                else if (m.type === "Past Questions") short = "past questions";
+                else if (m.type === "Video Lecture") short = "video";
+                if (short) acc[short] = (acc[short] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>);
+              const parts = Object.entries(typeCounts).map(([type, count]) => `${count} ${type}`);
+              return (
+                <p className="mt-2 text-[16px] font-medium text-[#26231C]/75">
+                  {activeCourse.materials.length} materials{parts.length ? ` · ${parts.join(" · ")}` : ""}
+                </p>
+              );
+            })()}
 
-        {deptEntries.length === 0 ? (
-          <div className="mt-5 rounded-[22px] border border-dashed border-[#111111]/30 bg-white p-12 text-center shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-            <FolderOpen className="mx-auto h-10 w-10 text-[#111111]/30" />
-            <h3 className="mt-5 font-black text-[#111111]">No materials found</h3>
-            <p className="mx-auto mt-2 max-w-sm text-sm font-medium text-[#111111]/65">
-              No {selectedStudyYear === null ? "unassigned" : STUDY_YEARS.find((year) => year.value === selectedStudyYear)?.label.toLowerCase()} materials match these filters for {selectedDepartment.shortName ?? selectedDepartment.name}.
-            </p>
+            {/* ── FILTER PILLS ── */}
+            {(() => {
+              const types: Array<"ALL" | MaterialType> = ["ALL", ...([...new Set(activeCourse.materials.map(m => m.type))] as MaterialType[])];
+              const pillLabel: Record<string, string> = {
+                ALL: "All",
+                "PDF Document": "PDF",
+                "Lecture Slides": "Slides",
+                "Past Questions": "Past Questions",
+                "Video Lecture": "Video",
+                "External Link": "Links",
+              };
+              return (
+                <div className="mt-6 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap md:overflow-x-visible md:pb-0">
+                  {types.map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setTypeFilter(t)}
+                      className={`shrink-0 rounded-full px-6 py-2 text-[14px] font-bold transition ${typeFilter === t ? "bg-[#8F6500] text-[#F6EFDC]" : "bg-[#1A1814] text-[#F6EFDC] hover:bg-[#333333]"}`}
+                    >
+                      {pillLabel[t] ?? t}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {/* ── MATERIALS LIST ── */}
+            <div className="mt-6 overflow-hidden rounded-[24px] bg-[#1A1814] shadow-[0_2px_14px_rgba(0,0,0,0.22)]">
+              {activeMaterials
+                .filter(entry => typeFilter === "ALL" || entry.type === typeFilter)
+                .map((entry, index, arr) => {
+                  const isSaved = bookmarks.includes(entry.id);
+                  const videoId = getCourseMaterialVideoId(entry);
+                  const isLast = index === arr.length - 1;
+
+                  // Icon background: gold for video, medium brown for others
+                  const iconBg = videoId ? "bg-[#E9BC3A]" : "bg-[#F0C84A]";
+                  const iconEl = videoId
+                    ? <Play className="h-5 w-5 fill-current text-[#1A1814]" />
+                    : <BookOpenText className="h-5 w-5 text-[#1A1814]" strokeWidth={2} />;
+
+                  const ActionLabel = videoId ? "Watch" : "Open";
+                  const ActionHref = videoId ? `#material-video-${entry.id}` : entry.url;
+
+                  return (
+                    <AnimatedItem key={entry.id} index={index}>
+                      <article className={`flex flex-col px-5 py-6 sm:px-7 sm:py-6 ${!isLast ? "border-b border-[#3A3428]" : ""}`}>
+                        <div className="flex items-start sm:items-center gap-4">
+                          {/* Icon */}
+                          <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] ${iconBg}`}>
+                            {iconEl}
+                          </span>
+
+                          {/* Text */}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#F6EFDC]">
+                              {entry.type}
+                            </p>
+                            <h3 className="mt-[2px] font-sans text-[20px] sm:text-[17px] font-black leading-[1.15] tracking-tight text-[#F6EFDC]">
+                              {entry.courseTitle}
+                            </h3>
+                            {entry.description && entry.description !== entry.courseTitle && (
+                              <p className="mt-1.5 text-[14px] sm:text-[13px] leading-snug text-[#F6EFDC]/70">
+                                {entry.description}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Actions (Desktop) */}
+                          <div className="hidden shrink-0 items-center gap-2 sm:flex">
+                            <a
+                              href={ActionHref}
+                              target={videoId ? undefined : "_blank"}
+                              rel={videoId ? undefined : "noreferrer"}
+                              className="inline-flex h-10 items-center justify-center rounded-full bg-[#8F6500] px-5 text-[13px] font-bold text-[#F6EFDC] transition hover:brightness-110"
+                            >
+                              {ActionLabel}
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => toggleBookmark(entry.id)}
+                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition ${isSaved ? "border-[#E9BC3A] text-[#E9BC3A]" : "border-[#3A3428] text-[#F6EFDC]/40 hover:border-[#F6EFDC]/40 hover:text-[#F6EFDC]"}`}
+                            >
+                              <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Actions (Mobile Full Width) */}
+                        <div className="mt-5 w-full sm:hidden">
+                          <a
+                            href={ActionHref}
+                            target={videoId ? undefined : "_blank"}
+                            rel={videoId ? undefined : "noreferrer"}
+                            className="flex h-12 w-full items-center justify-center rounded-full bg-[#8F6500] text-[15px] font-bold text-[#F6EFDC] transition hover:brightness-110"
+                          >
+                            {ActionLabel}
+                          </a>
+                        </div>
+
+                        {videoId ? (
+                          <div id={`material-video-${entry.id}`} className="ml-[60px] mt-4 scroll-mt-6">
+                            <YouTubeEmbed videoId={videoId} title={entry.courseTitle} />
+                          </div>
+                        ) : null}
+                      </article>
+                    </AnimatedItem>
+                  );
+                })}
+            </div>
           </div>
         ) : (
-          <div className="mt-5 overflow-hidden rounded-[22px] bg-white px-5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] sm:px-6">
-            {deptEntries.map((entry, index) => {
-              const isSaved = bookmarks.includes(entry.id);
-              const videoId = getCourseMaterialVideoId(entry);
+          <div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCourse(null);
+                setSelectedDepartment(null);
+              }}
+              className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#1A1814]/60 transition hover:text-[#1A1814]"
+            >
+              <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+              {selectedDepartment.name}
+            </button>
 
-              return (
-                <AnimatedItem key={entry.id} index={index}>
-                  <article className="border-t border-[#e9e3d7] py-4 first:border-t-0 sm:py-[18px]">
-                    <div className="flex items-center gap-3 sm:gap-4">
-                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] sm:h-[42px] sm:w-[42px] ${videoId ? "bg-[#FFC700]" : "bg-[#fff1c2]"}`}>
-                        {videoId ? <Play className="h-4 w-4 fill-current text-[#111111]" /> : getTypeIcon(entry.type)}
-                      </span>
+            <h1 className="font-sans text-[clamp(2.5rem,6vw,4rem)] font-black leading-[1.0] tracking-[-0.02em] text-[#1A1814]">
+              {STUDY_YEARS.find(y => y.value === selectedStudyYear)?.label || "First year"}
+            </h1>
+            <p className="mt-2 text-[17px] font-medium text-[#26231C]/80">
+              {courses.length} courses · {deptEntries.length} materials
+            </p>
 
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[12px] font-serif italic leading-tight text-[#111111]/55">
-                          {entry.type}{entry.courseCode ? ` · ${entry.courseCode}` : ""}
-                        </p>
-                        <h3 className="mt-1 font-serif text-[16px] font-bold leading-tight text-[#141414] sm:text-[18px]">
-                          {entry.courseTitle}
-                        </h3>
-                        {entry.description ? (
-                          <p className="mt-1 line-clamp-2 text-[12px] leading-[1.5] text-[#111111]/55 sm:text-[13px]">
-                            {entry.description}
-                          </p>
-                        ) : null}
-                      </div>
+            <div className="mt-8 flex items-center gap-3 overflow-x-auto whitespace-nowrap pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap md:overflow-x-visible md:pb-0">
+              {[
+                ...STUDY_YEARS.map((year) => ({ value: year.value, label: year.label })),
+                ...(hasUnassignedEntries ? [{ value: null, label: "Unassigned" }] : []),
+              ].map((year) => {
+                const selected = selectedStudyYear === year.value;
+                return (
+                  <button
+                    key={year.label}
+                    onClick={() => setSelectedStudyYear(year.value)}
+                    className={`shrink-0 rounded-full px-5 py-2 text-[14px] font-bold transition ${selected ? "bg-[#8F6500] text-[#F6EFDC]" : "bg-[#1A1814] text-[#F6EFDC] hover:bg-[#333333]"}`}
+                  >
+                    {year.label}
+                  </button>
+                )
+              })}
+            </div>
 
-                      <button
-                        type="button"
-                        onClick={() => toggleBookmark(entry.id)}
-                        aria-label={isSaved ? "Remove from saved materials" : "Save this material"}
-                        title={isSaved ? "Remove from saved" : "Save material"}
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#111111]/45 transition hover:bg-black/5 hover:text-[#111111]"
-                      >
-                        <Bookmark className={`h-4 w-4 ${isSaved ? "fill-[#C2891B] text-[#C2891B]" : ""}`} />
-                      </button>
-
-                      {videoId ? (
-                        <a
-                          href={`#material-video-${entry.id}`}
-                          className="inline-flex shrink-0 items-center justify-center rounded-full bg-[#111111] px-4 py-2.5 font-serif text-[13px] font-bold text-white transition hover:bg-[#333333] sm:min-w-[78px]"
+            <div className="mt-12 space-y-12">
+              {semester1.length > 0 && (
+                <div>
+                  <div className="mb-4 flex items-baseline justify-between">
+                    <h2 className="flex items-baseline gap-3 font-sans text-[32px] font-black tracking-[-0.02em] text-[#1A1814]">
+                      Semester 1 <span className="text-[14px] font-semibold text-[#1A1814]/80">{semester1.length} courses</span>
+                    </h2>
+                    <button className="hidden text-[13px] font-bold text-[#1A1814] hover:underline md:block">See all</button>
+                  </div>
+                  <div className="flex gap-4 overflow-x-auto pb-6 pt-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    {semester1.map(course => {
+                      const typeCounts = course.materials.reduce((acc, m) => {
+                        let shortType = "Other";
+                        if (m.type === "PDF Document") shortType = "PDF";
+                        else if (m.type === "Lecture Slides") shortType = "Slides";
+                        else if (m.type === "Past Questions") shortType = "Past Qs";
+                        else if (m.type === "Video Lecture") shortType = "Video";
+                        acc[shortType] = (acc[shortType] || 0) + 1;
+                        return acc;
+                      }, {} as Record<string, number>);
+                      const typeString = Object.entries(typeCounts).map(([type, count]) => `${type} ${count}`).join(" · ");
+                      return (
+                        <button
+                          key={`${course.courseCode}-${course.courseTitle}`}
+                          onClick={() => setSelectedCourse(`${course.courseCode}-${course.courseTitle}`)}
+                          className="group relative flex min-w-[280px] w-[280px] flex-col items-start overflow-hidden rounded-[24px] bg-[#1A1814] p-6 text-left shadow-[0_2px_14px_rgba(0,0,0,0.22)] transition-transform duration-300 hover:-translate-y-1 md:min-w-[300px] md:w-[300px]"
                         >
-                          Watch
-                        </a>
-                      ) : (
-                        <a
-                          href={entry.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex shrink-0 items-center justify-center gap-1 rounded-full bg-[#111111] px-4 py-2.5 font-serif text-[13px] font-bold text-white transition hover:bg-[#333333] sm:min-w-[78px]"
-                        >
-                          Open <ArrowUpRight className="h-3.5 w-3.5" />
-                        </a>
-                      )}
-                    </div>
+                          <div className="flex w-full items-center gap-2">
+                            {course.courseCode && (
+                              <span className="rounded-[4px] bg-[#E9BC3A] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.05em] text-[#1A1814]">
+                                {course.courseCode}
+                              </span>
+                            )}
+                            {course.isNew && (
+                              <span className="text-[10px] font-black uppercase tracking-[0.1em] text-[#F6EFDC]">
+                                NEW
+                              </span>
+                            )}
+                          </div>
+                          
+                          <h3 className="mt-4 font-sans text-[22px] font-black leading-tight text-[#F6EFDC] line-clamp-2">
+                            {course.courseTitle}
+                          </h3>
+                          
+                          <div className="mt-10 flex w-full flex-row items-end justify-between">
+                            <div>
+                              <div className="text-[14px] font-bold text-[#F6EFDC]">
+                                {course.materials.length} materials
+                              </div>
+                              {typeString && (
+                                <div className="mt-1 text-[11px] font-medium text-[#F6EFDC]/60">
+                                  {typeString}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#8F6500] text-[#F6EFDC] transition group-hover:bg-[#A37400]">
+                              <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
-                    {videoId ? (
-                      <div id={`material-video-${entry.id}`} className="ml-0 mt-4 scroll-mt-6 sm:ml-[58px]">
-                        <YouTubeEmbed videoId={videoId} title={entry.courseTitle} />
-                      </div>
-                    ) : null}
-                  </article>
-                </AnimatedItem>
-              );
-            })}
+              {semester2.length > 0 && (
+                <div>
+                  <div className="mb-4 flex items-baseline justify-between">
+                    <h2 className="flex items-baseline gap-3 font-sans text-[32px] font-black tracking-[-0.02em] text-[#1A1814]">
+                      Semester 2 <span className="text-[14px] font-semibold text-[#1A1814]/80">{semester2.length} courses</span>
+                    </h2>
+                    <button className="hidden text-[13px] font-bold text-[#1A1814] hover:underline md:block">See all</button>
+                  </div>
+                  <div className="flex gap-4 overflow-x-auto pb-6 pt-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    {semester2.map(course => {
+                      const typeCounts = course.materials.reduce((acc, m) => {
+                        let shortType = "Other";
+                        if (m.type === "PDF Document") shortType = "PDF";
+                        else if (m.type === "Lecture Slides") shortType = "Slides";
+                        else if (m.type === "Past Questions") shortType = "Past Qs";
+                        else if (m.type === "Video Lecture") shortType = "Video";
+                        acc[shortType] = (acc[shortType] || 0) + 1;
+                        return acc;
+                      }, {} as Record<string, number>);
+                      const typeString = Object.entries(typeCounts).map(([type, count]) => `${type} ${count}`).join(" · ");
+                      return (
+                        <button
+                          key={`${course.courseCode}-${course.courseTitle}`}
+                          onClick={() => setSelectedCourse(`${course.courseCode}-${course.courseTitle}`)}
+                          className="group relative flex min-w-[280px] w-[280px] flex-col items-start overflow-hidden rounded-[24px] bg-[#1A1814] p-6 text-left shadow-[0_2px_14px_rgba(0,0,0,0.22)] transition-transform duration-300 hover:-translate-y-1 md:min-w-[300px] md:w-[300px]"
+                        >
+                          <div className="flex w-full items-center gap-2">
+                            {course.courseCode && (
+                              <span className="rounded-[4px] bg-[#E9BC3A] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.05em] text-[#1A1814]">
+                                {course.courseCode}
+                              </span>
+                            )}
+                            {course.isNew && (
+                              <span className="text-[10px] font-black uppercase tracking-[0.1em] text-[#F6EFDC]">
+                                NEW
+                              </span>
+                            )}
+                          </div>
+                          
+                          <h3 className="mt-4 font-sans text-[22px] font-black leading-tight text-[#F6EFDC] line-clamp-2">
+                            {course.courseTitle}
+                          </h3>
+                          
+                          <div className="mt-10 flex w-full flex-row items-end justify-between">
+                            <div>
+                              <div className="text-[14px] font-bold text-[#F6EFDC]">
+                                {course.materials.length} materials
+                              </div>
+                              {typeString && (
+                                <div className="mt-1 text-[11px] font-medium text-[#F6EFDC]/60">
+                                  {typeString}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#8F6500] text-[#F6EFDC] transition group-hover:bg-[#A37400]">
+                              <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </CourseMaterialsChrome>
@@ -472,105 +688,80 @@ export default function CourseMaterialsPage() {
   return (
     <CourseMaterialsChrome>
       <div>
-        <div className="relative">
-            <Search className="pointer-events-none absolute left-5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#111111]/60" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search departments"
-              className="h-[60px] w-full rounded-[19px] border border-white bg-white pl-12 pr-40 text-[15px] font-medium text-[#111111] shadow-[0_4px_16px_rgba(17,17,17,0.04)] outline-none placeholder:text-[#111111]/50 focus:border-[#111111]/20"
-              aria-label="Search course materials"
-            />
-            {query ? (
-              <button type="button" onClick={() => setQuery("")} className="absolute right-[150px] top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-[#111111]/5 text-[#111111]/60 transition hover:bg-[#111111]/10" aria-label="Clear search">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            ) : null}
-            <span className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 font-serif text-sm italic text-[#111111]/60">
-              {directory.departments.filter((d) => d.status === "published").length} departments
-            </span>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowBookmarksOnly((c) => !c)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-[16px] py-[9px] text-[12px] font-bold transition ${
-                showBookmarksOnly ? "bg-[#111111] text-[#FFC700]" : "border border-black/25 bg-white/45 text-[#0e0e0e] hover:bg-white/75"
-              }`}
-            >
-              <Bookmark className={`h-3.5 w-3.5 ${showBookmarksOnly ? "fill-current" : ""}`} />
-              Saved
-            </button>
-            <FilterPills
-              label="Type"
-              options={RESOURCE_TYPES}
-              value={typeFilter}
-              onChange={(v) => setTypeFilter(v as "ALL" | MaterialType)}
-            />
-          </div>
+        <div className="relative mb-8">
+          <p className="mb-2 mt-6 text-[11px] font-bold uppercase tracking-[0.14em] text-[#26231C]/60">
+            Course Materials
+          </p>
+          <h1 className="font-sans text-[clamp(2.5rem,6vw,3.5rem)] font-black leading-[1.0] tracking-[-0.02em] text-[#1A1814]">
+            Choose your department
+          </h1>
+          <p className="mt-3 max-w-[470px] text-[17px] font-medium text-[#26231C]/80">
+            Pick a department, then a year and semester.
+          </p>
         </div>
 
-        {activeFilters.length > 0 && (
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#111111]/10 pt-4 text-xs">
-            <span className="font-black text-[#111111]">Filters:</span>
-            {activeFilters.map((f) => (
-              <span key={f} className="rounded-full bg-[#111111]/5 px-2.5 py-1 font-bold text-[#111111]">
-                {f}
-              </span>
-            ))}
-            <button type="button" onClick={clearFilters} className="font-black text-[#111111] underline underline-offset-2">
-              Reset All
+        <div className="relative max-w-[420px]">
+          <Search className="pointer-events-none absolute left-5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#F6EFDC]/60" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search departments"
+            className="h-[52px] w-full rounded-full bg-[#1A1814] pl-[46px] pr-12 text-[15px] font-medium text-[#F6EFDC] shadow-sm outline-none placeholder:text-[#F6EFDC]/60 focus:ring-2 focus:ring-[#8F6500]"
+            aria-label="Search course materials"
+          />
+          {query ? (
+            <button type="button" onClick={() => setQuery("")} className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[#F6EFDC]/60 transition hover:bg-white/10" aria-label="Clear search">
+              <X className="h-4 w-4" />
             </button>
-          </div>
-        )}
+          ) : null}
+        </div>
 
         {!ready ? (
-          <div className="mt-4 rounded-[20px] bg-white p-10 text-center font-bold text-[#111111]/65 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+          <div className="mt-8 rounded-[24px] bg-[#1A1814] p-10 text-center font-bold text-[#F6EFDC]/60 shadow-[0_2px_14px_rgba(0,0,0,0.22)]">
             Loading departments...
           </div>
         ) : error ? (
-          <div className="mt-4 rounded-[20px] bg-white p-10 text-center shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-            <h3 className="text-base font-black text-[#111111]">Course materials unavailable</h3>
-            <p className="mt-2 text-sm font-medium text-[#111111]/65">{error}</p>
+          <div className="mt-8 rounded-[24px] bg-[#1A1814] p-10 text-center shadow-[0_2px_14px_rgba(0,0,0,0.22)]">
+            <h3 className="text-base font-black text-[#F6EFDC]">Course materials unavailable</h3>
+            <p className="mt-2 text-sm font-medium text-[#F6EFDC]/60">{error}</p>
           </div>
         ) : visibleDepartments.length === 0 ? (
-          <div className="mt-4 rounded-[20px] border border-dashed border-[#111111]/30 bg-white p-12 text-center shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-            <FolderOpen className="mx-auto h-10 w-10 text-[#111111]/30" />
-            <h3 className="mt-5 font-black text-[#111111]">No departments found</h3>
-            <p className="mx-auto mt-2 max-w-sm text-sm font-medium text-[#111111]/65">
+          <div className="mt-8 rounded-[24px] border border-dashed border-[#1A1814]/30 bg-[#1A1814]/10 p-12 text-center">
+            <FolderOpen className="mx-auto h-10 w-10 text-[#1A1814]/40" />
+            <h3 className="mt-5 font-black text-[#1A1814]">No departments found</h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm font-medium text-[#1A1814]/70">
               We could not find any departments matching your search.
             </p>
             <button
               type="button"
               onClick={clearFilters}
-              className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#111111] px-5 py-2.5 text-xs font-black text-[#FFC600]"
+              className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#1A1814] px-5 py-2.5 text-xs font-black text-[#E9BC3A]"
             >
               Reset Filters
             </button>
           </div>
         ) : (
-          <div className="mt-6 grid gap-3 md:grid-cols-2">
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
             {visibleDepartments.map(({ department }, index) => {
               return (
                 <AnimatedItem key={department.id} index={index} className="flex">
-                  <article className="group relative flex min-h-[162px] w-full flex-col items-start overflow-hidden rounded-[22px] bg-[#171717] p-5 text-white shadow-[0_4px_12px_rgba(17,17,17,0.12)] transition-transform duration-300 hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0 md:p-[22px]">
+                  <article className="group relative flex min-h-[162px] w-full flex-col items-start overflow-hidden rounded-[24px] bg-[#1A1814] p-6 shadow-[0_2px_14px_rgba(0,0,0,0.22)] transition-transform duration-300 hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0 md:p-[28px]">
                     <DepartmentBlueprint name={department.name} />
                     <div className="relative z-10 flex min-h-full w-full flex-1 flex-col items-start">
-                      <h2 className="relative z-10 max-w-[78%] font-serif text-[21px] font-bold leading-[1.12] tracking-[-0.02em] text-white md:text-[23px]">
+                      <h2 className="relative z-10 max-w-[70%] font-sans text-[22px] font-black leading-tight text-[#F6EFDC] md:text-[24px]">
                         {department.name}
                       </h2>
-                      <div className="mt-auto pt-6">
+                      <div className="mt-auto pt-8">
                       <button
                         type="button"
                         onClick={() => {
                           setSelectedStudyYear(1);
                           setSelectedDepartment(department);
                         }}
-                        className="inline-flex min-h-[42px] items-center gap-2 rounded-full bg-[#FFC700] px-4 py-2 text-[13px] font-bold text-[#111111] transition-colors hover:bg-[#FFD633] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#171717] active:scale-[0.98]"
+                        className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#8F6500] px-5 py-2 text-[14px] font-bold text-[#F6EFDC] transition-colors hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8F6500] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A1814] active:scale-[0.98]"
                       >
                         View course materials
-                        <ArrowRight className="h-4 w-4" />
+                        <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
                       </button>
                     </div>
                     </div>
@@ -580,6 +771,7 @@ export default function CourseMaterialsPage() {
             })}
           </div>
         )}
+      </div>
     </CourseMaterialsChrome>
   );
 }

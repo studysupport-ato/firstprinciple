@@ -1,4 +1,4 @@
-import { createCourseStructureServerRepository, createDayContentServerRepository, type ContentClientFactory } from "./serverRepository";
+import { createCourseStructureServerRepository, type ContentClientFactory } from "./serverRepository";
 import type { Lesson } from "./types/lesson";
 
 export type PublishedDayResult = { kind: "not-found" } | { kind: "success"; lesson: Lesson };
@@ -10,18 +10,19 @@ export type PublishedDayResult = { kind: "not-found" } | { kind: "success"; less
  */
 export async function getPublishedDay(courseId: string, weekReference: string | undefined, dayId: string, clientFactory?: ContentClientFactory): Promise<PublishedDayResult> {
   const structure = createCourseStructureServerRepository(clientFactory);
-  const content = createDayContentServerRepository(clientFactory);
-  const course = await structure.getCourse(courseId);
+  const [course, weeks] = await Promise.all([
+    structure.getCourse(courseId),
+    weekReference ? structure.listWeeksForCourse(courseId) : Promise.resolve([]),
+  ]);
   if (!course || !weekReference) return { kind: "not-found" };
 
-  const weeks = await structure.listWeeksForCourse(courseId);
   const week = weeks.find((candidate) => candidate.id === weekReference || String(candidate.weekNumber) === weekReference);
-  const day = week ? await structure.getDay(courseId, week.id, dayId) : undefined;
+  const day = week
+    ? await structure.getDay(courseId, week.id, dayId, { validateContent: true })
+    : undefined;
 
   if (!course || !week || !day) return { kind: "not-found" };
   if (course.status !== "published" || week.status !== "published" || day.status !== "published") return { kind: "not-found" };
 
-  const blocks = await content.getDayContent(courseId, week.id, dayId);
-  if (blocks === undefined) return { kind: "not-found" };
-  return { kind: "success", lesson: { ...day, blocks } };
+  return { kind: "success", lesson: day };
 }

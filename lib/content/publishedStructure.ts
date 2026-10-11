@@ -52,9 +52,12 @@ export async function getPublishedCourse(courseId: string, clientFactory?: Conte
 
 export async function getPublishedRoadmap(courseId: string, clientFactory?: ContentClientFactory): Promise<PublishedStructureResult<{ course: Course; weeks: Week[]; daysByWeek: Record<string, Lesson[]> }>> {
   const repository = createCourseStructureServerRepository(clientFactory);
-  const course = await repository.getCourse(courseId);
+  const [course, rawWeeks, rawDays] = await Promise.all([
+    repository.getCourse(courseId),
+    repository.listWeeksForCourse(courseId),
+    listDayStructure(clientFactory, courseId),
+  ]);
   if (!published(course)) return { kind: "not-found" };
-  const [rawWeeks, rawDays] = await Promise.all([repository.listWeeksForCourse(courseId), listDayStructure(clientFactory, courseId)]);
   const weeks = rawWeeks.filter(published).sort((first, second) => first.weekNumber - second.weekNumber);
   const publishedWeekIds = new Set(weeks.map((week) => week.id));
   const dayEntries = rawDays.filter((day) => published(day) && publishedWeekIds.has(day.weekId)).reduce<Record<string, Lesson[]>>((groups, day) => {
@@ -70,9 +73,11 @@ export async function getPublishedRoadmap(courseId: string, clientFactory?: Cont
 
 export async function getPublishedWeek(courseId: string, weekReference: string, clientFactory?: ContentClientFactory): Promise<PublishedStructureResult<{ course: Course; week: Week; days: Lesson[] }>> {
   const repository = createCourseStructureServerRepository(clientFactory);
-  const course = await repository.getCourse(courseId);
+  const [course, weeks] = await Promise.all([
+    repository.getCourse(courseId),
+    repository.listWeeksForCourse(courseId),
+  ]);
   if (!published(course)) return { kind: "not-found" };
-  const weeks = await repository.listWeeksForCourse(courseId);
   const week = weeks.find((candidate) => candidate.id === weekReference || String(candidate.weekNumber) === weekReference);
   if (!published(week)) return { kind: "not-found" };
   const days = (await listDayStructure(clientFactory, courseId, week.id)).filter(published);

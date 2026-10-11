@@ -139,11 +139,11 @@ export function createCourseMaterialsSupabaseRepository(clientFactory: () => Sup
     const { error } = await clientFactory().from("departments").update({ name: updated.name, short_name: updated.shortName ?? null, description: updated.description ?? null, order_index: updated.order, status: updated.status } as never).eq("id", departmentId); if (error) throw error; return updated;
   },
   async listCourseMaterials(options = {}) {
-    let query = applyVisibility(clientFactory().from("course_materials").select("*").order("order_index", { ascending: true }).order("id", { ascending: true }), options);
+    const client = clientFactory();
+    const selectedColumns = options.visibility === "student" ? "*, departments!inner(id)" : "*";
+    let query = applyVisibility(client.from("course_materials").select(selectedColumns).order("order_index", { ascending: true }).order("id", { ascending: true }), options);
     if (options.visibility === "student") {
-      const { data: departments, error: departmentError } = await clientFactory().from("departments").select("id").eq("status", "published");
-      if (departmentError) throw departmentError;
-      query = query.in("department_id", ((departments ?? []) as Array<{ id: string }>).map((department) => department.id));
+      query = query.eq("departments.status", "published");
     }
     if (options.departmentId) query = query.eq("department_id", options.departmentId); if (options.limit && options.limit > 0) query = query.limit(options.limit);
     const { data, error } = await query; if (error) throw error; return ((data ?? []) as MaterialRow[]).map(mapMaterial);

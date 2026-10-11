@@ -98,6 +98,33 @@
   }
 }
 
+.mobile-nav-drawer {
+  transition: translate 380ms cubic-bezier(0.22, 1, 0.36, 1), width 200ms ease, visibility 0s linear 380ms;
+  will-change: translate;
+}
+
+.mobile-nav-drawer.is-open {
+  transition: translate 380ms cubic-bezier(0.22, 1, 0.36, 1), width 200ms ease, visibility 0s;
+}
+
+.mobile-nav-backdrop {
+  transition: opacity 260ms ease, visibility 0s linear 260ms;
+}
+
+.mobile-nav-backdrop.is-open {
+  transition: opacity 260ms ease, visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-nav-drawer,
+  .mobile-nav-drawer.is-open,
+  .mobile-nav-backdrop,
+  .mobile-nav-backdrop.is-open {
+    transition: none;
+    will-change: auto;
+  }
+}
+
 /* GSAP SplitText utility - hides overflow for clean reveals */
 .split-parent {
   overflow: hidden;

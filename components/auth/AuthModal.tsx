@@ -364,7 +364,7 @@ export function AuthModal({
                           <p className="text-[15px] text-[#666666]">
                             {mode === "login"
                               ? "Use your email and password to access your learning space."
-                              : "Create a dedicated student account using real Supabase Auth."}
+                              : "Create an account and stat learning."}
                           </p>
                         </div>
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Check, CheckCircle2, ChevronLeft, Lightbulb, RotateCcw, Trophy, XCircle } from "lucide-react";
+import { ArrowRight, ChevronLeft, RotateCcw, Trophy } from "lucide-react";
 import Link from "next/link";
 import { EducationalText } from "@/components/learning/EducationalText";
 
@@ -10,45 +10,59 @@ import type { Difficulty, Question } from "@/lib/content/types/question";
 import { createPracticeSession, evaluateQuestionAnswer, getPracticeSummary, type PracticeSession, type PracticeValue } from "@/lib/practice/session";
 import { recordPracticeAttempt, recordPracticeStarted } from "@/lib/progress";
 
+// ── Option row letter mapping ───────────────────────────────────────────────
+const OPTION_LETTERS = ["A", "B", "C", "D", "E"];
+
 function QuestionRenderer({
   question,
   selectedValue,
   onSelect,
   submitted,
-  showHint,
-  onToggleHint,
 }: {
   question: Question;
   selectedValue: PracticeValue;
   onSelect: (value: PracticeValue) => void;
   submitted: boolean;
-  showHint: boolean;
-  onToggleHint: () => void;
 }) {
   const optionMap = question.options ?? [];
 
   return (
-    <div className="space-y-8">
-      <div className="rounded-2xl border border-[#E5E5E5] bg-transparent p-5">
-        <span className="font-sans text-[10px] font-bold uppercase tracking-[0.24em] text-[#2563EB]">Practice question</span>
-        <h2 className="mt-4 editorial-heading text-2xl md:text-3xl text-[#111111] leading-relaxed">
-          <EducationalText text={question.prompt} />
-        </h2>
-      </div>
+    <div className="space-y-4">
+      {/* Question prompt */}
+      <h2 className="font-sans text-[28px] font-black leading-[1.15] text-[#F6EFDC] md:text-[26px] md:font-bold md:leading-snug">
+        <EducationalText text={question.prompt} />
+      </h2>
 
+      {/* Options */}
       {question.type === "multiple-choice" && optionMap.length > 0 ? (
-        <div className="space-y-3">
-          {optionMap.map((option) => {
+        <div className="mt-6 space-y-3">
+          {optionMap.map((option, idx) => {
             const isSelected = selectedValue === option.id;
             const isCorrect = option.id === question.correctAnswer;
-            let stateClass = "border-[#E5E5E5] bg-white hover:border-[#111111]";
+
+            let rowClass = "border-[#3A3428] bg-[#26231C] hover:border-[#E9BC3A]/40";
+            let badgeClass = "bg-[#3A3428] text-[#F6EFDC]/70";
+            let labelClass = "text-[#F6EFDC]";
+            let statusLabel: React.ReactNode = null;
 
             if (submitted) {
-              if (isCorrect) stateClass = "border-[#059669] bg-[#ECFDF5]";
-              else if (isSelected) stateClass = "border-[#E11D48] bg-[#FEF2F2]";
-              else stateClass = "border-[#E5E5E5] bg-white opacity-50";
+              if (isCorrect) {
+                rowClass = "border-[#22c55e] bg-[#26231C]";
+                badgeClass = "bg-[#22c55e] text-white";
+                labelClass = "text-[#F6EFDC]";
+                statusLabel = <span className="ml-auto shrink-0 font-bold text-[#22c55e] text-[13px]">Correct</span>;
+              } else if (isSelected && !isCorrect) {
+                rowClass = "border-[#3A3428] bg-[#26231C] opacity-60";
+                badgeClass = "bg-[#3A3428] text-[#F6EFDC]/50";
+                labelClass = "text-[#F6EFDC]/60";
+              } else {
+                rowClass = "border-[#3A3428] bg-[#26231C] opacity-40";
+                badgeClass = "bg-[#3A3428] text-[#F6EFDC]/40";
+                labelClass = "text-[#F6EFDC]/50";
+              }
             } else if (isSelected) {
-              stateClass = "border-[#2563EB] bg-[#EFF6FF] ring-1 ring-[#2563EB]";
+              rowClass = "border-[#E9BC3A] bg-[#26231C]";
+              badgeClass = "bg-[#E9BC3A] text-[#1A1814]";
             }
 
             return (
@@ -57,57 +71,48 @@ function QuestionRenderer({
                 type="button"
                 onClick={() => onSelect(option.id)}
                 disabled={submitted}
-                className={`flex w-full items-center justify-between rounded-2xl border-2 px-5 py-4 text-left transition-all ${stateClass}`}
+                className={`flex w-full items-center gap-4 rounded-[14px] border px-5 py-4 text-left transition-all ${rowClass}`}
               >
-                <span className="font-sans text-base text-[#111111]">
-                  <span className="mr-3 font-semibold text-[#666666]">{option.label}</span>
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-black ${badgeClass}`}>
+                  {OPTION_LETTERS[idx]}
+                </span>
+                <span className={`flex-1 font-sans text-[16px] font-semibold italic ${labelClass}`}>
                   <EducationalText text={option.text} />
                 </span>
-                {submitted && isCorrect && <CheckCircle2 className="text-[#059669]" size={20} />}
-                {submitted && isSelected && !isCorrect && <XCircle className="text-[#E11D48]" size={20} />}
+                {statusLabel}
               </button>
             );
           })}
         </div>
       ) : (
-        <div className="rounded-2xl border border-[#E5E5E5] bg-white px-5 py-4">
-          <label className="mb-2 block font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#666666]">Your answer</label>
+        <div className="mt-6 rounded-[14px] border border-[#3A3428] bg-[#26231C] px-5 py-4">
+          <label className="mb-2 block font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#F6EFDC]/50">
+            Your answer
+          </label>
           <input
             type={question.type === "numerical" ? "number" : "text"}
             value={selectedValue === null || selectedValue === undefined ? "" : String(selectedValue)}
-            onChange={(event) => onSelect(question.type === "numerical" ? Number(event.target.value) : event.target.value)}
+            onChange={(e) => onSelect(question.type === "numerical" ? Number(e.target.value) : e.target.value)}
             disabled={submitted}
             placeholder={question.type === "numerical" ? "Enter a number" : "Type your answer"}
-            className="w-full rounded-xl border border-[#E5E5E5] bg-transparent px-4 py-3 font-sans text-base text-[#111111] outline-none transition focus:border-[#2563EB]"
+            className="w-full bg-transparent font-sans text-base text-[#F6EFDC] outline-none placeholder:text-[#F6EFDC]/30"
           />
         </div>
       )}
 
-      {question.hint && (
-        <div className="rounded-2xl border border-[#E5E5E5] bg-white p-4">
-          <button type="button" onClick={onToggleHint} className="flex items-center gap-2 font-sans text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">
-            <Lightbulb size={14} />
-            {showHint ? "Hide hint" : "Show hint"}
-          </button>
-          {showHint ? (
-            <p className="mt-3 font-sans text-sm leading-relaxed text-[#111111]">
-              <EducationalText text={question.hint} />
-            </p>
-          ) : null}
-        </div>
-      )}
-
-      {submitted ? (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden rounded-2xl border border-[#E5E5E5] bg-transparent p-5">
-          <div className="flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#666666]">
-            {evaluateQuestionAnswer(question, selectedValue) ? <Check size={14} className="text-[#059669]" /> : <XCircle size={14} className="text-[#E11D48]" />}
-            {evaluateQuestionAnswer(question, selectedValue) ? "Correct" : "Feedback"}
-          </div>
-          <p className="mt-3 font-sans text-sm leading-relaxed text-[#111111]">
+      {/* Explanation after submit */}
+      {submitted && question.explanation && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-4 rounded-[14px] border border-[#3A3428] bg-[#26231C] px-5 py-4"
+        >
+          <p className="font-sans text-[14px] leading-relaxed text-[#F6EFDC]/90">
+            <span className="font-black text-[#93C5FD]">Why:</span>{" "}
             <EducationalText text={question.explanation} />
           </p>
         </motion.div>
-      ) : null}
+      )}
     </div>
   );
 }
@@ -135,21 +140,21 @@ export default function PracticeExperience({
   const [session, setSession] = useState<PracticeSession | null>(null);
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
   const [selectedValue, setSelectedValue] = useState<PracticeValue>(null);
-  const [showHint, setShowHint] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [answerSaved, setAnswerSaved] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
-    const selected = initialQuestions.filter((question) => {
-      if (courseId && question.courseId !== courseId) return false;
-      if (chapterId && question.chapterId !== chapterId) return false;
-      if (topic && question.topic !== topic) return false;
-      if (subtopic && question.subtopic !== subtopic) return false;
-      if (difficulty && question.difficulty !== difficulty) return false;
+    const selected = initialQuestions.filter((q) => {
+      if (courseId && q.courseId !== courseId) return false;
+      if (chapterId && q.chapterId !== chapterId) return false;
+      if (topic && q.topic !== topic) return false;
+      if (subtopic && q.subtopic !== subtopic) return false;
+      if (difficulty && q.difficulty !== difficulty) return false;
       return true;
     }).slice(0, limit);
 
@@ -161,42 +166,56 @@ export default function PracticeExperience({
       return;
     }
 
-    const nextSession = createPracticeSession(selected.map((question) => question.id));
+    const nextSession = createPracticeSession(selected.map((q) => q.id));
     setSession(nextSession);
     setSelectedValue(null);
     setSubmitted(false);
-    setShowHint(false);
     setSessionComplete(false);
+    setAnswerSaved(false);
     recordPracticeStarted(courseId, chapterId);
   }, [chapterId, courseId, difficulty, initialQuestions, limit, preview, subtopic, topic]);
 
   const currentQuestion = session?.questionIds[session.currentIndex]
-    ? questions.find((question) => question.id === session.questionIds[session.currentIndex]) ?? null
+    ? questions.find((q) => q.id === session.questionIds[session.currentIndex]) ?? null
     : null;
   const summary = useMemo(() => (session && questions.length ? getPracticeSummary(session, questions) : null), [session, questions]);
-  const chapterTitle = chapterId.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const chapterTitle = chapterId.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+
+  const resetSession = () => {
+    const freshQuestions = initialQuestions.filter((q) => {
+      if (courseId && q.courseId !== courseId) return false;
+      if (chapterId && q.chapterId !== chapterId) return false;
+      if (topic && q.topic !== topic) return false;
+      if (subtopic && q.subtopic !== subtopic) return false;
+      if (difficulty && q.difficulty !== difficulty) return false;
+      return true;
+    }).slice(0, limit);
+    setQuestions(freshQuestions);
+    setSession(createPracticeSession(freshQuestions.map((q) => q.id)));
+    setSelectedValue(null);
+    setSubmitted(false);
+    setSessionComplete(false);
+    setAnswerSaved(false);
+  };
 
   if (!mounted) return null;
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-transparent p-6">
-        <div className="max-w-lg rounded-[30px] border border-[#E5E5E5] bg-white p-10 text-center shadow-sm">
-          <p className="font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#666666]">Loading</p>
-          <h1 className="mt-4 editorial-heading text-4xl text-[#111111]">Preparing your practice set…</h1>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-[#1A1814] p-6">
+        <p className="font-sans text-[14px] text-[#F6EFDC]/60">Preparing your questions…</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-transparent p-6">
-        <div className="max-w-lg rounded-[30px] border border-[#E5E5E5] bg-white p-10 text-center shadow-sm">
-          <p className="font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#666666]">Practice unavailable</p>
-          <h1 className="mt-4 editorial-heading text-4xl text-[#111111]">Could not load questions.</h1>
-          <p className="mt-4 font-sans text-sm leading-relaxed text-[#666666]">{error}</p>
-          <Link href={`/courses/${courseId}/chapter/${chapterId}`} className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#111111] px-6 py-3 font-sans text-sm font-semibold text-white transition hover:bg-[#2563EB]">
+      <div className="flex min-h-screen items-center justify-center bg-[#1A1814] p-6">
+        <div className="max-w-lg rounded-[24px] bg-[#26231C] p-10 text-center">
+          <p className="font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#F6EFDC]/50">Practice unavailable</p>
+          <h1 className="mt-4 font-sans text-3xl font-black text-[#F6EFDC]">Could not load questions.</h1>
+          <p className="mt-4 font-sans text-sm leading-relaxed text-[#F6EFDC]/60">{error}</p>
+          <Link href={`/courses/${courseId}/chapter/${chapterId}`} className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#8F6500] px-6 py-3 font-sans text-sm font-semibold text-[#F6EFDC] transition hover:brightness-110">
             Back to chapter
           </Link>
         </div>
@@ -206,12 +225,12 @@ export default function PracticeExperience({
 
   if (!questions.length || !currentQuestion || !session) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-transparent p-6">
-        <div className="max-w-lg rounded-[30px] border border-[#E5E5E5] bg-white p-10 text-center shadow-sm">
-          <p className="font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#666666]">Practice unavailable</p>
-          <h1 className="mt-4 editorial-heading text-4xl text-[#111111]">No questions are available yet.</h1>
-          <p className="mt-4 font-sans text-sm leading-relaxed text-[#666666]">This chapter does not yet have an active practice set in the hosted question bank.</p>
-          <Link href={`/courses/${courseId}/chapter/${chapterId}`} className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#111111] px-6 py-3 font-sans text-sm font-semibold text-white transition hover:bg-[#2563EB]">
+      <div className="flex min-h-screen items-center justify-center bg-[#1A1814] p-6">
+        <div className="max-w-lg rounded-[24px] bg-[#26231C] p-10 text-center">
+          <p className="font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#F6EFDC]/50">Practice unavailable</p>
+          <h1 className="mt-4 font-sans text-3xl font-black text-[#F6EFDC]">No questions available yet.</h1>
+          <p className="mt-4 font-sans text-sm leading-relaxed text-[#F6EFDC]/60">This chapter doesn&apos;t have an active practice set yet.</p>
+          <Link href={`/courses/${courseId}/chapter/${chapterId}`} className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#8F6500] px-6 py-3 font-sans text-sm font-semibold text-[#F6EFDC] transition hover:brightness-110">
             Back to chapter
           </Link>
         </div>
@@ -219,8 +238,41 @@ export default function PracticeExperience({
     );
   }
 
+  // ── Session complete ────────────────────────────────────────────────────────
+  if (sessionComplete && summary) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#1A1814] p-6">
+        <div className="w-full max-w-2xl rounded-[24px] bg-[#26231C] p-8 text-center md:p-12">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#E9BC3A]/10">
+            <Trophy className="text-[#E9BC3A]" size={32} />
+          </div>
+          <p className="font-sans text-[10px] font-bold uppercase tracking-[0.24em] text-[#F6EFDC]/50">Practice complete</p>
+          <h1 className="mt-4 font-sans text-4xl font-black text-[#F6EFDC]">Session summary</h1>
+          <div className="mt-8 rounded-[16px] border border-[#3A3428] p-6">
+            <div className="flex items-end justify-center gap-2">
+              <span className="font-sans text-6xl font-black text-[#F6EFDC]">{summary.correctCount}</span>
+              <span className="mb-2 font-sans text-xl text-[#F6EFDC]/50">/ {summary.total}</span>
+            </div>
+            <p className="mt-3 font-sans text-sm text-[#F6EFDC]/60">Accuracy: {summary.percentage}%</p>
+          </div>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <button type="button" onClick={resetSession}
+              className="flex flex-1 items-center justify-center gap-2 rounded-full border border-[#3A3428] px-5 py-3 font-sans text-sm font-semibold text-[#F6EFDC] transition hover:border-[#E9BC3A]"
+            >
+              <RotateCcw size={16} /> Practice again
+            </button>
+            <Link href={`/courses/${courseId}/chapter/${chapterId}`} className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#8F6500] px-5 py-3 font-sans text-sm font-semibold text-[#F6EFDC] transition hover:brightness-110">
+              Back to chapter
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const currentIndex = session.currentIndex + 1;
   const isCorrect = evaluateQuestionAnswer(currentQuestion, selectedValue);
+  const totalQuestions = session.questionIds.length;
 
   const handleSelect = (value: PracticeValue) => {
     if (submitted) return;
@@ -238,15 +290,9 @@ export default function PracticeExperience({
       answeredAt: new Date().toISOString(),
     };
 
-    setSession((previous) => {
-      if (!previous) return previous;
-      return {
-        ...previous,
-        answers: {
-          ...previous.answers,
-          [currentQuestion.id]: nextAnswer,
-        },
-      };
+    setSession((prev) => {
+      if (!prev) return prev;
+      return { ...prev, answers: { ...prev.answers, [currentQuestion.id]: nextAnswer } };
     });
 
     try {
@@ -258,9 +304,10 @@ export default function PracticeExperience({
         marksAvailable: currentQuestion.marks,
       });
       setSubmitted(true);
-    } catch (error) {
-      console.error("[Practice] failed to persist attempt.", error);
-      setError("Your answer was evaluated, but the attempt could not be saved. Please try again.");
+      setAnswerSaved(true);
+    } catch (err) {
+      console.error("[Practice] failed to persist attempt.", err);
+      setError("Your answer was evaluated, but could not be saved.");
     }
   };
 
@@ -269,134 +316,120 @@ export default function PracticeExperience({
     if (session.currentIndex < session.questionIds.length - 1) {
       const nextIndex = session.currentIndex + 1;
       const nextQuestionId = session.questionIds[nextIndex];
-      setSession((previous) => previous ? { ...previous, currentIndex: nextIndex } : previous);
+      setSession((prev) => prev ? { ...prev, currentIndex: nextIndex } : prev);
       setSelectedValue(() => session.answers[nextQuestionId]?.selectedValue ?? null);
-      setSubmitted(false);
-      setShowHint(false);
+      setSubmitted(!!session.answers[nextQuestionId]?.submitted);
+      setAnswerSaved(!!session.answers[nextQuestionId]?.submitted);
       return;
     }
-
-    setSession((previous) => previous ? { ...previous, completed: true, completedAt: new Date().toISOString() } : previous);
+    setSession((prev) => prev ? { ...prev, completed: true, completedAt: new Date().toISOString() } : prev);
     setSessionComplete(true);
   };
 
-  const handleReset = () => {
-    const freshQuestions = initialQuestions.filter((question) => {
-      if (courseId && question.courseId !== courseId) return false;
-      if (chapterId && question.chapterId !== chapterId) return false;
-      if (topic && question.topic !== topic) return false;
-      if (subtopic && question.subtopic !== subtopic) return false;
-      if (difficulty && question.difficulty !== difficulty) return false;
-      return true;
-    }).slice(0, limit);
-
-    const nextSession = createPracticeSession(freshQuestions.map((question) => question.id));
-    setQuestions(freshQuestions);
-    setSession(nextSession);
-    setSelectedValue(null);
-    setSubmitted(false);
-    setShowHint(false);
-    setSessionComplete(false);
+  const handlePrev = () => {
+    if (!session || session.currentIndex === 0) return;
+    const prevIndex = session.currentIndex - 1;
+    const prevQuestionId = session.questionIds[prevIndex];
+    setSession((prev) => prev ? { ...prev, currentIndex: prevIndex } : prev);
+    setSelectedValue(session.answers[prevQuestionId]?.selectedValue ?? null);
+    setSubmitted(!!session.answers[prevQuestionId]?.submitted);
+    setAnswerSaved(!!session.answers[prevQuestionId]?.submitted);
   };
 
-  if (sessionComplete && summary) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-transparent p-6">
-        <div className="w-full max-w-2xl rounded-[30px] border border-[#E5E5E5] bg-white p-8 shadow-sm md:p-12">
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-transparent">
-            <Trophy className="text-[#2563EB]" size={32} />
-          </div>
-          <p className="text-center font-sans text-[10px] font-bold uppercase tracking-[0.24em] text-[#666666]">Practice complete</p>
-          <h1 className="mt-4 text-center editorial-heading text-4xl text-[#111111]">Session summary</h1>
-          <div className="mt-8 rounded-2xl border border-[#E5E5E5] bg-transparent p-6">
-            <div className="flex items-end justify-center gap-2">
-              <span className="font-sans text-6xl font-black text-[#111111]">{summary.correctCount}</span>
-              <span className="mb-2 font-sans text-xl text-[#666666]">/ {summary.total}</span>
-            </div>
-            <p className="mt-3 text-center font-sans text-sm text-[#666666]">Accuracy: {summary.percentage}%</p>
-          </div>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <button type="button" onClick={handleReset} className="flex flex-1 items-center justify-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-5 py-3 font-sans text-sm font-semibold text-[#111111] transition hover:border-[#111111]">
-              <RotateCcw size={16} /> Practice again
-            </button>
-            <Link href={`/courses/${courseId}/chapter/${chapterId}`} className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#111111] px-5 py-3 font-sans text-sm font-semibold text-white transition hover:bg-[#2563EB]">
-              Back to chapter
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex min-h-screen flex-col bg-transparent">
-      <header className="flex h-16 items-center justify-between border-b border-[#E5E5E5] bg-white px-6 md:px-8">
-        <div className="flex items-center gap-4">
-          <Link href={`/courses/${courseId}/chapter/${chapterId}`} className="text-[#666666] transition-colors hover:text-[#111111]">
-            <ChevronLeft size={20} />
-          </Link>
-          <div className="flex items-center gap-2">
-            <span className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#666666]">{chapterTitle}</span>
-            <span className="text-[#E5E5E5]">/</span>
-            <span className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#111111]">Practice</span>
+    <div className="flex min-h-screen flex-col bg-[#1A1814]">
+      {/* ── TOP HEADER BAR ── */}
+      <header className="flex h-16 md:h-14 items-center justify-between bg-[#111108] px-5 md:px-8">
+        <Link href={`/courses/${courseId}/chapter/${chapterId}`} className="text-[#F6EFDC]/80 transition hover:text-[#F6EFDC]">
+          <ChevronLeft size={22} strokeWidth={2.5} />
+        </Link>
+        <div className="flex flex-col items-center">
+          <div className="font-sans text-[10px] font-black uppercase tracking-widest text-[#F6EFDC]/60 md:hidden">
+            PRACTICE SESSION
+          </div>
+          <div className="font-sans text-[15px] font-bold text-[#F6EFDC] md:text-[12px] md:text-[#F6EFDC]/60">
+            {chapterTitle}
           </div>
         </div>
-        <div className="hidden w-64 items-center gap-3 md:flex">
-          <span className="font-sans text-xs font-semibold text-[#666666]">{currentIndex} / {session.questionIds.length}</span>
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#E5E5E5]">
-            <div className="h-full rounded-full bg-[#111111] transition-all duration-300" style={{ width: `${(currentIndex / session.questionIds.length) * 100}%` }} />
-          </div>
+        <div className="font-sans text-[15px] font-bold text-[#F6EFDC] md:text-[13px] md:text-[#F6EFDC]/70">
+          <span className="hidden md:inline">Question </span>{currentIndex}<span className="hidden md:inline"> of </span><span className="md:hidden">/</span>{totalQuestions}
         </div>
       </header>
 
-      <main className="flex flex-1 items-center justify-center p-6">
-        <div className="w-full max-w-4xl rounded-[30px] border border-[#E5E5E5] bg-white p-6 shadow-sm md:p-10">
-          <QuestionRenderer
-            question={currentQuestion}
-            selectedValue={selectedValue}
-            onSelect={handleSelect}
-            submitted={submitted}
-            showHint={showHint}
-            onToggleHint={() => setShowHint((previous) => !previous)}
-          />
+      {/* ── MAIN CONTENT ── */}
+      <main className="flex flex-1 justify-center px-5 py-8 md:px-10 md:py-12">
+        <div className="w-full max-w-2xl">
+          <div className="rounded-[20px] bg-[#26231C] p-6 md:p-8">
+            {/* CHECK YOUR UNDERSTANDING label */}
+            <p className="mb-4 font-sans text-[10px] font-black uppercase tracking-[0.2em] text-[#F6EFDC]/60">
+              Check your understanding
+            </p>
 
-          <div className="mt-8 flex items-center justify-between gap-3 border-t border-[#E5E5E5] pt-6">
-            <button
-              type="button"
-              onClick={() => {
-                if (!session) return;
-                if (session.currentIndex > 0) {
-                  const previousIndex = session.currentIndex - 1;
-                  const previousQuestionId = session.questionIds[previousIndex];
-                  setSession((previous) => previous ? { ...previous, currentIndex: previousIndex } : previous);
-                  setSelectedValue(session.answers[previousQuestionId]?.selectedValue ?? null);
-                  setSubmitted(false);
-                  setShowHint(false);
+            {/* Segmented progress bar */}
+            <div className="mb-6 flex gap-1.5">
+              {Array.from({ length: totalQuestions }).map((_, i) => {
+                const qId = session.questionIds[i];
+                const answered = !!session.answers[qId]?.submitted;
+                const answeredCorrect = answered && evaluateQuestionAnswer(
+                  questions.find(q => q.id === qId) ?? currentQuestion,
+                  session.answers[qId]?.selectedValue
+                );
+                let segColor = "bg-[#3A3428]";
+                if (answered) {
+                  segColor = answeredCorrect ? "bg-[#22c55e]" : "bg-[#E9BC3A]";
+                } else if (i === session.currentIndex) {
+                  segColor = "bg-[#E9BC3A]";
                 }
-              }}
-              disabled={session.currentIndex === 0}
-              className="rounded-full border border-[#E5E5E5] px-5 py-3 font-sans text-sm font-semibold text-[#666666] transition hover:border-[#111111] hover:text-[#111111] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Previous
-            </button>
+                return <div key={i} className={`h-[5px] flex-1 rounded-full transition-all duration-300 ${segColor}`} />;
+              })}
+            </div>
 
-            {!submitted ? (
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={selectedValue === null || selectedValue === undefined}
-                className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-7 py-3 font-sans text-sm font-semibold text-white transition hover:bg-[#2563EB] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Check answer <ArrowRight size={16} />
-              </button>
-            ) : (
-              <button type="button" onClick={handleNext} className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-7 py-3 font-sans text-sm font-semibold text-white transition hover:bg-[#2563EB]">
-                {session.currentIndex === session.questionIds.length - 1 ? "Finish session" : "Next question"} <ArrowRight size={16} />
-              </button>
-            )}
+            <QuestionRenderer
+              question={currentQuestion}
+              selectedValue={selectedValue}
+              onSelect={handleSelect}
+              submitted={submitted}
+            />
           </div>
         </div>
       </main>
+
+      {/* ── BOTTOM NAV BAR ── */}
+      <footer className="border-t-0 md:border-t md:border-[#3A3428] bg-[#1A1814] px-5 py-5 md:px-6 md:py-4">
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-4">
+          <button
+            type="button"
+            onClick={handlePrev}
+            disabled={session.currentIndex === 0}
+            className="shrink-0 rounded-full border border-[#E9BC3A] px-6 py-3 font-sans text-[15px] font-bold text-[#F6EFDC] transition hover:bg-[#E9BC3A]/10 disabled:opacity-30 disabled:cursor-not-allowed md:px-6 md:py-2.5 md:text-[14px] md:text-[#E9BC3A]"
+          >
+            Previous
+          </button>
+
+          <span className="hidden font-sans text-[13px] font-medium text-[#F6EFDC]/60 md:inline">
+            {answerSaved ? "Answer saved" : ""}
+          </span>
+
+          {!submitted ? (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={selectedValue === null || selectedValue === undefined}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#8F6500] px-6 py-3 font-sans text-[15px] font-bold text-[#F6EFDC] transition hover:brightness-110 disabled:opacity-30 disabled:cursor-not-allowed md:w-auto md:py-2.5 md:text-[14px]"
+            >
+              Check answer <ArrowRight className="h-4 w-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleNext}
+              className="flex w-full items-center justify-center rounded-full bg-[#8F6500] px-6 py-3 font-sans text-[15px] font-bold text-[#F6EFDC] transition hover:brightness-105 md:w-auto md:bg-[#E9BC3A] md:py-2.5 md:text-[14px] md:text-[#1A1814]"
+            >
+              {session.currentIndex === session.questionIds.length - 1 ? "Complete Day" : "Next question"}
+            </button>
+          )}
+        </div>
+      </footer>
     </div>
   );
 }

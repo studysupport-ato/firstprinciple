@@ -5,8 +5,9 @@ import { cookies } from "next/headers";
 
 import { getSupabasePublicConfig } from "@/lib/supabase/config";
 import type { Database } from "@/lib/supabase/types";
+import { createTimedSupabaseFetch, type ServerTimingContext } from "@/lib/performance/serverTiming";
 
-export async function createSupabaseServerClient() {
+export async function createSupabaseServerClient(context: ServerTimingContext = { route: "unattributed", requestId: crypto.randomUUID(), sampled: false }) {
   const config = getSupabasePublicConfig();
   if (!config) {
     throw new Error("Supabase is not configured.");
@@ -15,6 +16,7 @@ export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
   return createServerClient<Database>(config.url, config.publishableKey, {
+    global: { fetch: createTimedSupabaseFetch(context) },
     cookies: {
       getAll() {
         return cookieStore.getAll();

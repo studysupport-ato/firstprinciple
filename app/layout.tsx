@@ -21,9 +21,9 @@ export const metadata: Metadata = {
   title: "Back2Basics with Kwamina | University Mathematics",
   description: "A premium interactive university learning platform.",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/favicon.ico",
+    icon: "/logobg.png",
+    shortcut: "/logobg.png",
+    apple: "/logobg.png",
   },
 };
 

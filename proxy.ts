@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { isPerformanceSampled } from "@/lib/performance/sample";
 
 /**
  * Task 40G.1 — Supabase SSR session refresh (Next 16 `proxy` convention).
@@ -29,7 +30,13 @@ import { createServerClient } from "@supabase/ssr";
  *   - no identity caching; that stays in `lib/student/readIdentity.ts`
  */
 export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  const requestId = crypto.randomUUID();
+  const sampled = isPerformanceSampled();
+  const forwardedHeaders = new Headers(request.headers);
+  forwardedHeaders.set("x-perf-request-id", requestId);
+  forwardedHeaders.set("x-perf-sampled", sampled ? "1" : "0");
+  let response = NextResponse.next({ request: { headers: forwardedHeaders } });
+  const startedAt = performance.now();
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const publishableKey = (
@@ -39,6 +46,24 @@ export async function proxy(request: NextRequest) {
   // Without public config there is no session to maintain; pass through rather
   // than failing every request.
   if (!url || !publishableKey) return response;
+  const hasSessionCookie = request.cookies
+    .getAll()
+    .some(({ name }) => /^sb-.+-auth-token(?:\.\d+)?$/.test(name));
+  if (!hasSessionCookie) {
+    if (sampled) {
+      console.info(
+        JSON.stringify({
+          event: "supabase_proxy_timing",
+          requestId,
+          durationMs: Math.round(performance.now() - startedAt),
+          authDurationMs: 0,
+          sessionCookiePresent: false,
+          authError: false,
+        }),
+      );
+    }
+    return response;
+  }
 
   const supabase = createServerClient(url, publishableKey, {
     cookies: {
@@ -49,8 +74,9 @@ export async function proxy(request: NextRequest) {
         // Mirror every cookie Supabase wants onto the outgoing request so the
         // Server Components rendering this same request see the fresh session...
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        forwardedHeaders.set("cookie", request.cookies.toString());
         // ...and onto the response so the browser actually stores it.
-        response = NextResponse.next({ request });
+        response = NextResponse.next({ request: { headers: forwardedHeaders } });
         cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
       },
     },
@@ -63,7 +89,28 @@ export async function proxy(request: NextRequest) {
   // The result is intentionally not acted on: a signed-out or invalid session
   // needs no handling here (routes and RLS already cover it). We only needed
   // the side effect of a current session cookie.
-  await supabase.auth.getUser();
+  const authStartedAt = performance.now();
+  let authError = false;
+  try {
+    const { error } = await supabase.auth.getUser();
+    authError = Boolean(error);
+  } catch (error) {
+    authError = true;
+    throw error;
+  } finally {
+    if (sampled) {
+      console.info(
+        JSON.stringify({
+          event: "supabase_proxy_timing",
+          requestId,
+          durationMs: Math.round(performance.now() - startedAt),
+          authDurationMs: Math.round(performance.now() - authStartedAt),
+          sessionCookiePresent: true,
+          authError,
+        }),
+      );
+    }
+  }
 
   return response;
 }

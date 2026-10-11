@@ -231,12 +231,12 @@ export function createResourceSupabaseRepository(clientFactory: ResourceSupabase
   async listResourcesForScope(scope, options = {}) {
     let courseId = scope.courseId;
     let weekId = scope.weekId;
-    if (scope.dayId) {
+    if (scope.dayId && (!courseId || !weekId)) {
       const { data, error } = await clientFactory().from("days").select("course_id,week_id").eq("id", scope.dayId).maybeSingle();
       if (error) throw error;
       const row = data as unknown as { course_id: string; week_id: string } | null;
-      courseId = row?.course_id;
-      weekId = row?.week_id;
+      courseId = courseId ?? row?.course_id;
+      weekId = weekId ?? row?.week_id;
     } else if (scope.weekId && !scope.courseId) {
       const { data, error } = await clientFactory().from("weeks").select("course_id").eq("id", scope.weekId).maybeSingle();
       if (error) throw error;

@@ -40,7 +40,7 @@ export default async function AssessmentPage({ params, searchParams }: Assessmen
   } catch (error) {
     if (!(error instanceof AssessmentSelectionError)) throw error;
 
-    console.error("[assessment unavailable]", {
+    console.warn("[assessment unavailable]", {
       assessmentId: assessment.id,
       code: error.code,
       details: error.details,

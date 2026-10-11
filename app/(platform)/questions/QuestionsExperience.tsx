@@ -1,326 +1,203 @@
 "use client";
 
 import Link from "next/link";
-import {
-  ArrowRight,
-  BookOpenCheck,
-  ChevronDown,
-  CircleHelp,
-  FileCheck2,
-  Layers,
-  ListChecks,
-  Play,
-  Search,
-} from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { ArrowRight } from "lucide-react";
+import { useMemo, useState } from "react";
 
-import { EducationalText } from "@/components/learning/EducationalText";
-import { AnimatedItem } from "@/components/motion/AnimatedItem";
-
-import type { Difficulty, Question } from "@/lib/content/types/question";
+import type { QuestionDirectorySummary } from "@/lib/questions/repository";
 import type { Course } from "@/lib/content/types/course";
-import type { Assessment } from "@/lib/content/types/assessment";
 
-const difficulties: Array<Difficulty | "all"> = ["all", "easy", "medium", "hard"];
-const questionCounts = [5, 10, 15, 20];
+// ── Year definitions ─────────────────────────────────────────────────────────
+const YEARS = [
+  { value: 1, label: "First year" },
+  { value: 2, label: "Second year" },
+  { value: 3, label: "Third year" },
+  { value: 4, label: "Fourth year" },
+] as const;
 
-// Difficulty accents reuse the dashboard palette so every platform page reads as one system.
-const difficultyMeta: Record<Difficulty, { label: string; color: string }> = {
-  easy: { label: "Easy", color: "#059669" },
-  medium: { label: "Medium", color: "#E5A600" },
-  hard: { label: "Hard", color: "#E11D48" },
-};
+type YearValue = 1 | 2 | 3 | 4;
 
-// Pill styling shared by the difficulty and set-size controls (matches the material filters).
-function pillClass(active: boolean) {
-  return `inline-flex items-center gap-[8px] rounded-full px-[14px] py-[8px] text-[12px] font-bold transition ${
-    active ? "bg-[#0e0e0e] text-[#FFC700]" : "border-[1.2px] border-black/50 text-[#0e0e0e] hover:bg-black/5"
-  }`;
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function coursesForYear(courses: Course[], year: YearValue) {
+  // Courses don't carry a year field directly; infer from course code number
+  // (e.g. MATH 151 → year 1, MATH 251 → year 2). Fall back to all if unknown.
+  return courses.filter((c) => {
+    const match = c.code?.match(/(\d)/);
+    if (!match) return true;
+    return parseInt(match[1], 10) === year;
+  });
 }
 
-function FilterSelect({
-  label,
-  value,
-  onChange,
-  children,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  children: ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="field-label">{label}</span>
-      <span className="relative mt-[9px] block">
-        <select
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="w-full appearance-none rounded-[12px] border border-[#111111]/15 bg-white/70 px-[15px] py-[12px] pr-[40px] text-[13.5px] font-semibold text-[#111111] outline-none transition hover:border-[#111111]/30 focus:border-[#111111]/45 focus:bg-white"
-        >
-          {children}
-        </select>
-        <ChevronDown
-          size={16}
-          strokeWidth={2.6}
-          className="pointer-events-none absolute right-[14px] top-1/2 -translate-y-1/2 text-[#111111]/45"
-        />
-      </span>
-    </label>
-  );
+function questionsForCourses(questions: QuestionDirectorySummary[], courseIds: Set<string>) {
+  return questions.filter((q) => courseIds.has(q.courseId));
 }
 
 export default function QuestionsExperience({
   initialQuestions,
-  initialCourseId,
   courses,
-  assessments: allAssessments,
   preview,
 }: {
-  initialQuestions: Question[];
-  initialCourseId: string;
+  initialQuestions: QuestionDirectorySummary[];
   courses: Course[];
-  assessments: Assessment[];
   preview: boolean;
 }) {
-  const [courseId, setCourseId] = useState(initialCourseId);
-  const [topic, setTopic] = useState("");
-  const [subtopic, setSubtopic] = useState("");
-  const [difficulty, setDifficulty] = useState<Difficulty | "all">("all");
-  const [count, setCount] = useState(5);
+  const [selectedYear, setSelectedYear] = useState<YearValue | null>(null);
 
-  const availableQuestions = initialQuestions.filter((question) => question.courseId === courseId);
-  const topics = useMemo(() => [...new Set(availableQuestions.map((question) => question.topic))].sort(), [availableQuestions]);
-  const subtopics = useMemo(
-    () => [...new Set(availableQuestions.filter((question) => !topic || question.topic === topic).map((question) => question.subtopic))].sort(),
-    [availableQuestions, topic],
-  );
-  const matchingQuestions = useMemo(
-    () =>
-      availableQuestions.filter((question) => {
-        if (topic && question.topic !== topic) return false;
-        if (subtopic && question.subtopic !== subtopic) return false;
-        if (difficulty !== "all" && question.difficulty !== difficulty) return false;
-        return true;
-      }),
-    [availableQuestions, difficulty, subtopic, topic],
-  );
-  const difficultyBreakdown = useMemo(
-    () =>
-      (["easy", "medium", "hard"] as Difficulty[]).map((level) => ({
-        level,
-        ...difficultyMeta[level],
-        count: matchingQuestions.filter((question) => question.difficulty === level).length,
-      })),
-    [matchingQuestions],
-  );
+  // Pre-compute stats per year
+  const yearStats = useMemo(() =>
+    YEARS.map(({ value, label }) => {
+      const yearCourses = coursesForYear(courses, value);
+      const courseIds = new Set(yearCourses.map((c) => c.id));
+      const questionCount = questionsForCourses(initialQuestions, courseIds).length;
+      return { value, label, courseCount: yearCourses.length, questionCount, courses: yearCourses };
+    }),
+  [courses, initialQuestions]);
 
-  // Task 40F.6: assessments arrive from Supabase; the client only scopes them to
-  // the selected course, so switching course stays reactive without extra reads.
-  const assessments = useMemo(() => allAssessments.filter((assessment) => assessment.courseId === courseId), [allAssessments, courseId]);
+  // If a year is selected, show its courses
+  if (selectedYear !== null) {
+    const year = yearStats.find((y) => y.value === selectedYear)!;
+    const yearCourses = year.courses;
+    const courseIds = new Set(yearCourses.map((c) => c.id));
 
-  // Authoritative chapter fallback: derived from the Supabase questions already
-  // in scope. The previous hardcoded "complex-numbers" fixture-era literal is
-  // gone, so a course without blueprint chapter data simply yields an empty
-  // chapter segment rather than a stale fixture id.
-  const firstChapterId = availableQuestions[0]?.chapterId ?? "";
-  const selectedAssessmentChapter = (assessment: Assessment) => assessment.blueprint.rules.find((rule) => rule.chapterId)?.chapterId ?? firstChapterId;
-  const practiceHref = matchingQuestions.length
-    ? `/courses/${courseId}/chapter/${matchingQuestions[0].chapterId}/practice?limit=${count}${topic ? `&topic=${encodeURIComponent(topic)}` : ""}${subtopic ? `&subtopic=${encodeURIComponent(subtopic)}` : ""}${difficulty !== "all" ? `&difficulty=${difficulty}` : ""}${preview ? "&preview=1" : ""}`
-    : "#no-matches";
+    return (
+      <div
+        className="relative min-h-screen overflow-x-clip pb-16"
+        style={{ background: "linear-gradient(135deg, #f0c84a 0%, #E9BC3A 45%, #d4a82e 100%)" }}
+      >
+        {/* Grid overlay */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage: "linear-gradient(#1A1814 1px, transparent 1px), linear-gradient(90deg, #1A1814 1px, transparent 1px)",
+            backgroundSize: "64px 64px",
+          }}
+        />
+        {/* Building image */}
+        <div
+          className="pointer-events-none absolute inset-0 bg-cover bg-[position:62%_center] opacity-25 grayscale mix-blend-multiply"
+          style={{ backgroundImage: "url('/last.jpeg')" }}
+        />
 
-  const selectedCourse = courses.find((course) => course.id === courseId);
-  const stats = [
-    { label: "Matching questions", value: matchingQuestions.length, icon: ListChecks, color: "#E5A600" },
-    { label: "Topics in scope", value: topics.length, icon: Layers, color: "#6673ff" },
-    { label: "Course checkpoints", value: assessments.length, icon: FileCheck2, color: "#059669" },
-  ];
+        <div className="relative z-10 px-[40px] pt-[40px] max-[900px]:px-[18px]">
+          <div className="mx-auto max-w-[1220px]">
+            <button
+              onClick={() => setSelectedYear(null)}
+              className="mb-5 inline-flex items-center gap-1.5 text-[14px] font-bold text-[#1A1814]/80 transition hover:text-[#1A1814]"
+            >
+              ← Practice questions
+            </button>
 
-  function changeCourse(value: string) {
-    setCourseId(value);
-    setTopic("");
-    setSubtopic("");
-  }
+            <p className="mb-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#1A1814]/70">
+              Question Bank
+            </p>
+            <h1 className="font-sans text-[clamp(3.5rem,8vw,5.5rem)] font-black leading-[1.0] tracking-[-0.03em] text-[#1A1814]">
+              {year.label}
+            </h1>
+            <p className="mt-3 text-[20px] font-medium text-[#1A1814]/80">
+              Choose a course to practise.
+            </p>
 
-  function clearQuestionFilters() {
-    setTopic("");
-    setSubtopic("");
-    setDifficulty("all");
-  }
-
-  return (
-    <div className="min-h-screen bg-transparent">
-      <section className="relative isolate overflow-hidden bg-[#FFC700] px-5 pb-16 pt-8 md:px-10 md:pb-20 md:pt-10">
-        <div className="pointer-events-none absolute inset-y-0 right-0 -z-20 w-full md:w-[58%]">
-          <div className="absolute inset-0 bg-[#FFC700] mix-blend-multiply md:left-[-34%]" />
-          <div
-            className="absolute inset-0 bg-[url('/last.jpeg')] bg-cover bg-[position:62%_center] opacity-80 grayscale mix-blend-multiply"
-            style={{
-              maskImage: "linear-gradient(90deg, transparent 0%, #000 30%, #000 100%), linear-gradient(180deg, #000 0%, #000 72%, transparent 100%)",
-              WebkitMaskImage: "linear-gradient(90deg, transparent 0%, #000 30%, #000 100%), linear-gradient(180deg, #000 0%, #000 72%, transparent 100%)",
-              maskComposite: "intersect",
-              WebkitMaskComposite: "source-in",
-            }}
-          />
-        </div>
-        <div className="pointer-events-none absolute -right-24 -top-32 -z-10 h-80 w-80 rounded-full border-[55px] border-black/[0.06]" />
-
-        <AnimatedItem className="relative mx-auto max-w-[1180px]">
-          <div className="mb-8 flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.1em] text-black/60">
-            <CircleHelp size={15} strokeWidth={2.4} />
-            <span>Learning space</span>
-            <span className="text-[8px]">●</span>
-            <span className="text-black/80">Questions</span>
-          </div>
-
-          <div className="grid items-end gap-8 md:grid-cols-[minmax(0,1fr)_300px]">
-            <div className="max-w-[650px]">
-              <p className="mb-2 font-sans text-[15px] text-[#1d1d1d]">Ready when you are,</p>
-              <h1 className="font-sans text-[46px] font-black leading-[0.98] tracking-[-0.035em] text-[#0c0c0c] md:text-[64px]">
-                PRACTICE.<br />PROVE IT.
-              </h1>
-              <p className="mt-5 max-w-[540px] text-[13.5px] leading-[1.6] text-black/65">
-                Turn what you have learned into mastery with focused question sets and clear course checkpoints.
-              </p>
-              {selectedCourse ? (
-                <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-black/20 bg-black/[0.07] px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.12em] text-black/70">
-                  <BookOpenCheck size={14} /> {selectedCourse.code} · {selectedCourse.title}
+            <div className="mt-10 grid gap-4 sm:grid-cols-2">
+              {yearCourses.length === 0 ? (
+                <div className="col-span-2 rounded-[24px] bg-[#1A1814]/10 p-10 text-center font-bold text-[#1A1814]/60">
+                  No courses available for this year yet.
                 </div>
-              ) : null}
-            </div>
+              ) : (
+                yearCourses.map((course) => {
+                  const qCount = initialQuestions.filter((q) => q.courseId === course.id).length;
+                  const firstChapterId = initialQuestions.find((q) => q.courseId === course.id)?.chapterId ?? "";
+                  const href = firstChapterId
+                    ? `/courses/${course.id}/chapter/${firstChapterId}/practice?limit=10${preview ? "&preview=1" : ""}`
+                    : "#";
 
-            <div className="rounded-[20px] bg-[#0c0c0c] p-5 text-white shadow-[0_18px_40px_rgba(0,0,0,0.28)]">
-              <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-white/55">Question bank</div>
-              <div className="mt-2 text-[30px] font-black leading-none">{availableQuestions.length}</div>
-              <div className="mt-1 text-[12px] text-white/55">questions ready for {selectedCourse?.code ?? "this course"}</div>
-              <div className="mt-4 flex items-center gap-2 text-[11px] font-bold text-[#FFC700]">
-                <ListChecks size={14} /> {matchingQuestions.length} match your filters
-              </div>
-            </div>
-          </div>
-        </AnimatedItem>
-      </section>
-
-      <div className="px-5 py-8 md:px-10 md:py-12">
-        <div className="mx-auto max-w-[1180px]">
-          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-black/45">Build your session</div>
-              <h2 className="mt-1 font-sans text-[30px] font-black tracking-[-0.025em] text-[#111111]">Choose what to practice</h2>
-            </div>
-            {matchingQuestions.length > 0 ? (
-              <button type="button" onClick={clearQuestionFilters} className="w-fit rounded-full border border-black/20 bg-white/60 px-4 py-2 text-[11px] font-bold text-black/65 transition hover:bg-white">
-                Clear filters
-              </button>
-            ) : null}
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <section className="rounded-[24px] bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.06)] md:p-8">
-            <div className="mb-7 flex items-start justify-between gap-4">
-              <div>
-                <div className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#111111]">Practice questions</div>
-                <h2 className="mt-2 font-serif text-3xl text-[#111111]">Build a focused set</h2>
-              </div>
-              <BookOpenCheck size={22} className="text-[#111111]" />
-            </div>
-
-            <div className="grid gap-5 md:grid-cols-2">
-              <label className="space-y-2">
-                <span className="field-label">Course</span>
-                <select value={courseId} onChange={(event) => changeCourse(event.target.value)} className="w-full rounded-xl border border-[#E5E5E5] bg-transparent px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
-                  {courses.map((course) => (
-                    <option key={course.id} value={course.id}>{course.code} · {course.title}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="space-y-2">
-                <span className="field-label">Difficulty</span>
-                <select value={difficulty} onChange={(event) => setDifficulty(event.target.value as Difficulty | "all")} className="w-full rounded-xl border border-[#E5E5E5] bg-transparent px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
-                  {difficulties.map((value) => (
-                    <option key={value} value={value}>{value === "all" ? "Any difficulty" : value.charAt(0).toUpperCase() + value.slice(1)}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="space-y-2">
-                <span className="field-label">Topic</span>
-                <select value={topic} onChange={(event) => { setTopic(event.target.value); setSubtopic(""); }} className="w-full rounded-xl border border-[#E5E5E5] bg-transparent px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
-                  <option value="">All topics</option>
-                  {topics.map((value) => <option key={value} value={value}>{value}</option>)}
-                </select>
-              </label>
-
-              <label className="space-y-2">
-                <span className="field-label">Subtopic</span>
-                <select value={subtopic} onChange={(event) => setSubtopic(event.target.value)} className="w-full rounded-xl border border-[#E5E5E5] bg-transparent px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
-                  <option value="">All subtopics</option>
-                  {subtopics.map((value) => <option key={value} value={value}>{value}</option>)}
-                </select>
-              </label>
-
-              <label className="space-y-2 md:col-span-2">
-                <span className="field-label">Number of questions</span>
-                <select value={count} onChange={(event) => setCount(Number(event.target.value))} className="w-full rounded-xl border border-[#E5E5E5] bg-transparent px-4 py-3 text-sm outline-none focus:border-[#FFBE00]">
-                  {questionCounts.map((value) => <option key={value} value={value}>{value} questions</option>)}
-                </select>
-              </label>
-            </div>
-
-            <div className="mt-7 flex flex-col gap-3 border-t border-[#E5E5E5] pt-6 sm:flex-row sm:items-center sm:justify-between">
-              <span className="text-sm text-[#666666]">{matchingQuestions.length ? `${Math.min(count, matchingQuestions.length)} of ${matchingQuestions.length} matching questions available` : "No available questions match these filters."}</span>
-              <Link href={practiceHref} aria-disabled={!matchingQuestions.length} onClick={(event) => { if (!matchingQuestions.length) event.preventDefault(); }} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#111111] px-6 py-3 text-sm font-semibold text-white hover:bg-[#FFBE00] hover:text-[#111111] aria-disabled:pointer-events-none aria-disabled:opacity-40">
-                <Play size={15} fill="currentColor" /> Start practice
-              </Link>
-            </div>
-
-            {!matchingQuestions.length ? (
-              <p id="no-matches" className="mt-4 rounded-2xl border border-dashed border-[#E5E5E5] bg-transparent p-4 text-sm text-[#666666]">Try a broader topic, subtopic, or difficulty selection.</p>
-            ) : null}
-          </section>
-
-          <section className="rounded-[28px] border border-[#E5E5E5] bg-[#111111] p-6 text-white shadow-[0_16px_36px_rgba(17,17,17,0.12)] md:p-8">
-            <div className="mb-7 flex items-start justify-between gap-4">
-              <div>
-                <div className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-white/55">Assessments</div>
-                <h2 className="mt-2 font-serif text-3xl">Course checkpoints</h2>
-              </div>
-              <FileCheck2 size={22} className="text-[#9CC3FF]" />
-            </div>
-
-            {assessments.length ? (
-              <div className="space-y-3">
-                {assessments.map((assessment) => (
-                  <Link key={assessment.id} href={`/courses/${courseId}/chapter/${selectedAssessmentChapter(assessment)}/assessment/${assessment.id}`} className="group block rounded-2xl border border-white/15 bg-white/5 p-4 transition hover:border-white/40 hover:bg-white/10">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-serif text-xl"><EducationalText text={assessment.title} /></div>
-                        <p className="mt-1 text-sm leading-6 text-white/60"><EducationalText text={assessment.description} /></p>
+                  return (
+                    <Link
+                      key={course.id}
+                      href={href}
+                      className="group flex items-center justify-between gap-4 rounded-[24px] bg-[#1A1814] p-6 shadow-[0_2px_14px_rgba(0,0,0,0.22)] transition-transform duration-300 hover:-translate-y-1 md:px-7 md:py-6"
+                    >
+                      <div className="flex items-center gap-5">
+                        <span className="flex h-[32px] shrink-0 items-center justify-center rounded-[8px] bg-[#E9BC3A] px-3 text-[11px] font-black uppercase tracking-[0.08em] text-[#1A1814]">
+                          {course.code}
+                        </span>
+                        <div>
+                          <div className="font-sans text-[22px] font-black leading-[1.1] text-[#F6EFDC] md:text-[24px]">
+                            {course.title}
+                          </div>
+                          <div className="mt-1 text-[13px] font-medium text-[#F6EFDC]/60">
+                            {course.chapterIds?.length || 0} lessons · {qCount} questions
+                          </div>
+                        </div>
                       </div>
-                      <ArrowRight size={16} className="mt-1 shrink-0 text-white/50 transition group-hover:translate-x-1" />
-                    </div>
-                    <div className="mt-4 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/45">
-                      <span>{assessment.questionCount} questions</span>
-                      <span>·</span>
-                      <span>{assessment.durationMinutes} min</span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-white/15 bg-white/5 p-5 text-sm leading-6 text-white/65">No assessments are available for this course yet.</div>
-            )}
-          </section>
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#8F6500] text-[#F6EFDC] transition group-hover:bg-[#A37400]">
+                        <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
+                      </div>
+                    </Link>
+                  );
+                })
+              )}
+            </div>
+          </div>
         </div>
+      </div>
+    );
+  }
 
-        {!courses.length ? (
-          <div className="mt-8 rounded-2xl border border-dashed border-[#E5E5E5] bg-white p-6 text-sm text-[#666666]">No courses are available in the question bank yet.</div>
-        ) : null}
+  // ── Main year-selection view ──────────────────────────────────────────────
+  return (
+    <div
+      className="relative min-h-screen overflow-x-clip pb-16"
+      style={{ background: "linear-gradient(135deg, #f0c84a 0%, #E9BC3A 45%, #d4a82e 100%)" }}
+    >
+      {/* Grid overlay */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.05]"
+        style={{
+          backgroundImage: "linear-gradient(#1A1814 1px, transparent 1px), linear-gradient(90deg, #1A1814 1px, transparent 1px)",
+          backgroundSize: "64px 64px",
+        }}
+      />
+      {/* Building image */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-cover bg-[position:62%_center] opacity-25 grayscale mix-blend-multiply"
+        style={{ backgroundImage: "url('/last.jpeg')" }}
+      />
 
-        <div className="mt-8 flex items-center gap-2 text-xs text-[#777777]">
-          <Search size={14} /> Practice and assessments use the canonical Question Bank and existing progress tracking.
-        </div>
+      <div className="relative z-10 px-[40px] pt-[40px] max-[900px]:px-[18px]">
+        <div className="mx-auto max-w-[1220px]">
+          {/* Header */}
+          <p className="mb-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#1A1814]/60">
+            Question Bank
+          </p>
+          <h1 className="font-sans text-[clamp(2.8rem,7vw,5rem)] font-black leading-[1.0] tracking-[-0.025em] text-[#1A1814]">
+            Practice questions
+          </h1>
+          <p className="mt-3 text-[18px] font-medium text-[#26231C]/75">
+            Choose your year, then a course.
+          </p>
+
+          {/* Year cards grid */}
+          <div className="mt-12 grid gap-4 sm:grid-cols-2">
+            {yearStats.map(({ value, label, courseCount, questionCount }) => (
+              <button
+                key={value}
+                onClick={() => setSelectedYear(value)}
+                className="group flex items-center justify-between gap-4 rounded-[24px] bg-[#1A1814] p-6 text-left shadow-[0_2px_14px_rgba(0,0,0,0.22)] transition-transform duration-300 hover:-translate-y-1 md:p-7"
+              >
+                <div>
+                  <div className="font-sans text-[22px] font-black text-[#F6EFDC] md:text-[24px]">
+                    {label}
+                  </div>
+                  <div className="mt-1 text-[13px] font-medium text-[#F6EFDC]/55">
+                    {courseCount} courses · {questionCount} questions
+                  </div>
+                </div>
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#8F6500] text-[#F6EFDC] transition group-hover:bg-[#A37400]">
+                  <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

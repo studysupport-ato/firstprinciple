@@ -1,42 +1,32 @@
 import { listPublishedCourses } from "@/lib/content/publishedStructure";
-import { createAssessmentSupabaseRepository } from "@/lib/assessment/repository";
-import { createQuestionRepository } from "@/lib/questions/repository";
+import { listQuestionDirectorySummaries } from "@/lib/questions/repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import QuestionsExperience from "./QuestionsExperience";
+import { withServerRouteTiming } from "@/lib/performance/serverTiming";
 
 export default async function QuestionsPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
-  const query = await searchParams;
-  const preview = query.preview === "1";
+  return withServerRouteTiming("questions", async (timing) => {
+    const query = await searchParams;
+    const preview = query.preview === "1";
 
-  // Task 40F.6 — every student-facing value on this page is now Supabase-backed:
-  // course filter, assessment filter (incl. blueprint chapter) and the questions.
-  // No fixture metadata and no hardcoded chapter fallback.
-  const client = await createSupabaseServerClient();
+    // Student-facing question directory data is Supabase-backed. Course and
+    // question visibility is enforced by the authenticated server client/RLS.
+    const client = await createSupabaseServerClient(timing);
 
-  // Task 40G.5C: reuse the page's request-scoped client so this course list is
-  // constrained by the hardened published-only RLS policy.
-  const courses = await listPublishedCourses(() => client);
-  const initialCourseId = courses[0]?.id ?? "";
+    // The directory needs only course/chapter metadata for counts and the
+    // practice destination. Fetch in bounded pages without loading question
+    // text, answers, explanations, or other unused fields.
+    const [courses, initialQuestions] = await Promise.all([
+      listPublishedCourses(() => client),
+      listQuestionDirectorySummaries(() => client, { visibility: "student", includeDraft: preview }),
+    ]);
 
-  // One bounded query for all student-visible assessments; the client filters
-  // to the selected course, so switching course stays reactive without N+1.
-  const assessments = await createAssessmentSupabaseRepository(() => client).listAssessments({
-    visibility: "student",
-    includeDraft: preview,
+    return (
+      <QuestionsExperience
+        initialQuestions={initialQuestions}
+        courses={courses}
+        preview={preview}
+      />
+    );
   });
-
-  // Task 40G.4: bound to the authenticated server client so the questions RLS
-  // policy is the enforcement boundary for this student read.
-  const repository = createQuestionRepository("supabase", () => client);
-  const initialQuestions = await repository.listQuestions({ visibility: "student", includeDraft: preview, courseId: initialCourseId || undefined });
-
-  return (
-    <QuestionsExperience
-      initialQuestions={initialQuestions}
-      initialCourseId={initialCourseId}
-      courses={courses}
-      assessments={assessments}
-      preview={preview}
-    />
-  );
 }

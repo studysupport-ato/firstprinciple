@@ -37,6 +37,7 @@ async function fetchStudentOnce(userId: string): Promise<AuthStudent | null> {
   cachedUserId = userId;
   try {
     const resolved = await resolveAuthenticatedReadStudent();
+    if (cachedUserId !== userId) return null;
     cachedStudent = resolved
       ? { id: resolved.id, displayName: resolved.displayName, email: resolved.email }
       : null;
@@ -44,9 +45,9 @@ async function fetchStudentOnce(userId: string): Promise<AuthStudent | null> {
     // Integrity/lookup failure: the hook reports "no student" rather than
     // throwing during render. Consumers that must not silently degrade
     // (e.g. progress reads) call readIdentity directly and will see the throw.
-    cachedStudent = null;
+    if (cachedUserId === userId) cachedStudent = null;
   }
-  return cachedStudent;
+  return cachedUserId === userId ? cachedStudent : null;
 }
 
 function resetStudentCache() {
@@ -166,4 +167,3 @@ export function useAuthSession(): AuthSessionState {
     signOut,
   };
 }
-
