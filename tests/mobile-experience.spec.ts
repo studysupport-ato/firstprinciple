@@ -30,7 +30,12 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.afterEach(async ({ page }) => {
-  expect(browserErrors.get(page) ?? [], "Unexpected browser or network errors").toEqual([]);
+  const errors = browserErrors.get(page) ?? [];
+  // The embedded lesson deliberately blocks remote KaTeX fonts with its iframe CSP.
+  const unexpectedErrors = errors.filter(
+    (error) => !/cdnjs\.cloudflare\.com\/ajax\/libs\/KaTeX\/0\.16\.9\/fonts\/KaTeX_(?:Main-Regular|Math-Italic)\.woff2/.test(error),
+  );
+  expect(unexpectedErrors, "Unexpected browser or network errors").toEqual([]);
 });
 
 async function expectNoHorizontalOverflow(page: Page) {
@@ -275,45 +280,163 @@ test.describe("mobile student experience", () => {
     const fullScreenBoard = page.getByRole("dialog");
     await expect(fullScreenBoard).toBeVisible();
     await expect(fullScreenBoard.getByRole("button", { name: "Close full-screen board" })).toBeVisible();
-    await expect(fullScreenBoard.getByRole("button", { name: "Zoom in on board" })).toBeVisible();
-    await expect(fullScreenBoard.getByRole("button", { name: "Zoom out on board" })).toBeVisible();
     const boardFrame = page.frameLocator("iframe");
-    await boardFrame.locator("#lb-zi").evaluate((element) => {
-      element.addEventListener("click", () => element.setAttribute("data-zoom-action", "received"), { once: true });
-    });
-    await fullScreenBoard.getByRole("button", { name: "Zoom in on board" }).click();
-    await expect(boardFrame.locator("#lb-zi")).toHaveAttribute("data-zoom-action", "received");
-    await boardFrame.locator("#lb-zo").evaluate((element) => {
-      element.addEventListener("click", () => element.setAttribute("data-zoom-action", "received"), { once: true });
-    });
-    await fullScreenBoard.getByRole("button", { name: "Zoom out on board" }).click();
-    await expect(boardFrame.locator("#lb-zo")).toHaveAttribute("data-zoom-action", "received");
-    await boardFrame.locator("#lb-all").evaluate((element) => {
-      element.addEventListener("click", () => element.setAttribute("data-all-action", "received"), { once: true });
-    });
-    await fullScreenBoard.getByRole("button", { name: "Show all boards" }).click();
-    await expect(boardFrame.locator("#lb-all")).toHaveAttribute("data-all-action", "received");
+    const hasPicture = await boardFrame.locator("#lb-pic:not([hidden]) .lb-pcnt").count() > 0;
+    if (hasPicture) {
+      await expect(fullScreenBoard.getByRole("button", { name: "Zoom in on board" })).toHaveCount(0);
+      await expect(fullScreenBoard.getByRole("button", { name: "Zoom out on board" })).toHaveCount(0);
+      await expect(fullScreenBoard.getByRole("button", { name: "Show all boards" })).toHaveCount(0);
+      await expect(boardFrame.locator("#lb-pic")).toHaveClass(/lb-zoom/);
+    } else {
+      await expect(fullScreenBoard.getByRole("button", { name: "Zoom in on board" })).toBeVisible();
+      await expect(fullScreenBoard.getByRole("button", { name: "Zoom out on board" })).toBeVisible();
+      await boardFrame.locator("#lb-zi").evaluate((element) => {
+        element.addEventListener("click", () => element.setAttribute("data-zoom-action", "received"), { once: true });
+      });
+      await fullScreenBoard.getByRole("button", { name: "Zoom in on board" }).click();
+      await expect(boardFrame.locator("#lb-zi")).toHaveAttribute("data-zoom-action", "received");
+      await boardFrame.locator("#lb-zo").evaluate((element) => {
+        element.addEventListener("click", () => element.setAttribute("data-zoom-action", "received"), { once: true });
+      });
+      await fullScreenBoard.getByRole("button", { name: "Zoom out on board" }).click();
+      await expect(boardFrame.locator("#lb-zo")).toHaveAttribute("data-zoom-action", "received");
+      await boardFrame.locator("#lb-all").evaluate((element) => {
+        element.addEventListener("click", () => element.setAttribute("data-all-action", "received"), { once: true });
+      });
+      await fullScreenBoard.getByRole("button", { name: "Show all boards" }).click();
+      await expect(boardFrame.locator("#lb-all")).toHaveAttribute("data-all-action", "received");
+    }
     const progressLabel = fullScreenBoard.locator(".tabular-nums");
     await expect(progressLabel).toHaveText(/^\d+ \/ \d+$/);
-    const boardProgress = () => boardFrame.locator("#lb-prog span i").evaluateAll((segments) =>
-      segments.map((segment) => (segment as HTMLElement).style.width),
-    );
-    const progressBeforeNext = await boardProgress();
-    await fullScreenBoard.getByRole("button", { name: "Next board" }).click();
-    await expect.poll(boardProgress).not.toEqual(progressBeforeNext);
-    if (await fullScreenBoard.getByRole("button", { name: "Back one board" }).isEnabled()) {
-      const progressBeforePrevious = await boardProgress();
-      await fullScreenBoard.getByRole("button", { name: "Back one board" }).click();
-      await expect.poll(boardProgress).not.toEqual(progressBeforePrevious);
+    if (hasPicture) {
+      const pictureProgress = () => boardFrame.locator("#lb-pic .lb-pcnt").innerText();
+      const start = await pictureProgress();
+      const next = fullScreenBoard.getByRole("button", { name: "Next picture frame" });
+      const previous = fullScreenBoard.getByRole("button", { name: "Previous picture frame" });
+      if (await next.isEnabled()) {
+        await next.click();
+        await expect.poll(pictureProgress).not.toBe(start);
+      } else if (await previous.isEnabled()) {
+        await previous.click();
+        await expect.poll(pictureProgress).not.toBe(start);
+      }
+      const playPicture = fullScreenBoard.getByRole("button", { name: "Play picture automatically" });
+      const pausePicture = fullScreenBoard.getByRole("button", { name: "Pause picture playback" });
+      if (await pausePicture.count()) await pausePicture.click();
+      await playPicture.click();
+      await expect(pausePicture).toBeVisible();
+      await pausePicture.click();
+    } else {
+      const boardProgress = () => boardFrame.locator("#lb-prog span i").evaluateAll((segments) =>
+        segments.map((segment) => (segment as HTMLElement).style.width),
+      );
+      const progressBeforeNext = await boardProgress();
+      await fullScreenBoard.getByRole("button", { name: "Next board" }).click();
+      await expect.poll(boardProgress).not.toEqual(progressBeforeNext);
+      if (await fullScreenBoard.getByRole("button", { name: "Back one board" }).isEnabled()) {
+        const progressBeforePrevious = await boardProgress();
+        await fullScreenBoard.getByRole("button", { name: "Back one board" }).click();
+        await expect.poll(boardProgress).not.toEqual(progressBeforePrevious);
+      }
+      const playButton = fullScreenBoard.getByRole("button", { name: "Play board automatically" });
+      await playButton.click();
+      await expect(fullScreenBoard.getByRole("button", { name: "Pause board playback" })).toBeVisible();
+      await fullScreenBoard.getByRole("button", { name: "Pause board playback" }).click();
+      await expect(fullScreenBoard.getByRole("button", { name: "Play board automatically" })).toBeVisible();
     }
-    const playButton = fullScreenBoard.getByRole("button", { name: "Play board automatically" });
-    await playButton.click();
-    await expect(fullScreenBoard.getByRole("button", { name: "Pause board playback" })).toBeVisible();
-    await fullScreenBoard.getByRole("button", { name: "Pause board playback" }).click();
-    await expect(fullScreenBoard.getByRole("button", { name: "Play board automatically" })).toBeVisible();
     await fullScreenBoard.getByRole("button", { name: "Close full-screen board" }).click();
     await expect(page.getByRole("button", { name: "Open board full screen" })).toBeVisible();
     await expect(boardFrame.locator("#lb-thm")).toContainText("Dark page");
+  });
+
+  test("complex-number board stacks its picture on mobile and zooms full screen", async ({ page }) => {
+    await page.setViewportSize(phoneSizes[1]);
+    await page.goto(
+      "/courses/math-151/chapter/real-number-theory/lesson/math-151-59aa80ff0fc4-the-argand-complex-plane?week=2&preview=1",
+    );
+
+    const boardFrame = page.frameLocator("iframe");
+    await boardFrame.locator(".lb-main.lb-side").waitFor();
+    const boardLayout = await boardFrame.locator(".lb-main.lb-side").evaluate((main) => {
+      const viewport = main.querySelector<HTMLElement>("#lb-vp")!;
+      const picture = main.querySelector<HTMLElement>("#lb-pic")!;
+      return {
+        viewport: viewport.getBoundingClientRect().toJSON(),
+        picture: picture.getBoundingClientRect().toJSON(),
+      };
+    });
+    expect(boardLayout.viewport.width).toBeGreaterThan(200);
+    expect(boardLayout.picture.width).toBeGreaterThan(280);
+    expect(boardLayout.picture.top).toBeGreaterThan(boardLayout.viewport.top);
+    await page.locator(".lesson-guided-content").evaluate((content) => {
+      const scroller = content.parentElement!;
+      scroller.scrollTop = scroller.scrollHeight;
+    });
+    const boardNavigationIsClear = await page.evaluate(() => {
+      const nextBoard = document.querySelector<HTMLElement>('button[aria-label="Next board"]');
+      const chatButton = document.querySelector<HTMLElement>('button[aria-label="Open chat"]');
+      if (!nextBoard || !chatButton) return false;
+      const nextBounds = nextBoard.getBoundingClientRect();
+      const chatBounds = chatButton.getBoundingClientRect();
+      return nextBounds.right <= chatBounds.left
+        || nextBounds.left >= chatBounds.right
+        || nextBounds.bottom <= chatBounds.top
+        || nextBounds.top >= chatBounds.bottom;
+    });
+    expect(boardNavigationIsClear).toBe(true);
+    await expect.poll(() => boardFrame.locator(".lb-main.lb-side").evaluate((main) => {
+      const picture = main.querySelector<HTMLElement>("#lb-pic")!;
+      const mainBounds = main.getBoundingClientRect();
+      const pictureBounds = picture.getBoundingClientRect();
+      const controls = main.ownerDocument.querySelector<HTMLElement>("#lb .lb-ctl")!;
+      const controlsBounds = controls.getBoundingClientRect();
+      return main.scrollHeight <= main.clientHeight + 2
+        && pictureBounds.bottom <= mainBounds.bottom + 2
+        && pictureBounds.bottom <= controlsBounds.top;
+    })).toBe(true);
+    const embeddedFrameHeight = await page.locator("iframe").evaluate((frame) => frame.getBoundingClientRect().height);
+    expect(embeddedFrameHeight).toBeGreaterThan(700);
+    expect(embeddedFrameHeight).toBeLessThanOrEqual(1400);
+
+    await boardFrame.getByRole("button", { name: /Zoom in/ }).click();
+    const fullScreenBoard = page.getByRole("dialog");
+    await expect(fullScreenBoard).toBeVisible();
+    await expect(fullScreenBoard.getByRole("button", { name: "Close full-screen board" })).toBeVisible();
+    await expect(fullScreenBoard.locator(".tabular-nums")).toHaveText(/^\d+ \/ \d+$/);
+    await expect(fullScreenBoard.getByRole("button", { name: "Previous picture frame" })).toBeVisible();
+    await expect(fullScreenBoard.getByRole("button", { name: "Next picture frame" })).toBeVisible();
+    await expect(boardFrame.locator("#lb-pic")).toHaveClass(/lb-zoom/);
+
+    const fullScreenGeometry = await boardFrame.locator("#lb-pic svg").evaluate((svg) => ({
+      width: svg.getBoundingClientRect().width,
+      viewportWidth: window.innerWidth,
+    }));
+    expect(fullScreenGeometry.width).toBeGreaterThan(250);
+    expect(fullScreenGeometry.width).toBeLessThanOrEqual(fullScreenGeometry.viewportWidth);
+
+    const pictureProgress = () => boardFrame.locator("#lb-pic .lb-pcnt").innerText();
+    const initialProgress = await pictureProgress();
+    const previousPicture = fullScreenBoard.getByRole("button", { name: "Previous picture frame" });
+    const nextPicture = fullScreenBoard.getByRole("button", { name: "Next picture frame" });
+    if (await previousPicture.isEnabled()) {
+      await previousPicture.click();
+      await expect.poll(pictureProgress).not.toBe(initialProgress);
+      await nextPicture.click();
+      await expect.poll(pictureProgress).toBe(initialProgress);
+    } else {
+      await nextPicture.click();
+      await expect.poll(pictureProgress).not.toBe(initialProgress);
+    }
+
+    const pausePicture = fullScreenBoard.getByRole("button", { name: "Pause picture playback" });
+    const playPicture = fullScreenBoard.getByRole("button", { name: "Play picture automatically" });
+    if (await pausePicture.count()) await pausePicture.click();
+    await playPicture.click();
+    await expect(pausePicture).toBeVisible();
+    await pausePicture.click();
+    await fullScreenBoard.getByRole("button", { name: "Close full-screen board" }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(boardFrame.locator("#lb-pic")).not.toHaveClass(/lb-zoom/);
   });
 
   test("questions, practice, assessment, and protected settings fit on mobile", async ({ page }) => {

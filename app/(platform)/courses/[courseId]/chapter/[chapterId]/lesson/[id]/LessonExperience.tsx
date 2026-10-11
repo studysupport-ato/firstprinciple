@@ -158,7 +158,7 @@ export function LessonExperience({
               backgroundSize: "20px 20px",
             }}
           >
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y px-3 py-3 md:px-10 md:py-8 lg:px-16 lg:py-12">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y px-3 pb-20 pt-3 md:px-10 md:py-8 lg:px-16 lg:py-12">
               <div className="lesson-guided-content mx-auto max-w-[640px]">
                 <LessonRenderer
                   lesson={lesson}

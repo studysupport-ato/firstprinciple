@@ -9,6 +9,7 @@ const DEFAULT_HEIGHT = 420;
 const BOARD_MIN_HEIGHT = 480;
 const MIN_HEIGHT = 280;
 const MAX_HEIGHT = 900;
+const MAX_MOBILE_BOARD_HEIGHT = 1400;
 const LOAD_TIMEOUT = 12000;
 
 // A "board" is a visualizer written to fill the whole learning space. Its source carries this marker.
@@ -29,6 +30,63 @@ function buildSourceDocument(source: string) {
   #lb .lb-topic { padding: 60px 16px 0 !important; }
   #lb .lb-tools { top: 8px !important; right: 8px !important; }
   #lb .lb-vp { touch-action: none !important; }
+  #lb .lb-main.lb-side {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: 280px auto !important;
+    align-content: start !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+  }
+  #lb .lb-main.lb-side > #lb-vp {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 280px !important;
+    height: 280px !important;
+  }
+  #lb .lb-main.lb-side > #lb-pic:not(.lb-zoom) {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    align-self: stretch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+  #lb .lb-main.lb-side > #lb-pic.lb-zoom {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto minmax(0, 1fr) auto auto !important;
+    column-gap: 0 !important;
+    row-gap: 8px !important;
+  }
+  #lb .lb-main.lb-side > #lb-pic.lb-zoom svg {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+  }
+  #lb .lb-main.lb-side > #lb-pic.lb-zoom .lb-pcap {
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+    font-size: 14px !important;
+    text-align: center !important;
+  }
+  #lb .lb-main.lb-side > #lb-pic.lb-zoom .lb-pbar {
+    grid-column: 1 !important;
+    grid-row: 4 !important;
+    justify-content: center !important;
+    margin: 0 !important;
+  }
+  #lb .lb-main.lb-side > #lb-pic.lb-zoom .lb-pz {
+    margin-left: 0 !important;
+  }
+  #lb .lb-main.lb-side > #lb-cap { grid-column: 1 !important; }
+  #lb .lb-main.lb-side .lb-pic:not(.lb-zoom) svg {
+    max-height: min(260px, 32vh) !important;
+  }
   #lb .lb-vp .lb-lines {
     touch-action: none !important;
     -webkit-overflow-scrolling: touch;
@@ -65,44 +123,124 @@ document.addEventListener('touchend', clearActiveLines, { capture: true, passive
 document.addEventListener('touchcancel', clearActiveLines, { capture: true, passive: true });
 function reportBoardState() {
   var heading = document.querySelector('#lb-vp .lb-bh');
+  var picture = document.getElementById('lb-pic');
+  var pictureBar = picture?.querySelector('.lb-pbar');
+  var pictureButtons = pictureBar ? Array.from(pictureBar.querySelectorAll('.lb-pb')) : [];
+  var pictureBack = pictureButtons.find(function (button) { return /back/i.test(button.textContent || ''); });
+  var picturePlay = pictureButtons.find(function (button) { return /play|pause/i.test(button.textContent || ''); });
+  var pictureNext = pictureBar?.querySelector('.lb-pgo');
+  var hasPictureSequence = Boolean(picture && !picture.hidden && pictureBar?.querySelector('.lb-pcnt'));
   var title = document.querySelector('#lb .lb-topic h1')?.textContent?.trim()
     || heading?.querySelector('b')?.textContent?.replace(/^BOARD\\s+\\d+\\s*[·:-]\\s*/i, '').trim();
   var progressText = heading?.querySelector('span')?.textContent || '';
   var progress = progressText.match(/(\\d+)\\s+OF\\s+(\\d+)/i);
+  var pictureProgress = pictureBar?.querySelector('.lb-pcnt')?.textContent?.match(/(\\d+)\\s*\\/\\s*(\\d+)/);
   var playButton = document.getElementById('lb-play');
   var nextButton = document.getElementById('lb-next');
   var previousButton = document.getElementById('lb-back');
   window.parent.postMessage({
     source: 'b2b-board-state',
     title: title || '',
-    current: progress ? Number(progress[1]) : 1,
-    total: progress ? Number(progress[2]) : 1,
-    playing: playButton?.getAttribute('aria-label') === 'Pause',
-    canNext: Boolean(nextButton && !nextButton.disabled),
-    canPrevious: Boolean(previousButton && !previousButton.disabled),
-    nextLabel: nextButton?.textContent?.trim() || 'Next'
+    hasPicture: hasPictureSequence,
+    current: pictureProgress ? Number(pictureProgress[1]) : progress ? Number(progress[1]) : 1,
+    total: pictureProgress ? Number(pictureProgress[2]) : progress ? Number(progress[2]) : 1,
+    playing: hasPictureSequence ? /pause/i.test(picturePlay?.textContent || '') : playButton?.getAttribute('aria-label') === 'Pause',
+    canNext: hasPictureSequence ? Boolean(pictureNext && !pictureNext.disabled) : Boolean(nextButton && !nextButton.disabled),
+    canPrevious: hasPictureSequence ? Boolean(pictureBack && !pictureBack.disabled) : Boolean(previousButton && !previousButton.disabled),
+    nextLabel: (hasPictureSequence ? pictureNext?.textContent : nextButton?.textContent)?.trim() || 'Next'
   }, '*');
 }
+function reportBoardLayout() {
+  if (!window.matchMedia('(max-width: 767px)').matches) return;
+  var root = document.getElementById('lb');
+  var main = root?.querySelector('.lb-main.lb-side');
+  var picture = document.getElementById('lb-pic');
+  if (!root || !main || !picture || picture.hidden) return;
+  var rootTop = root.getBoundingClientRect().top;
+  var contentBottom = Array.from(main.children).reduce(function (bottom, child) {
+    return child.getClientRects().length ? Math.max(bottom, child.getBoundingClientRect().bottom - rootTop) : bottom;
+  }, 0);
+  var mainStyle = getComputedStyle(main);
+  var controls = root.querySelector('.lb-ctl');
+  var controlsStyle = controls ? getComputedStyle(controls) : null;
+  var mainPadding = parseFloat(mainStyle.paddingTop) + parseFloat(mainStyle.paddingBottom);
+  var controlsReserve = controls ? controls.offsetHeight + Math.max(0, parseFloat(controlsStyle?.bottom || '0')) : 0;
+  var requiredHeight = Math.ceil(contentBottom + Math.max(mainPadding, controlsReserve) + 16);
+  if (Math.abs(requiredHeight - root.clientHeight) > 1) {
+    window.parent.postMessage({ source: 'b2b-board-layout', height: requiredHeight }, '*');
+    if (boardLayoutReportRetries < 10) {
+      boardLayoutReportRetries += 1;
+      window.setTimeout(scheduleBoardLayoutReport, 100);
+    } else {
+      boardLayoutReportRetries = 0;
+    }
+  } else {
+    boardLayoutReportRetries = 0;
+  }
+}
+var boardLayoutReportScheduled = false;
+var boardLayoutReportRetries = 0;
+function scheduleBoardLayoutReport() {
+  if (boardLayoutReportScheduled) return;
+  boardLayoutReportScheduled = true;
+  window.setTimeout(function () {
+    boardLayoutReportScheduled = false;
+    reportBoardLayout();
+  }, 0);
+}
 window.addEventListener('load', function () {
-  var boardMain = document.querySelector('#lb-main');
+  var boardMain = document.querySelector('#lb .lb-main');
   var playButton = document.getElementById('lb-play');
   var controls = document.querySelector('#lb .lb-ctl');
-  if (boardMain) new MutationObserver(reportBoardState).observe(boardMain, { subtree: true, childList: true, characterData: true });
+  var picture = document.getElementById('lb-pic');
+  var pictureZoomButton = picture?.querySelector('.lb-pz');
+  if (boardMain) new MutationObserver(function () {
+    reportBoardState();
+    scheduleBoardLayoutReport();
+  }).observe(boardMain, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'disabled', 'aria-label'] });
   if (playButton) new MutationObserver(reportBoardState).observe(playButton, { attributes: true, attributeFilter: ['aria-label'] });
   if (controls) new MutationObserver(reportBoardState).observe(controls, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['disabled', 'aria-label'] });
+  if (pictureZoomButton) {
+    pictureZoomButton.addEventListener('click', function () {
+      setTimeout(function () {
+        if (picture?.classList.contains('lb-zoom') && !document.documentElement.classList.contains('b2b-board-fullscreen')) {
+          document.documentElement.dataset.b2bFullscreenChangedPictureZoom = 'true';
+          window.parent.postMessage({ source: 'b2b-board-request', action: 'fullscreen' }, '*');
+        }
+      }, 0);
+    });
+  }
   reportBoardState();
+  scheduleBoardLayoutReport();
 });
+window.addEventListener('resize', scheduleBoardLayoutReport);
 window.addEventListener('message', function (event) {
   if (event.source !== window.parent) return;
   if (event.data?.source !== 'b2b-board-controls') return;
-  if (event.data.action === 'next') document.getElementById('lb-next')?.click();
+  if (event.data.action === 'measure-layout') scheduleBoardLayoutReport();
+  else if (event.data.action === 'next') document.getElementById('lb-next')?.click();
   else if (event.data.action === 'previous') document.getElementById('lb-back')?.click();
   else if (event.data.action === 'all') document.getElementById('lb-all')?.click();
   else if (event.data.action === 'play') document.getElementById('lb-play')?.click();
+  else if (event.data.action === 'picture-next') document.querySelector('#lb-pic .lb-pgo')?.click();
+  else if (event.data.action === 'picture-back') {
+    var pictureBack = Array.from(document.querySelectorAll('#lb-pic .lb-pbar .lb-pb')).find(function (button) { return /back/i.test(button.textContent || ''); });
+    pictureBack?.click();
+  } else if (event.data.action === 'picture-play') {
+    var picturePlay = Array.from(document.querySelectorAll('#lb-pic .lb-pbar .lb-pb')).find(function (button) { return /play|pause/i.test(button.textContent || ''); });
+    picturePlay?.click();
+  } else if (event.data.action === 'picture-zoom') document.querySelector('#lb-pic .lb-pz')?.click();
   else if (event.data.action === 'zoom-in') document.getElementById('lb-zi')?.click();
   else if (event.data.action === 'zoom-out') document.getElementById('lb-zo')?.click();
   else if (event.data.action === 'fullscreen') {
     document.documentElement.classList.add('b2b-board-fullscreen');
+    var picture = document.getElementById('lb-pic');
+    if (picture && !picture.classList.contains('lb-zoom')) {
+      picture.classList.add('lb-zoom');
+      var zoomButton = picture.querySelector('.lb-pz');
+      if (zoomButton) zoomButton.textContent = '✕ Close zoom';
+      document.documentElement.dataset.b2bFullscreenChangedPictureZoom = 'true';
+    }
     var themeButton = document.getElementById('lb-thm');
     if (themeButton?.textContent?.includes('Dark page')) {
       themeButton.click();
@@ -110,6 +248,15 @@ window.addEventListener('message', function (event) {
     }
   } else if (event.data.action === 'exit-fullscreen') {
     document.documentElement.classList.remove('b2b-board-fullscreen');
+    if (document.documentElement.dataset.b2bFullscreenChangedPictureZoom === 'true') {
+      var picture = document.getElementById('lb-pic');
+      if (picture?.classList.contains('lb-zoom')) {
+        picture.classList.remove('lb-zoom');
+        var zoomButton = picture.querySelector('.lb-pz');
+        if (zoomButton) zoomButton.textContent = '⤢ Zoom in';
+      }
+      delete document.documentElement.dataset.b2bFullscreenChangedPictureZoom;
+    }
     if (document.documentElement.dataset.b2bFullscreenChangedTheme === 'true') {
       document.getElementById('lb-thm')?.click();
       delete document.documentElement.dataset.b2bFullscreenChangedTheme;
@@ -142,6 +289,60 @@ html.b2b-board-fullscreen #lb > .lb-ctl { display: none !important; }
 html.b2b-board-fullscreen #lb > .lb-main,
 html.b2b-board-fullscreen #lb .lb-vp,
 html.b2b-board-fullscreen #lb .lb-wall { min-height: 0 !important; background-color: transparent !important; }
+html.b2b-board-fullscreen #lb .lb-main.lb-side {
+  display: block !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+html.b2b-board-fullscreen #lb .lb-main.lb-side > #lb-vp { display: none !important; }
+html.b2b-board-fullscreen #lb .lb-pic.lb-zoom {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 80 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+  gap: 8px !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: calc(58px + env(safe-area-inset-top)) 16px calc(100px + env(safe-area-inset-bottom)) !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: #12335A !important;
+  background-image: linear-gradient(rgba(234,242,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(234,242,255,.07) 1px, transparent 1px) !important;
+  background-size: 24px 24px !important;
+}
+html.b2b-board-fullscreen #lb .lb-pic.lb-zoom::before {
+  position: static !important;
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: center !important;
+  font-size: 12px !important;
+}
+html.b2b-board-fullscreen #lb .lb-pic.lb-zoom svg {
+  grid-column: 1 !important;
+  grid-row: 2 !important;
+  align-self: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: min(100%, 64vh) !important;
+  max-height: min(100%, 64vh) !important;
+  margin: 0 auto !important;
+}
+html.b2b-board-fullscreen #lb .lb-pic.lb-zoom .lb-pcap {
+  display: block !important;
+  grid-column: 1 !important;
+  grid-row: 3 !important;
+  align-self: center !important;
+  margin: 0 !important;
+  font-size: clamp(14px, 4vw, 20px) !important;
+  line-height: 1.45 !important;
+  text-align: center !important;
+}
+html.b2b-board-fullscreen #lb .lb-pic.lb-zoom .lb-pbar { display: none !important; }
 #first-principles-visualizer-error { display: none; padding: 1rem; color: #7f1d1d; background: #fef2f2; font: 14px/1.5 system-ui, sans-serif; }
 </style>
 <script>
@@ -168,11 +369,13 @@ export function VisualizerBlock({
 }: VisualizerBlockData & { fill?: boolean; onFullscreenChange?: (open: boolean) => void }) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mobileBoardHeight, setMobileBoardHeight] = useState(0);
   const [boardState, setBoardState] = useState({
     title,
     current: 1,
     total: 1,
     playing: false,
+    hasPicture: false,
     canNext: true,
     canPrevious: false,
     nextLabel: "Next",
@@ -186,28 +389,66 @@ export function VisualizerBlock({
   const frameHeight = fill && isBoardSource(source)
     ? Math.max(BOARD_MIN_HEIGHT, requestedHeight)
     : requestedHeight;
+  const embeddedFrameHeight = Math.max(frameHeight, mobileBoardHeight);
   const timeoutRef = useRef<number | undefined>(undefined);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const sendBoardAction = (action: "previous" | "all" | "next" | "play" | "zoom-in" | "zoom-out" | "fullscreen" | "exit-fullscreen") => {
+  const sendBoardAction = (action: "previous" | "all" | "next" | "play" | "zoom-in" | "zoom-out" | "fullscreen" | "exit-fullscreen" | "picture-next" | "picture-back" | "picture-play" | "picture-zoom" | "measure-layout") => {
     iframeRef.current?.contentWindow?.postMessage({ source: "b2b-board-controls", action }, "*");
   };
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.source !== iframeRef.current?.contentWindow || event.data?.source !== "b2b-board-state") return;
-      setBoardState({
-        title: typeof event.data.title === "string" && event.data.title ? event.data.title : title,
-        current: Number.isInteger(event.data.current) ? event.data.current : 1,
-        total: Number.isInteger(event.data.total) ? event.data.total : 1,
-        playing: event.data.playing === true,
-        canNext: event.data.canNext !== false,
-        canPrevious: event.data.canPrevious === true,
-        nextLabel: typeof event.data.nextLabel === "string" && event.data.nextLabel ? event.data.nextLabel : "Next",
-      });
+      if (event.source !== iframeRef.current?.contentWindow) return;
+        if (event.data?.source === "b2b-board-layout") {
+          if (!fill || !isBoardSource(source)) return;
+          const reportedHeight = event.data.height;
+          if (
+            Number.isInteger(reportedHeight)
+            && reportedHeight >= frameHeight
+            && reportedHeight <= MAX_MOBILE_BOARD_HEIGHT
+            && window.matchMedia("(max-width: 767px)").matches
+          ) {
+            setMobileBoardHeight(reportedHeight > frameHeight ? reportedHeight : 0);
+          } else if (
+            Number.isInteger(reportedHeight)
+            && reportedHeight < frameHeight
+            && window.matchMedia("(max-width: 767px)").matches
+          ) {
+            setMobileBoardHeight(0);
+          }
+          return;
+        }
+        if (event.data?.source === "b2b-board-request" && event.data.action === "fullscreen") {
+          setIsFullscreen(true);
+          return;
+        }
+        if (event.data?.source !== "b2b-board-state") return;
+        setBoardState({
+          title: typeof event.data.title === "string" && event.data.title ? event.data.title : title,
+          current: Number.isInteger(event.data.current) ? event.data.current : 1,
+          total: Number.isInteger(event.data.total) ? event.data.total : 1,
+          playing: event.data.playing === true,
+          hasPicture: event.data.hasPicture === true,
+          canNext: event.data.canNext !== false,
+          canPrevious: event.data.canPrevious === true,
+          nextLabel: typeof event.data.nextLabel === "string" && event.data.nextLabel ? event.data.nextLabel : "Next",
+        });
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [title]);
+  }, [fill, frameHeight, source, title]);
+
+  useEffect(() => {
+    setMobileBoardHeight(0);
+  }, [iframeSource]);
+
+  useEffect(() => {
+    const resetDesktopBoardHeight = () => {
+      if (!window.matchMedia("(max-width: 767px)").matches) setMobileBoardHeight(0);
+    };
+    window.addEventListener("resize", resetDesktopBoardHeight);
+    return () => window.removeEventListener("resize", resetDesktopBoardHeight);
+  }, []);
 
   useEffect(() => {
     if (!isFullscreen) return;
@@ -231,6 +472,7 @@ export function VisualizerBlock({
     }
     window.performance.mark("b2b-visualizer-iframe-onload");
     setStatus("ready");
+    window.setTimeout(() => sendBoardAction("measure-layout"), 0);
   };
 
   useEffect(() => {
@@ -279,7 +521,7 @@ export function VisualizerBlock({
       >
         <div
           className={isFullscreen ? "absolute inset-0 overflow-hidden bg-[#12335A]" : "relative w-full overflow-hidden rounded-xl bg-[#12335A]"}
-          style={isFullscreen ? undefined : { height: frameHeight }}
+          style={isFullscreen ? undefined : { height: embeddedFrameHeight }}
         >
           {overlay}
           {frame}
@@ -287,34 +529,45 @@ export function VisualizerBlock({
         {isFullscreen && (
           <>
             <header className="absolute inset-x-0 top-0 z-20 flex min-h-12 items-center gap-2 border-b border-white/10 bg-[#142F55]/90 px-3 pt-[env(safe-area-inset-top)] text-white backdrop-blur-sm">
-              <div className="min-w-0 flex-1 truncate font-serif text-sm font-semibold">{boardState.title}</div>
-              <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold tabular-nums">
-                {boardState.current} / {boardState.total}
-              </span>
-              <button
-                type="button"
-                aria-label="Show all boards"
-                onClick={() => sendBoardAction("all")}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/85 hover:bg-white/10"
-              >
-                <LayoutGrid size={17} />
-              </button>
-              <button
-                type="button"
-                aria-label="Zoom out on board"
-                onClick={() => sendBoardAction("zoom-out")}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/85 hover:bg-white/10"
-              >
-                <ZoomOut size={17} />
-              </button>
-              <button
-                type="button"
-                aria-label="Zoom in on board"
-                onClick={() => sendBoardAction("zoom-in")}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/85 hover:bg-white/10"
-              >
-                <ZoomIn size={17} />
-              </button>
+              {boardState.hasPicture ? (
+                <>
+                  <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold tabular-nums">
+                    {boardState.current} / {boardState.total}
+                  </span>
+                  <span className="flex-1" />
+                </>
+              ) : (
+                <>
+                  <div className="min-w-0 flex-1 truncate font-serif text-sm font-semibold">{boardState.title}</div>
+                  <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold tabular-nums">
+                    {boardState.current} / {boardState.total}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Show all boards"
+                    onClick={() => sendBoardAction("all")}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/85 hover:bg-white/10"
+                  >
+                    <LayoutGrid size={17} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Zoom out on board"
+                    onClick={() => sendBoardAction("zoom-out")}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/85 hover:bg-white/10"
+                  >
+                    <ZoomOut size={17} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Zoom in on board"
+                    onClick={() => sendBoardAction("zoom-in")}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/85 hover:bg-white/10"
+                  >
+                    <ZoomIn size={17} />
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 aria-label="Close full-screen board"
@@ -327,18 +580,20 @@ export function VisualizerBlock({
             <nav aria-label="Board navigation" className="absolute inset-x-0 bottom-0 z-20 flex items-center justify-between gap-2 bg-gradient-to-t from-[#0D203B]/95 via-[#0D203B]/85 to-transparent px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-9 text-white sm:gap-3 sm:px-6">
               <button
                 type="button"
-                aria-label="Back one board"
+                aria-label={boardState.hasPicture ? "Previous picture frame" : "Back one board"}
                 disabled={status !== "ready" || !boardState.canPrevious}
-                onClick={() => sendBoardAction("previous")}
+                onClick={() => sendBoardAction(boardState.hasPicture ? "picture-back" : "previous")}
                 className="flex min-h-10 min-w-0 flex-1 items-center justify-center rounded-full border border-white/70 px-3 text-xs font-semibold disabled:opacity-40 sm:max-w-32"
               >
                 ‹ Back
               </button>
               <button
                 type="button"
-                aria-label={boardState.playing ? "Pause board playback" : "Play board automatically"}
+                aria-label={boardState.playing
+                  ? boardState.hasPicture ? "Pause picture playback" : "Pause board playback"
+                  : boardState.hasPicture ? "Play picture automatically" : "Play board automatically"}
                 disabled={status !== "ready"}
-                onClick={() => sendBoardAction("play")}
+                onClick={() => sendBoardAction(boardState.hasPicture ? "picture-play" : "play")}
                 className="flex min-h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full border border-white/70 px-3 text-xs font-semibold disabled:opacity-40 sm:max-w-32"
               >
                 {boardState.playing ? <Pause size={14} /> : <Play size={14} />}
@@ -346,9 +601,9 @@ export function VisualizerBlock({
               </button>
               <button
                 type="button"
-                aria-label="Next board"
+                aria-label={boardState.hasPicture ? "Next picture frame" : "Next board"}
                 disabled={status !== "ready" || !boardState.canNext}
-                onClick={() => sendBoardAction("next")}
+                onClick={() => sendBoardAction(boardState.hasPicture ? "picture-next" : "next")}
                 className="flex min-h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-full bg-[#F0BC21] px-3 text-xs font-semibold text-[#18243A] disabled:opacity-40 sm:max-w-32"
               >
                 {boardState.nextLabel.length > 18 ? "Continue" : boardState.nextLabel.replace(/[→›]$/, "").trim()} <ArrowRight size={14} />
@@ -402,7 +657,7 @@ export function VisualizerBlock({
 
   return (
     <figure className="overflow-hidden rounded-2xl border border-[#E5E5E5] bg-white">
-      <div className="relative w-full" style={{ height: frameHeight }}>
+      <div className="relative w-full" style={{ height: embeddedFrameHeight }}>
         {overlay}
         {frame}
       </div>
