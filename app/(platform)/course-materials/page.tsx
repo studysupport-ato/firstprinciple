@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
+import { CourseDetail } from "@/components/course-materials/CourseDetail";
+import { CourseMaterialsChrome } from "@/components/course-materials/CourseMaterialsChrome";
 import { DepartmentDrawing } from "@/components/course-materials/DepartmentDrawing";
 import { AnimatedItem } from "@/components/motion/AnimatedItem";
 import { YouTubeEmbed } from "@/components/learning/YouTubeEmbed";
@@ -23,13 +25,8 @@ import { useAuthSession } from "@/lib/auth/useAuthSession";
 import { getCourseMaterialVideoId, parseYouTubeVideoId } from "@/lib/youtube";
 import { buildSemesters, hasUnassignedLegacy, linkHost, type CourseNode } from "@/lib/courseMaterialsTree";
 import { createCourseMaterialsRepository, type CourseMaterialsRepository } from "@/lib/courseMaterialsRepository";
-import { type CourseMaterialEntry, type CourseMaterialYear, type CourseMaterialsDepartment, type CourseMaterialsDirectory } from "@/lib/courseMaterials";
-
-type MaterialType = "PDF Document" | "Lecture Slides" | "Past Questions" | "Video Lecture" | "External Link";
-
-type MaterialRow = CourseMaterialEntry & {
-  type: MaterialType;
-};
+import { GENERAL_DEPARTMENT_ID, type CourseMaterialYear, type CourseMaterialsDepartment, type CourseMaterialsDirectory } from "@/lib/courseMaterials";
+import { deriveMaterialType, type MaterialRow, type MaterialType } from "@/lib/courseMaterialsDisplay";
 
 const RESOURCE_TYPES: Array<"ALL" | MaterialType> = ["ALL", "PDF Document", "Lecture Slides", "Past Questions", "Video Lecture", "External Link"];
 const STUDY_YEARS: Array<{ value: CourseMaterialYear; label: string }> = [
@@ -39,27 +36,6 @@ const STUDY_YEARS: Array<{ value: CourseMaterialYear; label: string }> = [
   { value: 4, label: "Fourth year" },
 ];
 const BOOKMARK_STORAGE_KEY = "b2b-course-material-bookmarks-v1";
-
-const TYPE_FROM_CHOICE: Record<NonNullable<CourseMaterialEntry["materialType"]>, MaterialType> = {
-  pdf: "PDF Document",
-  slides: "Lecture Slides",
-  past_questions: "Past Questions",
-  video: "Video Lecture",
-  link: "External Link",
-};
-
-function deriveMaterialType(entry: CourseMaterialEntry): MaterialType {
-  // An administrator's explicit choice wins; older rows are still guessed from their text.
-  if (entry.materialType) return TYPE_FROM_CHOICE[entry.materialType];
-  if (entry.kind === "youtube" || parseYouTubeVideoId(entry.url) || parseYouTubeVideoId(entry.provider)) return "Video Lecture";
-  const raw = `${entry.courseTitle} ${entry.description ?? ""} ${entry.provider ?? ""} ${entry.url}`.toLowerCase();
-
-  if (/vimeo|video|mp4|stream/.test(raw)) return "Video Lecture";
-  if (/past|exam|question|quiz|test/.test(raw)) return "Past Questions";
-  if (/slides|ppt|powerpoint|deck/.test(raw)) return "Lecture Slides";
-  if (/pdf/.test(raw)) return "PDF Document";
-  return "External Link";
-}
 
 function getTypeIcon(type: MaterialType) {
   switch (type) {
@@ -112,71 +88,6 @@ function DepartmentBlueprint({ name }: { name: string }) {
         name={name}
         className="absolute -right-1 top-1/2 h-[140px] w-[220px] -translate-y-1/2 text-[#F6EFDC] opacity-60"
       />
-    </div>
-  );
-}
-
-function CourseMaterialsChrome({ children }: { children: ReactNode }) {
-  const { authenticated, student } = useAuthSession();
-  const displayName = (student?.displayName ?? "").trim();
-  const profileLabel = authenticated === true ? (displayName || "Student") : "Sign in";
-  const profileSubLabel = authenticated === true ? "Student profile" : "Access your account";
-  const initials =
-    authenticated === true
-      ? displayName
-          .split(/\s+/)
-          .filter(Boolean)
-          .slice(0, 2)
-          .map((part) => part[0]?.toUpperCase() ?? "")
-          .join("") || "S"
-      : "SI";
-
-  return (
-    <div
-      className="relative min-h-screen overflow-x-clip pb-10"
-      style={{ background: "var(--gold-sweep)" }}
-    >
-      {/* PAGE BACKGROUND GRID */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.05]"
-        style={{
-          backgroundImage: "linear-gradient(#1A1814 1px, transparent 1px), linear-gradient(90deg, #1A1814 1px, transparent 1px)",
-          backgroundSize: "64px 64px",
-        }}
-      />
-
-      <div className="relative z-10 px-[40px] pt-[22px] max-[900px]:px-[18px] max-[900px]:pt-5">
-        <div className="mx-auto max-w-[1220px]">
-          <div className="relative overflow-visible">
-            
-            {/* ── TOP BAR ── */}
-            <div className="mb-[14px] flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.1em] text-[#26231C]/55">
-                <span>Learning space</span>
-                <span className="text-[8px]">·</span>
-                <span className="text-[#26231C]/80">MATH 151</span>
-              </div>
-
-              <Link
-                href={authenticated === true ? "/settings" : "/courses"}
-                aria-label={authenticated === true ? "Open profile settings" : "Sign in to your account"}
-                title={authenticated === true ? "Profile settings" : "Sign in"}
-                className="group flex items-center gap-2.5 rounded-full bg-[#1A1814]/[0.10] py-1 pl-1 pr-4 backdrop-blur-[2px]"
-              >
-                <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#1A1814] text-[11px] font-black text-[#E9BC3A] transition-transform group-hover:scale-105">
-                  {initials}
-                </span>
-                <span className="hidden text-left sm:block">
-                  <span className="block font-sans text-[13px] font-bold leading-tight text-[#1A1814]">{profileLabel}</span>
-                  <span className="block font-sans text-[11px] leading-tight text-[#1A1814]/50">{profileSubLabel}</span>
-                </span>
-              </Link>
-            </div>
-
-            {children}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -271,7 +182,7 @@ export default function CourseMaterialsPage() {
   const departmentsWithEntries = useMemo(
     () =>
       directory.departments
-        .filter((d) => d.status === "published")
+        .filter((d) => d.status === "published" && d.id !== GENERAL_DEPARTMENT_ID)
         .map((department) => ({
           department,
           entries: rows.filter((entry) => entry.departmentId === department.id),
@@ -284,7 +195,7 @@ export default function CourseMaterialsPage() {
   const departmentNames = useMemo(
     () =>
       directory.departments
-        .filter((d) => d.status === "published")
+        .filter((d) => d.status === "published" && d.id !== GENERAL_DEPARTMENT_ID)
         .map((d) => d.name),
     [directory]
   );
@@ -337,6 +248,21 @@ export default function CourseMaterialsPage() {
         return acc;
       }, {} as Record<string, number>);
       const typeString = Object.entries(typeCounts).map(([type, count]) => `${type} ${count}`).join(" · ");
+      if (!course.available) {
+        return (
+          <div
+            key={course.key}
+            aria-disabled="true"
+            className="relative flex min-w-[280px] w-[280px] flex-col items-start overflow-hidden rounded-[24px] bg-[#3B372E] p-6 text-left md:min-w-[300px] md:w-[300px]"
+          >
+            {course.courseCode && (
+              <span className="rounded-[4px] bg-[#4A4538] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.05em] text-[#9A917B]">{course.courseCode}</span>
+            )}
+            <h3 className="mt-4 font-sans text-[22px] font-black leading-tight text-[#9A917B] line-clamp-2">{course.courseTitle}</h3>
+            <div className="mt-10 rounded-full border border-dashed border-[#6F6753] px-4 py-2 text-[13px] font-bold text-[#B8AE95]">Not available at the moment</div>
+          </div>
+        );
+      }
       return (
         <button
           key={course.key}
@@ -373,159 +299,14 @@ export default function CourseMaterialsPage() {
     return (
       <CourseMaterialsChrome>
         {activeCourse ? (
-          <div>
-            {/* ── BACK ── */}
-            <button
-              type="button"
-              onClick={() => setSelectedCourse(null)}
-              className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#1A1814]/60 transition hover:text-[#1A1814]"
-            >
-              <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
-              {STUDY_YEARS.find(y => y.value === selectedStudyYear)?.label || "First year"} · Semester {activeCourse.semester}
-            </button>
-
-            {/* ── COURSE BADGE + TITLE ── */}
-            {activeCourse.courseCode && (
-              <div className="mb-3">
-                <span className="rounded-[6px] bg-[#E9BC3A] px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#1A1814]">
-                  {activeCourse.courseCode}
-                </span>
-              </div>
-            )}
-            <h1 className="font-sans text-[clamp(2.2rem,6vw,4rem)] font-black leading-[1.0] tracking-[-0.02em] text-[#1A1814]">
-              {activeCourse.courseTitle}
-            </h1>
-
-            {/* ── STATS ── */}
-            {(() => {
-              const typeCounts = activeCourse.materials.reduce((acc, m) => {
-                let short = "";
-                if (m.type === "PDF Document") short = "PDF";
-                else if (m.type === "Lecture Slides") short = "slides";
-                else if (m.type === "Past Questions") short = "past questions";
-                else if (m.type === "Video Lecture") short = "video";
-                if (short) acc[short] = (acc[short] || 0) + 1;
-                return acc;
-              }, {} as Record<string, number>);
-              const parts = Object.entries(typeCounts).map(([type, count]) => `${count} ${type}`);
-              return (
-                <p className="mt-2 text-[16px] font-medium text-[#26231C]/75">
-                  {activeCourse.materials.length} materials{parts.length ? ` · ${parts.join(" · ")}` : ""}
-                </p>
-              );
-            })()}
-
-            {/* ── FILTER PILLS ── */}
-            {(() => {
-              const types: Array<"ALL" | MaterialType> = ["ALL", ...([...new Set(activeCourse.materials.map(m => m.type))] as MaterialType[])];
-              const pillLabel: Record<string, string> = {
-                ALL: "All",
-                "PDF Document": "PDF",
-                "Lecture Slides": "Slides",
-                "Past Questions": "Past Questions",
-                "Video Lecture": "Video",
-                "External Link": "Links",
-              };
-              return (
-                <div className="mt-6 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap md:overflow-x-visible md:pb-0">
-                  {types.map(t => (
-                    <button
-                      key={t}
-                      onClick={() => setTypeFilter(t)}
-                      className={`shrink-0 rounded-full px-6 py-2 text-[14px] font-bold transition ${typeFilter === t ? "bg-[#8F6500] text-[#F6EFDC]" : "bg-[#1A1814] text-[#F6EFDC] hover:bg-[#333333]"}`}
-                    >
-                      {pillLabel[t] ?? t}
-                    </button>
-                  ))}
-                </div>
-              );
-            })()}
-
-            {/* ── MATERIALS LIST ── */}
-            <div className="mt-6 overflow-hidden rounded-[24px] bg-[#1A1814] shadow-[0_2px_14px_rgba(0,0,0,0.22)]">
-              {activeMaterials
-                .filter(entry => typeFilter === "ALL" || entry.type === typeFilter)
-                .map((entry, index, arr) => {
-                  const isSaved = bookmarks.includes(entry.id);
-                  const videoId = getCourseMaterialVideoId(entry);
-                  const isLast = index === arr.length - 1;
-
-                  // Icon background: gold for video, medium brown for others
-                  const iconBg = videoId ? "bg-[#E9BC3A]" : "bg-[#F0C84A]";
-                  const iconEl = videoId
-                    ? <Play className="h-5 w-5 fill-current text-[#1A1814]" />
-                    : <BookOpenText className="h-5 w-5 text-[#1A1814]" strokeWidth={2} />;
-
-                  const ActionLabel = videoId ? "Watch" : "Open";
-                  const ActionHref = videoId ? `#material-video-${entry.id}` : entry.url;
-
-                  return (
-                    <AnimatedItem key={entry.id} index={index}>
-                      <article className={`flex flex-col px-5 py-6 sm:px-7 sm:py-6 ${!isLast ? "border-b border-[#3A3428]" : ""}`}>
-                        <div className="flex items-start sm:items-center gap-4">
-                          {/* Icon */}
-                          <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] ${iconBg}`}>
-                            {iconEl}
-                          </span>
-
-                          {/* Text */}
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#F6EFDC]">
-                              {entry.type}
-                            </p>
-                            <h3 className="mt-[2px] font-sans text-[20px] sm:text-[17px] font-black leading-[1.15] tracking-tight text-[#F6EFDC]">
-                              {entry.courseTitle}
-                            </h3>
-                            {entry.description && entry.description !== entry.courseTitle && (
-                              <p className="mt-1.5 text-[14px] sm:text-[13px] leading-snug text-[#F6EFDC]/70">
-                                {entry.description}
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Actions (Desktop) */}
-                          <div className="hidden shrink-0 items-center gap-2 sm:flex">
-                            <a
-                              href={ActionHref}
-                              target={videoId ? undefined : "_blank"}
-                              rel={videoId ? undefined : "noreferrer"}
-                              className="inline-flex h-10 items-center justify-center rounded-full bg-[#8F6500] px-5 text-[13px] font-bold text-[#F6EFDC] transition hover:brightness-110"
-                            >
-                              {ActionLabel}
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => toggleBookmark(entry.id)}
-                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition ${isSaved ? "border-[#E9BC3A] text-[#E9BC3A]" : "border-[#3A3428] text-[#F6EFDC]/40 hover:border-[#F6EFDC]/40 hover:text-[#F6EFDC]"}`}
-                            >
-                              <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Actions (Mobile Full Width) */}
-                        <div className="mt-5 w-full sm:hidden">
-                          <a
-                            href={ActionHref}
-                            target={videoId ? undefined : "_blank"}
-                            rel={videoId ? undefined : "noreferrer"}
-                            className="flex h-12 w-full items-center justify-center rounded-full bg-[#8F6500] text-[15px] font-bold text-[#F6EFDC] transition hover:brightness-110"
-                          >
-                            {ActionLabel}
-                          </a>
-                        </div>
-
-                        {videoId ? (
-                          <div id={`material-video-${entry.id}`} className="ml-[60px] mt-4 scroll-mt-6">
-                            <YouTubeEmbed videoId={videoId} title={entry.courseTitle} />
-                          </div>
-                        ) : null}
-                      </article>
-                    </AnimatedItem>
-                  );
-                })}
-            </div>
-          </div>
+          <CourseDetail
+            course={activeCourse}
+            materials={activeMaterials}
+            backLabel={`${STUDY_YEARS.find((y) => y.value === selectedStudyYear)?.label || "First year"} · Semester ${activeCourse.semester}`}
+            onBack={() => setSelectedCourse(null)}
+            bookmarks={bookmarks}
+            toggleBookmark={toggleBookmark}
+          />
         ) : (
           <div>
             <button
@@ -680,13 +461,18 @@ export default function CourseMaterialsPage() {
             {visibleDepartments.map(({ department }, index) => {
               return (
                 <AnimatedItem key={department.id} index={index} className="flex">
-                  <article className="group relative flex min-h-[162px] w-full flex-col items-start overflow-hidden rounded-[24px] bg-[#1A1814] p-6 shadow-[0_2px_14px_rgba(0,0,0,0.22)] transition-transform duration-300 hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0 md:p-[28px]">
+                  <article className={`group relative flex min-h-[162px] w-full flex-col items-start overflow-hidden rounded-[24px] ${department.available === false ? "bg-[#3B372E]" : "bg-[#1A1814]"} p-6 shadow-[0_2px_14px_rgba(0,0,0,0.22)] transition-transform duration-300 hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0 md:p-[28px]`}>
                     <DepartmentBlueprint name={department.name} />
                     <div className="relative z-10 flex min-h-full w-full flex-1 flex-col items-start">
                       <h2 className="relative z-10 max-w-[70%] font-sans text-[22px] font-black leading-tight text-[#F6EFDC] md:text-[24px]">
                         {department.name}
                       </h2>
                       <div className="mt-auto pt-8">
+                      {department.available === false ? (
+                        <span className="inline-flex min-h-[44px] items-center rounded-full border border-dashed border-[#6F6753] px-5 py-2 text-[14px] font-bold text-[#B8AE95]">
+                          Not available at the moment
+                        </span>
+                      ) : (
                       <button
                         type="button"
                         onClick={() => {
@@ -698,6 +484,7 @@ export default function CourseMaterialsPage() {
                         View course materials
                         <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
                       </button>
+                      )}
                     </div>
                     </div>
                   </article>

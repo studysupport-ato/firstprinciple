@@ -93,8 +93,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               const active = isNavActive(pathname, href);
 
               return (
+                <div key={href}>
                 <Link
-                  key={href}
                   href={href}
                   onClick={() => setMobileOpen(false)}
                   className={[
@@ -107,6 +107,24 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   <Icon size={16} />
                   <span>{label}</span>
                 </Link>
+                {href === "/admin/course-materials" && active ? (
+                  <div className="my-1 ml-6 space-y-0.5 border-l-2 border-[#E5E5E5] pl-3">
+                    {[
+                      { href: "/admin/course-materials/general", label: "General courses", on: pathname.startsWith("/admin/course-materials/general") },
+                      { href: "/admin/course-materials", label: "Materials per programme", on: !pathname.startsWith("/admin/course-materials/general") },
+                    ].map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={`flex min-h-9 items-center rounded-xl px-3 text-[13px] font-semibold transition-colors ${item.on ? "bg-[#F7F7F8] text-[#111111]" : "text-[#666666] hover:text-[#111111]"}`}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                ) : null}
+                </div>
               );
             })}
           </nav>

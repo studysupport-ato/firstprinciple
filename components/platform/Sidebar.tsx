@@ -83,6 +83,24 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, onSign
             <Library size={19} strokeWidth={2.5} />
             {!compact && <span>Course Materials</span>}
           </Link>
+          {!compact && isActive("/course-materials") ? (
+            <div className="my-0.5 ml-[26px] flex flex-col gap-0.5 border-l-2 border-[#3A3428] pl-3">
+              {[
+                { href: "/course-materials/general", label: "General courses", on: pathname.startsWith("/course-materials/general") },
+                { href: "/course-materials", label: "Materials per programme", on: pathname === "/course-materials" },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onMobileClose}
+                  aria-current={item.on ? "page" : undefined}
+                  className={`flex min-h-10 items-center rounded-[10px] px-3 font-sans text-[13px] font-bold transition-colors ${item.on ? "bg-[#26231C] text-[#E9BC3A]" : "text-[#F6EFDC]/60 hover:text-[#F6EFDC]"}`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          ) : null}
           <Link href="/questions" onClick={onMobileClose} data-tour="questions" className={navItemClass("/questions")} title="Questions">
             <CircleHelp size={19} strokeWidth={2.5} />
             {!compact && <span>Questions</span>}

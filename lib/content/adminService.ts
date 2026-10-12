@@ -10,7 +10,7 @@ import {
 import { validateQuestion } from "./access";
 import { validateBlock } from "./overrides";
 import { validateLearningResource, validateResourcePlacement } from "./resources";
-import { validateCourseMaterial, validateDepartment } from "../courseMaterials";
+import { GENERAL_DEPARTMENT_ID, validateCourseMaterial, validateDepartment } from "../courseMaterials";
 import type { ContentStatus } from "./lifecycle";
 import type {
   AdminCourseInput,
@@ -227,7 +227,7 @@ export async function listAdminDepartments(): Promise<AdminDepartmentListRow[]> 
   const [departments, entries] = await Promise.all([materials.listDepartments(), materials.listCourseMaterials()]);
   const counts = new Map<string, number>();
   for (const entry of entries) if ((entry.entryType ?? "material") === "material") counts.set(entry.departmentId, (counts.get(entry.departmentId) ?? 0) + 1);
-  return departments.map((department) => ({ department, materialCount: counts.get(department.id) ?? 0 }));
+  return departments.filter((department) => department.id !== GENERAL_DEPARTMENT_ID).map((department) => ({ department, materialCount: counts.get(department.id) ?? 0 }));
 }
 
 export async function getAdminDepartment(departmentId: string): Promise<CourseMaterialsDepartment | undefined> {
@@ -524,7 +524,7 @@ export async function setAdminDepartmentStatus(departmentId: string, status: Con
 }
 
 export async function createAdminCourseMaterial(input: AdminCourseMaterialInput): Promise<CourseMaterialEntry> {
-  if (![1, 2, 3, 4].includes(input.studyYear)) {
+  if (input.departmentId !== GENERAL_DEPARTMENT_ID && (!input.studyYear || ![1, 2, 3, 4].includes(input.studyYear))) {
     throw new Error("Choose a valid academic year for this material.");
   }
   const errors = validateCourseMaterial(input);

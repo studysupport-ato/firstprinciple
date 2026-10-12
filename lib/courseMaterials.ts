@@ -20,6 +20,8 @@ export interface CourseMaterialsDepartment {
   description?: string;
   order: number;
   status: CourseMaterialsStatus;
+  /** false = shown to students greyed out as "not available at the moment". Missing means available. */
+  available?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -45,12 +47,17 @@ export interface CourseMaterialEntry {
   kind: CourseMaterialKind;
   order: number;
   status: CourseMaterialsStatus;
+  /** false = shown to students greyed out as "not available at the moment". Missing means available. */
+  available?: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export type CourseMaterialsDepartmentInput = Omit<CourseMaterialsDepartment, "id" | "createdAt" | "updatedAt" | "order">;
 export type CourseMaterialEntryInput = Omit<CourseMaterialEntry, "id" | "createdAt" | "updatedAt" | "order" | "kind"> & { kind?: CourseMaterialKind };
+
+/** The reserved department that holds general courses (shared by every programme, no year or semester). */
+export const GENERAL_DEPARTMENT_ID = "general";
 
 export function getEntryType(entry: Pick<CourseMaterialEntry, "entryType">): CourseMaterialEntryType {
   return entry.entryType ?? "material";
@@ -143,7 +150,7 @@ export function validateCourseMaterial(entry: CourseMaterialEntryInput | CourseM
   const entryType = entry.entryType ?? "material";
   if (!["course", "material", "semester_link"].includes(entryType)) errors.push("Entry type is invalid.");
   if (entryType !== "course" && !isHttpUrl(entry.url.trim())) errors.push("A valid HTTP or HTTPS URL is required.");
-  if (entryType !== "material") {
+  if (entryType !== "material" && entry.departmentId !== GENERAL_DEPARTMENT_ID) {
     if (entry.studyYear == null) errors.push("Choose the academic year.");
     if (entry.semester !== 1 && entry.semester !== 2) errors.push("Choose semester 1 or semester 2.");
   }

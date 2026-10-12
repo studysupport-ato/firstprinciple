@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { AvailabilityToggle } from "@/components/admin/AvailabilityToggle";
 import {
   createCourseMaterialAction,
   deleteMaterialAction,
@@ -172,6 +173,10 @@ export function CourseMaterialsBuilder({
     });
   }
 
+  function setAvailable(entry: CourseMaterialEntry, available: boolean) {
+    void run(() => updateCourseMaterialAction(entry.id, { available }), available ? "Marked available." : "Marked not available at the moment.");
+  }
+
   function moveLegacy(entry: CourseMaterialEntry, courseId: string) {
     const course = courses.find((item) => item.id === courseId);
     if (!course) return;
@@ -229,6 +234,7 @@ export function CourseMaterialsBuilder({
                 {course.courseCode ? <span className="rounded-md bg-[#E9BC3A] px-2 py-0.5 text-xs font-extrabold text-[#1A1814]">{course.courseCode}</span> : null}
                 <span className="min-w-[160px] flex-1 text-[19px] font-semibold">{course.courseTitle}</span>
                 <span className="text-sm text-[#C9BFA6]">{materialCountFor(course.id)} materials</span>
+                <AvailabilityToggle available={course.available !== false} disabled={busy} onChange={(next) => setAvailable(course, next)} label={course.courseTitle} />
                 <button type="button" onClick={() => setOpenCourseId(course.id)} className="min-h-[44px] rounded-full bg-[#8F6500] px-[18px] text-[15px] font-bold text-[#F6EFDC] hover:brightness-110">
                   Open materials →
                 </button>
@@ -295,6 +301,7 @@ export function CourseMaterialsBuilder({
                 <div key={material.id} className="flex flex-wrap items-center gap-3 border-t border-[#3A3428] py-3.5">
                   <span className={`min-w-[104px] rounded-full px-3 py-1.5 text-center text-[13px] font-extrabold ${type?.chip ?? "bg-[#BFE3CF] text-[#0F3D2E]"}`}>{type?.label.replace(" (YouTube)", "") ?? "Link"}</span>
                   <span className="min-w-[200px] flex-1 text-lg font-semibold">{material.courseTitle}</span>
+                  <AvailabilityToggle available={material.available !== false} disabled={busy} onChange={(next) => setAvailable(material, next)} label={material.courseTitle} />
                   <button type="button" disabled={busy} onClick={() => remove(material, "Material")} className={removeButton} aria-label={`Remove ${material.courseTitle}`}>
                     Remove
                   </button>

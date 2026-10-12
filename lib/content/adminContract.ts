@@ -56,7 +56,8 @@ export type AdminDepartmentInput = Pick<CourseMaterialsDepartment, "name" | "sta
 };
 
 export type AdminCourseMaterialInput = Pick<CourseMaterialEntry, "departmentId" | "courseTitle" | "url" | "status"> & {
-  studyYear: CourseMaterialYear;
+  studyYear?: CourseMaterialYear | null;
+  available?: boolean;
   courseCode?: string;
   description?: string;
   provider?: string;

@@ -25,7 +25,7 @@ export default function AdminCourseMaterialsDepartmentPage() {
   const { departmentId } = useParams<{ departmentId: string }>();
   const [department, setDepartment] = useState<CourseMaterialsDepartment | undefined>();
   const [entries, setEntries] = useState<CourseMaterialEntry[]>([]);
-  const [departmentForm, setDepartmentForm] = useState({ name: "", shortName: "", description: "", status: "draft" as ContentStatus });
+  const [departmentForm, setDepartmentForm] = useState({ name: "", shortName: "", description: "", status: "draft" as ContentStatus, available: true });
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmDepartmentArchive, setConfirmDepartmentArchive] = useState(false);
@@ -48,7 +48,7 @@ export default function AdminCourseMaterialsDepartmentPage() {
       const found = deptResult.data;
       setDepartment(found || undefined);
       setEntries(materialsResult.data);
-      if (found) setDepartmentForm({ name: found.name, shortName: found.shortName ?? "", description: found.description ?? "", status: found.status });
+      if (found) setDepartmentForm({ name: found.name, shortName: found.shortName ?? "", description: found.description ?? "", status: found.status, available: found.available !== false });
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "The department could not be loaded.");
@@ -68,6 +68,7 @@ export default function AdminCourseMaterialsDepartmentPage() {
         shortName: departmentForm.shortName.trim() || undefined,
         description: departmentForm.description.trim() || undefined,
         status: departmentForm.status,
+        available: departmentForm.available,
       });
       if (!result.ok) throw new Error(result.error);
       if (result.data) setDepartment(result.data);
@@ -136,6 +137,14 @@ export default function AdminCourseMaterialsDepartmentPage() {
             <span className="field-label">Status</span>
             <select value={departmentForm.status} onChange={(event) => setDepartmentForm({ ...departmentForm, status: event.target.value as ContentStatus })} className="admin-input">
               {statuses.map((status) => <option key={status} value={status}>{status}</option>)}
+            </select>
+          </label>
+
+          <label className="space-y-2">
+            <span className="field-label">Shown to students as</span>
+            <select value={departmentForm.available ? "yes" : "no"} onChange={(event) => setDepartmentForm({ ...departmentForm, available: event.target.value === "yes" })} className="admin-input">
+              <option value="yes">Available</option>
+              <option value="no">Not available at the moment (greyed out)</option>
             </select>
           </label>
         </div>
