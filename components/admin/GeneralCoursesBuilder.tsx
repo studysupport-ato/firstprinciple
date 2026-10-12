@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { AvailabilityToggle } from "@/components/admin/AvailabilityToggle";
+import { PlaylistImporter, type PlaylistImport } from "@/components/admin/PlaylistImporter";
 import { createCourseMaterialAction, deleteMaterialAction, updateCourseMaterialAction } from "@/lib/adminContentActions";
 import type { CourseMaterialEntry } from "@/lib/content/adminContract";
 import { GENERAL_DEPARTMENT_ID, type CourseMaterialType } from "@/lib/courseMaterials";
@@ -13,6 +14,7 @@ const MATERIAL_TYPES: Array<{ value: CourseMaterialType; label: string; hint: st
   { value: "slides", label: "Slides", hint: "Link to the slides", chip: "bg-[#F2D57D] text-[#4A3500]" },
   { value: "past_questions", label: "Past Questions", hint: "Link to the past questions", chip: "bg-[#CFC3F2] text-[#2A1A5E]" },
   { value: "video", label: "Video (YouTube)", hint: "Paste the YouTube link", chip: "bg-[#E7B8C2] text-[#3B1019]" },
+  { value: "playlist", label: "YouTube playlist", hint: "Paste the playlist link", chip: "bg-[#F3C3A4] text-[#4A1B08]" },
   { value: "link", label: "External link", hint: "https://", chip: "bg-[#BFE3CF] text-[#0F3D2E]" },
 ];
 
@@ -63,8 +65,10 @@ export function GeneralCoursesBuilder({
       after?.();
       onNotice(notice);
       await onChanged();
+      return true;
     } catch (caught) {
       onError(caught instanceof Error ? caught.message : "That could not be saved.");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -79,6 +83,26 @@ export function GeneralCoursesBuilder({
         setCode("");
         setTitle("");
       },
+    );
+  }
+
+  function importPlaylist(playlist: PlaylistImport) {
+    if (!open) return Promise.resolve(false);
+    return run(
+      () =>
+        createCourseMaterialAction({
+          departmentId: GENERAL_DEPARTMENT_ID,
+          entryType: "material",
+          materialType: "playlist",
+          parentId: open.id,
+          courseTitle: playlist.title,
+          url: playlist.url,
+          provider: playlist.provider,
+          hiddenVideos: playlist.hiddenVideos,
+          kind: "link",
+          status: "published",
+        }),
+      "Playlist imported.",
     );
   }
 
@@ -157,10 +181,15 @@ export function GeneralCoursesBuilder({
             <select value={materialType} onChange={(event) => setMaterialType(event.target.value as CourseMaterialType)} aria-label="Material type" className={`${inputClass} flex-[1_1_170px]`}>
               {MATERIAL_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
-            <input value={materialTitle} onChange={(event) => setMaterialTitle(event.target.value)} placeholder="Title" aria-label="Material title" className={`${inputClass} flex-[2_1_200px]`} />
+            {materialType === "playlist" ? null : (
+              <>
+              <input value={materialTitle} onChange={(event) => setMaterialTitle(event.target.value)} placeholder="Title" aria-label="Material title" className={`${inputClass} flex-[2_1_200px]`} />
             <input value={materialUrl} onChange={(event) => setMaterialUrl(event.target.value)} placeholder={currentType.hint} aria-label="Link address" className={`${inputClass} flex-[3_1_240px]`} />
             <button type="button" disabled={busy} onClick={addMaterial} className={primaryButton}>Add material</button>
+              </>
+            )}
           </div>
+          {materialType === "playlist" ? <PlaylistImporter busy={busy} onImport={importPlaylist} onError={onError} /> : null}
         </div>
       </section>
     );

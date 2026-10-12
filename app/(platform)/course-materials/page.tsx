@@ -28,7 +28,7 @@ import { createCourseMaterialsRepository, type CourseMaterialsRepository } from 
 import { GENERAL_DEPARTMENT_ID, type CourseMaterialYear, type CourseMaterialsDepartment, type CourseMaterialsDirectory } from "@/lib/courseMaterials";
 import { deriveMaterialType, type MaterialRow, type MaterialType } from "@/lib/courseMaterialsDisplay";
 
-const RESOURCE_TYPES: Array<"ALL" | MaterialType> = ["ALL", "PDF Document", "Lecture Slides", "Past Questions", "Video Lecture", "External Link"];
+const RESOURCE_TYPES: Array<"ALL" | MaterialType> = ["ALL", "PDF Document", "Lecture Slides", "Past Questions", "Video Lecture", "Playlist", "External Link"];
 const STUDY_YEARS: Array<{ value: CourseMaterialYear; label: string }> = [
   { value: 1, label: "First year" },
   { value: 2, label: "Second year" },
@@ -239,7 +239,7 @@ export default function CourseMaterialsPage() {
     const activeMaterials = activeCourse ? activeCourse.materials : [];
 
     const shortTypeLabel = (type: MaterialType) =>
-      type === "PDF Document" ? "PDF" : type === "Lecture Slides" ? "Slides" : type === "Past Questions" ? "Past Qs" : type === "Video Lecture" ? "Video" : "Links";
+      type === "PDF Document" ? "PDF" : type === "Lecture Slides" ? "Slides" : type === "Past Questions" ? "Past Qs" : type === "Video Lecture" ? "Video" : type === "Playlist" ? "Playlists" : "Links";
 
     const renderCourseCard = (course: CourseNode<MaterialRow>) => {
       const typeCounts = course.materials.reduce((acc, material) => {

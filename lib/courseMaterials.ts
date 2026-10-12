@@ -11,7 +11,7 @@ export type CourseMaterialSemester = 1 | 2;
  * Rows saved before this existed have no entry type; they read as "material" with no parent.
  */
 export type CourseMaterialEntryType = "course" | "material" | "semester_link";
-export type CourseMaterialType = "pdf" | "slides" | "past_questions" | "video" | "link";
+export type CourseMaterialType = "pdf" | "slides" | "past_questions" | "video" | "link" | "playlist";
 
 export interface CourseMaterialsDepartment {
   id: string;
@@ -39,6 +39,8 @@ export interface CourseMaterialEntry {
   parentId?: string | null;
   /** For a material or semester link: chosen by the administrator. */
   materialType?: CourseMaterialType | null;
+  /** For a playlist: YouTube video ids the administrator hid from students. */
+  hiddenVideos?: string[];
   description?: string;
   /** Empty for a course (a course has no link of its own). */
   url: string;
