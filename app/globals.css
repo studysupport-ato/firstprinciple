@@ -161,34 +161,36 @@
 
 .lesson-themed[data-lesson-theme="dark"],
 .lesson-themed[data-lesson-theme="blue"],
-.lesson-themed[data-lesson-theme="wine"] { color: #f3eedf; }
+.lesson-themed[data-lesson-theme="wine"],
+.lesson-themed[data-lesson-theme="purple"],
+.lesson-themed[data-lesson-theme="green"] { color: #f3eedf; }
 .lesson-themed[data-lesson-theme="blue"] { color: #ffffff; }
 
-:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"]) {
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) {
   --lt-ink: #f3eedf;
   --lt-line: rgba(255, 255, 255, 0.24);
   --lt-card: rgba(255, 255, 255, 0.08);
 }
 .lesson-themed[data-lesson-theme="blue"] { --lt-ink: #ffffff; --lt-line: rgba(255, 255, 255, 0.28); }
 
-:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"]) .lesson-guided-content :is(h1, h2, h3, h4, p, li, td, th, strong, em, b, span, label, .editorial-heading, .editorial-body, .math-display) {
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-guided-content :is(h1, h2, h3, h4, p, li, td, th, strong, em, b, span, label, .editorial-heading, .editorial-body, .math-display) {
   color: var(--lt-ink) !important;
 }
-:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"]) .lesson-guided-content :is(.rounded-2xl, th, blockquote, code):not(figure) {
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-guided-content :is(.rounded-2xl, th, blockquote, code):not(figure) {
   background-color: var(--lt-card) !important;
 }
-:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"]) .lesson-guided-content :is(.rounded-2xl, table, th, td, hr, blockquote) {
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-guided-content :is(.rounded-2xl, table, th, td, hr, blockquote) {
   border-color: var(--lt-line) !important;
 }
-:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"]) .lesson-guided-step > span:first-child { color: #ffc700 !important; }
-:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"]) .lesson-step-progress span:not(.bg-\[\#E9BC3A\]) { background-color: rgba(255, 255, 255, 0.22); }
-:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"]) .lesson-nav { border-top-color: rgba(255, 255, 255, 0.16); }
-:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"]) .lesson-nav-prev { border-color: rgba(255, 255, 255, 0.3); background: transparent; color: #ffffff; }
-:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"]) .lesson-outline { color: #cdd5e4; }
-:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"]) .lesson-outline-item:not(:disabled):hover { background: rgba(255, 255, 255, 0.1); }
-:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"]) .lesson-outline-item[aria-current="step"] { background: rgba(255, 255, 255, 0.14); color: #ffffff; }
-:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"]) .lesson-outline-num { border-color: rgba(255, 255, 255, 0.35); }
-:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"]) .lesson-outline-item[aria-current="step"] .lesson-outline-num { color: #1a1814; }
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-guided-step > span:first-child { color: #ffc700 !important; }
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-step-progress span:not(.bg-\[\#E9BC3A\]) { background-color: rgba(255, 255, 255, 0.22); }
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-nav { border-top-color: rgba(255, 255, 255, 0.16); }
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-nav-prev { border-color: rgba(255, 255, 255, 0.3); background: transparent; color: #ffffff; }
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-outline { color: #cdd5e4; }
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-outline-item:not(:disabled):hover { background: rgba(255, 255, 255, 0.1); }
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-outline-item[aria-current="step"] { background: rgba(255, 255, 255, 0.14); color: #ffffff; }
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-outline-num { border-color: rgba(255, 255, 255, 0.35); }
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-outline-item[aria-current="step"] .lesson-outline-num { color: #1a1814; }
 
 .lesson-guided-content .math-display {
   color: #211f1b;
@@ -231,3 +233,22 @@
 .split-parent {
   overflow: hidden;
 }
+
+/* Split layout: notes card on the right, steps popover, quiz feedback */
+.lesson-side-card { border-color: #e3dccb; background: rgba(255, 253, 246, 0.92); }
+.lesson-side-card:empty { display: none; }
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-side-card {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+}
+.lesson-side-card .lesson-quiz-card { border-radius: 14px; border: 1px solid rgba(0,0,0,.12); padding: 14px 16px; font-family: var(--font-sans); font-size: 1rem; line-height: 1.5; }
+.lesson-quiz-good { background: rgba(111, 213, 155, 0.22); }
+.lesson-quiz-bad { background: rgba(255, 179, 138, 0.2); }
+.lesson-quiz-explain { background: rgba(255, 199, 0, 0.14); }
+.lesson-steps-btn { border-color: #d9d4c7; background: #fff; color: #25231f; }
+.lesson-steps-btn:hover { border-color: #111; }
+.lesson-steps-pop { border-color: #d9d4c7; background: #fffdf6; color: #25231f; }
+.lesson-steps-item:not(:disabled):hover { background: rgba(0, 0, 0, 0.05); }
+.lesson-steps-item[aria-current="step"] { background: rgba(255, 199, 0, 0.25); font-weight: 600; }
+.lesson-steps-num { border-color: #d9d4c7; }
+.lesson-steps-item[aria-current="step"] .lesson-steps-num { background: #ffc700; border-color: #ffc700; }

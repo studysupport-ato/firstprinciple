@@ -483,6 +483,14 @@ export function createDefaultBlock(type: ContentBlock["type"], step = 1): Conten
       return { id: createStableId("block-question"), type: "question", step, questionId: "math151-argand-modulus-check" };
     case "markdown":
       return { id: createStableId("block-markdown"), type: "markdown", step, markdown: "# New lesson section\n\nWrite the lesson content here. Use $a^2 + b^2$ for inline mathematics." };
+    case "quiz":
+      return {
+        id: createStableId("block-quiz"),
+        type: "quiz",
+        step,
+        variant: "mid",
+        questions: [{ prompt: "Write the question here.", options: ["Option A", "Option B", "Option C"], answerIndex: 0, explanation: "Explain why the answer is right." }],
+      };
     default:
       return { id: createStableId("block-text"), type: "text", step, body: "Add lesson text here." };
   }
@@ -555,6 +563,17 @@ export function validateBlock(block: ContentBlock): string[] {
       break;
     case "markdown":
       if (!block.markdown.trim()) errors.push("Markdown content cannot be empty.");
+      break;
+    case "quiz":
+      if (block.variant !== "mid" && block.variant !== "end") errors.push("Quiz variant must be mid or end.");
+      if (!Array.isArray(block.questions) || block.questions.length === 0) errors.push("Quiz needs at least one question.");
+      else block.questions.forEach((question, index) => {
+        const label = `Quiz question ${index + 1}`;
+        if (!question.prompt || !question.prompt.trim()) errors.push(`${label} needs a prompt.`);
+        if (!Array.isArray(question.options) || question.options.length < 2 || question.options.length > 6 || question.options.some((option) => !option || !option.trim())) errors.push(`${label} needs 2 to 6 non-empty options.`);
+        else if (!Number.isInteger(question.answerIndex) || question.answerIndex < 0 || question.answerIndex >= question.options.length) errors.push(`${label} has an answer that is not one of its options.`);
+        if (!question.explanation || !question.explanation.trim()) errors.push(`${label} needs an explanation.`);
+      });
       break;
     default:
       errors.push("Unsupported block type.");

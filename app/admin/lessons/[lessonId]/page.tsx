@@ -27,6 +27,7 @@ const supportedBlockTypes = [
   "interactive",
   "visualizer",
   "question",
+  "quiz",
 ] as const;
 
 type EditableField = "title" | "description";
@@ -535,6 +536,14 @@ export default function AdminLessonEditorPage() {
                 placeholder="Custom visualizer"
               />
             </div>
+            <label className="flex items-center gap-2 text-sm text-[#111111]">
+              <input
+                type="checkbox"
+                checked={Boolean(block.fit)}
+                onChange={(event) => updateBlock(block.id, (item) => ({ ...item, type: "visualizer", fit: event.target.checked } as ContentBlock))}
+              />
+              Expand to fit the screen (blue print page)
+            </label>
             <div className="space-y-2">
               <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Height</label>
               <input
@@ -561,6 +570,41 @@ export default function AdminLessonEditorPage() {
                 placeholder={'<div id="app"></div>\n<script>...</script>'}
               />
             </div>
+          </div>
+        );
+      case "quiz":
+        return (
+          <div className="space-y-3">
+            <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Quiz type</label>
+            <select
+              value={block.variant}
+              onChange={(event) =>
+                updateBlock(block.id, (item) => ({ ...item, type: "quiz", variant: event.target.value === "end" ? "end" : "mid" } as ContentBlock))
+              }
+              className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
+            >
+              <option value="mid">Mid-lesson test (purple, explanation always available)</option>
+              <option value="end">End-of-lesson test (green, second try, then answer shown)</option>
+            </select>
+            <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Questions (JSON)</label>
+            <p className="text-xs leading-5 text-[#666666]">Each question: prompt, options (2 to 6), answerIndex (0 = first option), explanation. Edits apply when you click outside the box.</p>
+            <textarea
+              key={block.id}
+              defaultValue={JSON.stringify(block.questions, null, 2)}
+              onBlur={(event) => {
+                try {
+                  const parsed = JSON.parse(event.target.value);
+                  if (!Array.isArray(parsed)) throw new Error("not an array");
+                  updateBlock(block.id, (item) => ({ ...item, type: "quiz", questions: parsed } as ContentBlock));
+                  setMessage("Quiz questions updated.");
+                } catch {
+                  setMessage("Quiz JSON is not valid, so it was not applied.");
+                }
+              }}
+              rows={16}
+              spellCheck={false}
+              className="w-full rounded-xl border border-[#E5E5E5] bg-[#111827] px-3 py-3 font-mono text-xs leading-5 text-[#F9FAFB] outline-none"
+            />
           </div>
         );
       case "question":
@@ -750,7 +794,22 @@ export default function AdminLessonEditorPage() {
                       </div>
                     </div>
 
-                    {selectedBlockId === block.id ? renderBlockEditor(block) : (
+                    {selectedBlockId === block.id ? (
+                      <div className="space-y-4">
+                        {renderBlockEditor(block)}
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Position on the page</label>
+                          <select
+                            value={block.pane ?? "main"}
+                            onChange={(event) => updateBlock(block.id, (item) => ({ ...item, pane: event.target.value === "side" ? "side" : "main" } as ContentBlock))}
+                            className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
+                          >
+                            <option value="main">Left (main)</option>
+                            <option value="side">Right (additional notes)</option>
+                          </select>
+                        </div>
+                      </div>
+                    ) : (
                       <div className="text-sm leading-6 text-[#666666]">
                         {block.type === "heading" && block.text}
                         {block.type === "text" && block.body}
@@ -763,6 +822,7 @@ export default function AdminLessonEditorPage() {
                         {block.type === "interactive" && `Interactive: ${block.provider}`}
                         {block.type === "visualizer" && (block.title || "Custom visualizer")}
                         {block.type === "question" && `Question ref: ${block.questionId}`}
+                        {block.type === "quiz" && `${block.variant === "end" ? "End" : "Mid"}-lesson test, ${block.questions.length} question(s)`}
                       </div>
                     )}
                   </div>

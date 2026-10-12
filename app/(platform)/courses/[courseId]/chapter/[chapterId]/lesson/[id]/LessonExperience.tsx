@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ChevronLeft, MessageCircle, Moon, Sun } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CheckCircle2, ChevronLeft, ListOrdered, MessageCircle, Moon, Sun, X } from "lucide-react";
 import Link from "next/link";
 import { completeDay, startDay } from "@/lib/progress";
 import { LessonRenderer } from "@/components/learning/LessonRenderer";
 import { isBoardSource } from "@/components/learning/blocks/VisualizerBlock";
+import { LessonSideContext } from "@/components/learning/LessonContext";
 import { GeoGebraProvider } from "@/components/learning/GeoGebraProvider";
 import { LessonVideo, SupplementaryResources } from "@/components/learning/SupplementaryResources";
 import { getGeoGebraEmbedConfig } from "@/lib/content/resourcePresentation";
@@ -33,7 +34,7 @@ function formatSectionLabel(chapterId: string) {
     .join(" ");
 }
 
-type LessonTheme = "paper" | "dark" | "blue" | "wine";
+type LessonTheme = "paper" | "dark" | "blue" | "wine" | "purple" | "green";
 
 const THEME_BACKGROUNDS: Record<LessonTheme, { backgroundColor: string; backgroundImage: string; backgroundSize: string }> = {
   paper: {
@@ -52,6 +53,18 @@ const THEME_BACKGROUNDS: Record<LessonTheme, { backgroundColor: string; backgrou
       "linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px)",
     backgroundSize: "28px 28px",
   },
+  purple: {
+    backgroundColor: "#2B1A5E",
+    backgroundImage:
+      "linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px)",
+    backgroundSize: "32px 32px",
+  },
+  green: {
+    backgroundColor: "#0F3D2E",
+    backgroundImage:
+      "linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px)",
+    backgroundSize: "32px 32px",
+  },
   wine: {
     backgroundColor: "#3B1019",
     backgroundImage:
@@ -63,7 +76,10 @@ const THEME_BACKGROUNDS: Record<LessonTheme, { backgroundColor: string; backgrou
 // Videos and questions sit on the wine print, visualizers on the blue grid,
 // everything else on the dotted paper (which can switch to dark mode).
 function themeForStep(blocks: ContentBlock[], dark: boolean): LessonTheme {
-  if (blocks.some((block) => block.type === "video" || block.type === "question")) return "wine";
+  const quiz = blocks.find((block) => block.type === "quiz");
+  if (quiz && quiz.type === "quiz") return quiz.variant === "end" ? "green" : "purple";
+  if (blocks.some((block) => block.type === "question")) return "purple";
+  if (blocks.some((block) => block.type === "video")) return "wine";
   if (blocks.some((block) => block.type === "visualizer" && !isBoardSource(block.source))) return "blue";
   return dark ? "dark" : "paper";
 }
@@ -139,8 +155,31 @@ export function LessonExperience({
 
   const hasBlocks = activeBlocks.length > 0;
   const hasTextContent = activeBlocks.some((block) => !["image", "video", "interactive"].includes(block.type));
-  const hasSideContent = Boolean(geoResource) && (!hasBlocks || hasTextContent);
-  const isFullWidthInteractive = hasSideContent && !hasBlocks;
+  const hasGeoSide = Boolean(geoResource) && (!hasBlocks || hasTextContent);
+  const isFullWidthInteractive = hasGeoSide && !hasBlocks;
+
+  // Split layout: blocks marked pane "side" (and quiz feedback) fill the right-hand card.
+  const hasSideBlocks = activeBlocks.some((block) => block.pane === "side");
+  const hasQuiz = activeBlocks.some((block) => block.type === "quiz");
+  const hasSidePane = !hasGeoSide && (hasSideBlocks || hasQuiz);
+  const hasVisualizerFit = activeBlocks.some((block) => block.type === "visualizer" && block.fit);
+
+  const [sideSlot, setSideSlot] = useState<HTMLElement | null>(null);
+  const [quizDone, setQuizDone] = useState<Record<string, boolean>>({});
+  const reportQuiz = useCallback((blockId: string, done: boolean) => {
+    setQuizDone((prev) => (prev[blockId] === done ? prev : { ...prev, [blockId]: done }));
+  }, []);
+  const quizIds = activeBlocks.filter((block) => block.type === "quiz").map((block) => block.id);
+  const quizPending = !preview && quizIds.some((id) => !quizDone[id]);
+
+  const [stepsOpen, setStepsOpen] = useState(false);
+  const [maxStep, setMaxStep] = useState(0);
+  useEffect(() => {
+    setMaxStep((value) => Math.max(value, currentStep));
+    setStepsOpen(false);
+  }, [currentStep]);
+
+  const sideContextValue = useMemo(() => ({ sideSlot, reportQuiz }), [sideSlot, reportQuiz]);
 
   const renderNavigation = () => (
     <nav
@@ -158,11 +197,16 @@ export function LessonExperience({
       {!isComplete ? (
         <button
           type="button"
+          disabled={quizPending}
           onClick={() => setCurrentStep((step) => Math.min(totalSteps - 1, step + 1))}
-          className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#FFC700] px-7 font-sans text-sm font-bold text-[#1A1814] transition-colors hover:bg-[#F0BC21] md:max-w-[220px] md:flex-none"
+          className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#FFC700] px-7 font-sans text-sm font-bold text-[#1A1814] transition-colors hover:bg-[#F0BC21] disabled:opacity-40 md:max-w-[220px] md:flex-none"
         >
-          Continue <span aria-hidden>›</span>
+          {quizPending ? "Finish the questions" : "Continue"} <span aria-hidden>›</span>
         </button>
+      ) : quizPending ? (
+        <span className="flex min-h-11 items-center rounded-full bg-white/20 px-6 font-sans text-sm font-semibold opacity-70">
+          Finish the test to complete
+        </span>
       ) : (
         <Link
           href={roadmapHref}
@@ -176,7 +220,46 @@ export function LessonExperience({
     </nav>
   );
 
+  const stepsButton = totalSteps > 1 ? (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setStepsOpen((open) => !open)}
+        aria-expanded={stepsOpen}
+        className="lesson-steps-btn flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 font-sans text-xs font-semibold transition-colors"
+      >
+        <ListOrdered size={13} />
+        Steps {currentStep + 1} of {totalSteps}
+      </button>
+      {stepsOpen ? (
+        <div role="dialog" aria-label="Lesson steps" className="lesson-steps-pop absolute right-0 top-9 z-50 w-[300px] max-w-[85vw] rounded-2xl border p-2 shadow-xl">
+          <div className="flex items-center justify-between px-3 pb-1 pt-1">
+            <p className="font-sans text-sm font-semibold">In this lesson</p>
+            <button type="button" aria-label="Close steps" onClick={() => setStepsOpen(false)}><X size={14} /></button>
+          </div>
+          <ol className="flex flex-col gap-1">
+            {uniqueSteps.map((step, index) => (
+              <li key={step}>
+                <button
+                  type="button"
+                  disabled={index > maxStep}
+                  onClick={() => setCurrentStep(index)}
+                  aria-current={index === currentStep ? "step" : undefined}
+                  className="lesson-steps-item flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left font-sans text-[14px] disabled:opacity-45"
+                >
+                  <span className="lesson-steps-num flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold">{index + 1}</span>
+                  <span className="min-w-0">{stepTitles[index]}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+    </div>
+  ) : null;
+
   return (
+    <LessonSideContext.Provider value={sideContextValue}>
     <div
       className={`flex flex-col ${preview ? "h-[calc(100dvh-76px)] md:h-[calc(100dvh-48px)]" : "h-[calc(100dvh-28px)] md:h-screen"}`}
       style={{ background: "#FBFAF5" }}
@@ -202,16 +285,16 @@ export function LessonExperience({
           type="button"
           onClick={toggleDarkMode}
           aria-pressed={darkMode}
-          className="ml-auto mr-3 flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-[#D9D4C7] px-3 font-sans text-xs font-semibold text-[#25231F] transition-colors hover:border-[#111111]"
+          className="ml-auto mr-2 flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-[#D9D4C7] px-3 font-sans text-xs font-semibold text-[#25231F] transition-colors hover:border-[#111111]"
         >
           {darkMode ? <Sun size={13} /> : <Moon size={13} />}
-          {darkMode ? "Light mode" : "Dark mode"}
+          <span className="hidden sm:inline">{darkMode ? "Light mode" : "Dark mode"}</span>
         </button>
         <div
           data-testid="lesson-step-indicator"
           data-current-step={currentStep}
           aria-label={`Step ${currentStep + 1} of ${totalSteps}`}
-          className="ml-2 flex shrink-0 items-center gap-1.5"
+          className="mr-3 hidden shrink-0 items-center gap-1.5 sm:flex"
         >
           {uniqueSteps.map((step, index) => (
             <span
@@ -223,6 +306,7 @@ export function LessonExperience({
             />
           ))}
         </div>
+        <div className="lesson-steps-host text-[#25231F]">{stepsButton}</div>
       </header>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -230,15 +314,21 @@ export function LessonExperience({
           <section
             aria-label={`Lesson step ${currentStep + 1}`}
             data-lesson-theme={theme}
-            className={`lesson-themed relative ${boardFullscreen ? "z-[60]" : "z-10"} flex min-h-0 flex-col ${hasSideContent ? "w-full lg:w-[45%]" : "w-full"}`}
+            className={`lesson-themed relative ${boardFullscreen ? "z-[60]" : "z-10"} flex min-h-0 flex-col ${hasGeoSide ? "w-full lg:w-[45%]" : "w-full"}`}
             style={THEME_BACKGROUNDS[theme]}
           >
-            <div className="flex min-h-0 flex-1">
-              <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y px-4 pb-20 pt-4 md:px-10 md:py-8 lg:pl-24 lg:pr-10 lg:py-12">
-                <div className="lesson-guided-content mr-auto max-w-[680px]">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain touch-pan-y px-4 pb-20 pt-4 md:px-10 md:py-8 lg:flex-row lg:gap-8 lg:overflow-hidden lg:px-14 lg:py-8">
+              <div
+                className={`min-h-0 min-w-0 lg:overflow-y-auto lg:overscroll-contain ${
+                  hasSidePane ? (hasVisualizerFit ? "lg:flex-[3]" : "lg:flex-[11]") : "flex-1"
+                }`}
+              >
+                <div className={`lesson-guided-content mr-auto ${hasVisualizerFit ? "max-w-none" : "max-w-[680px]"}`}>
                   <LessonRenderer
                     lesson={lesson}
                     step={activeStep}
+                    pane={hasSidePane ? "main" : undefined}
+                    hideProgress
                     assetsById={assetsById}
                     questionsById={questionsById}
                     deferGeoGebra
@@ -252,25 +342,23 @@ export function LessonExperience({
                   ) : null}
                 </div>
               </div>
-              {!hasSideContent && totalSteps > 1 ? (
-                <aside aria-label="In this lesson" className="lesson-outline hidden w-[290px] shrink-0 overflow-y-auto px-4 pt-12 lg:block xl:mr-10">
-                  <p className="px-3 pb-2 font-sans text-sm font-semibold">In this lesson</p>
-                  <ol className="flex flex-col gap-1.5">
-                    {uniqueSteps.map((step, index) => (
-                      <li key={step}>
-                        <button
-                          type="button"
-                          disabled={index > currentStep}
-                          onClick={() => setCurrentStep(index)}
-                          aria-current={index === currentStep ? "step" : undefined}
-                          className="lesson-outline-item flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left font-sans text-[15px] disabled:cursor-default"
-                        >
-                          <span className="lesson-outline-num flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full border text-[13px] font-semibold">{index + 1}</span>
-                          <span className="min-w-0">{stepTitles[index]}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ol>
+              {hasSidePane ? (
+                <aside
+                  aria-label="Notes"
+                  className={`lesson-side-card lesson-guided-content min-h-0 min-w-0 rounded-2xl border p-5 lg:overflow-y-auto lg:overscroll-contain ${
+                    hasVisualizerFit ? "lg:flex-[1.4]" : "lg:flex-[9]"
+                  }`}
+                >
+                  <div ref={setSideSlot} className="flex flex-col gap-3" />
+                  <LessonRenderer
+                    lesson={lesson}
+                    step={activeStep}
+                    pane="side"
+                    hideProgress
+                    assetsById={assetsById}
+                    questionsById={questionsById}
+                    deferGeoGebra
+                  />
                 </aside>
               ) : null}
             </div>
@@ -278,7 +366,7 @@ export function LessonExperience({
           </section>
         ) : null}
 
-        {hasSideContent ? (
+        {hasGeoSide ? (
           <aside className={`${isFullWidthInteractive ? "flex w-full flex-col" : "hidden w-[55%] lg:flex"} items-center justify-center bg-white`}>
             <div className={`w-full ${isFullWidthInteractive ? "flex-1 p-8" : "max-w-[960px] p-8"}`}>
               <GeoGebraProvider config={getGeoGebraEmbedConfig(geoResource!.data)} title={geoResource!.title} />
@@ -306,5 +394,6 @@ export function LessonExperience({
         <MessageCircle size={20} strokeWidth={2} className="text-[#1A1814]" />
       </button>
     </div>
+    </LessonSideContext.Provider>
   );
 }

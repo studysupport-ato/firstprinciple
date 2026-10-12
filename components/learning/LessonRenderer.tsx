@@ -14,6 +14,7 @@ import { MarkdownBlock } from "./blocks/MarkdownBlock";
 import { QuestionBlock } from "./blocks/QuestionBlock";
 import { TextBlock } from "./blocks/TextBlock";
 import { WorkedExampleBlock } from "./blocks/WorkedExampleBlock";
+import { QuizBlock } from "./blocks/QuizBlock";
 import { isBoardSource, VisualizerBlock } from "./blocks/VisualizerBlock";
 
 export function renderBlock(block: ContentBlock, assetsById?: Record<string, Asset>, questionsById?: Record<string, Question>) {
@@ -40,6 +41,8 @@ export function renderBlock(block: ContentBlock, assetsById?: Record<string, Ass
       return <QuestionBlock {...block} question={questionsById?.[block.questionId]} />;
     case "markdown":
       return <MarkdownBlock {...block} />;
+    case "quiz":
+      return <QuizBlock {...block} />;
     default:
       return <div className="font-sans text-xs text-[#999999]">Unsupported content block.</div>;
   }
@@ -94,15 +97,23 @@ export function LessonRenderer({
   questionsById,
   deferGeoGebra = false,
   onFullscreenChange,
+  pane,
+  hideProgress = false,
 }: {
   lesson: Lesson;
   step: number;
+  /** Render only one half of a split step. Omit to render every block. */
+  pane?: "main" | "side";
+  /** The lesson page draws its own progress strip when a step is split. */
+  hideProgress?: boolean;
   assetsById?: Record<string, Asset>;
   questionsById?: Record<string, Question>;
   deferGeoGebra?: boolean;
   onFullscreenChange?: (open: boolean) => void;
 }) {
-  const blocks = (lesson?.blocks ?? []).filter((block) => (block.step ?? 1) === step);
+  const blocks = (lesson?.blocks ?? []).filter(
+    (block) => (block.step ?? 1) === step && (!pane || (block.pane ?? "main") === pane),
+  );
   const uniqueSteps = Array.from(new Set((lesson?.blocks ?? []).map(b => b.step ?? 1))).sort((a, b) => a - b);
   const currentStepIndex = Math.max(0, uniqueSteps.indexOf(step));
   const progress = (
@@ -130,7 +141,7 @@ export function LessonRenderer({
         transition={{ duration: 0.4 }}
         className="lesson-guided-step flex flex-col gap-6"
       >
-        {blocks[0]?.type === "heading" ? null : progress}
+        {hideProgress || blocks[0]?.type === "heading" ? null : progress}
         {blocks.map((block) => (
           <Fragment key={block.id}>
             <div
@@ -146,7 +157,7 @@ export function LessonRenderer({
                 onFullscreenChange={onFullscreenChange}
               />
             </div>
-            {block === blocks[0] && block.type === "heading" ? progress : null}
+            {!hideProgress && block === blocks[0] && block.type === "heading" ? progress : null}
           </Fragment>
         ))}
       </motion.div>

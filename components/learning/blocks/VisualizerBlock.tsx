@@ -364,6 +364,7 @@ export function VisualizerBlock({
   source,
   title = "Custom visualizer",
   height,
+  fit = false,
   fill = false,
   onFullscreenChange,
 }: VisualizerBlockData & { fill?: boolean; onFullscreenChange?: (open: boolean) => void }) {
@@ -503,8 +504,8 @@ export function VisualizerBlock({
   ) : null;
 
   const overlay = status !== "ready" ? (
-    <div className={`absolute inset-0 z-10 flex items-center justify-center p-6 text-center ${fill ? "bg-[#12335A]" : "bg-white"}`}>
-      <p className={`max-w-sm text-xs leading-5 ${fill ? "text-[#9DB7D6]" : "text-[#666666]"}`}>
+    <div className={`absolute inset-0 z-10 flex items-center justify-center p-6 text-center ${fill || fit ? "bg-[#12335A]" : "bg-white"}`}>
+      <p className={`max-w-sm text-xs leading-5 ${fill || fit ? "text-[#9DB7D6]" : "text-[#666666]"}`}>
         {status === "error" ? "This visualizer could not be loaded. Please ask an administrator to check its code." : "Loading visualizer..."}
       </p>
     </div>
@@ -651,6 +652,19 @@ export function VisualizerBlock({
             </button>
           </div>
         ) : null}
+      </div>
+    );
+  }
+
+  // Fit mode: no card chrome; the visualizer fills the height of the screen it is on.
+  if (fit) {
+    return (
+      <div
+        className="lesson-visualizer-fit relative w-full overflow-hidden rounded-2xl border border-white/25"
+        style={{ height: "clamp(380px, calc(100dvh - 300px), 780px)" }}
+      >
+        {overlay}
+        {frame}
       </div>
     );
   }
