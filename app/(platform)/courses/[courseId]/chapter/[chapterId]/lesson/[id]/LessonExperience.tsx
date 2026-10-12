@@ -54,7 +54,7 @@ const THEME_BACKGROUNDS: Record<LessonTheme, { backgroundColor: string; backgrou
     backgroundSize: "28px 28px",
   },
   purple: {
-    backgroundColor: "#2B1A5E",
+    backgroundColor: "#2A1A5E",
     backgroundImage:
       "linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px)",
     backgroundSize: "32px 32px",
@@ -80,7 +80,7 @@ function themeForStep(blocks: ContentBlock[], dark: boolean): LessonTheme {
   if (quiz && quiz.type === "quiz") return quiz.variant === "end" ? "green" : "purple";
   if (blocks.some((block) => block.type === "question")) return "purple";
   if (blocks.some((block) => block.type === "video")) return "wine";
-  if (blocks.some((block) => block.type === "visualizer" && !isBoardSource(block.source))) return "blue";
+  if (blocks.some((block) => block.type === "visualizer" && (block.fit || !isBoardSource(block.source)))) return "blue";
   return dark ? "dark" : "paper";
 }
 

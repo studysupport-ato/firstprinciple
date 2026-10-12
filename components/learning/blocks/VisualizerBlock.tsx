@@ -387,8 +387,17 @@ export function VisualizerBlock({
   useEffect(() => { setMounted(true); }, []);
   const iframeSource = useMemo(() => buildSourceDocument(source), [source]);
   const requestedHeight = visualizerHeight(height);
+  const [viewportHeight, setViewportHeight] = useState(800);
+  useEffect(() => {
+    const update = () => setViewportHeight(window.innerHeight);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  // fit: a board expands to the height of the screen it is on.
+  const fitHeight = Math.max(BOARD_MIN_HEIGHT, Math.min(780, viewportHeight - 300));
   const frameHeight = fill && isBoardSource(source)
-    ? Math.max(BOARD_MIN_HEIGHT, requestedHeight)
+    ? (fit ? fitHeight : Math.max(BOARD_MIN_HEIGHT, requestedHeight))
     : requestedHeight;
   const embeddedFrameHeight = Math.max(frameHeight, mobileBoardHeight);
   const timeoutRef = useRef<number | undefined>(undefined);
