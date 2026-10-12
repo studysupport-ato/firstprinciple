@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import posthog from "posthog-js";
 
 import { createSupabaseBrowserClient, resetSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
@@ -80,6 +81,17 @@ export function useAuthSession(): AuthSessionState {
     window.addEventListener("profile-updated", handleProfileUpdated);
     return () => window.removeEventListener("profile-updated", handleProfileUpdated);
   }, [user?.id]);
+
+  // Tie PostHog events to the signed-in student by id only (no email or name),
+  // and start a fresh anonymous identity after sign-out.
+  useEffect(() => {
+    if (!posthog.__loaded) return;
+    if (user?.id) {
+      if (posthog.get_distinct_id() !== user.id) posthog.identify(user.id);
+    } else if (authenticated === false && posthog._isIdentified()) {
+      posthog.reset();
+    }
+  }, [user?.id, authenticated]);
 
   const signOut = useCallback(async () => {
     setSession(null);

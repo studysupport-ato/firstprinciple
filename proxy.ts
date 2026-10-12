@@ -131,6 +131,6 @@ export const config = {
      * Auth endpoints are deliberately NOT excluded: those must also carry a
      * current session cookie.
      */
-    "/((?!_next/static|_next/image|favicon.ico|apple-touch-icon|manifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|txt|xml|pdf)$).*)",
+    "/((?!ingest|_next/static|_next/image|favicon.ico|apple-touch-icon|manifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|txt|xml|pdf)$).*)",
   ],
 };
