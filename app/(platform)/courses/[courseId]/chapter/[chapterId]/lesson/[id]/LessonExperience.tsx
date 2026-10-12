@@ -342,7 +342,7 @@ export function LessonExperience({
                   hasSidePane ? (hasVisualizerFit ? "lg:flex-[3]" : "lg:flex-[11]") : "flex-1"
                 }`}
               >
-                <div className={`lesson-guided-content mr-auto ${hasVisualizerFit ? "max-w-none w-full" : "max-w-[680px]"}`}>
+                <div className={`lesson-guided-content mr-auto ${hasVisualizerFit || blueprint ? "max-w-none w-full" : "max-w-[680px]"}`}>
                   <LessonRenderer
                     lesson={lesson}
                     step={activeStep}

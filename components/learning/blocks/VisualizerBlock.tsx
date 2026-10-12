@@ -37,7 +37,7 @@ const BLUEPRINT_STYLE = `<style>
 .v .nh-edge.nh-path { stroke: #FFC700 !important; }
 .v .nh-hint { color: #cdd5e4 !important; }
 /* the lesson page already shows progress, so the boards' own progress bars are hidden */
-.v .v-trk, #lb .lb-prog, #lb-prog { display: none !important; }
+.v .v-trk, #lb .lb-prog, #lb-prog, .g-trk { display: none !important; }
 .v .nh-node:hover .nh-box, .v .nh-node.nh-sel .nh-box, .v .nh-node:focus-visible .nh-box { stroke: #fff !important; }
 .v .nh-node.nh-dark:hover .nh-box, .v .nh-node.nh-dark.nh-sel .nh-box { stroke: #FFC700 !important; }
 </style>`;
@@ -426,7 +426,7 @@ export function VisualizerBlock({
     return () => window.removeEventListener("resize", update);
   }, []);
   // fit: a board expands to the height of the screen it is on.
-  const fitHeight = Math.max(420, viewportHeight - (isBoardSource(source) ? 240 : 175));
+  const fitHeight = Math.max(420, viewportHeight - 160);
   const frameHeight = fill && isBoardSource(source)
     ? (fit ? fitHeight : Math.max(BOARD_MIN_HEIGHT, requestedHeight))
     : requestedHeight;
@@ -531,22 +531,6 @@ export function VisualizerBlock({
     };
   }, [iframeSource]);
 
-  // Fit pages are drawn on a roomy virtual screen and scaled down to the space available, so nothing
-  // overlaps on a short window. On phones the board keeps its own mobile layout.
-  const [viewportWidth, setViewportWidth] = useState(1280);
-  useEffect(() => {
-    const update = () => setViewportWidth(window.innerWidth);
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-  const boxHeight = fill ? embeddedFrameHeight : Math.max(420, viewportHeight - 175);
-  const minVirtualHeight = isBoardSource(source) ? 800 : 720;
-  const zoom = fit && !isFullscreen && viewportWidth >= 768 ? Math.min(1, boxHeight / minVirtualHeight) : 1;
-  const frameStyle = zoom < 1
-    ? { width: `${100 / zoom}%`, height: `${100 / zoom}%`, transform: `scale(${zoom})`, transformOrigin: "0 0" }
-    : undefined;
-
   const frame = mounted ? (
     <iframe
       title={title}
@@ -554,8 +538,7 @@ export function VisualizerBlock({
       sandbox="allow-scripts"
       referrerPolicy="no-referrer"
       ref={iframeRef}
-      className={zoom < 1 ? "border-0" : "h-full w-full border-0"}
-      style={frameStyle}
+      className="h-full w-full border-0"
       onLoad={markReady}
     />
   ) : null;
@@ -669,7 +652,7 @@ export function VisualizerBlock({
             </nav>
           </>
         )}
-        {!isFullscreen && isBoardSource(source) ? (
+        {!isFullscreen && !fit && isBoardSource(source) ? (
           <div className="flex items-center justify-between gap-1 px-1 py-2">
             <button
               type="button"
@@ -718,7 +701,7 @@ export function VisualizerBlock({
     return (
       <div
         className="lesson-visualizer-fit relative w-full overflow-hidden rounded-2xl border border-white/25"
-        style={{ height: "max(420px, calc(100dvh - 175px))" }}
+        style={{ height: "max(420px, calc(100dvh - 160px))" }}
       >
         {overlay}
         {frame}
