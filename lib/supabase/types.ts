@@ -60,8 +60,9 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["departments"]["Insert"]>;
       };
       course_materials: {
-        Row: { id: string; department_id: string; course_code: string | null; course_title: string; study_year: number | null; description: string | null; url: string; provider: string | null; order_index: number; status: ContentStatus; created_at: string; updated_at: string };
-        Insert: { id: string; department_id: string; course_code?: string | null; course_title: string; study_year?: number | null; description?: string | null; url: string; provider?: string | null; order_index?: number; status?: ContentStatus; created_at?: string; updated_at?: string };
+        // entry_type, material_type, semester and parent_id arrive with migration 20261012000000; rows read before it is applied simply lack them.
+        Row: { id: string; department_id: string; course_code: string | null; course_title: string; study_year: number | null; entry_type?: string | null; material_type?: string | null; semester?: number | null; parent_id?: string | null; description: string | null; url: string | null; provider: string | null; order_index: number; status: ContentStatus; created_at: string; updated_at: string };
+        Insert: { id: string; department_id: string; course_code?: string | null; course_title: string; study_year?: number | null; entry_type?: string | null; material_type?: string | null; semester?: number | null; parent_id?: string | null; description?: string | null; url?: string | null; provider?: string | null; order_index?: number; status?: ContentStatus; created_at?: string; updated_at?: string };
         Update: Partial<Database["public"]["Tables"]["course_materials"]["Insert"]>;
       };
       assets: {

@@ -226,7 +226,7 @@ export async function listAdminDepartments(): Promise<AdminDepartmentListRow[]> 
   const materials = createCourseMaterialsAdminRepository();
   const [departments, entries] = await Promise.all([materials.listDepartments(), materials.listCourseMaterials()]);
   const counts = new Map<string, number>();
-  for (const entry of entries) counts.set(entry.departmentId, (counts.get(entry.departmentId) ?? 0) + 1);
+  for (const entry of entries) if ((entry.entryType ?? "material") === "material") counts.set(entry.departmentId, (counts.get(entry.departmentId) ?? 0) + 1);
   return departments.map((department) => ({ department, materialCount: counts.get(department.id) ?? 0 }));
 }
 

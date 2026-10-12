@@ -2,6 +2,16 @@ export type CourseMaterialsStatus = "draft" | "published" | "archived";
 
 export type CourseMaterialKind = "link" | "youtube";
 export type CourseMaterialYear = 1 | 2 | 3 | 4;
+export type CourseMaterialSemester = 1 | 2;
+/**
+ * What a row in course_materials is:
+ *  - "course":        a course an administrator created under programme > year > semester (no link of its own)
+ *  - "material":      a PDF / slides / past questions / video / link that sits inside a course (parentId)
+ *  - "semester_link": the one exception, an external link placed at semester level beside the courses
+ * Rows saved before this existed have no entry type; they read as "material" with no parent.
+ */
+export type CourseMaterialEntryType = "course" | "material" | "semester_link";
+export type CourseMaterialType = "pdf" | "slides" | "past_questions" | "video" | "link";
 
 export interface CourseMaterialsDepartment {
   id: string;
@@ -20,7 +30,15 @@ export interface CourseMaterialEntry {
   courseCode?: string;
   courseTitle: string;
   studyYear?: CourseMaterialYear | null;
+  /** Which semester of the year (courses and semester links). */
+  semester?: CourseMaterialSemester | null;
+  entryType?: CourseMaterialEntryType;
+  /** For a material: the id of the course it sits in. */
+  parentId?: string | null;
+  /** For a material or semester link: chosen by the administrator. */
+  materialType?: CourseMaterialType | null;
   description?: string;
+  /** Empty for a course (a course has no link of its own). */
   url: string;
   provider?: string;
   /** "link" = external resource (legacy default), "youtube" = embedded YouTube video (provider stores the validated video ID). */
@@ -33,6 +51,10 @@ export interface CourseMaterialEntry {
 
 export type CourseMaterialsDepartmentInput = Omit<CourseMaterialsDepartment, "id" | "createdAt" | "updatedAt" | "order">;
 export type CourseMaterialEntryInput = Omit<CourseMaterialEntry, "id" | "createdAt" | "updatedAt" | "order" | "kind"> & { kind?: CourseMaterialKind };
+
+export function getEntryType(entry: Pick<CourseMaterialEntry, "entryType">): CourseMaterialEntryType {
+  return entry.entryType ?? "material";
+}
 import { createStableId } from "./ids";
 import { buildYouTubeWatchUrl, parseYouTubeVideoId } from "./youtube";
 
@@ -118,7 +140,15 @@ export function validateCourseMaterial(entry: CourseMaterialEntryInput | CourseM
   if (!entry.departmentId.trim()) errors.push("A department is required.");
   if (!entry.courseTitle.trim()) errors.push("Course title is required.");
   if (entry.studyYear != null && ![1, 2, 3, 4].includes(entry.studyYear)) errors.push("Course material year must be between first and fourth year.");
-  if (!isHttpUrl(entry.url.trim())) errors.push("A valid HTTP or HTTPS URL is required.");
+  const entryType = entry.entryType ?? "material";
+  if (!["course", "material", "semester_link"].includes(entryType)) errors.push("Entry type is invalid.");
+  if (entryType !== "course" && !isHttpUrl(entry.url.trim())) errors.push("A valid HTTP or HTTPS URL is required.");
+  if (entryType !== "material") {
+    if (entry.studyYear == null) errors.push("Choose the academic year.");
+    if (entry.semester !== 1 && entry.semester !== 2) errors.push("Choose semester 1 or semester 2.");
+  }
+  if (entry.semester != null && entry.semester !== 1 && entry.semester !== 2) errors.push("Semester must be 1 or 2.");
+  if (entryType === "material" && entry.parentId === "") errors.push("A material must belong to a course.");
   const kind = (entry as Partial<CourseMaterialEntry>).kind ?? "link";
   if (kind !== "link" && kind !== "youtube") errors.push("Course material type is invalid.");
   if (kind === "youtube" && !parseYouTubeVideoId(entry.url) && !parseYouTubeVideoId(entry.provider)) {
