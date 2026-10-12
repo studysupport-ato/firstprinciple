@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Inter, Newsreader } from "next/font/google";
 import "katex/dist/katex.min.css";
 import "./globals.css";
@@ -36,6 +37,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${newsreader.variable}`} suppressHydrationWarning>
       <body className="antialiased selection:bg-[#F8DFC2] selection:text-black">
         {children}
+        <Analytics />
       </body>
     </html>
   );

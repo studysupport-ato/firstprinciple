@@ -34,6 +34,7 @@ This repository is the Next.js application and is configured to display this REA
 - **Content authoring:** The protected admin lesson editor can create and reorder supported block types, edit lesson content, preview changes, and upload lesson images.
 - **Course materials:** Browse academic resources by department, filter the collection, and use bookmarks.
 - **Progress tracking:** Track lesson progress, practice attempts, assessment activity, and learning streaks.
+- **Web analytics:** Vercel Web Analytics is included in the root layout to collect page views and navigation activity after deployment on Vercel.
 - **Student accounts:** Authenticate with Supabase; student records and progress are associated with the authenticated student.
 - **First-signup experience:** New signups provide their name, agree to the Terms and Conditions, complete the first-time guided tour, and then provide a phone number in a separate one-time prompt.
 - **Editable settings:** Students can review and edit their profile information and preferences.
@@ -295,6 +296,7 @@ For a deployment:
 5. Verify that Supabase Auth redirect URLs and allowed origins include the deployed domain.
 6. Run the production build and check student signup, sign-in, password reset, course browsing, lesson progression, progress persistence, and admin access.
 7. Confirm that secrets are available only to server runtime code and are not included in client bundles.
+8. Enable Web Analytics for the Vercel project in the Vercel dashboard. The app includes the `@vercel/analytics/next` component; analytics data is collected after deployment when the Vercel project has Analytics enabled. Browser content blockers can prevent some visits from being recorded.
 
 Production deployments should use a separate Supabase project (or otherwise deliberately isolated data) from development. Do not deploy with placeholder environment values.
 
