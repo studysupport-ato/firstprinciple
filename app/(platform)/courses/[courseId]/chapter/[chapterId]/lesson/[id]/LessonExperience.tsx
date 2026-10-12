@@ -317,6 +317,18 @@ export function LessonExperience({
             className={`lesson-themed relative ${boardFullscreen ? "z-[60]" : "z-10"} flex min-h-0 flex-col ${hasGeoSide ? "w-full lg:w-[45%]" : "w-full"}`}
             style={THEME_BACKGROUNDS[theme]}
           >
+            <div
+              aria-label={`Lesson progress: step ${currentStep + 1} of ${totalSteps}`}
+              className="lesson-step-progress flex w-full flex-shrink-0 gap-1.5 px-4 pt-3 md:px-10 lg:px-14"
+            >
+              {uniqueSteps.map((step, index) => (
+                <span
+                  key={step}
+                  aria-hidden
+                  className={`h-[3px] flex-1 rounded-full ${index <= currentStep ? "bg-[#E9BC3A]" : "bg-[#D9D6CF]"}`}
+                />
+              ))}
+            </div>
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain touch-pan-y px-4 pb-20 pt-4 md:px-10 md:py-8 lg:flex-row lg:gap-8 lg:overflow-hidden lg:px-14 lg:py-8">
               <div
                 className={`min-w-0 shrink-0 lg:min-h-0 lg:shrink lg:overflow-y-auto lg:overscroll-contain ${
