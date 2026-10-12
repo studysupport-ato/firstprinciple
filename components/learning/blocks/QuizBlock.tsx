@@ -76,6 +76,10 @@ export function QuizBlock({ id, variant, questions }: QuizBlockData) {
     if (pick < 0 || locked) return;
     if (!isEnd) {
       setChecked(true);
+      if (pick === question.answerIndex) {
+        setCorrect((value) => value + 1);
+        setFirstTry((value) => value + 1);
+      }
       return;
     }
     if (pick === question.answerIndex) {

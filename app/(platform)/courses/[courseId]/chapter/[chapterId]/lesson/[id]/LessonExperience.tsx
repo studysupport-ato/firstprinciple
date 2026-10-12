@@ -75,12 +75,15 @@ const THEME_BACKGROUNDS: Record<LessonTheme, { backgroundColor: string; backgrou
 
 // Videos and questions sit on the wine print, visualizers on the blue grid,
 // everything else on the dotted paper (which can switch to dark mode).
-function themeForStep(blocks: ContentBlock[], dark: boolean): LessonTheme {
+// The blue-print look for visualizers is switched on week by week as lessons are redone.
+const BLUEPRINT_WEEKS = ["math151-week-1"];
+
+function themeForStep(blocks: ContentBlock[], dark: boolean, blueprint: boolean): LessonTheme {
   const quiz = blocks.find((block) => block.type === "quiz");
   if (quiz && quiz.type === "quiz") return quiz.variant === "end" ? "green" : "purple";
   if (blocks.some((block) => block.type === "question")) return "purple";
   if (blocks.some((block) => block.type === "video")) return "wine";
-  if (blocks.some((block) => block.type === "visualizer" && (block.fit || !isBoardSource(block.source)))) return "blue";
+  if (blocks.some((block) => block.type === "visualizer" && (blueprint || block.fit || !isBoardSource(block.source)))) return "blue";
   return dark ? "dark" : "paper";
 }
 
@@ -143,7 +146,8 @@ export function LessonExperience({
     [lesson.blocks, activeStep],
   );
 
-  const theme = themeForStep(activeBlocks, darkMode);
+  const blueprint = BLUEPRINT_WEEKS.includes(lesson.weekId);
+  const theme = themeForStep(activeBlocks, darkMode, blueprint);
   const stepTitles = useMemo(
     () =>
       uniqueSteps.map((step, index) => {
@@ -162,7 +166,7 @@ export function LessonExperience({
   const hasSideBlocks = activeBlocks.some((block) => block.pane === "side");
   const hasQuiz = activeBlocks.some((block) => block.type === "quiz");
   const hasSidePane = !hasGeoSide && (hasSideBlocks || hasQuiz);
-  const hasVisualizerFit = activeBlocks.some((block) => block.type === "visualizer" && block.fit);
+  const hasVisualizerFit = activeBlocks.some((block) => block.type === "visualizer" && (blueprint || block.fit));
 
   const [sideSlot, setSideSlot] = useState<HTMLElement | null>(null);
   const [quizDone, setQuizDone] = useState<Record<string, boolean>>({});
@@ -341,6 +345,7 @@ export function LessonExperience({
                     step={activeStep}
                     pane={hasSidePane ? "main" : undefined}
                     hideProgress
+                    blueprint={blueprint}
                     assetsById={assetsById}
                     questionsById={questionsById}
                     deferGeoGebra
@@ -367,6 +372,7 @@ export function LessonExperience({
                     step={activeStep}
                     pane="side"
                     hideProgress
+                    blueprint={blueprint}
                     assetsById={assetsById}
                     questionsById={questionsById}
                     deferGeoGebra
