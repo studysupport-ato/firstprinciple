@@ -9,13 +9,17 @@ export type ContentBlockType =
   | "image"
   | "video"
   | "interactive"
+  | "visualizer"
   | "question"
-  | "markdown";
+  | "markdown"
+  | "quiz";
 
 interface BaseContentBlock {
   id: string;
   type: ContentBlockType;
   step?: number;
+  /** Which half of a split lesson step the block sits in. Blocks default to "main" (left). */
+  pane?: "main" | "side";
 }
 
 export interface TextBlock extends BaseContentBlock {
@@ -40,6 +44,8 @@ export interface WorkedExampleBlock extends BaseContentBlock {
   title: string;
   prompt: string;
   solution: string;
+  /** Optional Markdown-first content; prompt/solution remain the legacy fallback. */
+  markdown?: string;
 }
 
 export interface CalloutBlock extends BaseContentBlock {
@@ -83,6 +89,15 @@ export interface InteractiveBlock extends BaseContentBlock {
   config: Record<string, unknown> | GeoGebraInteractiveConfig;
 }
 
+export interface VisualizerBlock extends BaseContentBlock {
+  type: "visualizer";
+  source: string;
+  title?: string;
+  height?: number;
+  /** Fill the available screen height instead of a fixed card height. */
+  fit?: boolean;
+}
+
 export interface QuestionBlock extends BaseContentBlock {
   type: "question";
   questionId: string;
@@ -91,6 +106,23 @@ export interface QuestionBlock extends BaseContentBlock {
 export interface MarkdownBlock extends BaseContentBlock {
   type: "markdown";
   markdown: string;
+}
+
+export interface QuizQuestion {
+  prompt: string;
+  options: string[];
+  answerIndex: number;
+  explanation: string;
+}
+
+/**
+ * An in-lesson test. "mid" lets the student check an answer and open the
+ * explanation; "end" gives a second try on a wrong answer and then reveals it.
+ */
+export interface QuizBlock extends BaseContentBlock {
+  type: "quiz";
+  variant: "mid" | "end";
+  questions: QuizQuestion[];
 }
 
 export type ContentBlock =
@@ -102,8 +134,10 @@ export type ContentBlock =
   | ImageBlock
   | VideoBlock
   | InteractiveBlock
+  | VisualizerBlock
   | QuestionBlock
-  | MarkdownBlock;
+  | MarkdownBlock
+  | QuizBlock;
 
 export interface Lesson {
   /** Internal content record representing a canonical Course -> Week -> Day. */

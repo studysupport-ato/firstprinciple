@@ -1,19 +1,28 @@
 "use client";
 
+import Link from "next/link";
 import {
+  ArrowLeft,
+  ArrowRight,
   ArrowUpRight,
   BookOpenText,
   Bookmark,
   FileText,
   FolderOpen,
   Globe,
+  Play,
   Search,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
+import { DepartmentDrawing } from "@/components/course-materials/DepartmentDrawing";
+import { AnimatedItem } from "@/components/motion/AnimatedItem";
+import { YouTubeEmbed } from "@/components/learning/YouTubeEmbed";
+import { useAuthSession } from "@/lib/auth/useAuthSession";
+import { getCourseMaterialVideoId, parseYouTubeVideoId } from "@/lib/youtube";
 import { createCourseMaterialsRepository, type CourseMaterialsRepository } from "@/lib/courseMaterialsRepository";
-import { type CourseMaterialEntry, type CourseMaterialsDepartment, type CourseMaterialsDirectory } from "@/lib/courseMaterials";
+import { type CourseMaterialEntry, type CourseMaterialYear, type CourseMaterialsDepartment, type CourseMaterialsDirectory } from "@/lib/courseMaterials";
 
 type MaterialType = "PDF Document" | "Lecture Slides" | "Past Questions" | "Video Lecture" | "External Link";
 
@@ -22,12 +31,19 @@ type MaterialRow = CourseMaterialEntry & {
 };
 
 const RESOURCE_TYPES: Array<"ALL" | MaterialType> = ["ALL", "PDF Document", "Lecture Slides", "Past Questions", "Video Lecture", "External Link"];
+const STUDY_YEARS: Array<{ value: CourseMaterialYear; label: string }> = [
+  { value: 1, label: "First year" },
+  { value: 2, label: "Second year" },
+  { value: 3, label: "Third year" },
+  { value: 4, label: "Fourth year" },
+];
 const BOOKMARK_STORAGE_KEY = "b2b-course-material-bookmarks-v1";
 
 function deriveMaterialType(entry: CourseMaterialEntry): MaterialType {
+  if (entry.kind === "youtube" || parseYouTubeVideoId(entry.url) || parseYouTubeVideoId(entry.provider)) return "Video Lecture";
   const raw = `${entry.courseTitle} ${entry.description ?? ""} ${entry.provider ?? ""} ${entry.url}`.toLowerCase();
 
-  if (/youtube|vimeo|video|mp4|stream/.test(raw)) return "Video Lecture";
+  if (/vimeo|video|mp4|stream/.test(raw)) return "Video Lecture";
   if (/past|exam|question|quiz|test/.test(raw)) return "Past Questions";
   if (/slides|ppt|powerpoint|deck/.test(raw)) return "Lecture Slides";
   if (/pdf/.test(raw)) return "PDF Document";
@@ -43,20 +59,116 @@ function getTypeIcon(type: MaterialType) {
     case "Past Questions":
       return <FileText className="h-4 w-4 text-indigo-500" />;
     case "Video Lecture":
-      return <Globe className="h-4 w-4 text-sky-500" />;
+      return <Play className="h-4 w-4 fill-current text-sky-500" />;
     default:
       return <Globe className="h-4 w-4 text-emerald-500" />;
   }
 }
 
-// Derive initials for the department icon placeholder
-function getDeptInitials(name: string): string {
-  return name
-    .split(" ")
-    .filter((w) => w.length > 2)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
+function FilterPills({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#111111]/45">{label}</span>
+      {options.map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          onClick={() => onChange(opt)}
+          className={`rounded-full px-[14px] py-[8px] text-[12px] font-bold transition ${
+            value === opt ? "bg-[#0e0e0e] text-[#FFC700]" : "border-[1.2px] border-black/50 text-[#0e0e0e] hover:bg-black/5"
+          }`}
+        >
+          {opt}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DepartmentBlueprint({ name }: { name: string }) {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 overflow-hidden rounded-[24px]"
+      style={{
+        backgroundImage:
+          "linear-gradient(#E9BC3A 1px, transparent 1px), linear-gradient(90deg, #E9BC3A 1px, transparent 1px)",
+        backgroundSize: "24px 24px",
+        opacity: 0.08,
+      }}
+    >
+      <DepartmentDrawing
+        name={name}
+        className="absolute -right-1 top-1/2 h-[140px] w-[220px] -translate-y-1/2 text-[#F6EFDC] opacity-100"
+      />
+    </div>
+  );
+}
+
+// ─── Shared page chrome ────────────────────────────────────────────────────
+function CourseMaterialsChrome({ children }: { children: ReactNode }) {
+  const { authenticated, student } = useAuthSession();
+  const displayName = (student?.displayName ?? "").trim();
+  const profileLabel = authenticated === true ? (displayName || "Student") : "Sign in";
+  const profileSubLabel = authenticated === true ? "Student profile" : "Access your account";
+  const initials =
+    authenticated === true
+      ? displayName
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((part) => part[0]?.toUpperCase() ?? "")
+          .join("") || "S"
+      : "SI";
+
+  return (
+    <div
+      className="relative min-h-screen overflow-x-clip pb-10"
+      style={{ background: "linear-gradient(135deg, #f0c84a 0%, #E9BC3A 45%, #d4a82e 100%)" }}
+    >
+      {/* PAGE BACKGROUND GRID */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.05]"
+        style={{
+          backgroundImage: "linear-gradient(#1A1814 1px, transparent 1px), linear-gradient(90deg, #1A1814 1px, transparent 1px)",
+          backgroundSize: "64px 64px",
+        }}
+      />
+
+      <div className="relative z-10 px-[40px] pt-[22px] max-[900px]:px-[18px] max-[900px]:pt-5">
+        <div className="mx-auto max-w-[1220px]">
+          <div className="relative overflow-visible">
+            
+            {/* ── TOP BAR ── */}
+            <div className="mb-[14px] flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.1em] text-[#26231C]/55">
+                <span>Learning space</span>
+                <span className="text-[8px]">·</span>
+                <span className="text-[#26231C]/80">MATH 151</span>
+              </div>
+
+              <Link
+                href={authenticated === true ? "/settings" : "/courses"}
+                aria-label={authenticated === true ? "Open profile settings" : "Sign in to your account"}
+                title={authenticated === true ? "Profile settings" : "Sign in"}
+                className="group flex items-center gap-2.5 rounded-full bg-[#1A1814]/[0.10] py-1 pl-1 pr-4 backdrop-blur-[2px]"
+              >
+                <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#1A1814] text-[11px] font-black text-[#E9BC3A] transition-transform group-hover:scale-105">
+                  {initials}
+                </span>
+                <span className="hidden text-left sm:block">
+                  <span className="block font-sans text-[13px] font-bold leading-tight text-[#1A1814]">{profileLabel}</span>
+                  <span className="block font-sans text-[11px] leading-tight text-[#1A1814]/50">{profileSubLabel}</span>
+                </span>
+              </Link>
+            </div>
+
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function CourseMaterialsPage() {
@@ -68,6 +180,8 @@ export default function CourseMaterialsPage() {
   const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [selectedMaterial, setSelectedMaterial] = useState<MaterialRow | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<CourseMaterialsDepartment | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  const [selectedStudyYear, setSelectedStudyYear] = useState<CourseMaterialYear | null>(1);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -157,6 +271,14 @@ export default function CourseMaterialsPage() {
   );
 
   // Departments matching search that have at least 1 material
+  const departmentNames = useMemo(
+    () =>
+      directory.departments
+        .filter((d) => d.status === "published")
+        .map((d) => d.name),
+    [directory]
+  );
+
   const visibleDepartments = useMemo(
     () =>
       departmentsWithEntries.filter(({ department, filteredEntries }) => {
@@ -188,313 +310,468 @@ export default function CourseMaterialsPage() {
 
   // ─── Department detail panel ───────────────────────────────────────────────
   if (selectedDepartment) {
-    const deptEntries = filteredRows.filter((e) => e.departmentId === selectedDepartment.id);
+    const departmentEntries = rows.filter((entry) => entry.departmentId === selectedDepartment.id);
+    const hasUnassignedEntries = departmentEntries.some((entry) => entry.studyYear == null);
+    const deptEntries = filteredRows.filter((entry) =>
+      entry.departmentId === selectedDepartment.id &&
+      (entry.studyYear ?? null) === selectedStudyYear
+    );
+
+    const coursesMap = new Map<string, {
+      courseCode: string;
+      courseTitle: string;
+      materials: MaterialRow[];
+      semester: 1 | 2;
+      isNew: boolean;
+    }>();
+
+    for (const entry of deptEntries) {
+      const code = (entry.courseCode || "").trim();
+      const title = entry.courseTitle;
+      const key = `${code}-${title}`;
+      if (!coursesMap.has(key)) {
+        let semester: 1 | 2 = 1;
+        const match = code.match(/(\d+)$/);
+        if (match) {
+          semester = parseInt(match[1].slice(-1), 10) % 2 === 0 ? 2 : 1;
+        }
+        coursesMap.set(key, { courseCode: code, courseTitle: title, materials: [], semester, isNew: false });
+      }
+      const c = coursesMap.get(key)!;
+      c.materials.push(entry);
+      // Rough heuristic for 'NEW' tag: if any material is less than 14 days old
+      if (Date.now() - new Date(entry.createdAt).getTime() < 14 * 24 * 60 * 60 * 1000) {
+        c.isNew = true;
+      }
+    }
+    const courses = Array.from(coursesMap.values());
+    const semester1 = courses.filter(c => c.semester === 1);
+    const semester2 = courses.filter(c => c.semester === 2);
+
+    const activeCourseKey = selectedCourse;
+    const activeCourse = activeCourseKey ? courses.find(c => `${c.courseCode}-${c.courseTitle}` === activeCourseKey) : null;
+    const activeMaterials = activeCourse ? activeCourse.materials : deptEntries;
 
     return (
-      <div className="min-h-screen bg-transparent">
-        <div className="mx-auto max-w-[1200px] px-6 py-10">
-          {/* Back */}
-          <button
-            type="button"
-            onClick={() => setSelectedDepartment(null)}
-            className="mb-8 inline-flex items-center gap-2 rounded-xl border-2 border-[#111111] bg-white px-4 py-2 text-sm font-black text-[#111111] shadow-[3px_3px_0_#111111] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
-          >
-            ← Back to Departments
-          </button>
+      <CourseMaterialsChrome>
+        {activeCourse ? (
+          <div>
+            {/* ── BACK ── */}
+            <button
+              type="button"
+              onClick={() => setSelectedCourse(null)}
+              className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#1A1814]/60 transition hover:text-[#1A1814]"
+            >
+              <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+              {STUDY_YEARS.find(y => y.value === selectedStudyYear)?.label || "First year"} · Semester {activeCourse.semester}
+            </button>
 
-          <div className="mb-6 flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-[#111111] bg-[#FFBE00] shadow-[3px_3px_0_#111111]">
-              <span className="text-xl font-black text-[#111111]">{getDeptInitials(selectedDepartment.name)}</span>
-            </div>
-            <div>
-              <div className="inline-block rounded-full border-2 border-[#111111] bg-[#FFBE00] px-3 py-0.5 text-[10px] font-black uppercase tracking-widest text-[#111111] mb-1">
-                {selectedDepartment.shortName ?? "Dept"}
+            {/* ── COURSE BADGE + TITLE ── */}
+            {activeCourse.courseCode && (
+              <div className="mb-3">
+                <span className="rounded-[6px] bg-[#E9BC3A] px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.08em] text-[#1A1814]">
+                  {activeCourse.courseCode}
+                </span>
               </div>
-              <h1 className="font-sans text-3xl font-black text-[#111111]">{selectedDepartment.name}</h1>
-            </div>
-          </div>
+            )}
+            <h1 className="font-sans text-[clamp(2.2rem,6vw,4rem)] font-black leading-[1.0] tracking-[-0.02em] text-[#1A1814]">
+              {activeCourse.courseTitle}
+            </h1>
 
-          {/* Type filter */}
-          <div className="mb-6 flex flex-wrap gap-2">
-            {RESOURCE_TYPES.map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTypeFilter(t)}
-                className={`rounded-xl border-2 border-[#111111] px-3.5 py-1.5 text-xs font-black uppercase tracking-wider transition shadow-[2px_2px_0_#111111] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none ${
-                  typeFilter === t ? "bg-[#111111] text-[#FFBE00]" : "bg-white text-[#111111]"
-                }`}
-              >
-                {t === "ALL" ? "All Types" : t}
-              </button>
-            ))}
-          </div>
+            {/* ── STATS ── */}
+            {(() => {
+              const typeCounts = activeCourse.materials.reduce((acc, m) => {
+                let short = "";
+                if (m.type === "PDF Document") short = "PDF";
+                else if (m.type === "Lecture Slides") short = "slides";
+                else if (m.type === "Past Questions") short = "past questions";
+                else if (m.type === "Video Lecture") short = "video";
+                if (short) acc[short] = (acc[short] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>);
+              const parts = Object.entries(typeCounts).map(([type, count]) => `${count} ${type}`);
+              return (
+                <p className="mt-2 text-[16px] font-medium text-[#26231C]/75">
+                  {activeCourse.materials.length} materials{parts.length ? ` · ${parts.join(" · ")}` : ""}
+                </p>
+              );
+            })()}
 
-          {deptEntries.length === 0 ? (
-            <div className="rounded-2xl border-2 border-dashed border-[#111111] bg-white p-12 text-center">
-              <FolderOpen className="mx-auto h-10 w-10 text-[#111111]/30" />
-              <p className="mt-4 font-bold text-[#111111]/60">No materials found for this department.</p>
-            </div>
-          ) : (
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {deptEntries.map((entry) => {
-                const isSaved = bookmarks.includes(entry.id);
-                return (
-                  <article key={entry.id} className="flex flex-col justify-between rounded-2xl border-2 border-[#111111] bg-white p-5 shadow-[4px_4px_0_#111111] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {getTypeIcon(entry.type)}
-                          <span className="text-[10px] font-black uppercase tracking-widest text-[#111111]/60">{entry.type}</span>
+            {/* ── FILTER PILLS ── */}
+            {(() => {
+              const types: Array<"ALL" | MaterialType> = ["ALL", ...([...new Set(activeCourse.materials.map(m => m.type))] as MaterialType[])];
+              const pillLabel: Record<string, string> = {
+                ALL: "All",
+                "PDF Document": "PDF",
+                "Lecture Slides": "Slides",
+                "Past Questions": "Past Questions",
+                "Video Lecture": "Video",
+                "External Link": "Links",
+              };
+              return (
+                <div className="mt-6 flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap md:overflow-x-visible md:pb-0">
+                  {types.map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setTypeFilter(t)}
+                      className={`shrink-0 rounded-full px-6 py-2 text-[14px] font-bold transition ${typeFilter === t ? "bg-[#8F6500] text-[#F6EFDC]" : "bg-[#1A1814] text-[#F6EFDC] hover:bg-[#333333]"}`}
+                    >
+                      {pillLabel[t] ?? t}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {/* ── MATERIALS LIST ── */}
+            <div className="mt-6 overflow-hidden rounded-[24px] bg-[#1A1814] shadow-[0_2px_14px_rgba(0,0,0,0.22)]">
+              {activeMaterials
+                .filter(entry => typeFilter === "ALL" || entry.type === typeFilter)
+                .map((entry, index, arr) => {
+                  const isSaved = bookmarks.includes(entry.id);
+                  const videoId = getCourseMaterialVideoId(entry);
+                  const isLast = index === arr.length - 1;
+
+                  // Icon background: gold for video, medium brown for others
+                  const iconBg = videoId ? "bg-[#E9BC3A]" : "bg-[#F0C84A]";
+                  const iconEl = videoId
+                    ? <Play className="h-5 w-5 fill-current text-[#1A1814]" />
+                    : <BookOpenText className="h-5 w-5 text-[#1A1814]" strokeWidth={2} />;
+
+                  const ActionLabel = videoId ? "Watch" : "Open";
+                  const ActionHref = videoId ? `#material-video-${entry.id}` : entry.url;
+
+                  return (
+                    <AnimatedItem key={entry.id} index={index}>
+                      <article className={`flex flex-col px-5 py-6 sm:px-7 sm:py-6 ${!isLast ? "border-b border-[#3A3428]" : ""}`}>
+                        <div className="flex items-start sm:items-center gap-4">
+                          {/* Icon */}
+                          <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] ${iconBg}`}>
+                            {iconEl}
+                          </span>
+
+                          {/* Text */}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#F6EFDC]">
+                              {entry.type}
+                            </p>
+                            <h3 className="mt-[2px] font-sans text-[20px] sm:text-[17px] font-black leading-[1.15] tracking-tight text-[#F6EFDC]">
+                              {entry.courseTitle}
+                            </h3>
+                            {entry.description && entry.description !== entry.courseTitle && (
+                              <p className="mt-1.5 text-[14px] sm:text-[13px] leading-snug text-[#F6EFDC]/70">
+                                {entry.description}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Actions (Desktop) */}
+                          <div className="hidden shrink-0 items-center gap-2 sm:flex">
+                            <a
+                              href={ActionHref}
+                              target={videoId ? undefined : "_blank"}
+                              rel={videoId ? undefined : "noreferrer"}
+                              className="inline-flex h-10 items-center justify-center rounded-full bg-[#8F6500] px-5 text-[13px] font-bold text-[#F6EFDC] transition hover:brightness-110"
+                            >
+                              {ActionLabel}
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => toggleBookmark(entry.id)}
+                              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition ${isSaved ? "border-[#E9BC3A] text-[#E9BC3A]" : "border-[#3A3428] text-[#F6EFDC]/40 hover:border-[#F6EFDC]/40 hover:text-[#F6EFDC]"}`}
+                            >
+                              <Bookmark className={`h-4 w-4 ${isSaved ? "fill-current" : ""}`} />
+                            </button>
+                          </div>
                         </div>
-                        <button type="button" onClick={() => toggleBookmark(entry.id)} className="rounded-lg p-1 hover:bg-[#FFBE00]/20">
-                          <Bookmark className={`h-4 w-4 ${isSaved ? "fill-[#FFBE00] text-[#FFBE00]" : "text-[#111111]/40"}`} />
-                        </button>
-                      </div>
 
-                      <div>
-                        {entry.courseCode && (
-                          <span className="mb-1 inline-block text-[10px] font-black uppercase tracking-widest text-[#111111]/50">{entry.courseCode}</span>
-                        )}
-                        <h3 className="font-sans text-lg font-black leading-snug text-[#111111]">{entry.courseTitle}</h3>
-                        <p className="mt-2 text-sm leading-relaxed text-[#111111]/60">{entry.description ?? "Course material resource for this department."}</p>
-                      </div>
-                    </div>
+                        {/* Actions (Mobile Full Width) */}
+                        <div className="mt-5 w-full sm:hidden">
+                          <a
+                            href={ActionHref}
+                            target={videoId ? undefined : "_blank"}
+                            rel={videoId ? undefined : "noreferrer"}
+                            className="flex h-12 w-full items-center justify-center rounded-full bg-[#8F6500] text-[15px] font-bold text-[#F6EFDC] transition hover:brightness-110"
+                          >
+                            {ActionLabel}
+                          </a>
+                        </div>
 
-                    <div className="mt-5 flex items-center justify-between gap-3 border-t-2 border-[#111111]/10 pt-4">
-                      <span className="text-xs font-bold text-[#111111]/50">{entry.provider ?? "Academic source"}</span>
-                      <a
-                        href={entry.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 rounded-xl border-2 border-[#111111] bg-[#111111] px-4 py-2 text-xs font-black text-[#FFBE00] shadow-[2px_2px_0_#E53935] transition hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
-                      >
-                        Open <ArrowUpRight className="h-3.5 w-3.5" />
-                      </a>
-                    </div>
-                  </article>
-                );
+                        {videoId ? (
+                          <div id={`material-video-${entry.id}`} className="ml-[60px] mt-4 scroll-mt-6">
+                            <YouTubeEmbed videoId={videoId} title={entry.courseTitle} />
+                          </div>
+                        ) : null}
+                      </article>
+                    </AnimatedItem>
+                  );
+                })}
+            </div>
+          </div>
+        ) : (
+          <div>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCourse(null);
+                setSelectedDepartment(null);
+              }}
+              className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#1A1814]/60 transition hover:text-[#1A1814]"
+            >
+              <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+              {selectedDepartment.name}
+            </button>
+
+            <h1 className="font-sans text-[clamp(2.5rem,6vw,4rem)] font-black leading-[1.0] tracking-[-0.02em] text-[#1A1814]">
+              {STUDY_YEARS.find(y => y.value === selectedStudyYear)?.label || "First year"}
+            </h1>
+            <p className="mt-2 text-[17px] font-medium text-[#26231C]/80">
+              {courses.length} courses · {deptEntries.length} materials
+            </p>
+
+            <div className="mt-8 flex items-center gap-3 overflow-x-auto whitespace-nowrap pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap md:overflow-x-visible md:pb-0">
+              {[
+                ...STUDY_YEARS.map((year) => ({ value: year.value, label: year.label })),
+                ...(hasUnassignedEntries ? [{ value: null, label: "Unassigned" }] : []),
+              ].map((year) => {
+                const selected = selectedStudyYear === year.value;
+                return (
+                  <button
+                    key={year.label}
+                    onClick={() => setSelectedStudyYear(year.value)}
+                    className={`shrink-0 rounded-full px-5 py-2 text-[14px] font-bold transition ${selected ? "bg-[#8F6500] text-[#F6EFDC]" : "bg-[#1A1814] text-[#F6EFDC] hover:bg-[#333333]"}`}
+                  >
+                    {year.label}
+                  </button>
+                )
               })}
             </div>
-          )}
-        </div>
-      </div>
+
+            <div className="mt-12 space-y-12">
+              {semester1.length > 0 && (
+                <div>
+                  <div className="mb-4 flex items-baseline justify-between">
+                    <h2 className="flex items-baseline gap-3 font-sans text-[32px] font-black tracking-[-0.02em] text-[#1A1814]">
+                      Semester 1 <span className="text-[14px] font-semibold text-[#1A1814]/80">{semester1.length} courses</span>
+                    </h2>
+                    <button className="hidden text-[13px] font-bold text-[#1A1814] hover:underline md:block">See all</button>
+                  </div>
+                  <div className="flex gap-4 overflow-x-auto pb-6 pt-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    {semester1.map(course => {
+                      const typeCounts = course.materials.reduce((acc, m) => {
+                        let shortType = "Other";
+                        if (m.type === "PDF Document") shortType = "PDF";
+                        else if (m.type === "Lecture Slides") shortType = "Slides";
+                        else if (m.type === "Past Questions") shortType = "Past Qs";
+                        else if (m.type === "Video Lecture") shortType = "Video";
+                        acc[shortType] = (acc[shortType] || 0) + 1;
+                        return acc;
+                      }, {} as Record<string, number>);
+                      const typeString = Object.entries(typeCounts).map(([type, count]) => `${type} ${count}`).join(" · ");
+                      return (
+                        <button
+                          key={`${course.courseCode}-${course.courseTitle}`}
+                          onClick={() => setSelectedCourse(`${course.courseCode}-${course.courseTitle}`)}
+                          className="group relative flex min-w-[280px] w-[280px] flex-col items-start overflow-hidden rounded-[24px] bg-[#1A1814] p-6 text-left shadow-[0_2px_14px_rgba(0,0,0,0.22)] transition-transform duration-300 hover:-translate-y-1 md:min-w-[300px] md:w-[300px]"
+                        >
+                          <div className="flex w-full items-center gap-2">
+                            {course.courseCode && (
+                              <span className="rounded-[4px] bg-[#E9BC3A] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.05em] text-[#1A1814]">
+                                {course.courseCode}
+                              </span>
+                            )}
+                            {course.isNew && (
+                              <span className="text-[10px] font-black uppercase tracking-[0.1em] text-[#F6EFDC]">
+                                NEW
+                              </span>
+                            )}
+                          </div>
+                          
+                          <h3 className="mt-4 font-sans text-[22px] font-black leading-tight text-[#F6EFDC] line-clamp-2">
+                            {course.courseTitle}
+                          </h3>
+                          
+                          <div className="mt-10 flex w-full flex-row items-end justify-between">
+                            <div>
+                              <div className="text-[14px] font-bold text-[#F6EFDC]">
+                                {course.materials.length} materials
+                              </div>
+                              {typeString && (
+                                <div className="mt-1 text-[11px] font-medium text-[#F6EFDC]/60">
+                                  {typeString}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#8F6500] text-[#F6EFDC] transition group-hover:bg-[#A37400]">
+                              <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {semester2.length > 0 && (
+                <div>
+                  <div className="mb-4 flex items-baseline justify-between">
+                    <h2 className="flex items-baseline gap-3 font-sans text-[32px] font-black tracking-[-0.02em] text-[#1A1814]">
+                      Semester 2 <span className="text-[14px] font-semibold text-[#1A1814]/80">{semester2.length} courses</span>
+                    </h2>
+                    <button className="hidden text-[13px] font-bold text-[#1A1814] hover:underline md:block">See all</button>
+                  </div>
+                  <div className="flex gap-4 overflow-x-auto pb-6 pt-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    {semester2.map(course => {
+                      const typeCounts = course.materials.reduce((acc, m) => {
+                        let shortType = "Other";
+                        if (m.type === "PDF Document") shortType = "PDF";
+                        else if (m.type === "Lecture Slides") shortType = "Slides";
+                        else if (m.type === "Past Questions") shortType = "Past Qs";
+                        else if (m.type === "Video Lecture") shortType = "Video";
+                        acc[shortType] = (acc[shortType] || 0) + 1;
+                        return acc;
+                      }, {} as Record<string, number>);
+                      const typeString = Object.entries(typeCounts).map(([type, count]) => `${type} ${count}`).join(" · ");
+                      return (
+                        <button
+                          key={`${course.courseCode}-${course.courseTitle}`}
+                          onClick={() => setSelectedCourse(`${course.courseCode}-${course.courseTitle}`)}
+                          className="group relative flex min-w-[280px] w-[280px] flex-col items-start overflow-hidden rounded-[24px] bg-[#1A1814] p-6 text-left shadow-[0_2px_14px_rgba(0,0,0,0.22)] transition-transform duration-300 hover:-translate-y-1 md:min-w-[300px] md:w-[300px]"
+                        >
+                          <div className="flex w-full items-center gap-2">
+                            {course.courseCode && (
+                              <span className="rounded-[4px] bg-[#E9BC3A] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.05em] text-[#1A1814]">
+                                {course.courseCode}
+                              </span>
+                            )}
+                            {course.isNew && (
+                              <span className="text-[10px] font-black uppercase tracking-[0.1em] text-[#F6EFDC]">
+                                NEW
+                              </span>
+                            )}
+                          </div>
+                          
+                          <h3 className="mt-4 font-sans text-[22px] font-black leading-tight text-[#F6EFDC] line-clamp-2">
+                            {course.courseTitle}
+                          </h3>
+                          
+                          <div className="mt-10 flex w-full flex-row items-end justify-between">
+                            <div>
+                              <div className="text-[14px] font-bold text-[#F6EFDC]">
+                                {course.materials.length} materials
+                              </div>
+                              {typeString && (
+                                <div className="mt-1 text-[11px] font-medium text-[#F6EFDC]/60">
+                                  {typeString}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#8F6500] text-[#F6EFDC] transition group-hover:bg-[#A37400]">
+                              <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </CourseMaterialsChrome>
     );
   }
 
   // ─── Department card grid (main view) ─────────────────────────────────────
   return (
-    <div className="min-h-screen bg-transparent">
-      <div className="mx-auto max-w-[1200px] px-6 py-10">
-
-        {/* Page header */}
-        <div className="mb-10">
-          <h1 className="font-sans text-4xl font-black uppercase tracking-tight text-[#111111] md:text-5xl">Course Materials</h1>
-          <p className="mt-2 font-sans text-lg font-medium text-[#111111]/70">Browse resources by department. Find past questions, lecture slides and more.</p>
+    <CourseMaterialsChrome>
+      <div>
+        <div className="relative mb-8">
+          <p className="mb-2 mt-6 text-[11px] font-bold uppercase tracking-[0.14em] text-[#26231C]/60">
+            Course Materials
+          </p>
+          <h1 className="font-sans text-[clamp(2.5rem,6vw,3.5rem)] font-black leading-[1.0] tracking-[-0.02em] text-[#1A1814]">
+            Choose your department
+          </h1>
+          <p className="mt-3 max-w-[470px] text-[17px] font-medium text-[#26231C]/80">
+            Pick a department, then a year and semester.
+          </p>
         </div>
 
-        {/* Search bar */}
-        <div className="mb-6 flex flex-col gap-3 md:flex-row">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#111111]/50" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search departments by name or abbreviation..."
-              className="w-full rounded-2xl border-2 border-[#111111] bg-white py-3.5 pl-11 pr-10 text-sm font-medium text-[#111111] outline-none shadow-[3px_3px_0_#111111] transition focus:shadow-none focus:translate-x-[2px] focus:translate-y-[2px] placeholder:text-[#111111]/40"
-              aria-label="Search course materials"
-            />
-            {query ? (
-              <button type="button" onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-[#111111]/50 hover:text-[#111111]">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            ) : null}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl border-2 border-[#111111] bg-white px-4 py-3 text-sm font-black text-[#111111] shadow-[3px_3px_0_#111111]">
-              {directory.departments.filter((d) => d.status === "published").length} Departments
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowBookmarksOnly((c) => !c)}
-              className={`inline-flex items-center gap-2 rounded-2xl border-2 border-[#111111] px-4 py-3 text-sm font-black shadow-[3px_3px_0_#111111] transition hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none ${
-                showBookmarksOnly ? "bg-[#111111] text-[#FFBE00]" : "bg-white text-[#111111]"
-              }`}
-            >
-              <Bookmark className={`h-4 w-4 ${showBookmarksOnly ? "fill-[#FFBE00]" : ""}`} />
-              Saved ({bookmarks.length})
+        <div className="relative max-w-[420px]">
+          <Search className="pointer-events-none absolute left-5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#F6EFDC]/60" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search departments"
+            className="h-[52px] w-full rounded-full bg-[#1A1814] pl-[46px] pr-12 text-[15px] font-medium text-[#F6EFDC] shadow-sm outline-none placeholder:text-[#F6EFDC]/60 focus:ring-2 focus:ring-[#8F6500]"
+            aria-label="Search course materials"
+          />
+          {query ? (
+            <button type="button" onClick={() => setQuery("")} className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[#F6EFDC]/60 transition hover:bg-white/10" aria-label="Clear search">
+              <X className="h-4 w-4" />
             </button>
-          </div>
+          ) : null}
         </div>
 
-        {/* Active filters */}
-        {activeFilters.length > 0 && (
-          <div className="mb-6 flex flex-wrap items-center gap-2 text-xs">
-            <span className="font-black text-[#111111]">Filters:</span>
-            {activeFilters.map((f) => (
-              <span key={f} className="rounded-lg border-2 border-[#111111] bg-white px-2.5 py-1 font-bold text-[#111111]">
-                {f}
-              </span>
-            ))}
-            <button type="button" onClick={clearFilters} className="font-black text-[#E53935] underline hover:no-underline">
-              Reset All
-            </button>
-          </div>
-        )}
-
-        {/* States */}
         {!ready ? (
-          <div className="rounded-2xl border-2 border-[#111111] bg-white p-10 text-center font-bold text-[#111111]/60 shadow-[4px_4px_0_#111111]">
+          <div className="mt-8 rounded-[24px] bg-[#1A1814] p-10 text-center font-bold text-[#F6EFDC]/60 shadow-[0_2px_14px_rgba(0,0,0,0.22)]">
             Loading departments...
           </div>
         ) : error ? (
-          <div className="rounded-2xl border-2 border-[#E53935] bg-white p-10 text-center shadow-[4px_4px_0_#E53935]">
-            <h3 className="text-base font-black text-[#E53935]">Course materials unavailable</h3>
-            <p className="mt-2 text-sm font-medium text-[#111111]/60">{error}</p>
+          <div className="mt-8 rounded-[24px] bg-[#1A1814] p-10 text-center shadow-[0_2px_14px_rgba(0,0,0,0.22)]">
+            <h3 className="text-base font-black text-[#F6EFDC]">Course materials unavailable</h3>
+            <p className="mt-2 text-sm font-medium text-[#F6EFDC]/60">{error}</p>
           </div>
         ) : visibleDepartments.length === 0 ? (
-          <div className="rounded-2xl border-2 border-dashed border-[#111111] bg-white p-12 text-center">
-            <FolderOpen className="mx-auto h-10 w-10 text-[#111111]/30" />
-            <h3 className="mt-5 font-black text-[#111111]">No departments found</h3>
-            <p className="mx-auto mt-2 max-w-sm text-sm font-medium text-[#111111]/60">
+          <div className="mt-8 rounded-[24px] border border-dashed border-[#1A1814]/30 bg-[#1A1814]/10 p-12 text-center">
+            <FolderOpen className="mx-auto h-10 w-10 text-[#1A1814]/40" />
+            <h3 className="mt-5 font-black text-[#1A1814]">No departments found</h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm font-medium text-[#1A1814]/70">
               We could not find any departments matching your search.
             </p>
             <button
               type="button"
               onClick={clearFilters}
-              className="mt-5 inline-flex items-center gap-2 rounded-xl border-2 border-[#111111] bg-[#111111] px-5 py-2.5 text-xs font-black text-[#FFBE00] shadow-[3px_3px_0_#E53935] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+              className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#1A1814] px-5 py-2.5 text-xs font-black text-[#E9BC3A]"
             >
               Reset Filters
             </button>
           </div>
         ) : (
-          /* Department cards — GESA style */
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {visibleDepartments.map(({ department, entries, filteredEntries }) => {
-              const totalCount = entries.length;
-              const initials = getDeptInitials(department.name);
-
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            {visibleDepartments.map(({ department }, index) => {
               return (
-                <div
-                  key={department.id}
-                  className="flex flex-col rounded-3xl border-2 border-[#E5E5E5] bg-white p-6 shadow-sm transition-all hover:border-[#111111] hover:shadow-[4px_4px_0_#111111]"
-                >
-                  {/* Dept icon */}
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FAFAFA] border border-[#E5E5E5]">
-                    <span className="text-xl font-black text-[#111111]">{initials}</span>
-                  </div>
-
-                  {/* Badge */}
-                  <div className="mb-3 inline-flex">
-                    <span className="rounded-full bg-[#FFBE00] px-3 py-0.5 text-[10px] font-black uppercase tracking-widest text-[#111111]">
-                      {department.shortName ?? "DEPT"}
-                    </span>
-                  </div>
-
-                  {/* Title & description */}
-                  <h2 className="mb-2 font-sans text-xl font-black leading-tight text-[#111111]">{department.name}</h2>
-                  <p className="mb-6 flex-1 text-sm leading-relaxed text-[#111111]/60">
-                    {department.description ??
-                      `Explore the academic resources and course materials for the ${department.name} at KNUST.`}
-                  </p>
-
-                  {/* Material count */}
-                  <div className="mb-4 text-xs font-bold text-[#111111]/40 uppercase tracking-widest">
-                    {totalCount} {totalCount === 1 ? "resource" : "resources"}
-                    {filteredEntries.length !== totalCount && ` · ${filteredEntries.length} matching`}
-                  </div>
-
-                  {/* CTA */}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedDepartment(department)}
-                    className="w-full rounded-2xl border-2 border-[#111111] bg-[#111111] py-3 text-sm font-black text-white transition hover:bg-[#333333]"
-                  >
-                    View Department
-                  </button>
-                </div>
+                <AnimatedItem key={department.id} index={index} className="flex">
+                  <article className="group relative flex min-h-[162px] w-full flex-col items-start overflow-hidden rounded-[24px] bg-[#1A1814] p-6 shadow-[0_2px_14px_rgba(0,0,0,0.22)] transition-transform duration-300 hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0 md:p-[28px]">
+                    <DepartmentBlueprint name={department.name} />
+                    <div className="relative z-10 flex min-h-full w-full flex-1 flex-col items-start">
+                      <h2 className="relative z-10 max-w-[70%] font-sans text-[22px] font-black leading-tight text-[#F6EFDC] md:text-[24px]">
+                        {department.name}
+                      </h2>
+                      <div className="mt-auto pt-8">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedStudyYear(1);
+                          setSelectedDepartment(department);
+                        }}
+                        className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#8F6500] px-5 py-2 text-[14px] font-bold text-[#F6EFDC] transition-colors hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8F6500] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A1814] active:scale-[0.98]"
+                      >
+                        View course materials
+                        <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+                      </button>
+                    </div>
+                    </div>
+                  </article>
+                </AnimatedItem>
               );
             })}
           </div>
         )}
       </div>
-
-      {/* Material detail modal */}
-      {selectedMaterial ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#111111]/60 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-xl overflow-hidden rounded-2xl border-2 border-[#111111] bg-white shadow-[6px_6px_0_#111111]">
-            <div className="flex items-start justify-between border-b-2 border-[#111111] p-6">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-[#FFBE00] px-3 py-0.5 text-[10px] font-black uppercase tracking-widest text-[#111111]">
-                    {directory.departments.find((item) => item.id === selectedMaterial.departmentId)?.shortName ?? "Course"}
-                  </span>
-                  <span className="text-[11px] font-bold text-[#111111]/50">{selectedMaterial.courseCode ?? "Course material"}</span>
-                </div>
-                <h3 className="text-xl font-black text-[#111111]">{selectedMaterial.courseTitle}</h3>
-              </div>
-              <button type="button" onClick={() => setSelectedMaterial(null)} className="rounded-lg p-2 text-[#111111]/40 hover:bg-[#111111]/10 hover:text-[#111111]">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-5 p-6 text-sm">
-              <div>
-                <h4 className="mb-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#111111]/40">Description</h4>
-                <p className="leading-relaxed text-[#111111]/70">{selectedMaterial.description ?? "No description has been provided for this course material."}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 rounded-xl border-2 border-[#111111]/10 bg-[#FAFAFA] p-4">
-                <div>
-                  <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-[#111111]/40">Resource Type</span>
-                  <span className="mt-1 block font-black text-[#111111]">{selectedMaterial.type}</span>
-                </div>
-                <div>
-                  <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-[#111111]/40">Source</span>
-                  <span className="mt-1 block font-black text-[#111111]">{selectedMaterial.provider ?? "Back2Basics Directory"}</span>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#111111]/40">Topic Tags</h4>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    selectedMaterial.type,
-                    directory.departments.find((item) => item.id === selectedMaterial.departmentId)?.name ?? "Course",
-                    selectedMaterial.courseCode ?? "Academic",
-                  ].map((tag) => (
-                    <span key={tag} className="rounded-lg border-2 border-[#111111] bg-white px-2.5 py-1 text-xs font-bold text-[#111111]">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-3 border-t-2 border-[#111111]/10 p-5">
-              <button
-                type="button"
-                onClick={() => toggleBookmark(selectedMaterial.id)}
-                className="inline-flex items-center gap-2 rounded-xl border-2 border-[#111111] bg-white px-4 py-2.5 text-sm font-black text-[#111111] shadow-[3px_3px_0_#111111] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
-              >
-                <Bookmark className={`h-4 w-4 ${bookmarks.includes(selectedMaterial.id) ? "fill-[#FFBE00] text-[#FFBE00]" : "text-[#111111]/50"}`} />
-                {bookmarks.includes(selectedMaterial.id) ? "Saved" : "Save Material"}
-              </button>
-
-              <a
-                href={selectedMaterial.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl border-2 border-[#111111] bg-[#111111] px-5 py-2.5 text-sm font-black text-[#FFBE00] shadow-[3px_3px_0_#E53935] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
-              >
-                Open Material Source
-                <ArrowUpRight className="h-4 w-4" />
-              </a>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </div>
+    </CourseMaterialsChrome>
   );
 }

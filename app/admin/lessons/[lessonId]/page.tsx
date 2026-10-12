@@ -8,7 +8,8 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { LessonRenderer } from "@/components/learning/LessonRenderer";
 import { createDefaultBlock } from "@/lib/content/overrides";
-import { getAdminDayAction, getAdminDayContentAction, saveDayContentAction, setDayStatusAction } from "@/lib/adminContentActions";
+import { getAdminDayAction, getAdminDayContentAction, saveDayContentAction, setDayStatusAction, updateDayAction, uploadLessonImageAction } from "@/lib/adminContentActions";
+import { validateLessonImageFile } from "@/lib/content/lessonImageUpload";
 import type { ContentBlock, GeoGebraInteractiveConfig, Lesson } from "@/lib/content/types";
 import { MathText } from "@/components/learning/blocks/MathText";
 import { MarkdownBlock } from "@/components/learning/blocks/MarkdownBlock";
@@ -24,7 +25,9 @@ const supportedBlockTypes = [
   "image",
   "video",
   "interactive",
+  "visualizer",
   "question",
+  "quiz",
 ] as const;
 
 type EditableField = "title" | "description";
@@ -79,6 +82,7 @@ export default function AdminLessonEditorPage() {
   const [previewMode, setPreviewMode] = useState(false);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [revertTarget, setRevertTarget] = useState(false);
+  const [uploadingBlockId, setUploadingBlockId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -173,10 +177,37 @@ export default function AdminLessonEditorPage() {
     });
   }
 
+  async function uploadImage(block: Extract<ContentBlock, { type: "image" }>, file: File) {
+    if (!baseLesson) return;
+    const validationError = validateLessonImageFile(file);
+    if (validationError) {
+      triggerSaveError(validationError);
+      return;
+    }
+    setUploadingBlockId(block.id);
+    setSaveError(null);
+    const result = await uploadLessonImageAction(baseLesson.courseId, baseLesson.weekId, baseLesson.id, file, block.alt);
+    if (!result.ok) {
+      triggerSaveError(result.error ?? "Image upload failed.");
+    } else {
+      updateBlock(block.id, (item) => ({ ...item, type: "image", assetId: result.data.id, src: result.data.source.url, alt: item.type === "image" && item.alt ? item.alt : result.data.altText ?? "Lesson image" } as ContentBlock));
+      triggerMessage("Image uploaded. Save the Day to persist the block.");
+    }
+    setUploadingBlockId(null);
+  }
+
   async function handleSave(status?: "draft" | "published") {
     if (!draft || !baseLesson) return;
     setSaving(true);
     try {
+      const dayRes = await updateDayAction(baseLesson.courseId, baseLesson.weekId, baseLesson.id, {
+        title: draft.title,
+        description: draft.description,
+      });
+      if (!dayRes.ok) {
+        triggerSaveError(dayRes.error ?? "Day details could not be saved.");
+        return;
+      }
       const res = await saveDayContentAction(baseLesson.courseId, baseLesson.weekId, baseLesson.id, draft.blocks);
       if (!res.ok) {
         triggerSaveError(res.error ?? "Save failed.");
@@ -185,7 +216,7 @@ export default function AdminLessonEditorPage() {
       if (status) {
         await setDayStatusAction(baseLesson.courseId, baseLesson.weekId, baseLesson.id, status);
       }
-      setBaseLesson({ ...baseLesson, blocks: draft.blocks });
+      setBaseLesson({ ...baseLesson, title: draft.title, description: draft.description, blocks: draft.blocks });
       triggerMessage(status === "published" ? "Published to Supabase." : "Changes saved to Supabase.");
     } finally {
       setSaving(false);
@@ -274,33 +305,53 @@ export default function AdminLessonEditorPage() {
         );
       case "worked-example":
         return (
-          <div className="space-y-3">
-            <input
-              value={block.title}
-              onChange={(event) =>
-                updateBlock(block.id, (item) => ({ ...item, type: "worked-example", title: event.target.value } as ContentBlock))
-              }
-              className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
-              placeholder="Worked example title"
-            />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Worked example title</label>
+              <input
+                value={block.title}
+                onChange={(event) =>
+                  updateBlock(block.id, (item) => ({ ...item, type: "worked-example", title: event.target.value } as ContentBlock))
+                }
+                className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm font-semibold text-[#111111] outline-none"
+                placeholder="E.g. Find the modulus..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Content (Markdown)</label>
+              <p className="mt-1 text-[11px] leading-5 text-[#666666]">Use <code className="bg-[#F1F1F1] px-1 py-0.5 rounded text-[#111111]">$inline math$</code> or <code className="bg-[#F1F1F1] px-1 py-0.5 rounded text-[#111111]">$$display math$$</code>.</p>
+            </div>
             <textarea
-              value={block.prompt}
+              value={block.markdown ?? ""}
               onChange={(event) =>
-                updateBlock(block.id, (item) => ({ ...item, type: "worked-example", prompt: event.target.value } as ContentBlock))
+                updateBlock(block.id, (item) => ({ ...item, type: "worked-example", markdown: event.target.value } as ContentBlock))
               }
-              rows={3}
-              className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
-              placeholder="Prompt"
+              rows={8}
+              className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-3 font-mono text-sm leading-6 text-[#111111] outline-none focus:border-[#2563EB]"
+              placeholder="Write the problem and solution here..."
             />
-            <textarea
-              value={block.solution}
-              onChange={(event) =>
-                updateBlock(block.id, (item) => ({ ...item, type: "worked-example", solution: event.target.value } as ContentBlock))
-              }
-              rows={4}
-              className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
-              placeholder="Solution"
-            />
+
+            {!block.markdown && (block.prompt || block.solution) && (
+               <div className="rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] p-4">
+                 <p className="text-xs text-[#991B1B] font-semibold mb-2">Legacy Content Found (will be ignored if Markdown is provided)</p>
+                 <div className="text-[10px] uppercase font-bold text-[#991B1B] mb-1">Prompt</div>
+                 <p className="text-xs text-[#991B1B] mb-3">{block.prompt}</p>
+                 <div className="text-[10px] uppercase font-bold text-[#991B1B] mb-1">Solution</div>
+                 <p className="text-xs text-[#991B1B]">{block.solution}</p>
+               </div>
+            )}
+
+            <div className="rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] p-4">
+              <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">Local Preview</div>
+              <div className="rounded-2xl border border-[#E5E5E5] bg-white p-5 pointer-events-none">
+                <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#2563EB]">Worked example</span>
+                <h3 className="mt-2 font-serif text-2xl text-[#111111]">{block.title || "Example"}</h3>
+                <div className="mt-3 border-t border-[#E5E5E5] pt-1">
+                  {block.markdown ? <MarkdownBlock markdown={block.markdown} /> : <p className="text-sm text-[#999999] mt-3">Type markdown to see preview.</p>}
+                </div>
+              </div>
+            </div>
           </div>
         );
       case "callout":
@@ -330,6 +381,16 @@ export default function AdminLessonEditorPage() {
       case "image":
         return (
           <div className="space-y-3">
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Upload image</label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={uploadingBlockId === block.id}
+                onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadImage(block, file); event.currentTarget.value = ""; }}
+                className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
+              />
+              <p className="text-xs text-[#666666]">JPEG, PNG, or WebP. Maximum 10 MB per file.</p>
+              {uploadingBlockId === block.id ? <p className="text-xs text-[#666666]">Uploading image...</p> : null}
             <AssetPicker type="image" value={block.assetId} onChange={(asset) => updateBlock(block.id, (item) => ({ ...item, type: "image", assetId: asset?.id, src: asset?.source.url ?? block.src, alt: asset?.altText ?? block.alt } as ContentBlock))} />
             <input
               value={block.src}
@@ -461,6 +522,89 @@ export default function AdminLessonEditorPage() {
                 className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
               />
             )}
+          </div>
+        );
+      case "visualizer":
+        return (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Visualizer title</label>
+              <input
+                value={block.title ?? ""}
+                onChange={(event) => updateBlock(block.id, (item) => ({ ...item, type: "visualizer", title: event.target.value } as ContentBlock))}
+                className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
+                placeholder="Custom visualizer"
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm text-[#111111]">
+              <input
+                type="checkbox"
+                checked={Boolean(block.fit)}
+                onChange={(event) => updateBlock(block.id, (item) => ({ ...item, type: "visualizer", fit: event.target.checked } as ContentBlock))}
+              />
+              Expand to fit the screen (blue print page)
+            </label>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Height</label>
+              <input
+                type="number"
+                min={280}
+                max={900}
+                value={block.height ?? 420}
+                onChange={(event) => {
+                  const height = Number(event.target.value || 420);
+                  updateBlock(block.id, (item) => ({ ...item, type: "visualizer", height: Number.isFinite(height) ? Math.max(280, Math.min(900, height)) : 420 } as ContentBlock));
+                }}
+                className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">HTML / CSS / JavaScript source</label>
+              <p className="text-xs leading-5 text-[#666666]">Runs in a sandboxed preview with scripts enabled but without same-origin, storage, parent-page, or network access.</p>
+              <textarea
+                value={block.source}
+                onChange={(event) => updateBlock(block.id, (item) => ({ ...item, type: "visualizer", source: event.target.value } as ContentBlock))}
+                rows={14}
+                spellCheck={false}
+                className="w-full rounded-xl border border-[#E5E5E5] bg-[#111827] px-3 py-3 font-mono text-xs leading-5 text-[#F9FAFB] outline-none"
+                placeholder={'<div id="app"></div>\n<script>...</script>'}
+              />
+            </div>
+          </div>
+        );
+      case "quiz":
+        return (
+          <div className="space-y-3">
+            <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Quiz type</label>
+            <select
+              value={block.variant}
+              onChange={(event) =>
+                updateBlock(block.id, (item) => ({ ...item, type: "quiz", variant: event.target.value === "end" ? "end" : "mid" } as ContentBlock))
+              }
+              className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
+            >
+              <option value="mid">Mid-lesson test (purple, explanation always available)</option>
+              <option value="end">End-of-lesson test (green, second try, then answer shown)</option>
+            </select>
+            <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Questions (JSON)</label>
+            <p className="text-xs leading-5 text-[#666666]">Each question: prompt, options (2 to 6), answerIndex (0 = first option), explanation. Edits apply when you click outside the box.</p>
+            <textarea
+              key={block.id}
+              defaultValue={JSON.stringify(block.questions, null, 2)}
+              onBlur={(event) => {
+                try {
+                  const parsed = JSON.parse(event.target.value);
+                  if (!Array.isArray(parsed)) throw new Error("not an array");
+                  updateBlock(block.id, (item) => ({ ...item, type: "quiz", questions: parsed } as ContentBlock));
+                  setMessage("Quiz questions updated.");
+                } catch {
+                  setMessage("Quiz JSON is not valid, so it was not applied.");
+                }
+              }}
+              rows={16}
+              spellCheck={false}
+              className="w-full rounded-xl border border-[#E5E5E5] bg-[#111827] px-3 py-3 font-mono text-xs leading-5 text-[#F9FAFB] outline-none"
+            />
           </div>
         );
       case "question":
@@ -650,7 +794,22 @@ export default function AdminLessonEditorPage() {
                       </div>
                     </div>
 
-                    {selectedBlockId === block.id ? renderBlockEditor(block) : (
+                    {selectedBlockId === block.id ? (
+                      <div className="space-y-4">
+                        {renderBlockEditor(block)}
+                        <div className="space-y-2">
+                          <label className="block text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Position on the page</label>
+                          <select
+                            value={block.pane ?? "main"}
+                            onChange={(event) => updateBlock(block.id, (item) => ({ ...item, pane: event.target.value === "side" ? "side" : "main" } as ContentBlock))}
+                            className="w-full rounded-xl border border-[#E5E5E5] bg-white px-3 py-2 text-sm text-[#111111] outline-none"
+                          >
+                            <option value="main">Left (main)</option>
+                            <option value="side">Right (additional notes)</option>
+                          </select>
+                        </div>
+                      </div>
+                    ) : (
                       <div className="text-sm leading-6 text-[#666666]">
                         {block.type === "heading" && block.text}
                         {block.type === "text" && block.body}
@@ -661,7 +820,9 @@ export default function AdminLessonEditorPage() {
                         {block.type === "image" && `${block.alt} (${block.src})`}
                         {block.type === "video" && block.title}
                         {block.type === "interactive" && `Interactive: ${block.provider}`}
+                        {block.type === "visualizer" && (block.title || "Custom visualizer")}
                         {block.type === "question" && `Question ref: ${block.questionId}`}
+                        {block.type === "quiz" && `${block.variant === "end" ? "End" : "Mid"}-lesson test, ${block.questions.length} question(s)`}
                       </div>
                     )}
                   </div>

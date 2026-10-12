@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, BookOpen, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Save, Trash2 } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { getAdminCourseStructureAction, deleteDayAction } from "@/lib/adminContentActions";
+import { getAdminCourseStructureAction, deleteDayAction, reorderDaysAction, updateWeekAction } from "@/lib/adminContentActions";
 import type { AdminCourseStructure } from "@/lib/content/adminContract";
+import type { ContentStatus } from "@/lib/content/lifecycle";
 
 export default function AdminWeekWorkspace() {
   const router = useRouter();
@@ -18,7 +19,12 @@ export default function AdminWeekWorkspace() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLessonTarget, setDeleteLessonTarget] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [reordering, setReordering] = useState(false);
+  const [weekForm, setWeekForm] = useState({ title: "", description: "", weekNumber: "", status: "draft" as ContentStatus, comingSoon: false });
+  const [savingWeek, setSavingWeek] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -41,6 +47,53 @@ export default function AdminWeekWorkspace() {
   const weekNumber = Number(weekParam);
   const adminWeek = structure?.weeks.find(w => w.week.weekNumber === weekNumber);
   const week = adminWeek?.week;
+
+  useEffect(() => {
+    if (!week) return;
+    setWeekForm({
+      title: week.title,
+      description: week.description,
+      weekNumber: String(week.weekNumber),
+      status: week.status ?? "draft",
+      comingSoon: week.comingSoon ?? false,
+    });
+  }, [week]);
+
+  async function saveWeekDetails() {
+    if (!week || !course || savingWeek) return;
+    const nextWeekNumber = Number(weekForm.weekNumber);
+    if (!weekForm.title.trim()) {
+      setActionError("Week title is required.");
+      return;
+    }
+    if (!Number.isInteger(nextWeekNumber) || nextWeekNumber < 1) {
+      setActionError("Week number must be a positive integer.");
+      return;
+    }
+
+    setSavingWeek(true);
+    setActionError(null);
+    const result = await updateWeekAction(course.id, week.id, {
+      title: weekForm.title.trim(),
+      description: weekForm.description.trim(),
+      weekNumber: nextWeekNumber,
+      status: weekForm.status,
+      comingSoon: weekForm.comingSoon,
+    });
+    setSavingWeek(false);
+
+    if (!result.ok) {
+      setActionError(`Could not save Week details: ${result.error}`);
+      return;
+    }
+
+    setNotice("Week details saved.");
+    setRefreshTick((tick) => tick + 1);
+    router.refresh();
+    if (nextWeekNumber !== week.weekNumber) {
+      router.replace(`/admin/courses/${encodeURIComponent(course.id)}/weeks/${nextWeekNumber}`);
+    }
+  }
   
   if (loading) return <div className="p-8 text-sm text-[#666666]">Loading...</div>;
   if (error) return <div className="p-8 text-sm text-[#E11D48]">{error}</div>;
@@ -65,14 +118,43 @@ export default function AdminWeekWorkspace() {
   async function confirmDeleteLesson() {
     if (!week || !deleteLessonTarget) return;
 
+    const target = days.find((day) => day.lessonId === deleteLessonTarget);
     const res = await deleteDayAction(course!.id, week.id, deleteLessonTarget);
     if (res.ok) {
       setDeleteLessonTarget(null);
+      setActionError(null);
+      setNotice(`Day "${target?.title ?? deleteLessonTarget}" was deleted.`);
       setRefreshTick(t => t + 1);
       router.refresh();
     } else {
-      alert(res.error);
+      // Keep the dialog open and surface the failure inline rather than via a
+      // native alert(), which is easy to miss and leaves no persistent trace.
+      setNotice(null);
+      setActionError(`Could not delete this Day: ${res.error}`);
     }
+  }
+
+  async function moveDay(lessonId: string, direction: -1 | 1) {
+    if (!week || !course || reordering) return;
+    const ordered = (adminWeek?.days ?? []).map((lesson) => lesson.id);
+    const index = ordered.indexOf(lessonId);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= ordered.length) return;
+    const next = ordered.slice();
+    const [moved] = next.splice(index, 1);
+    next.splice(target, 0, moved);
+    setReordering(true);
+    const res = await reorderDaysAction(course.id, week.id, next);
+    if (res.ok) {
+      setActionError(null);
+      setNotice("Day order saved.");
+      setRefreshTick(t => t + 1);
+      router.refresh();
+    } else {
+      setNotice(null);
+      setActionError(`Could not save the new Day order: ${res.error}`);
+    }
+    setReordering(false);
   }
 
   return (
@@ -87,12 +169,58 @@ export default function AdminWeekWorkspace() {
         ]}
       />
 
+      {notice ? <div className="mb-5 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] px-4 py-3 text-sm font-semibold text-[#166534]">{notice}</div> : null}
+      {actionError ? <div role="alert" className="mb-5 rounded-xl border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3 text-sm font-semibold text-[#991B1B]">{actionError}</div> : null}
+
       <div className="mb-6 flex items-center gap-3">
         <Link href={`/admin/courses/${course.id}`} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-4 py-2 text-sm font-medium text-[#111111]">
           <ArrowLeft size={15} />Course
         </Link>
         <AdminStatusBadge status={days.every((day) => day.lesson && day.lesson.blocks && day.lesson.blocks.length > 0) ? "Ready" : "Needs content"} />
       </div>
+
+      <section className="mb-6 rounded-[28px] border border-[#E5E5E5] bg-white p-6 shadow-[0_8px_24px_rgba(17,17,17,0.02)]">
+        <div className="mb-5">
+          <div className="field-label">Week settings</div>
+          <h2 className="mt-2 font-serif text-3xl text-[#111111]">Edit week details</h2>
+          <p className="mt-2 text-sm text-[#666666]">These saved details are used by the student course roadmap.</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="space-y-2">
+            <span className="field-label">Week title</span>
+            <input value={weekForm.title} onChange={(event) => setWeekForm((current) => ({ ...current, title: event.target.value }))} className="admin-input" />
+          </label>
+          <label className="space-y-2">
+            <span className="field-label">Week number</span>
+            <input type="number" min="1" step="1" value={weekForm.weekNumber} onChange={(event) => setWeekForm((current) => ({ ...current, weekNumber: event.target.value }))} className="admin-input" />
+          </label>
+          <label className="space-y-2 md:col-span-2">
+            <span className="field-label">Description</span>
+            <textarea value={weekForm.description} onChange={(event) => setWeekForm((current) => ({ ...current, description: event.target.value }))} rows={3} className="admin-input" />
+          </label>
+          <label className="space-y-2">
+            <span className="field-label">Publication status</span>
+            <select value={weekForm.status} onChange={(event) => setWeekForm((current) => ({ ...current, status: event.target.value as ContentStatus }))} className="admin-input">
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="archived">Archived</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-3 self-end pb-3 text-sm font-medium text-[#111111]">
+            <input
+              type="checkbox"
+              checked={weekForm.comingSoon}
+              onChange={(event) => setWeekForm((current) => ({ ...current, comingSoon: event.target.checked }))}
+              className="h-4 w-4 accent-[#111111]"
+            />
+            Show as Coming Soon (students cannot open this week)
+          </label>
+        </div>
+        <button type="button" disabled={savingWeek} onClick={saveWeekDetails} className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#111111] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#2563EB] disabled:cursor-wait disabled:opacity-60">
+          <Save size={15} />
+          {savingWeek ? "Saving..." : "Save week"}
+        </button>
+      </section>
 
       <section className="rounded-[28px] border border-[#E5E5E5] bg-white p-6 shadow-[0_8px_24px_rgba(17,17,17,0.02)]">
         <div className="mb-6 flex items-start justify-between">
@@ -134,6 +262,24 @@ export default function AdminWeekWorkspace() {
 
                 {day.lesson ? (
                   <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={reordering}
+                      onClick={() => moveDay(day.lesson.id, -1)}
+                      aria-label={`Move ${day.title} up`}
+                      className="inline-flex items-center gap-1 rounded-full border border-[#E5E5E5] bg-white px-3 py-2 text-sm font-semibold text-[#111111] disabled:opacity-50"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      disabled={reordering}
+                      onClick={() => moveDay(day.lesson.id, 1)}
+                      aria-label={`Move ${day.title} down`}
+                      className="inline-flex items-center gap-1 rounded-full border border-[#E5E5E5] bg-white px-3 py-2 text-sm font-semibold text-[#111111] disabled:opacity-50"
+                    >
+                      ↓
+                    </button>
                     <Link
                       href={`/admin/lessons/${day.lesson.id}`}
                       className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2563EB]"
@@ -165,8 +311,8 @@ export default function AdminWeekWorkspace() {
 
       <ConfirmDialog
         open={!!deleteLessonTarget}
-        title="Delete lesson"
-        description="Delete this lesson from the week and remove its local lesson record?"
+        title="Delete day"
+        description={deleteLessonTarget ? `Permanently delete the Day "${days.find((day) => day.lessonId === deleteLessonTarget)?.title ?? deleteLessonTarget}" from this week? Its content blocks and Day-targeted resource placements will be removed by the existing cascade rules.` : "Delete this Day?"}
         confirmLabel="Delete"
         onConfirm={confirmDeleteLesson}
         onCancel={() => setDeleteLessonTarget(null)}

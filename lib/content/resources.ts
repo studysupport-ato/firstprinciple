@@ -1,7 +1,7 @@
 import { getCourse, getLesson, getWeek } from "./access";
 import { createStableId } from "../ids";
 import { isPreviewVisible } from "./lifecycle";
-import { createResourceRepository } from "./resourceRepository";
+import { createResourceRepository, type ResourceSupabaseClientFactory } from "./resourceRepository";
 import { getGeoGebraEmbedConfig, resolveGeoGebraEmbed } from "./resourcePresentation";
 import type {
   LearningResource,
@@ -179,11 +179,19 @@ function resourceOrder(resource: LearningResource) {
   return 3;
 }
 
-export function getResourcesForDay(dayId: string, options: ResourceResolutionOptions = {}) {
+export function getResourcesForDay(
+  dayId: string,
+  options: ResourceResolutionOptions = {},
+  // Task 40G.6C: the client factory is required so this read cannot silently
+  // resolve a service-role client. Student callers pass the request-scoped
+  // `createSupabaseServerClient()` and are constrained by the published-only
+  // learning_resources / resource_placements RLS policies.
+  clientFactory?: ResourceSupabaseClientFactory,
+) {
   const day = getLesson(dayId);
   if (!day) return [];
 
-  const repository = createResourceRepository("supabase");
+  const repository = createResourceRepository("supabase", clientFactory);
   const resources = repository.listResourcesForScope(
     { dayId },
     {

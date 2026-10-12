@@ -6,6 +6,8 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useAuthSession } from "@/lib/auth/useAuthSession";
 
 const TOUR_KEY = "first-principles-onboarding-v1";
+const FIRST_SIGNUP_KEY = "first-principles-first-signup-v1";
+const PROFILE_PROMPT_KEY = "first-principles-profile-prompt-v1";
 
 const STEPS = [
   {
@@ -36,7 +38,7 @@ export function OnboardingTour() {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [windowSize, setWindowSize] = useState({ w: 0, h: 0 });
   const pathname = usePathname();
-  const { authenticated, student } = useAuthSession();
+  const { authenticated, user } = useAuthSession();
   const prefersReducedMotion = useReducedMotion();
   
   const transitionProps = prefersReducedMotion 
@@ -44,32 +46,37 @@ export function OnboardingTour() {
     : { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const };
 
   useEffect(() => {
-    // Only check on the client
-    const currentTourKey = student ? `${TOUR_KEY}:${student.studentId}` : TOUR_KEY;
+    if (authenticated !== true || !user) return;
+
+    const currentTourKey = `${TOUR_KEY}:${user.id}`;
     const isCompleted = localStorage.getItem(currentTourKey) === "true";
     const urlParams = new URLSearchParams(window.location.search);
     const isPreview = urlParams.get("preview") === "1";
     const wantsOnboarding = urlParams.get("onboarding") === "true";
+    const signupPending =
+      localStorage.getItem(`${FIRST_SIGNUP_KEY}:${user.id}`) === "true" ||
+      localStorage.getItem(`${PROFILE_PROMPT_KEY}:${user.id}`) === "true";
     const isAdmin = pathname.startsWith("/admin");
     
-    // Only start on /courses, when authenticated or explicitly requested, not completed, not preview, not admin
     if (
       pathname === "/courses" &&
-      (authenticated === true || wantsOnboarding) &&
+      wantsOnboarding &&
+      signupPending &&
       !isCompleted &&
       !isPreview &&
       !isAdmin
     ) {
       const timer = setTimeout(() => {
+        setCurrentStep(0);
         setIsVisible(true);
-        // Clean up the URL if we used the onboarding param
-        if (wantsOnboarding) {
-          window.history.replaceState(null, '', pathname);
-        }
-      }, 800); // subtle delay
+        window.history.replaceState(null, "", pathname);
+      }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [pathname, authenticated, student]);
+    if (pathname === "/courses" && wantsOnboarding && (isCompleted || !signupPending || isPreview)) {
+      window.history.replaceState(null, "", pathname);
+    }
+  }, [pathname, authenticated, user]);
 
   const step = STEPS[currentStep];
 
@@ -102,9 +109,12 @@ export function OnboardingTour() {
   if (!isVisible) return null;
 
   const handleSkip = () => {
-    const currentTourKey = student ? `${TOUR_KEY}:${student.studentId}` : TOUR_KEY;
+    if (!user) return;
+    const currentTourKey = `${TOUR_KEY}:${user.id}`;
     localStorage.setItem(currentTourKey, "true");
+    localStorage.removeItem(`${FIRST_SIGNUP_KEY}:${user.id}`);
     setIsVisible(false);
+    window.dispatchEvent(new CustomEvent("onboarding-tour-completed"));
   };
 
 

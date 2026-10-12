@@ -1,7 +1,7 @@
 import { getStudentQuestions, type QuestionFilters } from "@/lib/content/access";
 import type { Assessment, AssessmentBlueprintRule } from "@/lib/content/types/assessment";
 import type { Question } from "@/lib/content/types/question";
-import { createQuestionRepository } from "@/lib/questions/repository";
+import { createQuestionRepository, type QuestionSupabaseClientFactory } from "@/lib/questions/repository";
 
 export type AssessmentSelectionErrorCode =
   | "ASSESSMENT_NOT_FOUND"
@@ -109,12 +109,20 @@ export function selectAssessmentQuestions(assessment: Assessment, options: Asses
   return selected;
 }
 
-export async function selectAssessmentQuestionsFromSupabase(assessment: Assessment, options: AssessmentSelectionOptions = {}): Promise<Question[]> {
+export async function selectAssessmentQuestionsFromSupabase(
+  assessment: Assessment,
+  options: AssessmentSelectionOptions = {},
+  clientFactory: QuestionSupabaseClientFactory,
+): Promise<Question[]> {
   if (!assessment.blueprint.rules.length) {
     throw new AssessmentSelectionError("INVALID_BLUEPRINT", "Assessment blueprint must contain at least one rule.", { assessmentId: assessment.id });
   }
 
-  const repository = createQuestionRepository("supabase");
+  // Task 40G.4: the caller supplies the Supabase client explicitly. The
+  // student assessment page passes the authenticated server client so the
+  // `public_questions_select_published` RLS policy enforces published-only
+  // visibility. Blueprint/selection semantics are unchanged.
+  const repository = createQuestionRepository("supabase", clientFactory);
   const selectedIds = new Set<string>();
   const uniqueIds = new Set<string>();
   const selected: Question[] = [];

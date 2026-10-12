@@ -1,78 +1,399 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CheckCircle2, ChevronLeft, ListOrdered, MessageCircle, Moon, Sun, X } from "lucide-react";
 import Link from "next/link";
 import { completeDay, startDay } from "@/lib/progress";
 import { LessonRenderer } from "@/components/learning/LessonRenderer";
+import { isBoardSource } from "@/components/learning/blocks/VisualizerBlock";
+import { LessonSideContext } from "@/components/learning/LessonContext";
 import { GeoGebraProvider } from "@/components/learning/GeoGebraProvider";
-import { SupplementaryResources } from "@/components/learning/SupplementaryResources";
+import { LessonVideo, SupplementaryResources } from "@/components/learning/SupplementaryResources";
 import { getGeoGebraEmbedConfig } from "@/lib/content/resourcePresentation";
+import { EducationalText } from "@/components/learning/EducationalText";
 import type { LearningResource } from "@/lib/content/types/resource";
-import type { Lesson } from "@/lib/content/types/lesson";
+import type { ContentBlock, Lesson } from "@/lib/content/types/lesson";
+import type { Asset } from "@/lib/content/types/asset";
+import type { Question } from "@/lib/content/types/question";
 
-export function LessonExperience({ lesson, courseId, preview, week, supplementaryResources }: { lesson: Lesson; courseId: string; preview: boolean; week?: string; supplementaryResources: LearningResource[] }) {
+type LessonExperienceProps = {
+  lesson: Lesson;
+  courseId: string;
+  preview: boolean;
+  week?: string;
+  supplementaryResources: LearningResource[];
+  assetsById?: Record<string, Asset>;
+  questionsById?: Record<string, Question>;
+};
+
+function formatSectionLabel(chapterId: string) {
+  return chapterId
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((word) => word[0].toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+type LessonTheme = "paper" | "dark" | "blue" | "wine" | "purple" | "green";
+
+const THEME_BACKGROUNDS: Record<LessonTheme, { backgroundColor: string; backgroundImage: string; backgroundSize: string }> = {
+  paper: {
+    backgroundColor: "#FBF6E9",
+    backgroundImage: "radial-gradient(rgba(26,24,20,0.16) 1px, transparent 1.5px)",
+    backgroundSize: "22px 22px",
+  },
+  dark: {
+    backgroundColor: "#1A1814",
+    backgroundImage: "radial-gradient(rgba(255,255,255,0.14) 1px, transparent 1.5px)",
+    backgroundSize: "22px 22px",
+  },
+  blue: {
+    backgroundColor: "#14305C",
+    backgroundImage:
+      "linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px)",
+    backgroundSize: "28px 28px",
+  },
+  purple: {
+    backgroundColor: "#2B1A5E",
+    backgroundImage:
+      "linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px)",
+    backgroundSize: "32px 32px",
+  },
+  green: {
+    backgroundColor: "#0F3D2E",
+    backgroundImage:
+      "linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px)",
+    backgroundSize: "32px 32px",
+  },
+  wine: {
+    backgroundColor: "#3B1019",
+    backgroundImage:
+      "linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px),radial-gradient(80% 70% at 50% 0%,#52182A 0%,rgba(59,16,25,0) 70%)",
+    backgroundSize: "32px 32px,32px 32px,100% 100%",
+  },
+};
+
+// Videos and questions sit on the wine print, visualizers on the blue grid,
+// everything else on the dotted paper (which can switch to dark mode).
+function themeForStep(blocks: ContentBlock[], dark: boolean): LessonTheme {
+  const quiz = blocks.find((block) => block.type === "quiz");
+  if (quiz && quiz.type === "quiz") return quiz.variant === "end" ? "green" : "purple";
+  if (blocks.some((block) => block.type === "question")) return "purple";
+  if (blocks.some((block) => block.type === "video")) return "wine";
+  if (blocks.some((block) => block.type === "visualizer" && !isBoardSource(block.source))) return "blue";
+  return dark ? "dark" : "paper";
+}
+
+function plainHeading(text: string) {
+  return text.replace(/\$+/g, "").replace(/[*_`#]/g, "").trim();
+}
+
+export function LessonExperience({
+  lesson,
+  courseId,
+  preview,
+  week,
+  supplementaryResources,
+  assetsById,
+  questionsById,
+}: LessonExperienceProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [boardFullscreen, setBoardFullscreen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem("b2b-lesson-dark") === "1") setDarkMode(true);
+    } catch {
+      /* storage unavailable: stay on the light page */
+    }
+  }, []);
+  const toggleDarkMode = () => {
+    setDarkMode((value) => {
+      const next = !value;
+      try {
+        window.localStorage.setItem("b2b-lesson-dark", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+  useEffect(() => { window.performance.mark("b2b-lesson-hydrated"); }, []);
 
-  const geoResource = useMemo(() => supplementaryResources.find((resource) => resource.type === "geogebra"), [supplementaryResources]);
-  useEffect(() => { if (!preview) startDay(lesson.courseId, lesson.weekId, lesson.id); }, [lesson, preview]);
+  const geoResource = useMemo(
+    () => supplementaryResources.find((resource) => resource.type === "geogebra"),
+    [supplementaryResources],
+  );
+  useEffect(() => {
+    if (!preview) startDay(lesson.courseId, lesson.weekId, lesson.id);
+  }, [lesson, preview]);
 
-  const uniqueSteps = useMemo(() => Array.from(new Set(lesson.blocks.map((block) => block.step ?? 1))).sort((a, b) => a - b), [lesson.blocks]);
+  const uniqueSteps = useMemo(
+    () => Array.from(new Set(lesson.blocks.map((block) => block.step ?? 1))).sort((a, b) => a - b),
+    [lesson.blocks],
+  );
   const totalSteps = uniqueSteps.length;
   const isComplete = currentStep >= totalSteps - 1;
   const activeStep = uniqueSteps[currentStep] ?? 1;
   const roadmapHref = week ? `/courses/${courseId}/roadmap/week/${week}` : `/courses/${courseId}/roadmap`;
   const weekLabel = week ? `Week ${week.replace("w", "")}` : "Week";
-
-  const renderNavigation = () => (
-    <div className="flex items-center justify-between border-t border-[#E5E5E5] bg-transparent p-8">
-      <button onClick={() => setCurrentStep((step) => Math.max(0, step - 1))} disabled={currentStep === 0} className="flex items-center gap-2 text-sm font-sans font-medium text-[#666666] transition-colors hover:text-[#111111] disabled:opacity-30"><ChevronLeft size={16} /> Previous</button>
-      {!isComplete ? (
-        <button onClick={() => setCurrentStep((step) => Math.min(totalSteps - 1, step + 1))} className="flex items-center gap-2 rounded-full bg-[#111111] px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#FFBE00] hover:text-[#111111] hover:text-[#111111]">Continue <ChevronRight size={16} /></button>
-      ) : (
-        <Link href={roadmapHref} onClick={() => { if (!preview) completeDay(lesson.courseId, lesson.weekId, lesson.id); }}><span className="flex items-center gap-2 rounded-full bg-[#059669] px-6 py-3 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-105">Complete Day <CheckCircle2 size={16} /></span></Link>
-      )}
-    </div>
+  const sectionLabel = formatSectionLabel(lesson.chapterId);
+  const activeBlocks = useMemo(
+    () => lesson.blocks.filter((block) => (block.step ?? 1) === activeStep),
+    [lesson.blocks, activeStep],
   );
 
-  const activeBlocks = useMemo(() => lesson.blocks.filter((block) => block.step === activeStep), [lesson.blocks, activeStep]);
-  
+  const theme = themeForStep(activeBlocks, darkMode);
+  const stepTitles = useMemo(
+    () =>
+      uniqueSteps.map((step, index) => {
+        const heading = lesson.blocks.find((block) => (block.step ?? 1) === step && block.type === "heading");
+        return heading && heading.type === "heading" ? plainHeading(heading.text) : `Step ${index + 1}`;
+      }),
+    [lesson.blocks, uniqueSteps],
+  );
+
   const hasBlocks = activeBlocks.length > 0;
-  const hasTextContent = activeBlocks.some((b) => !["image", "video", "interactive"].includes(b.type));
-  
-  const hasSideContent = Boolean(geoResource) && (!hasBlocks || hasTextContent);
-  const isFullWidthInteractive = hasSideContent && !hasBlocks;
+  const hasTextContent = activeBlocks.some((block) => !["image", "video", "interactive"].includes(block.type));
+  const hasGeoSide = Boolean(geoResource) && (!hasBlocks || hasTextContent);
+  const isFullWidthInteractive = hasGeoSide && !hasBlocks;
+
+  // Split layout: blocks marked pane "side" (and quiz feedback) fill the right-hand card.
+  const hasSideBlocks = activeBlocks.some((block) => block.pane === "side");
+  const hasQuiz = activeBlocks.some((block) => block.type === "quiz");
+  const hasSidePane = !hasGeoSide && (hasSideBlocks || hasQuiz);
+  const hasVisualizerFit = activeBlocks.some((block) => block.type === "visualizer" && block.fit);
+
+  const [sideSlot, setSideSlot] = useState<HTMLElement | null>(null);
+  const [quizDone, setQuizDone] = useState<Record<string, boolean>>({});
+  const reportQuiz = useCallback((blockId: string, done: boolean) => {
+    setQuizDone((prev) => (prev[blockId] === done ? prev : { ...prev, [blockId]: done }));
+  }, []);
+  const quizIds = activeBlocks.filter((block) => block.type === "quiz").map((block) => block.id);
+  const quizPending = !preview && quizIds.some((id) => !quizDone[id]);
+
+  const [stepsOpen, setStepsOpen] = useState(false);
+  const [maxStep, setMaxStep] = useState(0);
+  useEffect(() => {
+    setMaxStep((value) => Math.max(value, currentStep));
+    setStepsOpen(false);
+  }, [currentStep]);
+
+  const sideContextValue = useMemo(() => ({ sideSlot, reportQuiz }), [sideSlot, reportQuiz]);
+
+  const renderNavigation = () => (
+    <nav
+      aria-label="Lesson steps"
+      className="lesson-nav flex min-h-14 flex-shrink-0 items-center justify-between gap-3 px-3 py-3 md:px-6"
+    >
+      <button
+        type="button"
+        onClick={() => setCurrentStep((step) => Math.max(0, step - 1))}
+        disabled={currentStep === 0}
+        className="lesson-nav-prev flex min-h-12 items-center gap-1.5 rounded-xl border px-4 font-sans text-sm font-semibold transition-colors disabled:opacity-35"
+      >
+        <ChevronLeft size={16} /> Previous
+      </button>
+      {!isComplete ? (
+        <button
+          type="button"
+          disabled={quizPending}
+          onClick={() => setCurrentStep((step) => Math.min(totalSteps - 1, step + 1))}
+          className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#FFC700] px-7 font-sans text-sm font-bold text-[#1A1814] transition-colors hover:bg-[#F0BC21] disabled:opacity-40 md:max-w-[220px] md:flex-none"
+        >
+          {quizPending ? "Finish the questions" : "Continue"} <span aria-hidden>›</span>
+        </button>
+      ) : quizPending ? (
+        <span className="flex min-h-11 items-center rounded-full bg-white/20 px-6 font-sans text-sm font-semibold opacity-70">
+          Finish the test to complete
+        </span>
+      ) : (
+        <Link
+          href={roadmapHref}
+          onClick={() => { if (!preview) completeDay(lesson.courseId, lesson.weekId, lesson.id); }}
+        >
+          <span className="flex min-h-11 items-center gap-2 rounded-full bg-[#059669] px-6 font-sans text-sm font-semibold text-white transition-opacity hover:opacity-90">
+            Complete Day <CheckCircle2 size={16} />
+          </span>
+        </Link>
+      )}
+    </nav>
+  );
+
+  const stepsButton = totalSteps > 1 ? (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setStepsOpen((open) => !open)}
+        aria-expanded={stepsOpen}
+        className="lesson-steps-btn flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 font-sans text-xs font-semibold transition-colors"
+      >
+        <ListOrdered size={13} />
+        Steps {currentStep + 1} of {totalSteps}
+      </button>
+      {stepsOpen ? (
+        <div role="dialog" aria-label="Lesson steps" className="lesson-steps-pop absolute right-0 top-9 z-50 w-[300px] max-w-[85vw] rounded-2xl border p-2 shadow-xl">
+          <div className="flex items-center justify-between px-3 pb-1 pt-1">
+            <p className="font-sans text-sm font-semibold">In this lesson</p>
+            <button type="button" aria-label="Close steps" onClick={() => setStepsOpen(false)}><X size={14} /></button>
+          </div>
+          <ol className="flex flex-col gap-1">
+            {uniqueSteps.map((step, index) => (
+              <li key={step}>
+                <button
+                  type="button"
+                  disabled={index > maxStep}
+                  onClick={() => setCurrentStep(index)}
+                  aria-current={index === currentStep ? "step" : undefined}
+                  className="lesson-steps-item flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left font-sans text-[14px] disabled:opacity-45"
+                >
+                  <span className="lesson-steps-num flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold">{index + 1}</span>
+                  <span className="min-w-0">{stepTitles[index]}</span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+    </div>
+  ) : null;
 
   return (
-    <div className="flex h-screen flex-col bg-white">
-      <header className="z-20 flex h-16 flex-shrink-0 items-center justify-between border-b border-[#E5E5E5] bg-white px-8">
-        <div className="flex items-center gap-4"><Link href={roadmapHref} className="text-[#666666] transition-colors hover:text-[#111111]"><ChevronLeft size={20} /></Link><div className="flex items-center gap-2"><span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#666666]">{weekLabel}</span><span className="text-[#E5E5E5]">/</span><span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#111111]">{lesson.title}</span></div></div>
-        <div className="flex items-center gap-2">{Array.from({ length: totalSteps }).map((_, index) => <div key={index} className={`h-2 w-2 rounded-full transition-colors duration-300 ${index <= currentStep ? "bg-[#FFBE00]" : "bg-[#E5E5E5]"}`} />)}</div>
+    <LessonSideContext.Provider value={sideContextValue}>
+    <div
+      className={`flex flex-col ${preview ? "h-[calc(100dvh-76px)] md:h-[calc(100dvh-48px)]" : "h-[calc(100dvh-28px)] md:h-screen"}`}
+      style={{ background: "#FBFAF5" }}
+    >
+      <header className="z-20 flex h-9 flex-shrink-0 items-center border-b border-[#E3DED3] bg-white px-3 md:h-12 md:px-6">
+        <div className="flex min-w-0 items-center gap-2">
+          <Link
+            href={roadmapHref}
+            aria-label="Back to course roadmap"
+            className="flex h-8 w-8 shrink-0 items-center text-[#333333] transition-colors hover:text-[#111111]"
+          >
+            <ChevronLeft size={18} />
+          </Link>
+          <span className="shrink-0 font-sans text-xs font-semibold text-[#4A463F]">
+            {weekLabel}
+          </span>
+          <span className="shrink-0 text-[#B6B0A4]">/</span>
+          <span className="truncate font-sans text-xs font-semibold text-[#25231F]">
+            <EducationalText text={sectionLabel} />
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={toggleDarkMode}
+          aria-pressed={darkMode}
+          className="ml-auto mr-2 flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-[#D9D4C7] px-3 font-sans text-xs font-semibold text-[#25231F] transition-colors hover:border-[#111111]"
+        >
+          {darkMode ? <Sun size={13} /> : <Moon size={13} />}
+          <span className="hidden sm:inline">{darkMode ? "Light mode" : "Dark mode"}</span>
+        </button>
+        <div
+          data-testid="lesson-step-indicator"
+          data-current-step={currentStep}
+          aria-label={`Step ${currentStep + 1} of ${totalSteps}`}
+          className="mr-3 hidden shrink-0 items-center gap-1.5 sm:flex"
+        >
+          {uniqueSteps.map((step, index) => (
+            <span
+              key={step}
+              aria-hidden
+              className={`h-1.5 w-1.5 rounded-full transition-colors duration-300 ${
+                index <= currentStep ? "bg-[#E9BC3A]" : "bg-[#D9D6CF]"
+              }`}
+            />
+          ))}
+        </div>
+        <div className="lesson-steps-host text-[#25231F]">{stepsButton}</div>
       </header>
-      <div className="flex flex-1 overflow-hidden">
-        {!isFullWidthInteractive && (
-          <div className={`relative z-10 flex flex-col justify-between border-r border-[#E5E5E5] bg-white ${hasSideContent ? "w-full lg:w-[45%]" : "w-full"}`}>
-            <div className="overflow-y-auto p-12 lg:p-16">
-              <LessonRenderer lesson={lesson} step={activeStep} />
-              {isComplete ? <SupplementaryResources resources={supplementaryResources} /> : null}
+
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {!isFullWidthInteractive ? (
+          <section
+            aria-label={`Lesson step ${currentStep + 1}`}
+            data-lesson-theme={theme}
+            className={`lesson-themed relative ${boardFullscreen ? "z-[60]" : "z-10"} flex min-h-0 flex-col ${hasGeoSide ? "w-full lg:w-[45%]" : "w-full"}`}
+            style={THEME_BACKGROUNDS[theme]}
+          >
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain touch-pan-y px-4 pb-20 pt-4 md:px-10 md:py-8 lg:flex-row lg:gap-8 lg:overflow-hidden lg:px-14 lg:py-8">
+              <div
+                className={`min-h-0 min-w-0 lg:overflow-y-auto lg:overscroll-contain ${
+                  hasSidePane ? (hasVisualizerFit ? "lg:flex-[3]" : "lg:flex-[11]") : "flex-1"
+                }`}
+              >
+                <div className={`lesson-guided-content mr-auto ${hasVisualizerFit ? "max-w-none" : "max-w-[680px]"}`}>
+                  <LessonRenderer
+                    lesson={lesson}
+                    step={activeStep}
+                    pane={hasSidePane ? "main" : undefined}
+                    hideProgress
+                    assetsById={assetsById}
+                    questionsById={questionsById}
+                    deferGeoGebra
+                    onFullscreenChange={setBoardFullscreen}
+                  />
+                  {isComplete ? (
+                    <div className="mt-4 flex flex-col gap-4">
+                      <LessonVideo resources={supplementaryResources} />
+                      <SupplementaryResources resources={supplementaryResources} />
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+              {hasSidePane ? (
+                <aside
+                  aria-label="Notes"
+                  className={`lesson-side-card lesson-guided-content min-h-0 min-w-0 rounded-2xl border p-5 lg:overflow-y-auto lg:overscroll-contain ${
+                    hasVisualizerFit ? "lg:flex-[1.4]" : "lg:flex-[9]"
+                  }`}
+                >
+                  <div ref={setSideSlot} className="flex flex-col gap-3" />
+                  <LessonRenderer
+                    lesson={lesson}
+                    step={activeStep}
+                    pane="side"
+                    hideProgress
+                    assetsById={assetsById}
+                    questionsById={questionsById}
+                    deferGeoGebra
+                  />
+                </aside>
+              ) : null}
             </div>
             {renderNavigation()}
-          </div>
-        )}
-        {hasSideContent && (
-          <div className={`${isFullWidthInteractive ? "flex w-full flex-col" : "hidden w-[55%] lg:flex"} items-center justify-center bg-white`}>
+          </section>
+        ) : null}
+
+        {hasGeoSide ? (
+          <aside className={`${isFullWidthInteractive ? "flex w-full flex-col" : "hidden w-[55%] lg:flex"} items-center justify-center bg-white`}>
             <div className={`w-full ${isFullWidthInteractive ? "flex-1 p-8" : "max-w-[960px] p-8"}`}>
               <GeoGebraProvider config={getGeoGebraEmbedConfig(geoResource!.data)} title={geoResource!.title} />
             </div>
-            {isFullWidthInteractive && (
-              <div className="w-full flex flex-col">
-                {isComplete ? <div className="px-12 pb-8 lg:px-16"><SupplementaryResources resources={supplementaryResources} /></div> : null}
+            {isFullWidthInteractive ? (
+              <div className="w-full">
+                {isComplete ? (
+                  <div className="px-12 pb-8 lg:px-16">
+                    <LessonVideo resources={supplementaryResources} />
+                    <SupplementaryResources resources={supplementaryResources} />
+                  </div>
+                ) : null}
                 {renderNavigation()}
               </div>
-            )}
-          </div>
-        )}
+            ) : null}
+          </aside>
+        ) : null}
       </div>
+
+      <button
+        type="button"
+        aria-label="Open chat"
+        className="fixed bottom-[72px] right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#E9BC3A] shadow-[0_4px_16px_rgba(0,0,0,0.20)] transition-transform hover:scale-105 active:scale-95 md:bottom-[80px]"
+      >
+        <MessageCircle size={20} strokeWidth={2} className="text-[#1A1814]" />
+      </button>
     </div>
+    </LessonSideContext.Provider>
   );
 }

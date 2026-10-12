@@ -9,6 +9,56 @@
 
 export const STUDENT_ID = "local-student";
 
+/**
+ * Task 40E.1 — shared progress metric contracts.
+ *
+ * These were previously declared in the legacy local-storage `selectors.ts`
+ * module. They are NOT legacy selector logic: they are the shapes produced by
+ * the current Supabase-backed metric functions in the Dashboard and Progress
+ * pages, so they were moved here to the canonical types module when that legacy
+ * module was retired. Definitions are preserved verbatim.
+ */
+export interface PracticeStats {
+  totalAttempts: number;
+  correctAttempts: number;
+  distinctAnswered: number;
+  distinctCorrect: number;
+  accuracy: number;
+  problemsSolved: number;
+}
+
+export interface ActivityDisplay {
+  id: string;
+  /** Category label: Lesson / Practice / Assessment / Course. */
+  type: string;
+  title: string;
+  occurredAt: string;
+  /** Human-readable relative time, e.g. "2h ago". */
+  time: string;
+  status: string;
+  entityId?: string;
+}
+
+export interface ContinueLearning {
+  courseId: string;
+  weekId: string;
+  weekTitle: string;
+  weekNumber: number;
+  lessonId: string;
+  lessonTitle: string;
+  chapterId: string;
+  status: "in_progress" | "not_started";
+  completedDays: number;
+  totalDays: number;
+  percent: number;
+}
+
+export interface DailyActivityPoint {
+  date: string;
+  label: string;
+  count: number;
+}
+
 export type DayStatus = "not_started" | "in_progress" | "completed";
 
 export interface DayProgress {
@@ -105,5 +155,3 @@ export interface StudentProgress {
   activity: ActivityEvent[];
   updatedAt: string;
 }
-
-export type DayRoadmapState = "locked" | "not_started" | "in_progress" | "completed";

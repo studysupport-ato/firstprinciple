@@ -1,0 +1,16 @@
+
+> firstprinciples-app@0.1.0 dev
+> next dev
+
+▲ Next.js 16.3.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.56.1:3000
+- Environments: .env.local
+✓ Ready in 1524ms
+✓ Running next.config.ts took 358ms
+- Experiments (use with caution):
+  · optimizePackageImports
+
+○ Compiling /courses ...
+ GET /courses 200 in 19.5s (next.js: 12.5s, application-code: 7.0s)
+✓ Finished filesystem cache database compaction in 10.0s

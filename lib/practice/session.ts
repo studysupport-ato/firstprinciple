@@ -1,6 +1,5 @@
-import { getStudentQuestions } from "@/lib/content/access";
 import type { Difficulty, Question } from "@/lib/content/types/question";
-import { createQuestionRepository } from "@/lib/questions/repository";
+import { createQuestionRepository, type QuestionSupabaseClientFactory } from "@/lib/questions/repository";
 import { createStableId } from "@/lib/ids";
 
 export type PracticeValue = string | number | boolean | string[] | null;
@@ -34,24 +33,6 @@ export interface PracticeSelectionOptions {
   includeDraft?: boolean;
 }
 
-export function getPracticeQuestions({ courseId, chapterId, lessonId, topic, subtopic, difficulty, limit, includeDraft }: PracticeSelectionOptions = {}): Question[] {
-  const questions = getStudentQuestions({
-    courseId,
-    chapterId,
-    lessonId,
-    topic,
-    subtopic,
-    difficulty,
-    limit,
-  }, { includeDraft });
-
-  if (!questions.length) {
-    return [];
-  }
-
-  return [...questions];
-}
-
 export async function getPracticeQuestionsFromSupabase({
   courseId,
   chapterId,
@@ -61,8 +42,14 @@ export async function getPracticeQuestionsFromSupabase({
   difficulty,
   limit,
   includeDraft,
-}: PracticeSelectionOptions = {}): Promise<Question[]> {
-  const repository = createQuestionRepository("supabase");
+}: PracticeSelectionOptions = {},
+  clientFactory: QuestionSupabaseClientFactory,
+): Promise<Question[]> {
+  // Task 40G.4: the caller supplies the Supabase client explicitly so student
+  // practice reads run under the authenticated session and are constrained by
+  // the `public_questions_select_published` RLS policy. Practice selection
+  // semantics are unchanged.
+  const repository = createQuestionRepository("supabase", clientFactory);
   const questions = await repository.listQuestions({
     courseId,
     chapterId,

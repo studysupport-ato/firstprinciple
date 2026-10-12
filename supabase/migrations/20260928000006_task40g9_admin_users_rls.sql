@@ -1,0 +1,26 @@
+-- Task 40G.9 — enable Row Level Security on public.admin_users.
+--
+-- PROBLEM (finding #2 MEDIUM of the 40G.8 audit)
+--
+--   `public.admin_users` (created in 20260919000000_initial_schema.sql) has never
+--   been covered by `enable row level security` in ANY of the 15 migrations that
+--   followed. With RLS off, the PostgREST roles anon/authenticated could read and
+--   write the table directly — a latent allowlist-poisoning vector.
+--
+--   The table is currently EMPTY and is NOT used by the Admin authorization
+--   implementation (40G.9 authorizes admin Server Actions with a signed,
+--   HttpOnly session cookie — lib/adminSession.ts — not admin_users). This
+--   migration only closes the structural RLS-off gap.
+--
+-- FIX
+--
+--   Enable RLS and deliberately create NO policies:
+--
+--       anon          -> denied (default deny)
+--       authenticated -> denied (default deny)
+--       service-role  -> allowed (bypasses RLS)
+--
+-- This file is intentionally the only change; prior migrations are untouched.
+-- Use the next version after 20260928000005.
+
+alter table public.admin_users enable row level security;

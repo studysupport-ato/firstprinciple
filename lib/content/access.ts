@@ -15,7 +15,7 @@ import type { Assessment } from "./types/assessment";
 import type { Chapter, Course, Week } from "./types/course";
 import type { Lesson } from "./types/lesson";
 import type { Difficulty, Question, QuestionSource, QuestionStatus, QuestionType } from "./types/question";
-import { isPreviewVisible, legacyStatus } from "./lifecycle";
+import { isPreviewVisible } from "./lifecycle";
 
 const courses: Course[] = [math151Course];
 const chapters: Chapter[] = math151Chapters;
@@ -103,10 +103,6 @@ export function getCourse(courseId: string) {
   return getCourses().find((course) => course.id === courseId);
 }
 
-export function getStudentCourses(options: { preview?: boolean } = {}) {
-  return getCourses().filter((course) => isPreviewVisible(legacyStatus(course.status), { preview: options.preview }));
-}
-
 export function getChapters(courseId?: string) {
   const local = getLocalChapters();
   const allChapters = chapters.map((chapter) => local.find((item) => item.id === chapter.id) ?? chapter).concat(local.filter((chapter) => !chapters.some((baseChapter) => baseChapter.id === chapter.id)));
@@ -142,10 +138,6 @@ export function getWeeks(courseId?: string, chapterId?: string) {
 
 export function getWeek(weekId: string) {
   return getWeeks().find((week) => week.id === weekId);
-}
-
-export function getStudentWeeks(courseId: string, options: { preview?: boolean } = {}) {
-  return getWeeks(courseId).filter((week) => isPreviewVisible(legacyStatus(week.status), { preview: options.preview }));
 }
 
 export function getLessons(courseId?: string, chapterId?: string, weekId?: string) {
@@ -214,11 +206,6 @@ export function getDay(dayId: string) {
   return getLesson(dayId);
 }
 
-export function getStudentDay(dayId: string, options: { preview?: boolean } = {}) {
-  const day = getDay(dayId);
-  return day && isPreviewVisible(legacyStatus(day.status), { preview: options.preview }) ? day : undefined;
-}
-
 export function getQuestion(questionId: string) {
   return getResolvedQuestion(questionId) ?? getBaseQuestion(questionId) ?? getLocalQuestions().find((question) => question.id === questionId) ?? questions.find((question) => question.id === questionId);
 }
@@ -282,15 +269,6 @@ export function getAssessments(courseId?: string) {
   ].map((assessment) => getResolvedAssessment(assessment.id) ?? assessment);
 
   return courseId ? resolved.filter((assessment) => assessment.courseId === courseId) : resolved;
-}
-
-export function getStudentAssessments(courseId?: string, options: { preview?: boolean } = {}) {
-  return getAssessments(courseId).filter((assessment) => isPreviewVisible(legacyStatus(assessment.status), { preview: options.preview }));
-}
-
-export function getStudentAssessment(assessmentId: string, options: { preview?: boolean } = {}) {
-  const assessment = getAssessment(assessmentId);
-  return assessment && isPreviewVisible(legacyStatus(assessment.status), { preview: options.preview }) ? assessment : undefined;
 }
 
 export function getQuestionsByTopic(topic: string) {

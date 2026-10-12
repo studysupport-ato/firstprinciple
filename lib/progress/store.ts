@@ -248,8 +248,3 @@ export function writeProgress(progress: StudentProgress) {
   window.localStorage.setItem(storageKey, JSON.stringify(normalized));
   return normalized;
 }
-
-export function clearProgressStorage() {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(getActiveStudentStorageKey());
-}

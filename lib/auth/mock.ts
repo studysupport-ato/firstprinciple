@@ -71,6 +71,7 @@ export function logoutMockStudent(): void {
 }
 
 export function getActiveStudentId(): string {
-  // Graceful fallback to legacy local-student for SSR/tests or unauthenticated edge cases
+  // Mock/demo boundary ONLY. Real authenticated progress must go through
+  // resolveProgressIdentity() (Task 40B); this stays for explicit demo mode.
   return getCurrentMockStudentId() || "local-student";
 }

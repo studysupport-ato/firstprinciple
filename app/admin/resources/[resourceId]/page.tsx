@@ -10,6 +10,15 @@ import { AdminErrorState } from "@/components/admin/AdminErrorState";
 import { AdminLoadingState } from "@/components/admin/AdminLoadingState";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
+import {
+  createResourceAction,
+  getAdminResourceAction,
+  getAdminResourcePlacementsAction,
+  placeResourceAction,
+  removeResourcePlacementAction,
+  setResourceStatusAction,
+  updateResourceAction,
+} from "@/lib/adminContentActions";
 import { getCourse, getCourses, getLesson, getWeek, getWeeks } from "@/lib/content/access";
 import { getWeekDays } from "@/lib/curriculum";
 import {
@@ -22,14 +31,6 @@ import {
   type GeoGebraEmbedResolution,
 } from "@/lib/content/resourcePresentation";
 import {
-  archiveResource,
-  attachResource,
-  detachResource,
-  getResourceById,
-  getResourcePlacements,
-  restoreResource,
-  createResource,
-  updateResource,
   validateLearningResource,
 } from "@/lib/content/resources";
 import type {
@@ -229,6 +230,7 @@ export default function AdminResourceEditorPage() {
   const [courseId, setCourseId] = useState("");
   const [weekId, setWeekId] = useState("");
   const [dayId, setDayId] = useState("");
+  const [placements, setPlacements] = useState<ResourcePlacement[]>([]);
 
   const courses = useMemo(() => getCourses(), []);
   const weeks = useMemo(() => courseId ? getWeeks(courseId) : [], [courseId]);
@@ -236,25 +238,32 @@ export default function AdminResourceEditorPage() {
     const week = weeks.find((candidate) => candidate.id === weekId);
     return week ? getWeekDays(courseId, week) : [];
   }, [courseId, weekId, weeks]);
-  const placements = resource ? getResourcePlacements(resource.id) : [];
-
   useEffect(() => {
     if (isNew) {
       setLoading(false);
       return;
     }
-    try {
-      const found = getResourceById(resourceId);
-      if (!found) setError("This resource does not exist in the local resource store.");
-      else {
-        setResource(found);
-        setForm(formFromResource(found));
+    void (async () => {
+      const [resourceResult, placementResult] = await Promise.all([
+        getAdminResourceAction(resourceId),
+        getAdminResourcePlacementsAction(resourceId),
+      ]);
+
+      const resourceWasLoaded = resourceResult.ok ? Boolean(resourceResult.data) : false;
+
+      if (!resourceResult.ok) {
+        setError(resourceResult.error);
+      } else if (!resourceResult.data) {
+        setError("This resource does not exist in Supabase.");
+      } else {
+        setResource(resourceResult.data);
+        setForm(formFromResource(resourceResult.data));
       }
-    } catch {
-      setError("The resource could not be loaded.");
-    } finally {
+
+      if (placementResult.ok) setPlacements(placementResult.data);
+      else if (!resourceWasLoaded) setError(placementResult.error);
       setLoading(false);
-    }
+    })();
   }, [isNew, resourceId]);
 
   function updateForm<K extends keyof ResourceForm>(field: K, value: ResourceForm[K]) {
@@ -262,7 +271,7 @@ export default function AdminResourceEditorPage() {
     setValidationErrors([]);
   }
 
-  function save() {
+  async function save() {
     const input = buildInput(form);
     const errors = validateLearningResource(input);
     if (errors.length) {
@@ -273,20 +282,23 @@ export default function AdminResourceEditorPage() {
     try {
       setSaving(true);
       if (resource) {
-        const updated = updateResource(resource.id, {
+        const result = await updateResourceAction(resource.id, {
           title: input.title,
           description: input.description,
           status: input.status,
           tags: input.tags,
           data: input.data,
         });
-        if (updated) setResource(updated);
+        if (!result.ok) throw new Error(result.error);
+        if (result.data) setResource(result.data);
         setNotice("Resource changes saved.");
       } else {
-        const created = createResource(input);
-        setResource(created);
+        const result = await createResourceAction(input);
+        if (!result.ok) throw new Error(result.error);
+        setResource(result.data);
+        setForm(formFromResource(result.data));
         setNotice("Resource created. You can now place it in the curriculum.");
-        window.history.replaceState(null, "", `/admin/resources/${created.id}`);
+        window.history.replaceState(null, "", `/admin/resources/${result.data.id}`);
       }
       setValidationErrors([]);
     } catch (caught) {
@@ -296,29 +308,29 @@ export default function AdminResourceEditorPage() {
     }
   }
 
-  function changeLifecycle() {
+  async function changeLifecycle() {
     if (!resource) return;
     try {
-      const updated = resource.status === "archived" ? restoreResource(resource.id) : archiveResource(resource.id);
-      if (updated) {
-        setResource(updated);
-        setForm(formFromResource(updated));
-        setNotice(updated.status === "archived" ? "Resource archived." : "Resource restored as a draft.");
+      const result = await setResourceStatusAction(resource.id, resource.status === "archived" ? "draft" : "archived");
+      if (!result.ok) throw new Error(result.error);
+      if (result.data) {
+        setResource(result.data);
+        setForm(formFromResource(result.data));
+        setNotice(result.data.status === "archived" ? "Resource archived." : "Resource restored as a draft.");
       }
     } catch {
       setError("The resource lifecycle change could not be saved.");
     }
   }
 
-  function attach() {
+  async function attach() {
     if (!resource) return;
     const target: ResourcePlacementTarget = placementLevel === "course" ? { courseId } : placementLevel === "week" ? { weekId } : { dayId };
     try {
-      const before = getResourcePlacements(resource.id).length;
-      attachResource(resource.id, target);
-      const after = getResourcePlacements(resource.id).length;
-      setNotice(before === after ? "That placement already exists." : "Resource placement added.");
-      setResource({ ...resource });
+      const result = await placeResourceAction(resource.id, target);
+      if (!result.ok) throw new Error(result.error);
+      setPlacements((current) => current.some((placement) => placement.id === result.data.id) ? current : [...current, result.data]);
+      setNotice("Resource placement added or already existed.");
       setCourseId("");
       setWeekId("");
       setDayId("");
@@ -327,11 +339,15 @@ export default function AdminResourceEditorPage() {
     }
   }
 
-  function detach(placement: ResourcePlacement) {
+  async function detach(placement: ResourcePlacement) {
     if (!resource) return;
-    detachResource(resource.id, placementTarget(placement));
+    const result = await removeResourcePlacementAction(resource.id, placementTarget(placement));
+    if (!result.ok) {
+      setNotice(result.error);
+      return;
+    }
+    setPlacements((current) => current.filter((item) => item.id !== placement.id));
     setNotice("Resource placement removed.");
-    setResource({ ...resource });
   }
 
   if (loading) return <AdminLoadingState />;

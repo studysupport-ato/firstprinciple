@@ -1,22 +1,43 @@
-import { createCourseStructureServerRepository, createDayContentServerRepository } from "./serverRepository";
+import { createCourseStructureServerRepository, type ContentClientFactory } from "./serverRepository";
 import type { Lesson } from "./types/lesson";
+import { withServerTimingSpan, type ServerTimingContext } from "../performance/timingSpans";
 
 export type PublishedDayResult = { kind: "not-found" } | { kind: "success"; lesson: Lesson };
 
-export async function getPublishedDay(courseId: string, weekReference: string | undefined, dayId: string): Promise<PublishedDayResult> {
-  const structure = createCourseStructureServerRepository();
-  const content = createDayContentServerRepository();
-  const course = await structure.getCourse(courseId);
-  if (!course || !weekReference) return { kind: "not-found" };
+/**
+ * Task 40G.5C: an explicit `clientFactory` makes this read request-scoped and
+ * RLS-constrained (student server pages pass `createSupabaseServerClient`).
+ * Omitting it keeps the service-role default for admin/infra/test callers.
+ */
+export async function getPublishedDay(
+  courseId: string,
+  weekReference: string | undefined,
+  dayId: string,
+  clientFactory?: ContentClientFactory,
+  timing?: ServerTimingContext,
+): Promise<PublishedDayResult> {
+  if (!weekReference) return { kind: "not-found" };
 
-  const weeks = await structure.listWeeksForCourse(courseId);
-  const week = weeks.find((candidate) => candidate.id === weekReference || String(candidate.weekNumber) === weekReference);
-  const day = week ? await structure.getDay(courseId, week.id, dayId) : undefined;
+  const structure = createCourseStructureServerRepository(clientFactory, timing);
+  const [course, weeks, day] = await Promise.all([
+    structure.getCourse(courseId),
+    structure.listWeeksForCourse(courseId),
+    structure.getDayForCourse(courseId, dayId, { validateContent: true }),
+  ]);
 
-  if (!course || !week || !day) return { kind: "not-found" };
-  if (course.status !== "published" || week.status !== "published" || day.status !== "published") return { kind: "not-found" };
+  const validation = await withServerTimingSpan(timing, "publication_hierarchy_validation_ms", async () => {
+    const week = weeks.find((candidate) => candidate.id === weekReference || String(candidate.weekNumber) === weekReference);
+    return Boolean(
+      course &&
+      week &&
+      day &&
+      day.weekId === week.id &&
+      course.status === "published" &&
+      week.status === "published" &&
+      day.status === "published",
+    );
+  });
 
-  const blocks = await content.getDayContent(courseId, week.id, dayId);
-  if (blocks === undefined) return { kind: "not-found" };
-  return { kind: "success", lesson: { ...day, blocks } };
+  if (!validation || !day) return { kind: "not-found" };
+  return { kind: "success", lesson: day };
 }

@@ -4,6 +4,7 @@ import { AnimatedItem } from "@/components/motion/AnimatedItem";
 import { TextReveal } from "@/components/motion/TextReveal";
 import { motion } from "framer-motion";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { BrandLogo } from "@/components/branding/BrandLogo";
 import { useState } from "react";
 
 export function FinalCTA() {
@@ -45,9 +46,7 @@ export function FinalCTA() {
       <div className="max-w-[1440px] mx-auto px-8 md:px-16 relative z-10 flex flex-col items-center">
         
         <AnimatedItem direction="up" distance={20}>
-          <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center mb-8 mx-auto shadow-2xl">
-            <span className="text-[#111111] text-[18px] font-black tracking-tighter">B2</span>
-          </div>
+          <BrandLogo className="mx-auto mb-8 h-12 w-48 rounded-lg shadow-2xl" priority />
         </AnimatedItem>
 
         <div className="mb-12">

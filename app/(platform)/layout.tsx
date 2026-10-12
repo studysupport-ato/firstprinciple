@@ -1,10 +1,39 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef, useCallback } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Menu, X } from "lucide-react";
+import Link from "next/link";
+import { AuthModal } from "@/components/auth/AuthModal";
+import { BrandLogo } from "@/components/branding/BrandLogo";
 import { Sidebar } from "@/components/platform/Sidebar";
 import { PreviewToolbar } from "@/components/platform/PreviewToolbar";
 import { OnboardingTour } from "@/components/platform/OnboardingTour";
 import { ProfileCompletionModal } from "@/components/platform/ProfileCompletionModal";
+
+function AuthRedirectHandler({ onRequireAuth }: { onRequireAuth: (destination: string) => void }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (searchParams.get("auth") !== "required") return;
+
+    const requestedDestination = searchParams.get("next");
+    let destination = "/courses";
+    if (requestedDestination?.startsWith("/") && !requestedDestination.startsWith("//")) {
+      const parsedDestination = new URL(requestedDestination, window.location.origin);
+      if (parsedDestination.origin === window.location.origin) {
+        destination = `${parsedDestination.pathname}${parsedDestination.search}${parsedDestination.hash}`;
+      }
+    }
+
+    onRequireAuth(destination);
+    router.replace(pathname, { scroll: false });
+  }, [onRequireAuth, pathname, router, searchParams]);
+
+  return null;
+}
 
 export default function PlatformLayout({
   children,
@@ -12,13 +41,48 @@ export default function PlatformLayout({
   children: React.ReactNode;
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const pathname = usePathname();
+  const inLesson = /\/lesson\//.test(pathname ?? "");
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authRedirectTo, setAuthRedirectTo] = useState<string | undefined>();
+  const collapsedBeforeLesson = useRef<boolean | null>(null);
+  const requireAuth = useCallback((destination: string) => {
+    setAuthRedirectTo(destination);
+    setAuthOpen(true);
+  }, []);
+
+  // Entering a lesson folds the sidebar into a thin icon rail to give the board the room.
+  // Leaving the lesson restores whatever the learner had before.
+  useEffect(() => {
+    if (inLesson) {
+      if (collapsedBeforeLesson.current === null) {
+        setSidebarCollapsed((current) => {
+          collapsedBeforeLesson.current = current;
+          return true;
+        });
+      }
+    } else if (collapsedBeforeLesson.current !== null) {
+      const previous = collapsedBeforeLesson.current;
+      collapsedBeforeLesson.current = null;
+      setSidebarCollapsed(previous);
+    }
+  }, [inLesson]);
 
   useEffect(() => {
-    const hasSeenWelcome = localStorage.getItem("first-principles-welcome-v1");
-    if (!hasSeenWelcome) {
-      setSidebarCollapsed(true);
-    }
+    setMobileNavOpen(false);
+  }, [pathname]);
 
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileNavOpen]);
+
+  useEffect(() => {
     const handleWelcomeDismissed = () => {
       setSidebarCollapsed(false);
     };
@@ -32,16 +96,92 @@ export default function PlatformLayout({
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((current) => !current)}
+        mobileOpen={mobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
+        onSignIn={() => {
+          // Signed-in users never see this, but clear any stale destination from
+          // a previous ?auth=required redirect so the modal uses its default.
+          setAuthRedirectTo(undefined);
+          setAuthOpen(true);
+        }}
+      />
+      <Suspense fallback={null}>
+        <AuthRedirectHandler onRequireAuth={requireAuth} />
+      </Suspense>
+      <div
+        aria-hidden={!mobileNavOpen}
+        role="presentation"
+        className={`mobile-nav-backdrop fixed inset-0 z-40 bg-black/50 md:hidden ${
+          mobileNavOpen ? "is-open visible opacity-100" : "invisible pointer-events-none opacity-0"
+        }`}
+        onClick={() => setMobileNavOpen(false)}
       />
 
       <main
-        className={`flex-1 relative ${sidebarCollapsed ? "ml-20" : "ml-64"} min-h-screen transition-[margin] duration-500 ease-in-out`}
+        className={`relative min-h-screen w-full min-w-0 flex-1 transition-[margin] duration-500 ease-in-out md:pb-0 ${inLesson ? "pb-0" : "pb-[80px]"} ${sidebarCollapsed ? "md:ml-[68px]" : "md:ml-[220px]"}`}
       >
+        <header className={`sticky top-0 z-30 flex items-center justify-between bg-[#1A1814] px-4 pt-[env(safe-area-inset-top)] md:hidden ${inLesson ? "h-7 min-h-7 px-2" : "min-h-16"}`}>
+          <button
+            type="button"
+            aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={mobileNavOpen}
+            aria-controls="platform-sidebar"
+            onClick={() => setMobileNavOpen((open) => !open)}
+            className={`flex shrink-0 items-center justify-start text-[#F6EFDC] transition focus-visible:outline-none ${inLesson ? "h-6 w-8" : "h-11 w-11"}`}
+          >
+            {mobileNavOpen ? <X size={inLesson ? 16 : 24} /> : <Menu size={inLesson ? 16 : 24} />}
+          </button>
+          
+          <Link href="/" aria-label="Back2Basics with Kwamina home" className="flex items-center justify-center">
+            <BrandLogo className={inLesson ? "h-5 w-24" : "h-12 w-40"} priority />
+          </Link>
+
+          <div className={`shrink-0 ${inLesson ? "w-8" : "w-11"}`} /> {/* Spacer for centering */}
+        </header>
+
         <PreviewToolbar />
         {children}
+
+        {/* Mobile Bottom Navigation */}
+        {!inLesson ? (
+          <nav data-testid="mobile-bottom-navigation" className="fixed bottom-0 left-0 right-0 z-40 flex h-[76px] items-center justify-around bg-[#1A1814] pb-[env(safe-area-inset-bottom)] px-2 md:hidden">
+            <MobileNavItem href="/" icon="Compass" label="Home" current={pathname === "/"} />
+            <MobileNavItem href="/courses" icon="BookOpen" label="Courses" current={pathname === "/courses" || pathname?.startsWith("/courses/")} />
+            <MobileNavItem href="/course-materials" icon="Library" label="Materials" current={pathname === "/course-materials"} />
+            <MobileNavItem href="/questions" icon="HelpCircle" label="Questions" current={pathname === "/questions"} />
+          </nav>
+        ) : null}
       </main>
       <OnboardingTour />
       <ProfileCompletionModal />
+      <AuthModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        redirectTo={authRedirectTo}
+      />
     </div>
+  );
+}
+
+import { Compass, BookOpen, Library, HelpCircle } from "lucide-react";
+
+function MobileNavItem({ href, icon, label, current }: { href: string; icon: string; label: string; current: boolean }) {
+  const IconComponent = {
+    Compass: Compass,
+    BookOpen: BookOpen,
+    Library: Library,
+    HelpCircle: HelpCircle
+  }[icon] || Compass;
+
+  return (
+    <Link
+      href={href}
+      className={`flex flex-col items-center justify-center gap-1 rounded-[16px] px-4 py-2 transition ${
+        current ? "bg-[#F0C84A] text-[#1A1814]" : "text-[#F6EFDC] hover:bg-white/5"
+      }`}
+    >
+      <IconComponent size={20} strokeWidth={current ? 2.5 : 2} />
+      <span className="text-[11px] font-bold tracking-wide">{label}</span>
+    </Link>
   );
 }

@@ -1,5 +1,6 @@
 import {
   createAssessmentAdminRepository,
+  createAssetAdminRepository,
   createCourseMaterialsAdminRepository,
   createCourseStructureAdminRepository,
   createDayContentAdminRepository,
@@ -110,11 +111,15 @@ function validateDayBlocks(blocks: ContentBlock[]) {
 
 export async function listAdminCourses(): Promise<AdminCourseListRow[]> {
   const structure = createCourseStructureAdminRepository();
-  const [courses, weeks, days] = await Promise.all([structure.listCourses(), structure.listAllWeeks(), structure.listAllDays()]);
+  const [courses, weeks, dayCourseIds] = await Promise.all([
+    structure.listCourses(),
+    structure.listAllWeeks(),
+    structure.listDayCourseIds(),
+  ]);
   const weekCounts = new Map<string, number>();
   for (const week of weeks) weekCounts.set(week.courseId, (weekCounts.get(week.courseId) ?? 0) + 1);
   const dayCounts = new Map<string, number>();
-  for (const day of days) dayCounts.set(day.courseId, (dayCounts.get(day.courseId) ?? 0) + 1);
+  for (const courseId of dayCourseIds) dayCounts.set(courseId, (dayCounts.get(courseId) ?? 0) + 1);
   return courses
     .map((course) => ({ course, weekCount: weekCounts.get(course.id) ?? 0, dayCount: dayCounts.get(course.id) ?? 0 }))
     .sort((first, second) => first.course.title.localeCompare(second.course.title));
@@ -181,6 +186,10 @@ export async function getAdminDayContent(courseId: string, weekId: string, dayId
   return createDayContentAdminRepository().getDayContent(courseId, weekId, dayId);
 }
 
+export async function uploadAdminLessonImage(courseId: string, weekId: string, dayId: string, file: File, altText?: string) {
+  return createAssetAdminRepository().uploadLessonImage({ courseId, weekId, dayId, file, altText });
+}
+
 export async function listAdminQuestions(courseId?: string): Promise<Question[]> {
   return createQuestionAdminRepository().listQuestions(courseId ? { courseId } : {});
 }
@@ -209,8 +218,8 @@ export async function getAdminResource(resourceId: string): Promise<LearningReso
   return createResourceAdminRepository().getResource(resourceId);
 }
 
-export async function listAdminResourcePlacements(): Promise<ResourcePlacement[]> {
-  return createResourceAdminRepository().listPlacements();
+export async function listAdminResourcePlacements(resourceId?: string): Promise<ResourcePlacement[]> {
+  return createResourceAdminRepository().listPlacements(resourceId ? { resourceId } : undefined);
 }
 
 export async function listAdminDepartments(): Promise<AdminDepartmentListRow[]> {
@@ -289,6 +298,13 @@ export async function createAdminWeek(input: AdminWeekInput): Promise<Week> {
 }
 
 export async function updateAdminWeek(courseId: string, weekId: string, patch: WeekPatch): Promise<Week> {
+  if (patch.title !== undefined && !patch.title.trim()) throw new Error("Week title is required.");
+  if (patch.weekNumber !== undefined && (!Number.isInteger(patch.weekNumber) || patch.weekNumber < 1)) {
+    throw new Error("Week number must be a positive integer.");
+  }
+  if (patch.status !== undefined && !["draft", "published", "archived"].includes(patch.status)) {
+    throw new Error("Week status is invalid.");
+  }
   return createCourseStructureAdminRepository().updateWeek(courseId, weekId, patch);
 }
 
@@ -340,6 +356,49 @@ export async function setAdminDayStatus(courseId: string, weekId: string, dayId:
 
 export async function deleteAdminDay(courseId: string, weekId: string, dayId: string): Promise<void> {
   return createCourseStructureAdminRepository().deleteDay(courseId, weekId, dayId);
+}
+
+export async function reorderAdminDays(courseId: string, weekId: string, orderedIds: string[]): Promise<Lesson[]> {
+  assertNonEmpty(courseId, "Course ID");
+  assertNonEmpty(weekId, "Week ID");
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) throw new Error("Day order must include the Days of this Week.");
+  return createCourseStructureAdminRepository().reorderDays(courseId, weekId, orderedIds);
+}
+
+/**
+ * Transfer an existing Day to another Week of the SAME Course (Task 40H.2).
+ *
+ * Validates the whole path server-side BEFORE any write: the Day must exist
+ * and belong to `courseId`, both Weeks must exist inside that Course, and the
+ * destination must differ from the Day's current Week. A destination Week that
+ * belongs to a different Course is rejected explicitly (cross-course transfers
+ * are never allowed). The repository then re-resolves and re-validates every
+ * id before mutating, and only `week_id` / `order_index` change — the Day id,
+ * content, questions, resources and progress rows all stay attached to the
+ * same Day.
+ */
+export async function moveAdminDay(courseId: string, dayId: string, destinationWeekId: string): Promise<Lesson> {
+  assertNonEmpty(courseId, "Course ID");
+  assertNonEmpty(dayId, "Day ID");
+  assertNonEmpty(destinationWeekId, "Destination Week ID");
+  const structure = createCourseStructureAdminRepository();
+  const day = await structure.getDayById(dayId);
+  if (!day) throw new Error(`Day ${dayId} was not found.`);
+  if (day.courseId !== courseId) throw new Error(`Day ${dayId} does not belong to Course ${courseId}.`);
+  if (day.weekId === destinationWeekId) throw new Error(`Day ${dayId} is already in Week ${destinationWeekId}.`);
+  const sourceWeek = await structure.getWeek(courseId, day.weekId);
+  if (!sourceWeek || sourceWeek.courseId !== courseId) throw new Error(`Source Week ${day.weekId} was not found in Course ${courseId}.`);
+  const destinationWeek = await structure.getWeek(courseId, destinationWeekId);
+  if (!destinationWeek) {
+    // Read-only distinction between "Week belongs to another Course" and
+    // "Week does not exist" so the admin sees an accurate error.
+    const allWeeks = await structure.listAllWeeks();
+    const foreign = allWeeks.find((week) => week.id === destinationWeekId);
+    if (foreign) throw new Error(`Week ${destinationWeekId} belongs to Course ${foreign.courseId}, not Course ${courseId}. Cross-course transfers are not allowed.`);
+    throw new Error(`Destination Week ${destinationWeekId} was not found.`);
+  }
+  if (destinationWeek.courseId !== courseId) throw new Error(`Week ${destinationWeekId} belongs to Course ${destinationWeek.courseId}, not Course ${courseId}. Cross-course transfers are not allowed.`);
+  return structure.moveDay(courseId, dayId, destinationWeekId);
 }
 
 /** Writes ONLY `days.content_blocks` for the scoped Day. */
@@ -465,6 +524,9 @@ export async function setAdminDepartmentStatus(departmentId: string, status: Con
 }
 
 export async function createAdminCourseMaterial(input: AdminCourseMaterialInput): Promise<CourseMaterialEntry> {
+  if (![1, 2, 3, 4].includes(input.studyYear)) {
+    throw new Error("Choose a valid academic year for this material.");
+  }
   const errors = validateCourseMaterial(input);
   if (errors.length > 0) throw new Error(errors.join(" "));
   return createCourseMaterialsAdminRepository().createCourseMaterial(input);
@@ -503,6 +565,3 @@ export async function deleteAdminDepartment(departmentId: string): Promise<void>
 export async function deleteAdminCourseMaterial(materialId: string): Promise<void> {
   await createCourseMaterialsAdminRepository().deleteCourseMaterial(materialId);
 }
-
-
-

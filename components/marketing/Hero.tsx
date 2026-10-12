@@ -7,6 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { BrandLogo } from "@/components/branding/BrandLogo";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, SplitText);
@@ -164,9 +165,7 @@ export function Hero() {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="mb-5 flex items-center gap-3"
         >
-          <div className="w-5 h-5 bg-white rounded-sm flex items-center justify-center">
-            <span className="text-[#111111] text-[8px] font-black">B2</span>
-          </div>
+          <BrandLogo className="h-7 w-28 rounded-sm" priority />
           <span className="font-sans text-[11px] tracking-[0.22em] uppercase text-white/70 font-semibold">
             BACK2BASICS WITH KWAMINA · MATH 151
           </span>
