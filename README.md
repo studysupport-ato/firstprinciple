@@ -9,6 +9,8 @@ This repository is the Next.js application and is configured to display this REA
 - [Highlights](#highlights)
 - [Technology](#technology)
 - [Project structure](#project-structure)
+- [Application architecture](#application-architecture)
+- [Lesson content and authoring](#lesson-content-and-authoring)
 - [Requirements](#requirements)
 - [Run locally](#run-locally)
 - [Environment configuration](#environment-configuration)
@@ -18,6 +20,7 @@ This repository is the Next.js application and is configured to display this REA
 - [Development commands](#development-commands)
 - [Testing and verification](#testing-and-verification)
 - [Deployment](#deployment)
+- [Git branches and deployment workflow](#git-branches-and-deployment-workflow)
 - [Security notes](#security-notes)
 - [Contributing](#contributing)
 
@@ -25,6 +28,10 @@ This repository is the Next.js application and is configured to display this REA
 
 - **Course library:** Browse published courses and see their week/day structure and student progress.
 - **Guided learning:** Navigate course roadmaps, lessons, learning resources, practice, and assessments.
+- **Structured lesson steps:** Lessons are authored as ordered content blocks grouped into steps. Desktop lessons can place notes, examples, questions, and other blocks in a side pane while the main pane presents the current step. Mobile layouts keep the same content usable in a single-column flow.
+- **Interactive lesson checks:** Mid-lesson and end-of-lesson multiple-choice quizzes support answer checking, feedback and explanations. A lesson can require its end check to be completed before the student continues.
+- **Visual learning:** Lessons support rendered mathematics, worked examples, callouts, images, videos, GeoGebra activities, custom visualizers and interactive boards. Board experiences include mobile-friendly layouts and full-screen controls.
+- **Content authoring:** The protected admin lesson editor can create and reorder supported block types, edit lesson content, preview changes, and upload lesson images.
 - **Course materials:** Browse academic resources by department, filter the collection, and use bookmarks.
 - **Progress tracking:** Track lesson progress, practice attempts, assessment activity, and learning streaks.
 - **Student accounts:** Authenticate with Supabase; student records and progress are associated with the authenticated student.
@@ -52,15 +59,48 @@ This repository is the Next.js application and is configured to display this REA
 ```text
 .
 ├── app/                 # App Router pages and route layouts
-├── components/          # UI, learning, authentication, and platform components
-├── lib/                 # Supabase, student, content, and progress logic
+├── components/          # UI, learning blocks, authentication, and platform components
+├── lib/                 # Supabase clients, repositories, content, auth, and progress logic
 ├── public/              # Static assets
-├── scripts/             # Smoke checks and verification scripts
+├── scripts/             # Seed, smoke-check, and boundary-verification scripts
 ├── supabase/
-│   └── migrations/      # Ordered SQL schema and policy migrations
+│   └── migrations/      # Ordered schema, RLS, storage, and data migrations
 ├── .env.example         # Environment-variable template
 └── package.json
 ```
+
+### Application architecture
+
+- **Routing and rendering:** The Next.js App Router serves the public landing page, the student learning platform, and the protected admin workspace. Server-rendered route data is composed with React client components for interactive lesson steps, navigation, practice, and account experiences.
+- **Content model:** Course structure follows Course → Week → Day (the UI presents a Day as a lesson). Lesson bodies are ordered, typed content blocks. Blocks can be assigned to a step and, for split lessons, to the `main` or `side` pane.
+- **Data access:** Supabase access is kept in server/client helpers and domain repositories under `lib/`. Server-rendered requests use request-scoped clients with the current cookie session. Student-owned operations are expected to use the authenticated user context and database Row Level Security (RLS).
+- **Interactive content:** Custom visualizer HTML is rendered in a sandboxed iframe. GeoGebra embeds are loaded through the interactive-content components; lesson GeoGebra activities may be deferred until the learner opens them. Quiz feedback can be presented in the side pane while the question remains in the main pane.
+- **Progress:** Lesson starts and completion, practice attempts, assessment activity and related dashboard information are persisted through the progress/data-access layer. UI completion controls must not be treated as proof of persistence until the server operation succeeds.
+- **Styling:** Shared platform styles live in `app/globals.css`; feature-specific styles and responsive layout rules are colocated with components where appropriate. Respect reduced-motion preferences and mobile usability when changing lesson transitions or layouts.
+
+These boundaries are intended to keep authorization and data ownership in server/database layers rather than relying on hidden links or client-side checks.
+
+### Lesson content and authoring
+
+The admin lesson editor supports these block types:
+
+| Block | Typical use |
+| --- | --- |
+| `heading` | Section or step heading |
+| `text`, `markdown` | Explanatory prose and formatted content |
+| `math` | Mathematical expression |
+| `worked-example` | Prompt, solution, and optional Markdown content |
+| `callout` | Information, tip, or warning |
+| `image` | Uploaded or referenced image with alternative text and optional caption |
+| `video` | Lesson video or supported video source |
+| `interactive` | Configured GeoGebra or custom activity |
+| `visualizer` | Sandboxed custom HTML board/visualization |
+| `question` | Reference to a question-bank item |
+| `quiz` | In-lesson multiple-choice check (`mid` or `end`) |
+
+Blocks can be ordered within a lesson and assigned to a step. A split lesson can assign a block to the main or side pane; blocks without a pane assignment use the main pane. Steps are presented in lesson order. The end quiz variant supports a second attempt after a wrong answer and reveals the correct answer and explanation if needed. An unfinished end check can gate progression according to the lesson flow.
+
+When editing or importing content, preserve stable block IDs, valid asset/question references, the course/week/day hierarchy, publication rules, and the existing validation performed by the application. Do not paste private student data into lesson content or commit credentials into visualizer source.
 
 ## Requirements
 
@@ -171,7 +211,6 @@ The guided tour can be previewed during development by visiting `/courses?onboar
 | `/courses/[courseId]/chapter/[chapterId]/practice` | Practice experience |
 | `/courses/[courseId]/chapter/[chapterId]/assessment/[assessmentId]` | Assessment experience |
 | `/course-materials` | Course materials directory |
-| `/course-materials/[departmentId]` | Department materials |
 | `/dashboard` | Student learning dashboard |
 | `/progress` | Student progress |
 | `/questions` | Question/practice area |
@@ -196,8 +235,25 @@ Run these commands from the repository root:
 | `npm run build` | Build the production app |
 | `npm run start` | Start the production build |
 | `npm run test:mobile` | Run the mobile and desktop Playwright experience checks |
-| `npm run seed:math151` | Seed the Math 151 course data |
-| `npm run seed:math151:check` | Check the Math 151 seed data without applying it |
+| `npm run smoke:course-structure` | Check the course structure |
+| `npm run smoke:day-content` | Check Day content (same script as course structure) |
+| `npm run smoke:questions-assessments` | Check question and assessment flows/data |
+| `npm run smoke:resources-course-materials-assets` | Check resource, materials, and asset integration |
+| `npm run smoke:progress` | Check progress behavior |
+| `npm run smoke:published-day` | Check published Day content |
+| `npm run smoke:published-structure` | Check published course structure |
+| `npm run smoke:course-content` | Check course content |
+| `npm run verify:profile-edit` | Verify profile editing |
+| `npm run verify:day-persistence` | Verify Day persistence |
+| `npm run verify:day-transfer` | Verify Day transfer behavior |
+| `npm run verify:question-read-boundary` | Verify question read boundaries |
+| `npm run verify:resource-read-boundary` | Verify resource read boundaries |
+| `npm run verify:asset-read-boundary` | Verify asset read boundaries |
+| `npm run verify:admin-session-boundary` | Verify admin session boundaries |
+| `npm run seed:math151` | Seed Math 151 data; review the script and target environment first |
+| `npm run seed:math151:check` | Check Math 151 seed data without applying it |
+
+**Caution:** Seed commands may write data. Use only an authorized development or staging project, and inspect the seed script before running it. Do not run seed scripts against production unless the data change is intentionally approved.
 
 ## Testing and verification
 
@@ -228,18 +284,43 @@ The mobile Playwright suite uses an iPhone 13 Chromium context with touch emulat
 
 ## Deployment
 
-Deploy the Next.js application using a platform that supports Next.js (for example, Vercel) or another compatible Node.js hosting provider.
+Deploy the Next.js application using a platform that supports Next.js (for example, Vercel) or another compatible Node.js hosting provider. The intended production deployment branch for the Vercel project is `main`.
 
 For a deployment:
 
-1. Set the app's root/build directory to this repository root.
-2. Configure all required environment variables in the hosting provider's server-side environment settings.
-3. Apply pending Supabase migrations to the intended database.
-4. Verify that Supabase Auth redirect URLs and allowed origins include the deployed domain.
-5. Run the production build and check student signup, sign-in, password reset, course browsing, and admin access.
-6. Confirm that secrets are available only to server runtime code and are not included in client bundles.
+1. Connect the application repository and set the app's root/build directory to this repository root.
+2. Set Vercel's **Production Branch** to `main`. A push or merge to `main` should be the production deployment trigger; pushes to `master` should not replace or change that production branch.
+3. Configure all required environment variables in the hosting provider's server-side environment settings.
+4. Apply pending Supabase migrations to the intended database.
+5. Verify that Supabase Auth redirect URLs and allowed origins include the deployed domain.
+6. Run the production build and check student signup, sign-in, password reset, course browsing, lesson progression, progress persistence, and admin access.
+7. Confirm that secrets are available only to server runtime code and are not included in client bundles.
 
 Production deployments should use a separate Supabase project (or otherwise deliberately isolated data) from development. Do not deploy with placeholder environment values.
+
+### Git branches and deployment workflow
+
+- **`main` is the deployment branch.** Merge or push release-ready changes to `main` to trigger the Vercel production deployment, provided the Vercel project's Production Branch is configured as `main`.
+- **`master` is a compatibility/mirror branch.** If the team needs the same release on `master`, merge `main` into `master` and push it after the `main` deployment is initiated. Do not use `master` as the Vercel Production Branch unless the deployment policy is deliberately changed.
+- **The GitHub remotes:** `origin` is `studysupport-ato/firstprinciple`; `alt` is `Kwasnega/backtobasics`. Check `git remote -v` in the local clone before pushing, because remotes and branch histories can change.
+- **Keep branch history safe.** Fetch before merging, review `git status` and branch differences, use fast-forward pulls where possible, and resolve merge conflicts without force-pushing over existing branch history.
+
+Example synchronization commands (review the output at each stage):
+
+```bash
+git fetch --all --prune
+git switch main
+git pull --ff-only origin main
+# Make and verify the intended changes, then commit them.
+git push origin main
+
+# Optional compatibility-branch sync after the main deployment is triggered:
+git switch master
+git merge main
+git push origin master
+```
+
+The Vercel project configuration is managed in the Vercel dashboard. README guidance does not itself change the project's Production Branch setting; confirm that setting in Vercel before relying on automatic production deployments.
 
 ## Security notes
 
