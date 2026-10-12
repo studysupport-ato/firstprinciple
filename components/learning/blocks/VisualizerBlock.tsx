@@ -40,6 +40,17 @@ const BLUEPRINT_STYLE = `<style>
 .v .nh-node.nh-dark:hover .nh-box, .v .nh-node.nh-dark.nh-sel .nh-box { stroke: #FFC700 !important; }
 </style>`;
 
+// End-of-lesson check boards keep their own questions and behaviour; only the purple becomes green.
+const CHECK_GREEN_STYLE = `<style>
+#ck { background-color: #0F3D2E !important; background-image: linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px) !important; background-size: 32px 32px !important; }
+#ck .bar i { background: rgba(255,255,255,.22) !important; }
+#ck .bar i.ok { background: #7BE0A0 !important; } #ck .bar i.miss { background: #FF8A8E !important; } #ck .bar i.now { background: #FFC700 !important; }
+#ck .meta, #ck .tier { color: #CFE8DC !important; }
+#ck .hint, #ck .done { color: #0F3D2E !important; }
+#ck .btn { color: #0F3D2E !important; }
+#ck .btn.ghost { color: #fff !important; }
+</style>`;
+
 function buildSourceDocument(source: string, blueprint = false) {
   const mobileBoardStyles = isBoardSource(source)
     ? `<style>
@@ -373,7 +384,7 @@ window.addEventListener('error', function () {
 <div id="first-principles-visualizer-error">This visualizer could not render. Please ask an administrator to check its code.</div>
 ${source}
 ${mobileBoardStyles}
-${blueprint ? BLUEPRINT_STYLE : ""}
+${blueprint ? (source.includes("data-b2b-check") ? CHECK_GREEN_STYLE : BLUEPRINT_STYLE) : ""}
 </body>
 </html>`;
 }

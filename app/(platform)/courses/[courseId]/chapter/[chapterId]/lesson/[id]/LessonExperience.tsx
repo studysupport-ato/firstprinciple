@@ -81,6 +81,7 @@ const BLUEPRINT_WEEKS = ["math151-week-1"];
 function themeForStep(blocks: ContentBlock[], dark: boolean, blueprint: boolean): LessonTheme {
   const quiz = blocks.find((block) => block.type === "quiz");
   if (quiz && quiz.type === "quiz") return quiz.variant === "end" ? "green" : "purple";
+  if (blocks.some((block) => block.type === "visualizer" && block.source.includes("data-b2b-check"))) return "green";
   if (blocks.some((block) => block.type === "question")) return "purple";
   if (blocks.some((block) => block.type === "video")) return "wine";
   if (blocks.some((block) => block.type === "visualizer" && (blueprint || block.fit || !isBoardSource(block.source)))) return "blue";
