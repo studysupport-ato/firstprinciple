@@ -23,7 +23,35 @@ function visualizerHeight(value: number | undefined) {
   return typeof value === "number" && Number.isFinite(value) ? Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, Math.round(value))) : DEFAULT_HEIGHT;
 }
 
-function buildSourceDocument(source: string) {
+// Blue-print look for animated boards (".v" players): the page and the board share one grid.
+// Only colours change; the board's own markup, text and animation are untouched.
+const BLUEPRINT_STYLE = `<style>
+.v { background-color: #14305C !important; background-image: linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px) !important; background-size: 28px 28px !important; color: #fff !important; }
+.v .v-tag, .v .v-title, .v .v-why, .v .v-why b, .v .v-trk .c em { color: #fff !important; }
+.v .v-trk i { background: rgba(255,255,255,.25) !important; }
+.v .v-trk .d i { background: rgba(255,199,0,.6) !important; }
+.v .v-trk .c i { background: #FFC700 !important; }
+.v .v-btn { background: transparent !important; color: #fff !important; border-color: #fff !important; }
+.v .v-btn.v-go { background: #FFC700 !important; color: #14181F !important; border-color: #FFC700 !important; }
+.v .nh-edge { stroke: #fff !important; }
+.v .nh-edge.nh-path { stroke: #FFC700 !important; }
+.v .nh-hint { color: #cdd5e4 !important; }
+.v .nh-node:hover .nh-box, .v .nh-node.nh-sel .nh-box, .v .nh-node:focus-visible .nh-box { stroke: #fff !important; }
+.v .nh-node.nh-dark:hover .nh-box, .v .nh-node.nh-dark.nh-sel .nh-box { stroke: #FFC700 !important; }
+</style>`;
+
+// End-of-lesson check boards keep their own questions and behaviour; only the purple becomes green.
+const CHECK_GREEN_STYLE = `<style>
+#ck { background-color: #0F3D2E !important; background-image: linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px) !important; background-size: 32px 32px !important; }
+#ck .bar i { background: rgba(255,255,255,.22) !important; }
+#ck .bar i.ok { background: #7BE0A0 !important; } #ck .bar i.miss { background: #FF8A8E !important; } #ck .bar i.now { background: #FFC700 !important; }
+#ck .meta, #ck .tier { color: #CFE8DC !important; }
+#ck .hint, #ck .done { color: #0F3D2E !important; }
+#ck .btn { color: #0F3D2E !important; }
+#ck .btn.ghost { color: #fff !important; }
+</style>`;
+
+function buildSourceDocument(source: string, blueprint = false) {
   const mobileBoardStyles = isBoardSource(source)
     ? `<style>
 @media (max-width: 767px) {
@@ -356,6 +384,7 @@ window.addEventListener('error', function () {
 <div id="first-principles-visualizer-error">This visualizer could not render. Please ask an administrator to check its code.</div>
 ${source}
 ${mobileBoardStyles}
+${blueprint ? (source.includes("data-b2b-check") ? CHECK_GREEN_STYLE : BLUEPRINT_STYLE) : ""}
 </body>
 </html>`;
 }
@@ -385,10 +414,19 @@ export function VisualizerBlock({
   // attaches onLoad, which left the first step stuck on "Loading visualizer...".
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
-  const iframeSource = useMemo(() => buildSourceDocument(source), [source]);
+  const iframeSource = useMemo(() => buildSourceDocument(source, fit), [source, fit]);
   const requestedHeight = visualizerHeight(height);
+  const [viewportHeight, setViewportHeight] = useState(800);
+  useEffect(() => {
+    const update = () => setViewportHeight(window.innerHeight);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  // fit: a board expands to the height of the screen it is on.
+  const fitHeight = Math.max(BOARD_MIN_HEIGHT, Math.min(780, viewportHeight - 300));
   const frameHeight = fill && isBoardSource(source)
-    ? Math.max(BOARD_MIN_HEIGHT, requestedHeight)
+    ? (fit ? fitHeight : Math.max(BOARD_MIN_HEIGHT, requestedHeight))
     : requestedHeight;
   const embeddedFrameHeight = Math.max(frameHeight, mobileBoardHeight);
   const timeoutRef = useRef<number | undefined>(undefined);
@@ -521,7 +559,7 @@ export function VisualizerBlock({
         className={isFullscreen ? "fixed inset-0 z-[100] overflow-hidden bg-[#142F55]" : "w-full"}
       >
         <div
-          className={isFullscreen ? "absolute inset-0 overflow-hidden bg-[#12335A]" : "relative w-full overflow-hidden rounded-xl bg-[#12335A]"}
+          className={isFullscreen ? "absolute inset-0 overflow-hidden bg-[#12335A]" : (fit ? "relative w-full overflow-hidden bg-transparent" : "relative w-full overflow-hidden rounded-xl bg-[#12335A]")}
           style={isFullscreen ? undefined : { height: embeddedFrameHeight }}
         >
           {overlay}

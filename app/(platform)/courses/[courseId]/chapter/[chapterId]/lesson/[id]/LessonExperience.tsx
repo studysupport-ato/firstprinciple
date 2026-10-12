@@ -54,7 +54,7 @@ const THEME_BACKGROUNDS: Record<LessonTheme, { backgroundColor: string; backgrou
     backgroundSize: "28px 28px",
   },
   purple: {
-    backgroundColor: "#2B1A5E",
+    backgroundColor: "#2A1A5E",
     backgroundImage:
       "linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px)",
     backgroundSize: "32px 32px",
@@ -75,12 +75,16 @@ const THEME_BACKGROUNDS: Record<LessonTheme, { backgroundColor: string; backgrou
 
 // Videos and questions sit on the wine print, visualizers on the blue grid,
 // everything else on the dotted paper (which can switch to dark mode).
-function themeForStep(blocks: ContentBlock[], dark: boolean): LessonTheme {
+// The blue-print look for visualizers is switched on week by week as lessons are redone.
+const BLUEPRINT_WEEKS = ["math151-week-1"];
+
+function themeForStep(blocks: ContentBlock[], dark: boolean, blueprint: boolean): LessonTheme {
   const quiz = blocks.find((block) => block.type === "quiz");
   if (quiz && quiz.type === "quiz") return quiz.variant === "end" ? "green" : "purple";
+  if (blocks.some((block) => block.type === "visualizer" && block.source.includes("data-b2b-check"))) return "green";
   if (blocks.some((block) => block.type === "question")) return "purple";
   if (blocks.some((block) => block.type === "video")) return "wine";
-  if (blocks.some((block) => block.type === "visualizer" && !isBoardSource(block.source))) return "blue";
+  if (blocks.some((block) => block.type === "visualizer" && (blueprint || block.fit || !isBoardSource(block.source)))) return "blue";
   return dark ? "dark" : "paper";
 }
 
@@ -143,7 +147,8 @@ export function LessonExperience({
     [lesson.blocks, activeStep],
   );
 
-  const theme = themeForStep(activeBlocks, darkMode);
+  const blueprint = BLUEPRINT_WEEKS.includes(lesson.weekId);
+  const theme = themeForStep(activeBlocks, darkMode, blueprint);
   const stepTitles = useMemo(
     () =>
       uniqueSteps.map((step, index) => {
@@ -162,7 +167,7 @@ export function LessonExperience({
   const hasSideBlocks = activeBlocks.some((block) => block.pane === "side");
   const hasQuiz = activeBlocks.some((block) => block.type === "quiz");
   const hasSidePane = !hasGeoSide && (hasSideBlocks || hasQuiz);
-  const hasVisualizerFit = activeBlocks.some((block) => block.type === "visualizer" && block.fit);
+  const hasVisualizerFit = activeBlocks.some((block) => block.type === "visualizer" && (blueprint || block.fit));
 
   const [sideSlot, setSideSlot] = useState<HTMLElement | null>(null);
   const [quizDone, setQuizDone] = useState<Record<string, boolean>>({});
@@ -317,9 +322,21 @@ export function LessonExperience({
             className={`lesson-themed relative ${boardFullscreen ? "z-[60]" : "z-10"} flex min-h-0 flex-col ${hasGeoSide ? "w-full lg:w-[45%]" : "w-full"}`}
             style={THEME_BACKGROUNDS[theme]}
           >
+            <div
+              aria-label={`Lesson progress: step ${currentStep + 1} of ${totalSteps}`}
+              className="lesson-step-progress flex w-full flex-shrink-0 gap-1.5 px-4 pt-3 md:px-10 lg:px-14"
+            >
+              {uniqueSteps.map((step, index) => (
+                <span
+                  key={step}
+                  aria-hidden
+                  className={`h-[3px] flex-1 rounded-full ${index <= currentStep ? "bg-[#E9BC3A]" : "bg-[#D9D6CF]"}`}
+                />
+              ))}
+            </div>
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain touch-pan-y px-4 pb-20 pt-4 md:px-10 md:py-8 lg:flex-row lg:gap-8 lg:overflow-hidden lg:px-14 lg:py-8">
               <div
-                className={`min-h-0 min-w-0 lg:overflow-y-auto lg:overscroll-contain ${
+                className={`min-w-0 shrink-0 lg:min-h-0 lg:shrink lg:overflow-y-auto lg:overscroll-contain ${
                   hasSidePane ? (hasVisualizerFit ? "lg:flex-[3]" : "lg:flex-[11]") : "flex-1"
                 }`}
               >
@@ -329,6 +346,7 @@ export function LessonExperience({
                     step={activeStep}
                     pane={hasSidePane ? "main" : undefined}
                     hideProgress
+                    blueprint={blueprint}
                     assetsById={assetsById}
                     questionsById={questionsById}
                     deferGeoGebra
@@ -345,8 +363,8 @@ export function LessonExperience({
               {hasSidePane ? (
                 <aside
                   aria-label="Notes"
-                  className={`lesson-side-card lesson-guided-content min-h-0 min-w-0 rounded-2xl border p-5 lg:overflow-y-auto lg:overscroll-contain ${
-                    hasVisualizerFit ? "lg:flex-[1.4]" : "lg:flex-[9]"
+                  className={`lesson-side-card lesson-guided-content min-w-0 shrink-0 rounded-2xl border p-5 lg:min-h-0 lg:shrink lg:overflow-y-auto lg:overscroll-contain ${
+                    hasVisualizerFit ? "lg:flex-[2]" : "lg:flex-[9]"
                   }`}
                 >
                   <div ref={setSideSlot} className="flex flex-col gap-3" />
@@ -355,6 +373,7 @@ export function LessonExperience({
                     step={activeStep}
                     pane="side"
                     hideProgress
+                    blueprint={blueprint}
                     assetsById={assetsById}
                     questionsById={questionsById}
                     deferGeoGebra

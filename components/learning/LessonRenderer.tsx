@@ -99,6 +99,7 @@ export function LessonRenderer({
   onFullscreenChange,
   pane,
   hideProgress = false,
+  blueprint = false,
 }: {
   lesson: Lesson;
   step: number;
@@ -106,6 +107,8 @@ export function LessonRenderer({
   pane?: "main" | "side";
   /** The lesson page draws its own progress strip when a step is split. */
   hideProgress?: boolean;
+  /** Student lesson page: every visualizer gets the blue-print page and expands to fit. */
+  blueprint?: boolean;
   assetsById?: Record<string, Asset>;
   questionsById?: Record<string, Question>;
   deferGeoGebra?: boolean;
@@ -150,7 +153,7 @@ export function LessonRenderer({
               data-block-type={block.type}
             >
               <LessonContentBlock
-                block={block}
+                block={blueprint && block.type === "visualizer" ? { ...block, fit: true } : block}
                 assetsById={assetsById}
                 questionsById={questionsById}
                 deferGeoGebra={deferGeoGebra}
