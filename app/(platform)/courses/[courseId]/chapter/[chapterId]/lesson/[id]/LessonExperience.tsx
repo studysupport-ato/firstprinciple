@@ -346,7 +346,7 @@ export function LessonExperience({
                 <aside
                   aria-label="Notes"
                   className={`lesson-side-card lesson-guided-content min-w-0 shrink-0 rounded-2xl border p-5 lg:min-h-0 lg:shrink lg:overflow-y-auto lg:overscroll-contain ${
-                    hasVisualizerFit ? "lg:flex-[1.4]" : "lg:flex-[9]"
+                    hasVisualizerFit ? "lg:flex-[2]" : "lg:flex-[9]"
                   }`}
                 >
                   <div ref={setSideSlot} className="flex flex-col gap-3" />
