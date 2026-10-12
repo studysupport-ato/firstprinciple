@@ -7,7 +7,7 @@ import { MarkdownBlock } from "./MarkdownBlock";
 export function WorkedExampleBlock({ title, prompt, solution, markdown }: WorkedExampleBlockData) {
   return (
     <div className="rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] p-5">
-      <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#2563EB]">Worked example</span>
+      <span className="font-sans text-sm font-semibold text-[#8A6D00]">Worked example</span>
       <h3 className="mt-2 font-serif text-2xl text-[#111111]"><EducationalText text={title} /></h3>
       {markdown?.trim() ? (
         <div className="mt-3 border-t border-[#E5E5E5] pt-1">
