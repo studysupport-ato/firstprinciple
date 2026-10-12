@@ -321,7 +321,7 @@ export function LessonExperience({
           <section
             aria-label={`Lesson step ${currentStep + 1}`}
             data-lesson-theme={theme}
-            className={`lesson-themed relative ${boardFullscreen ? "z-[60]" : "z-10"} flex min-h-0 flex-col ${hasGeoSide ? "w-full lg:w-[45%]" : "w-full"}`}
+            className={`lesson-themed ${blueprint ? "lesson-blueprint" : ""} relative ${boardFullscreen ? "z-[60]" : "z-10"} flex min-h-0 flex-col ${hasGeoSide ? "w-full lg:w-[45%]" : "w-full"}`}
             style={THEME_BACKGROUNDS[theme]}
           >
             <div

@@ -151,7 +151,11 @@ export function LessonRenderer({
               data-testid="lesson-content-block"
               data-block-id={block.id}
               data-block-type={block.type}
+              className={pane === "side" && (block.type === "callout" || block.type === "worked-example") ? "lesson-note" : undefined}
             >
+              {pane === "side" && (block.type === "callout" || block.type === "worked-example") ? (
+                <div className="lesson-note-label">Additional note</div>
+              ) : null}
               <LessonContentBlock
                 block={blueprint && block.type === "visualizer" ? { ...block, fit: true } : block}
                 assetsById={assetsById}

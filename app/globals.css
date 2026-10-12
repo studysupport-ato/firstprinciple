@@ -235,11 +235,11 @@
 }
 
 /* Split layout: notes card on the right, steps popover, quiz feedback */
-.lesson-side-card { border-color: #e3dccb; background: rgba(255, 253, 246, 0.92); }
+.lesson-side-card { border-width: 0; padding: 0 !important; background: transparent; }
 .lesson-side-card:empty { display: none; }
 :is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-side-card {
-  border-color: rgba(255, 255, 255, 0.24);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: transparent;
+  background: transparent;
 }
 .lesson-side-card .lesson-quiz-card { border-radius: 14px; border: 1px solid rgba(0,0,0,.12); padding: 14px 16px; font-family: var(--font-sans); font-size: 1rem; line-height: 1.5; }
 .lesson-quiz-good { background: rgba(111, 213, 155, 0.22); }
@@ -257,3 +257,12 @@
 .lesson-math-box { display: block; max-width: 100%; margin: 1rem auto; padding: 0.65rem 1rem; overflow-x: auto; text-align: center; border-radius: 0.75rem; background: #ecebe6; color: #1a1814; }
 .lesson-math-box .katex-display { margin: 0; }
 :is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-math-box { background: rgba(255, 255, 255, 0.12); color: #ffffff; }
+
+/* Right-hand pane: plain like the page; only a genuine extra note gets a card */
+.lesson-note { border: 1px solid #e3dccb; border-radius: 16px; padding: 14px 18px; background: rgba(255, 253, 246, 0.92); }
+.lesson-note-label { margin-bottom: 6px; font-family: var(--font-sans); font-size: 0.8rem; font-weight: 700; color: #8a6d00; }
+.lesson-note [data-block-type] > div:not(.lesson-note-label) { border: 0; background: transparent; padding: 0; color: inherit; }
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-note { border-color: rgba(255, 255, 255, 0.24); background: rgba(255, 255, 255, 0.08); }
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-note-label { color: #ffc700; }
+/* Week 1 lessons: bullet lists sit centred on the page */
+.lesson-blueprint .markdown-content :is(ul, ol) { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }

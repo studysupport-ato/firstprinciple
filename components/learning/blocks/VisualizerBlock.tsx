@@ -38,6 +38,7 @@ const BLUEPRINT_STYLE = `<style>
 .v .nh-hint { color: #cdd5e4 !important; }
 /* the lesson page already shows progress, so the boards' own progress bars are hidden */
 .v .v-trk, #lb .lb-prog, #lb-prog, .g-trk { display: none !important; }
+.g { padding-bottom: 12px !important; border-top: 0 !important; }
 .v .nh-node:hover .nh-box, .v .nh-node.nh-sel .nh-box, .v .nh-node:focus-visible .nh-box { stroke: #fff !important; }
 .v .nh-node.nh-dark:hover .nh-box, .v .nh-node.nh-dark.nh-sel .nh-box { stroke: #FFC700 !important; }
 </style>`;
