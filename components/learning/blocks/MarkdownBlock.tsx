@@ -110,7 +110,7 @@ export function MarkdownBlock({ markdown }: { markdown: string }) {
     if (line.trim().startsWith(">")) {
       const quoteLines: string[] = [];
       while (index < lines.length && lines[index].trim().startsWith(">")) { quoteLines.push(lines[index].trim().replace(/^>\s?/, "")); index += 1; }
-      output.push(<blockquote key={`quote-${index}`} className="my-5 border-l-4 border-[#FFBE00] bg-[#F7F7F8] px-5 py-3 font-serif text-lg italic leading-8 text-[#444444]">{quoteLines.map((quote, quoteIndex) => <p key={quoteIndex}>{inlineContent(quote, `quote-${index}-${quoteIndex}`)}</p>)}</blockquote>);
+      output.push(<blockquote key={`quote-${index}`} className="my-5 border-l-4 border-[#E9BC3A] bg-[#F7F7F8] px-5 py-3 font-serif text-lg italic leading-8 text-[#444444]">{quoteLines.map((quote, quoteIndex) => <p key={quoteIndex}>{inlineContent(quote, `quote-${index}-${quoteIndex}`)}</p>)}</blockquote>);
       continue;
     }
 

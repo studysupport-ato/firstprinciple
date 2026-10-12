@@ -57,10 +57,10 @@ export function CourseDiscovery() {
               {course.available ? (
                 <Link
                   href="/courses/math-151"
-                  className={`p-6 rounded-2xl border transition-all duration-300 h-full flex flex-col bg-[#FFF8E5] border-[#FFBE00]/25 shadow-sm hover:border-[#FFBE00] cursor-pointer group`}
+                  className={`p-6 rounded-2xl border transition-all duration-300 h-full flex flex-col bg-[#FFF8E5] border-[#E9BC3A]/25 shadow-sm hover:border-[#E9BC3A] cursor-pointer group`}
                 >
                   <div className="flex items-center justify-between mb-8">
-                    <span className="font-sans text-[10px] font-bold tracking-widest uppercase text-[#FFBE00]">
+                    <span className="font-sans text-[10px] font-bold tracking-widest uppercase text-[#E9BC3A]">
                       {course.code}
                     </span>
                     <span className="font-sans text-[10px] text-[#111111] bg-[#E5E5E5] px-2 py-1 rounded-md">
@@ -76,7 +76,7 @@ export function CourseDiscovery() {
                     {course.description}
                   </p>
 
-                  <div className="mt-8 font-sans text-xs font-semibold text-[#FFBE00] group-hover:translate-x-1 transition-transform">
+                  <div className="mt-8 font-sans text-xs font-semibold text-[#E9BC3A] group-hover:translate-x-1 transition-transform">
                     Explore Course →
                   </div>
                 </Link>

@@ -175,7 +175,7 @@ export default function SettingsPage() {
         <header className="mb-10 flex flex-col gap-6 border-b border-[#E5E5E5] pb-8 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-4 flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#777777]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#FFBE00]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#E9BC3A]" />
               Account workspace
             </div>
             <h1 className={`font-serif text-5xl tracking-tight md:text-6xl ${theme === "Dark" ? "text-white" : "text-[#111111]"}`}>Settings</h1>
@@ -256,7 +256,7 @@ export default function SettingsPage() {
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="h-12 w-full min-w-0 flex-1 rounded-xl border border-[#E5E5E5] bg-white px-4 text-[#111111] outline-none focus:border-[#FFBE00] focus:ring-1 focus:ring-[#FFBE00]"
+                      className="h-12 w-full min-w-0 flex-1 rounded-xl border border-[#E5E5E5] bg-white px-4 text-[#111111] outline-none focus:border-[#E9BC3A] focus:ring-1 focus:ring-[#E9BC3A]"
                       placeholder="Your display name"
                     />
                     <div className="flex justify-end gap-2">
@@ -267,7 +267,7 @@ export default function SettingsPage() {
                           handleSave();
                         }}
                         disabled={saving}
-                        className="inline-flex h-12 items-center gap-1 rounded-full bg-[#111111] px-4 text-xs font-semibold text-white hover:bg-[#FFBE00] disabled:opacity-50"
+                        className="inline-flex h-12 items-center gap-1 rounded-full bg-[#111111] px-4 text-xs font-semibold text-white hover:bg-[#E9BC3A] disabled:opacity-50"
                       >
                         {saving ? "Saving..." : "Save"}
                       </button>
@@ -317,7 +317,7 @@ export default function SettingsPage() {
                     type="tel"
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
-                    className="h-12 rounded-xl border border-[#E5E5E5] bg-white px-4 text-[#111111] outline-none focus:border-[#FFBE00] focus:ring-1 focus:ring-[#FFBE00]"
+                    className="h-12 rounded-xl border border-[#E5E5E5] bg-white px-4 text-[#111111] outline-none focus:border-[#E9BC3A] focus:ring-1 focus:ring-[#E9BC3A]"
                     placeholder="Your phone number"
                   />
                 ) : (
@@ -336,7 +336,7 @@ export default function SettingsPage() {
                     type="email"
                     value={editEmail}
                     onChange={(e) => setEditEmail(e.target.value)}
-                    className="h-12 rounded-xl border border-[#E5E5E5] bg-white px-4 text-[#111111] outline-none focus:border-[#FFBE00] focus:ring-1 focus:ring-[#FFBE00]"
+                    className="h-12 rounded-xl border border-[#E5E5E5] bg-white px-4 text-[#111111] outline-none focus:border-[#E9BC3A] focus:ring-1 focus:ring-[#E9BC3A]"
                     placeholder="your.email@university.edu"
                   />
                 ) : (
@@ -386,7 +386,7 @@ export default function SettingsPage() {
             <button type="button" className="h-12 rounded-full px-6 text-sm font-semibold text-[#666666] transition-colors hover:bg-white hover:text-[#111111]">
               Cancel
             </button>
-            <button type="button" onClick={handleSave} className="inline-flex h-12 items-center gap-2 rounded-full bg-[#111111] px-7 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(17,17,17,0.16)] transition-all hover:-translate-y-0.5 hover:bg-[#FFBE00]">
+            <button type="button" onClick={handleSave} className="inline-flex h-12 items-center gap-2 rounded-full bg-[#111111] px-7 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(17,17,17,0.16)] transition-all hover:-translate-y-0.5 hover:bg-[#E9BC3A]">
               {saved ? <Check size={16} /> : <Save size={16} />}
               {saved ? "Saved" : "Save changes"}
             </button>

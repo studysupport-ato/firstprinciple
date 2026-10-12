@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
-import { Inter, Newsreader } from "next/font/google";
+import { Inter, Newsreader, Outfit } from "next/font/google";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
   display: "swap",
 });
 
@@ -34,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${newsreader.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${newsreader.variable} ${outfit.variable}`} suppressHydrationWarning>
       <body className="antialiased selection:bg-[#F8DFC2] selection:text-black">
         {children}
         <Analytics />

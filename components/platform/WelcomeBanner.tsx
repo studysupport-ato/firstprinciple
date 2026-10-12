@@ -82,7 +82,7 @@ export function WelcomeBanner() {
                   className="grid gap-6 md:grid-cols-3"
                 >
                   <div className="flex flex-col gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFBE00]/20 text-[#E5AA00]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E9BC3A]/20 text-[#E5AA00]">
                       <BookOpen size={20} />
                     </div>
                     <h3 className="font-sans text-xs font-bold uppercase tracking-widest text-white">Interactive Lessons</h3>
@@ -102,7 +102,7 @@ export function WelcomeBanner() {
                   </div>
 
                   <div className="flex flex-col gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFBE00]/20 text-[#FFBE00]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E9BC3A]/20 text-[#E9BC3A]">
                       <GraduationCap size={20} />
                     </div>
                     <h3 className="font-sans text-xs font-bold uppercase tracking-widest text-white">Clear Progression</h3>
@@ -120,7 +120,7 @@ export function WelcomeBanner() {
                 >
                   <button
                     onClick={dismiss}
-                    className="inline-flex h-11 items-center justify-center rounded-full bg-[#FFBE00] px-7 text-sm font-bold text-[#111111] transition-all hover:scale-105 hover:bg-[#E5AA00] shadow-[0_0_20px_rgba(255,190,0,0.3)]"
+                    className="inline-flex h-11 items-center justify-center rounded-full bg-[#E9BC3A] px-7 text-sm font-bold text-[#111111] transition-all hover:scale-105 hover:bg-[#E5AA00] shadow-[0_0_20px_rgba(233, 188, 58,0.3)]"
                   >
                     Explore Course Library
                   </button>

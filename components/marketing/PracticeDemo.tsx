@@ -31,7 +31,7 @@ export function PracticeDemo() {
           <AnimatedItem direction="right" distance={40} className="w-full max-w-[500px] mx-auto lg:mx-0">
             <div className="bg-transparent border border-[#E5E5E5] rounded-2xl p-8 shadow-sm">
               <div className="flex items-center justify-between mb-8">
-                <span className="font-sans text-[10px] font-semibold tracking-widest text-[#FFBE00] uppercase">
+                <span className="font-sans text-[10px] font-semibold tracking-widest text-[#E9BC3A] uppercase">
                   Practice Mode
                 </span>
                 <span className="font-sans text-[10px] text-[#5D5149]">
@@ -45,13 +45,13 @@ export function PracticeDemo() {
 
               <div className="flex flex-col gap-3 mb-8">
                 {question.options.map((opt) => {
-                  let buttonClass = "border-[#E5E5E5] bg-transparent text-[#111111] hover:border-[#FFBE00]";
+                  let buttonClass = "border-[#E5E5E5] bg-transparent text-[#111111] hover:border-[#E9BC3A]";
                   if (submitted) {
                     if (opt.correct) buttonClass = "border-[#059669] bg-[#059669]/5 text-[#059669]";
                     else if (selected === opt.id) buttonClass = "border-[#E11D48] bg-[#E11D48]/5 text-[#E11D48]";
                     else buttonClass = "border-[#E5E5E5] bg-transparent text-[#666666] opacity-50";
                   } else if (selected === opt.id) {
-                    buttonClass = "border-[#FFBE00] bg-[#FFBE00]/5 text-[#FFBE00]";
+                    buttonClass = "border-[#E9BC3A] bg-[#E9BC3A]/5 text-[#E9BC3A]";
                   }
 
                   return (
@@ -98,7 +98,7 @@ export function PracticeDemo() {
               ) : (
                 <button 
                   onClick={() => { setSubmitted(false); setSelected(null); }}
-                  className="w-full py-3 bg-transparent border border-[#E5E5E5] text-[#111111] rounded-xl text-sm font-medium hover:border-[#FFBE00] transition-colors"
+                  className="w-full py-3 bg-transparent border border-[#E5E5E5] text-[#111111] rounded-xl text-sm font-medium hover:border-[#E9BC3A] transition-colors"
                 >
                   Try Again
                 </button>

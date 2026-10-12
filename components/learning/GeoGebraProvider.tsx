@@ -175,7 +175,7 @@ export function GeoGebraProvider({ config, title, adminHint = false }: { config:
         {status !== "ready" ? (
           <div className="absolute inset-0 flex items-center justify-center bg-white">
             <div className="flex flex-col items-center gap-3">
-              {status === "error" ? <AlertTriangle size={20} className="text-[#B45309]" /> : <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#E5E5E5] border-t-[#FFBE00]" aria-hidden />}
+              {status === "error" ? <AlertTriangle size={20} className="text-[#B45309]" /> : <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#E5E5E5] border-t-[#E9BC3A]" aria-hidden />}
               <span className="text-xs font-medium text-[#666666]">{status === "error" ? error : "Loading GeoGebra..."}</span>
             </div>
           </div>

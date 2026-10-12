@@ -199,7 +199,7 @@ export default function ProgressPage() {
   }, []);
 
   const stats = [
-    { label: "Overall Accuracy", value: practice.totalAttempts > 0 ? `${practice.accuracy}%` : "—", sub: practice.totalAttempts > 0 ? `${practice.correctAttempts} of ${practice.totalAttempts} correct` : "Not enough data yet", icon: Target, tint: "bg-[#FFF8E5] text-[#FFBE00]" },
+    { label: "Overall Accuracy", value: practice.totalAttempts > 0 ? `${practice.accuracy}%` : "—", sub: practice.totalAttempts > 0 ? `${practice.correctAttempts} of ${practice.totalAttempts} correct` : "Not enough data yet", icon: Target, tint: "bg-[#FFF8E5] text-[#E9BC3A]" },
     { label: "Current Streak", value: `${streak} Days`, sub: streak > 0 ? "Consecutive learning days" : "No streak yet", icon: Flame, tint: "bg-[#FEE7EC] text-[#E11D48]" },
     { label: "Overall Mastery", value: `${mastery}%`, sub: practice.totalAttempts > 0 ? "From practice evidence" : "Not enough data yet", icon: Clock, tint: "bg-[#EAF8F2] text-[#059669]" },
   ];
@@ -228,7 +228,7 @@ export default function ProgressPage() {
     return weeks;
   }, [ready, activityEvents]);
 
-const topicColors = ["bg-[#111111]", "bg-[#FFBE00]", "bg-[#E11D48]", "bg-[#D97706]"];
+const topicColors = ["bg-[#111111]", "bg-[#E9BC3A]", "bg-[#E11D48]", "bg-[#D97706]"];
   return (
     <div className="mx-auto flex max-w-[1280px] flex-col gap-10 px-5 py-8 md:px-10 md:py-12">
       <header className="pt-2">
@@ -317,7 +317,7 @@ const topicColors = ["bg-[#111111]", "bg-[#FFBE00]", "bg-[#E11D48]", "bg-[#D9770
                             ? "bg-[#DBEAFE]"
                             : intensity === 2
                               ? "bg-[#60A5FA]"
-                              : "bg-[#FFBE00]";
+                              : "bg-[#E9BC3A]";
 
                       return (
                         <motion.div
@@ -341,7 +341,7 @@ const topicColors = ["bg-[#111111]", "bg-[#FFBE00]", "bg-[#E11D48]", "bg-[#D9770
                     <div className="h-3 w-3 rounded-[3px] bg-[#F3F4F6]" />
                     <div className="h-3 w-3 rounded-[3px] bg-[#DBEAFE]" />
                     <div className="h-3 w-3 rounded-[3px] bg-[#60A5FA]" />
-                    <div className="h-3 w-3 rounded-[3px] bg-[#FFBE00]" />
+                    <div className="h-3 w-3 rounded-[3px] bg-[#E9BC3A]" />
                   </div>
                   <span>More</span>
                 </div>

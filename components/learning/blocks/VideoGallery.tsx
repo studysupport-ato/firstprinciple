@@ -174,7 +174,7 @@ export function VideoGallery({ heading, videos }: { heading?: string; videos: Ga
         className={`mb-4 text-[clamp(20px,3.2vw,30px)] font-medium italic leading-tight ${many && selected >= 0 ? "cursor-pointer" : ""}`}
         style={{ color: "rgba(255,236,214,.78)" }}
       >
-        <b className="font-bold" style={{ color: "#FFC700" }}>Video</b>
+        <b className="font-bold" style={{ color: "#E9BC3A" }}>Video</b>
         {heading ? <> {"—"} {"“"}{heading}{"”"}</> : null}
       </h3>
 
@@ -217,7 +217,7 @@ export function VideoGallery({ heading, videos }: { heading?: string; videos: Ga
           </Rail>
           <div className="mt-1.5 flex gap-2" aria-hidden="true">
             {items.map((v, i) => (
-              <i key={v.id + i} className="block h-1 max-w-20 flex-1 rounded-sm transition-colors" style={{ background: i === segment ? "#FFC700" : "rgba(255,255,255,.18)" }} />
+              <i key={v.id + i} className="block h-1 max-w-20 flex-1 rounded-sm transition-colors" style={{ background: i === segment ? "#E9BC3A" : "rgba(255,255,255,.18)" }} />
             ))}
           </div>
         </div>

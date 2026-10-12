@@ -190,7 +190,7 @@ export function Hero() {
               setAuthView("signup");
               setAuthOpen(true);
             }}
-            className="h-12 px-8 bg-white text-[#1A1714] rounded-full text-sm font-semibold hover:bg-[#FFBE00] hover:text-[#111111] hover:scale-105 transition-all duration-300 shadow-lg shadow-black/20"
+            className="h-12 px-8 bg-white text-[#1A1714] rounded-full text-sm font-semibold hover:bg-[#E9BC3A] hover:text-[#111111] hover:scale-105 transition-all duration-300 shadow-lg shadow-black/20"
           >
             Get Started
           </button>

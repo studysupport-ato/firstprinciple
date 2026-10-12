@@ -12,7 +12,7 @@ const LETTERS = "ABCDEF";
 
 function optionClass(kind: "plain" | "picked" | "right" | "wrong") {
   const base = "lesson-quiz-option flex min-h-[3.5rem] w-full items-center gap-3 rounded-xl border-[1.5px] px-4 py-2 text-left font-sans text-[1.0625rem] transition-colors disabled:cursor-default";
-  if (kind === "picked") return `${base} border-[#FFC700] bg-[#FFC700]/15`;
+  if (kind === "picked") return `${base} border-[#E9BC3A] bg-[#E9BC3A]/15`;
   if (kind === "right") return `${base} border-[#6FD59B] bg-[#6FD59B]/25`;
   if (kind === "wrong") return `${base} border-[#FFB38A] bg-[#FFB38A]/20 opacity-70`;
   return `${base} border-white/30 bg-white/[0.07] hover:bg-white/[0.12]`;
@@ -20,7 +20,7 @@ function optionClass(kind: "plain" | "picked" | "right" | "wrong") {
 
 function badgeClass(kind: "plain" | "picked" | "right" | "wrong") {
   const base = "flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-sans text-sm font-bold";
-  if (kind === "picked") return `${base} bg-[#FFC700] text-[#1A1814]`;
+  if (kind === "picked") return `${base} bg-[#E9BC3A] text-[#1A1814]`;
   if (kind === "right") return `${base} bg-[#6FD59B] text-[#0F3D2E]`;
   if (kind === "wrong") return `${base} bg-[#FFB38A] text-[#2B1A5E]`;
   return `${base} bg-white/20 text-white`;
@@ -144,7 +144,7 @@ export function QuizBlock({ id, variant, questions }: QuizBlockData) {
           ) : null}
           {explain && checked ? (
             <div className="lesson-quiz-card lesson-quiz-explain">
-              <p className="font-sans text-sm font-semibold text-[#FFC700]">Explanation</p>
+              <p className="font-sans text-sm font-semibold text-[#E9BC3A]">Explanation</p>
               <p className="mt-1 font-sans text-[1.0625rem] leading-relaxed">
                 <InlineMathText text={question.explanation} />
               </p>
@@ -179,7 +179,7 @@ export function QuizBlock({ id, variant, questions }: QuizBlockData) {
   if (finished) {
     return (
       <div className="lesson-quiz flex flex-col gap-4">
-        <p className="font-sans text-sm font-semibold text-[#FFC700]">{isEnd ? "End-of-lesson test" : "Mid-lesson test"} · Results</p>
+        <p className="font-sans text-sm font-semibold text-[#E9BC3A]">{isEnd ? "End-of-lesson test" : "Mid-lesson test"} · Results</p>
         <p className="font-serif text-[2rem] leading-tight">
           You got {correct} of {questions.length}
         </p>
@@ -199,7 +199,7 @@ export function QuizBlock({ id, variant, questions }: QuizBlockData) {
 
   return (
     <div className="lesson-quiz flex flex-col gap-4">
-      <p className="font-sans text-sm font-semibold text-[#FFC700]">
+      <p className="font-sans text-sm font-semibold text-[#E9BC3A]">
         {isEnd ? "End-of-lesson test" : "Mid-lesson test"} · Question {index + 1} of {questions.length}
       </p>
       <p className="font-serif text-[1.6rem] leading-snug md:text-[2rem]">
@@ -225,7 +225,7 @@ export function QuizBlock({ id, variant, questions }: QuizBlockData) {
             type="button"
             onClick={onCheck}
             disabled={!canCheck}
-            className="min-h-12 rounded-xl bg-[#FFC700] px-6 font-sans text-sm font-bold text-[#1A1814] disabled:bg-white/15 disabled:text-white/50"
+            className="min-h-12 rounded-xl bg-[#E9BC3A] px-6 font-sans text-sm font-bold text-[#1A1814] disabled:bg-white/15 disabled:text-white/50"
           >
             {checkLabel}
           </button>
@@ -236,7 +236,7 @@ export function QuizBlock({ id, variant, questions }: QuizBlockData) {
           </button>
         ) : null}
         {locked ? (
-          <button type="button" onClick={onNext} className="min-h-12 rounded-xl bg-[#FFC700] px-6 font-sans text-sm font-bold text-[#1A1814]">
+          <button type="button" onClick={onNext} className="min-h-12 rounded-xl bg-[#E9BC3A] px-6 font-sans text-sm font-bold text-[#1A1814]">
             {lastQuestion ? "See results" : "Next question"}
           </button>
         ) : null}

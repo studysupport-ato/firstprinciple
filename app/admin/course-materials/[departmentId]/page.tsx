@@ -425,7 +425,7 @@ export default function AdminCourseMaterialsDepartmentPage() {
                   <div className="font-medium text-[#111111]">
                     {row.entry.courseCode ? `${row.entry.courseCode} · ` : ""}
                     {row.entry.courseTitle}
-                    {kind === "youtube" ? <span className="ml-2 rounded-full bg-[#FFC700]/30 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#7a5b00]">YouTube</span> : null}
+                    {kind === "youtube" ? <span className="ml-2 rounded-full bg-[#E9BC3A]/30 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#7a5b00]">YouTube</span> : null}
                   </div>
                   <div className="mt-1 max-w-[280px] truncate text-xs text-[#666666]">
                     {studyYears.find((year) => year.value === row.entry.studyYear)?.label ?? "Unassigned"}

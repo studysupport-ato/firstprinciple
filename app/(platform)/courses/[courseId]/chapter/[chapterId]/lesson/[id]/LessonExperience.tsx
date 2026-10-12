@@ -206,7 +206,7 @@ export function LessonExperience({
           type="button"
           disabled={quizPending}
           onClick={() => setCurrentStep((step) => Math.min(totalSteps - 1, step + 1))}
-          className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#FFC700] px-7 font-sans text-sm font-bold text-[#1A1814] transition-colors hover:bg-[#F0BC21] disabled:opacity-40 md:max-w-[220px] md:flex-none"
+          className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#E9BC3A] px-7 font-sans text-sm font-bold text-[#1A1814] transition-colors hover:bg-[#F0BC21] disabled:opacity-40 md:max-w-[220px] md:flex-none"
         >
           {quizPending ? "Finish the questions" : "Continue"} <span aria-hidden>›</span>
         </button>
@@ -269,7 +269,12 @@ export function LessonExperience({
     <LessonSideContext.Provider value={sideContextValue}>
     <div
       className={`flex flex-col ${preview ? "h-[calc(100dvh-76px)] md:h-[calc(100dvh-48px)]" : "h-[calc(100dvh-28px)] md:h-screen"}`}
-      style={{ background: "#FBFAF5" }}
+      style={{
+        background: "#FBFAF5",
+        // Lessons keep their own type: Inter for UI text, Newsreader for reading.
+        ["--font-sans" as string]: "var(--font-inter), ui-sans-serif, system-ui, sans-serif",
+        fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif",
+      }}
     >
       <header className="z-20 flex h-9 flex-shrink-0 items-center border-b border-[#E3DED3] bg-white px-3 md:h-12 md:px-6">
         <div className="flex min-w-0 items-center gap-2">

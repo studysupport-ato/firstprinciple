@@ -75,7 +75,7 @@ function FilterPills({ label, options, value, onChange }: { label: string; optio
           type="button"
           onClick={() => onChange(opt)}
           className={`rounded-full px-[14px] py-[8px] text-[12px] font-bold transition ${
-            value === opt ? "bg-[#0e0e0e] text-[#FFC700]" : "border-[1.2px] border-black/50 text-[#0e0e0e] hover:bg-black/5"
+            value === opt ? "bg-[#0e0e0e] text-[#E9BC3A]" : "border-[1.2px] border-black/50 text-[#0e0e0e] hover:bg-black/5"
           }`}
         >
           {opt}

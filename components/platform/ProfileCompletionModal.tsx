@@ -225,7 +225,7 @@ export function ProfileCompletionModal() {
                         setPhoneNumber(e.target.value);
                         if (errors.phoneNumber) setErrors({ ...errors, phoneNumber: undefined });
                       }}
-                      className={`w-full pl-10 pr-4 py-3 rounded-xl border ${errors.phoneNumber ? "border-[#E11D48] bg-[#E11D48]/5" : "border-[#E5E5E5] bg-white"} text-sm text-[#111111] placeholder-[#999999] focus:outline-none focus:border-[#FFBE00] focus:ring-1 focus:ring-[#FFBE00] transition-all`}
+                      className={`w-full pl-10 pr-4 py-3 rounded-xl border ${errors.phoneNumber ? "border-[#E11D48] bg-[#E11D48]/5" : "border-[#E5E5E5] bg-white"} text-sm text-[#111111] placeholder-[#999999] focus:outline-none focus:border-[#E9BC3A] focus:ring-1 focus:ring-[#E9BC3A] transition-all`}
                       placeholder="e.g. 0241234567"
                     />
                   </div>
@@ -241,7 +241,7 @@ export function ProfileCompletionModal() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full flex items-center justify-center gap-2 bg-[#111111] hover:bg-[#FFBE00] text-white text-sm font-sans font-semibold py-3.5 rounded-xl transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FFBE00] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center justify-center gap-2 bg-[#111111] hover:bg-[#E9BC3A] text-white text-sm font-sans font-semibold py-3.5 rounded-xl transition-colors shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#E9BC3A] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? (
                       "Saving..."

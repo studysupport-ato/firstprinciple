@@ -34,7 +34,7 @@ export function YouTubeEmbed({ videoId, title, className = "" }: { videoId: stri
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={getYouTubeThumbnailUrl(videoId)} alt={`Thumbnail for ${title}`} loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-90 transition group-hover:opacity-100" />
       <span className="absolute inset-0 flex items-center justify-center">
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#FFC700] text-black shadow-lg transition group-hover:scale-105">
+        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#E9BC3A] text-black shadow-lg transition group-hover:scale-105">
           <Play className="h-6 w-6" fill="currentColor" />
         </span>
       </span>

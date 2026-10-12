@@ -18,7 +18,7 @@ const numberSets = [
     name: "Integers",
     symbol: "ℤ",
     description: "Natural numbers, their negatives, and zero.",
-    color: "#FFBE00", // Interactive Blue
+    color: "#E9BC3A", // Interactive Blue
     size: 50,
   },
   {
