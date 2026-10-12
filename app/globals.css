@@ -252,3 +252,8 @@
 .lesson-steps-item[aria-current="step"] { background: rgba(255, 199, 0, 0.25); font-weight: 600; }
 .lesson-steps-num { border-color: #d9d4c7; }
 .lesson-steps-item[aria-current="step"] .lesson-steps-num { background: #ffc700; border-color: #ffc700; }
+
+/* Equations: a centred grey box, never mixed into the sentence */
+.lesson-math-box { display: block; max-width: 100%; margin: 1rem auto; padding: 0.65rem 1rem; overflow-x: auto; text-align: center; border-radius: 0.75rem; background: #ecebe6; color: #1a1814; }
+.lesson-math-box .katex-display { margin: 0; }
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-math-box { background: rgba(255, 255, 255, 0.12); color: #ffffff; }

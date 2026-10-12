@@ -531,6 +531,22 @@ export function VisualizerBlock({
     };
   }, [iframeSource]);
 
+  // Fit pages are drawn on a roomy virtual screen and scaled down to the space available, so nothing
+  // overlaps on a short window. On phones the board keeps its own mobile layout.
+  const [viewportWidth, setViewportWidth] = useState(1280);
+  useEffect(() => {
+    const update = () => setViewportWidth(window.innerWidth);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  const boxHeight = fill ? embeddedFrameHeight : Math.max(420, viewportHeight - 175);
+  const minVirtualHeight = isBoardSource(source) ? 800 : 720;
+  const zoom = fit && !isFullscreen && viewportWidth >= 768 ? Math.min(1, boxHeight / minVirtualHeight) : 1;
+  const frameStyle = zoom < 1
+    ? { width: `${100 / zoom}%`, height: `${100 / zoom}%`, transform: `scale(${zoom})`, transformOrigin: "0 0" }
+    : undefined;
+
   const frame = mounted ? (
     <iframe
       title={title}
@@ -538,7 +554,8 @@ export function VisualizerBlock({
       sandbox="allow-scripts"
       referrerPolicy="no-referrer"
       ref={iframeRef}
-      className="h-full w-full border-0"
+      className={zoom < 1 ? "border-0" : "h-full w-full border-0"}
+      style={frameStyle}
       onLoad={markReady}
     />
   ) : null;

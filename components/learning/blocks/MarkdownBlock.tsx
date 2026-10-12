@@ -22,7 +22,7 @@ function inlineContent(value: string, keyPrefix: string): ReactNode[] {
 
   return tokens.map((token, index) => {
     const key = `${keyPrefix}-${index}`;
-    if (token.startsWith("$$") && token.endsWith("$$")) return <MathText key={key} math={token.slice(2, -2)} block />;
+    if (token.startsWith("$$") && token.endsWith("$$")) return <span key={key} className="lesson-math-box"><MathText math={token.slice(2, -2)} block /></span>;
     if (token.startsWith("$") && token.endsWith("$")) return <MathText key={key} math={token.slice(1, -1)} />;
     if (token.startsWith("**") && token.endsWith("**")) return <strong key={key}>{inlineContent(token.slice(2, -2), key)}</strong>;
     if (token.startsWith("*") && token.endsWith("*")) return <em key={key}>{inlineContent(token.slice(1, -1), key)}</em>;
@@ -72,6 +72,13 @@ export function MarkdownBlock({ markdown }: { markdown: string }) {
       continue;
     }
 
+    const oneLine = line.trim().match(/^\$\$(.+)\$\$$/);
+    if (oneLine) {
+      output.push(<div key={`display-math-${index}`} className="lesson-math-box"><MathText math={oneLine[1].trim()} block /></div>);
+      index += 1;
+      continue;
+    }
+
     if (line.trim() === "$$") {
       const mathLines: string[] = [];
       index += 1;
@@ -81,7 +88,7 @@ export function MarkdownBlock({ markdown }: { markdown: string }) {
       }
       if (index < lines.length) index += 1;
       output.push(
-        <div key={`display-math-${index}`} className="my-4 max-w-full overflow-x-auto px-1">
+        <div key={`display-math-${index}`} className="lesson-math-box">
           <MathText math={mathLines.join("\n")} block />
         </div>,
       );
