@@ -548,7 +548,7 @@ export function VisualizerBlock({
         className={isFullscreen ? "fixed inset-0 z-[100] overflow-hidden bg-[#142F55]" : "w-full"}
       >
         <div
-          className={isFullscreen ? "absolute inset-0 overflow-hidden bg-[#12335A]" : "relative w-full overflow-hidden rounded-xl bg-[#12335A]"}
+          className={isFullscreen ? "absolute inset-0 overflow-hidden bg-[#12335A]" : (fit ? "relative w-full overflow-hidden bg-transparent" : "relative w-full overflow-hidden rounded-xl bg-[#12335A]")}
           style={isFullscreen ? undefined : { height: embeddedFrameHeight }}
         >
           {overlay}
