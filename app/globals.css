@@ -23,6 +23,7 @@
 }
 
 :root {
+  --gold-sweep: linear-gradient(135deg, #D8A01C 0%, #F2D57D 38%, #E9BC3A 68%, #D19F1A 100%);
   --background: #E9BC3A;
   --surface: #FFFFFF;
   --foreground: #111111;
@@ -43,11 +44,12 @@
   
   body {
     background-color: var(--background);
-    background-image: 
-      linear-gradient(rgba(17, 17, 17, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(17, 17, 17, 0.05) 1px, transparent 1px);
-    background-size: 40px 40px;
-    background-position: center center;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px),
+      var(--gold-sweep);
+    background-size: 48px 48px, 48px 48px, 100% 100%;
+    background-attachment: fixed;
     color: var(--foreground);
     font-family: var(--font-sans);
     line-height: 1.6;

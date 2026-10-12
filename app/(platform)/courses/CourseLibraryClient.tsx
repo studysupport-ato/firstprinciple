@@ -133,7 +133,7 @@ export default function CourseLibraryClient({
   return (
     <div
       className="relative min-h-screen overflow-x-clip pb-10"
-      style={{ background: "linear-gradient(135deg, #f0c84a 0%, #E9BC3A 45%, #d4a82e 100%)" }}
+      style={{ background: "var(--gold-sweep)" }}
     >
       {/* Grid overlay */}
       <div

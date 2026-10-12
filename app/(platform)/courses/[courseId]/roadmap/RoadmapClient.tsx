@@ -123,7 +123,7 @@ export default function RoadmapClient({ course, weeks, daysByWeek, preview = fal
   return (
     <div
       className="relative min-h-screen overflow-x-clip pb-16"
-      style={{ background: "linear-gradient(135deg, #f0c84a 0%, #E9BC3A 45%, #d4a82e 100%)" }}
+      style={{ background: "var(--gold-sweep)" }}
     >
       {/* Grid overlay */}
       <div

@@ -87,25 +87,24 @@ function FilterPills({ label, options, value, onChange }: { label: string; optio
 
 function DepartmentBlueprint({ name }: { name: string }) {
   return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 overflow-hidden rounded-[24px]"
-      style={{
-        backgroundImage:
-          "linear-gradient(#E9BC3A 1px, transparent 1px), linear-gradient(90deg, #E9BC3A 1px, transparent 1px)",
-        backgroundSize: "24px 24px",
-        opacity: 0.08,
-      }}
-    >
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-[24px]">
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage:
+            "linear-gradient(#E9BC3A 1px, transparent 1px), linear-gradient(90deg, #E9BC3A 1px, transparent 1px)",
+          backgroundSize: "24px 24px",
+          opacity: 0.08,
+        }}
+      />
       <DepartmentDrawing
         name={name}
-        className="absolute -right-1 top-1/2 h-[140px] w-[220px] -translate-y-1/2 text-[#F6EFDC] opacity-100"
+        className="absolute -right-1 top-1/2 h-[140px] w-[220px] -translate-y-1/2 text-[#F6EFDC] opacity-60"
       />
     </div>
   );
 }
 
-// ─── Shared page chrome ────────────────────────────────────────────────────
 function CourseMaterialsChrome({ children }: { children: ReactNode }) {
   const { authenticated, student } = useAuthSession();
   const displayName = (student?.displayName ?? "").trim();
@@ -124,7 +123,7 @@ function CourseMaterialsChrome({ children }: { children: ReactNode }) {
   return (
     <div
       className="relative min-h-screen overflow-x-clip pb-10"
-      style={{ background: "linear-gradient(135deg, #f0c84a 0%, #E9BC3A 45%, #d4a82e 100%)" }}
+      style={{ background: "var(--gold-sweep)" }}
     >
       {/* PAGE BACKGROUND GRID */}
       <div
