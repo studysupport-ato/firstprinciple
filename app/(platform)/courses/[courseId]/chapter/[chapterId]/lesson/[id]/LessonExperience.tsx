@@ -168,6 +168,8 @@ export function LessonExperience({
   const hasQuiz = activeBlocks.some((block) => block.type === "quiz");
   const hasSidePane = !hasGeoSide && (hasSideBlocks || hasQuiz);
   const hasVisualizerFit = activeBlocks.some((block) => block.type === "visualizer" && (blueprint || block.fit));
+  // A page that is only a visualizer runs edge to edge, with no padding or card around it.
+  const visualizerPage = hasVisualizerFit && !hasSidePane && activeBlocks.every((block) => block.type === "visualizer");
 
   const [sideSlot, setSideSlot] = useState<HTMLElement | null>(null);
   const [quizDone, setQuizDone] = useState<Record<string, boolean>>({});
@@ -334,13 +336,13 @@ export function LessonExperience({
                 />
               ))}
             </div>
-            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain touch-pan-y px-4 pb-20 pt-4 md:px-10 md:py-8 lg:flex-row lg:gap-8 lg:overflow-hidden lg:px-14 lg:py-8">
+            <div className={`flex min-h-0 flex-1 flex-col ${visualizerPage ? "gap-0 overflow-hidden p-0" : "gap-4 overflow-y-auto overscroll-contain touch-pan-y px-4 pb-20 pt-4 md:px-10 md:py-8 lg:flex-row lg:gap-8 lg:overflow-hidden lg:px-14 lg:py-8"}`}>
               <div
                 className={`min-w-0 shrink-0 lg:min-h-0 lg:shrink lg:overflow-y-auto lg:overscroll-contain ${
                   hasSidePane ? (hasVisualizerFit ? "lg:flex-[3]" : "lg:flex-[11]") : "flex-1"
                 }`}
               >
-                <div className={`lesson-guided-content mr-auto ${hasVisualizerFit ? "max-w-none" : "max-w-[680px]"}`}>
+                <div className={`lesson-guided-content mr-auto ${hasVisualizerFit ? "max-w-none w-full" : "max-w-[680px]"}`}>
                   <LessonRenderer
                     lesson={lesson}
                     step={activeStep}

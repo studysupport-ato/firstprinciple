@@ -424,7 +424,7 @@ export function VisualizerBlock({
     return () => window.removeEventListener("resize", update);
   }, []);
   // fit: a board expands to the height of the screen it is on.
-  const fitHeight = Math.max(BOARD_MIN_HEIGHT, Math.min(780, viewportHeight - 300));
+  const fitHeight = Math.max(420, viewportHeight - (isBoardSource(source) ? 240 : 175));
   const frameHeight = fill && isBoardSource(source)
     ? (fit ? fitHeight : Math.max(BOARD_MIN_HEIGHT, requestedHeight))
     : requestedHeight;
@@ -699,7 +699,7 @@ export function VisualizerBlock({
     return (
       <div
         className="lesson-visualizer-fit relative w-full overflow-hidden rounded-2xl border border-white/25"
-        style={{ height: "clamp(380px, calc(100dvh - 300px), 780px)" }}
+        style={{ height: "max(420px, calc(100dvh - 175px))" }}
       >
         {overlay}
         {frame}
