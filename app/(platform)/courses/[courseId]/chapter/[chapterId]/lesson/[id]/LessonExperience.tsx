@@ -319,7 +319,7 @@ export function LessonExperience({
           >
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain touch-pan-y px-4 pb-20 pt-4 md:px-10 md:py-8 lg:flex-row lg:gap-8 lg:overflow-hidden lg:px-14 lg:py-8">
               <div
-                className={`min-h-0 min-w-0 lg:overflow-y-auto lg:overscroll-contain ${
+                className={`min-w-0 shrink-0 lg:min-h-0 lg:shrink lg:overflow-y-auto lg:overscroll-contain ${
                   hasSidePane ? (hasVisualizerFit ? "lg:flex-[3]" : "lg:flex-[11]") : "flex-1"
                 }`}
               >
@@ -345,7 +345,7 @@ export function LessonExperience({
               {hasSidePane ? (
                 <aside
                   aria-label="Notes"
-                  className={`lesson-side-card lesson-guided-content min-h-0 min-w-0 rounded-2xl border p-5 lg:overflow-y-auto lg:overscroll-contain ${
+                  className={`lesson-side-card lesson-guided-content min-w-0 shrink-0 rounded-2xl border p-5 lg:min-h-0 lg:shrink lg:overflow-y-auto lg:overscroll-contain ${
                     hasVisualizerFit ? "lg:flex-[1.4]" : "lg:flex-[9]"
                   }`}
                 >
