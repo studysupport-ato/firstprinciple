@@ -1,4 +1,4 @@
-import type { CourseMaterialEntry, CourseMaterialSemester, CourseMaterialYear } from "./courseMaterials";
+import type { CourseMaterialEntry, CourseMaterialSemester, CourseMaterialYear, CourseOutlineChapter } from "./courseMaterials";
 
 /** One course card: either a course an administrator created, or a legacy group of older loose materials. */
 export interface CourseNode<T extends CourseMaterialEntry = CourseMaterialEntry> {
@@ -16,6 +16,8 @@ export interface CourseNode<T extends CourseMaterialEntry = CourseMaterialEntry>
   available: boolean;
   /** The course's topics, in order (none for a legacy group). */
   topics: Array<{ id: string; name: string }>;
+  /** The course's outline, shown as its course structure (none for a legacy group). */
+  outline: CourseOutlineChapter[];
 }
 
 export interface SemesterNode<T extends CourseMaterialEntry = CourseMaterialEntry> {
@@ -68,6 +70,7 @@ export function buildSemesters<T extends CourseMaterialEntry>(entries: T[], depa
           legacy: false,
           available: course.available !== false,
           topics: course.topics ?? [],
+          outline: course.outline ?? [],
           isNew: Date.now() - new Date(course.createdAt).getTime() < FORTNIGHT,
         };
       });
@@ -77,7 +80,7 @@ export function buildSemesters<T extends CourseMaterialEntry>(entries: T[], depa
       const code = (entry.courseCode ?? "").trim();
       if (legacySemester(code) !== semester) continue;
       const key = `legacy:${code}-${entry.courseTitle}`;
-      const group = legacyGroups.get(key) ?? { key, courseCode: code, courseTitle: entry.courseTitle, semester, materials: [], legacy: true, isNew: false, available: true, topics: [] };
+      const group = legacyGroups.get(key) ?? { key, courseCode: code, courseTitle: entry.courseTitle, semester, materials: [], legacy: true, isNew: false, available: true, topics: [], outline: [] };
       group.materials.push(entry);
       if (Date.now() - new Date(entry.createdAt).getTime() < FORTNIGHT) group.isNew = true;
       legacyGroups.set(key, group);

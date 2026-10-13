@@ -1,3 +1,19 @@
+export interface CourseOutlineSubtopic {
+  num: string;
+  t: string;
+  cases: string[];
+}
+
+export interface CourseOutlineSection extends CourseOutlineSubtopic {
+  subs: CourseOutlineSubtopic[];
+}
+
+export interface CourseOutlineChapter {
+  n: number;
+  t: string;
+  secs: CourseOutlineSection[];
+}
+
 export type CourseMaterialsStatus = "draft" | "published" | "archived";
 
 export type CourseMaterialKind = "link" | "youtube";
@@ -47,6 +63,8 @@ export interface CourseMaterialEntry {
   hiddenVideos?: string[];
   /** For a playlist: extra YouTube videos the administrator added, shown after the playlist's own. */
   extraVideos?: Array<{ videoId: string; title: string; channel?: string; kind?: "lesson" | "worked"; minutes?: number }>;
+  /** For a course: its outline (chapters, sections, subtopics, cases), shown as the course structure. */
+  outline?: CourseOutlineChapter[];
   /** For a course: its topics, in the order students see them. */
   topics?: CourseMaterialTopic[];
   /** For a material: the topic it is grouped under (an id from its course's topics). */

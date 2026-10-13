@@ -268,3 +268,14 @@
 :is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-note-label { color: #E9BC3A; }
 /* Week 1 lessons: bullet lists sit centred on the page */
 .lesson-blueprint .markdown-content :is(ul, ol) { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
+
+/* Course structure (tap to open): chapters rise in one after another, topics drop in */
+@keyframes cs-rise { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes cs-drop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@keyframes cs-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes cs-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(26, 24, 20, 0.35); } 50% { box-shadow: 0 0 0 10px rgba(26, 24, 20, 0); } }
+.cs-rise { animation: cs-rise 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.cs-drop { animation: cs-drop 0.32s ease-out both; }
+.cs-spine { transform-origin: top; animation: cs-grow 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.cs-pulse { animation: cs-pulse 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .cs-rise, .cs-drop, .cs-spine, .cs-pulse { animation: none; } }

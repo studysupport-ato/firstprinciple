@@ -3,13 +3,16 @@
 import { ArrowLeft, ArrowUpRight, Bookmark, FileQuestion, FileText, LayoutGrid, Link2, ListVideo, Play, Presentation, SkipForward } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
+import type { CourseOutlineChapter } from "@/lib/courseMaterials";
 import type { MaterialRow, MaterialType } from "@/lib/courseMaterialsDisplay";
 import { linkHost } from "@/lib/courseMaterialsTree";
+
+import { CourseStructure } from "./CourseStructure";
 import { buildYouTubeEmbedUrl, getCourseMaterialVideoId } from "@/lib/youtube";
 import { buildYouTubePlaylistUrl, parseYouTubePlaylistId, type PlaylistDetails } from "@/lib/youtubePlaylist";
 
 interface CourseDetailProps {
-  course: { courseCode?: string; courseTitle: string; topics?: Array<{ id: string; name: string }> };
+  course: { courseCode?: string; courseTitle: string; topics?: Array<{ id: string; name: string }>; outline?: CourseOutlineChapter[] };
   materials: MaterialRow[];
   backLabel: string;
   onBack: () => void;
@@ -123,6 +126,8 @@ export function CourseDetail({ course, materials, backLabel, onBack, bookmarks, 
         </div>
       ) : null}
       <h1 className="font-sans text-[clamp(2rem,5vw,3.25rem)] font-black leading-[1.0] tracking-[-0.02em] text-[#1A1814]">{course.courseTitle}</h1>
+
+      <CourseStructure outline={course.outline ?? []} />
 
       <div role="tablist" aria-label="Material types" className="mt-6 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex-wrap md:overflow-visible md:pb-0">
         {TABS.map((item) => {
@@ -484,7 +489,6 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }:
     return [...own, ...extras];
   };
 
-  const colorOf = (playlist: MaterialRow) => topicOf(playlist, topics)?.color ?? "#E9BC3A";
   const channelOf = (playlist: MaterialRow) => {
     const state = loaded[playlist.id];
     const provider = playlist.provider?.replace(/\s*-\s*YouTube$/i, "") ?? "";
@@ -520,11 +524,6 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }:
                 const minutes = videos.reduce((sum, video) => sum + (video.minutes ?? 0), 0);
                 const worked = videos.filter((video) => video.kind === "worked").length;
                 const lessons = videos.filter((video) => video.kind === "lesson").length;
-                const sections: string[] = [];
-                for (const video of videos) {
-                  const { sub, num: subNum } = videoParts(video.title);
-                  if (subNum && subNum.split(".").length === 2 && !sections.includes(sub)) sections.push(sub);
-                }
                 const off = playlist.available === false;
                 return (
                   <button
@@ -532,10 +531,9 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }:
                     type="button"
                     disabled={off}
                     onClick={() => openPlaylist(playlist.id)}
-                    className="flex min-h-[212px] flex-col overflow-hidden rounded-[18px] bg-[#1A1814] text-left text-[#F6EFDC] shadow-[0_2px_12px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.25)] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex min-h-[150px] flex-col overflow-hidden rounded-[18px] bg-[#1A1814] text-left text-[#F6EFDC] shadow-[0_2px_12px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.25)] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <span aria-hidden="true" className="block h-[7px] w-full shrink-0" style={{ background: colorOf(playlist) }} />
-                    <span className="flex flex-1 flex-col gap-2.5 px-4 pb-3.5 pt-3">
+                    <span className="flex flex-1 flex-col gap-2.5 px-4 pb-3.5 pt-4">
                     <span className="flex items-baseline justify-between gap-3">
                       {num ? <span className="text-[40px] font-black leading-[0.9] tracking-[-0.03em] text-[#E9BC3A]">{num}</span> : <ListVideo className="h-7 w-7 text-[#E9BC3A]" />}
                       <span className="text-right text-[11px] font-bold text-[#F6EFDC]/55">
@@ -543,15 +541,6 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }:
                       </span>
                     </span>
                     <span className="text-[16px] font-black leading-tight">{name}</span>
-                    {sections.length ? (
-                      <span className="flex flex-col gap-[3px]">
-                        {sections.slice(0, 3).map((section) => (
-                          <span key={section} className="truncate text-[12px] text-[#F6EFDC]/55">{section}</span>
-                        ))}
-                      </span>
-                    ) : playlist.description ? (
-                      <span className="line-clamp-3 text-[12px] text-[#F6EFDC]/55">{playlist.description}</span>
-                    ) : null}
                     <span className="mt-auto flex items-center gap-2 border-t border-[#2E2A22] pt-2.5">
                       <span className="text-[11px] font-bold text-[#F6EFDC]/60">
                         {off ? "Not available at the moment" : lessons || worked ? `${lessons} lessons · ${worked} worked examples` : channelOf(playlist)}
@@ -584,9 +573,8 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }:
                     type="button"
                     disabled={off}
                     onClick={() => openPlaylist(playlist.id)}
-                    className="flex flex-col gap-2 overflow-hidden rounded-[14px] bg-[#1A1814] pb-3 text-left text-[#F6EFDC] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex flex-col gap-2 overflow-hidden rounded-[14px] bg-[#1A1814] pb-3 pt-2 text-left text-[#F6EFDC] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <span aria-hidden="true" className="block h-[5px] w-full shrink-0" style={{ background: colorOf(playlist) }} />
                     <span className="relative mx-2 block aspect-video overflow-hidden rounded-lg bg-[#2B261D]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       {videos[0] ? <img src={thumb(videos[0].videoId)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" /> : null}
@@ -679,9 +667,8 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }:
               aria-selected={on}
               disabled={playlist.available === false}
               onClick={() => openPlaylist(playlist.id)}
-              className={`flex min-h-[62px] min-w-[112px] flex-1 flex-col gap-[3px] overflow-hidden rounded-xl pb-2 text-left transition disabled:opacity-40 ${on ? "bg-[#1A1814] text-[#F6EFDC]" : "bg-[#1A1814]/10 text-[#1A1814] hover:bg-[#1A1814]/[0.16]"}`}
+              className={`flex min-h-[58px] min-w-[112px] flex-1 flex-col gap-[3px] overflow-hidden rounded-xl pb-2 pt-2.5 text-left transition disabled:opacity-40 ${on ? "bg-[#1A1814] text-[#F6EFDC]" : "bg-[#1A1814]/10 text-[#1A1814] hover:bg-[#1A1814]/[0.16]"}`}
             >
-              <span aria-hidden="true" className="mb-1 block h-[5px] w-full shrink-0" style={{ background: colorOf(playlist) }} />
               <span className={`px-2.5 text-[17px] font-black leading-none ${on ? "text-[#E9BC3A]" : "text-[#1A1814]/55"}`}>{parts.num ?? "▶"}</span>
               <span className="line-clamp-2 px-2.5 text-[11px] font-extrabold leading-tight">{parts.num ? parts.name : playlist.courseTitle}</span>
             </button>

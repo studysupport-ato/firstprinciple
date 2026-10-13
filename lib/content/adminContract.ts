@@ -69,6 +69,7 @@ export type AdminCourseMaterialInput = Pick<CourseMaterialEntry, "departmentId" 
   hiddenVideos?: string[];
   extraVideos?: Array<{ videoId: string; title: string; channel?: string; kind?: "lesson" | "worked"; minutes?: number }>;
   topics?: Array<{ id: string; name: string }>;
+  outline?: import("@/lib/courseMaterials").CourseOutlineChapter[];
   topicId?: string | null;
 };
 

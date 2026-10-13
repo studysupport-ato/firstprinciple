@@ -80,7 +80,7 @@ export default function GeneralCoursesPage() {
     return (
       <CourseMaterialsChrome>
         <CourseDetail
-          course={{ courseCode: active.course.courseCode, courseTitle: active.course.courseTitle, topics: active.course.topics }}
+          course={{ courseCode: active.course.courseCode, courseTitle: active.course.courseTitle, topics: active.course.topics, outline: active.course.outline }}
           materials={active.materials}
           backLabel="General courses"
           onBack={() => setSelectedId(null)}

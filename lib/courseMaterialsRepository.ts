@@ -18,6 +18,7 @@ import {
   validateDepartment,
   type CourseMaterialEntry,
   type CourseMaterialEntryInput,
+  type CourseOutlineChapter,
   type CourseMaterialsDepartment,
   type CourseMaterialsDepartmentInput,
 } from "./courseMaterials";
@@ -84,13 +85,45 @@ type MaterialRow = Database["public"]["Tables"]["course_materials"]["Row"];
 function mapDepartment(row: DepartmentRow): CourseMaterialsDepartment {
   return { id: row.id, name: row.name, shortName: row.short_name ?? undefined, description: row.description ?? undefined, order: row.order_index, status: row.status as ContentStatus, available: row.available !== false, createdAt: row.created_at, updatedAt: row.updated_at };
 }
+/** A course's outline, read defensively: anything malformed is dropped rather than breaking the page. */
+function parseOutline(value: unknown): CourseOutlineChapter[] {
+  if (!Array.isArray(value)) return [];
+  const text = (item: unknown) => (typeof item === "string" ? item : "");
+  const cases = (item: unknown) => (Array.isArray(item) ? item.map(text).filter(Boolean) : []);
+  return value
+    .filter((chapter) => chapter && typeof chapter === "object" && Array.isArray((chapter as { secs?: unknown }).secs))
+    .map((chapter) => {
+      const c = chapter as { n?: unknown; t?: unknown; secs: unknown[] };
+      return {
+        n: Number(c.n) || 0,
+        t: text(c.t),
+        secs: c.secs
+          .filter((sec) => sec && typeof sec === "object")
+          .map((sec) => {
+            const s = sec as { num?: unknown; t?: unknown; cases?: unknown; subs?: unknown };
+            return {
+              num: text(s.num),
+              t: text(s.t),
+              cases: cases(s.cases),
+              subs: (Array.isArray(s.subs) ? s.subs : [])
+                .filter((sub) => sub && typeof sub === "object")
+                .map((sub) => {
+                  const u = sub as { num?: unknown; t?: unknown; cases?: unknown };
+                  return { num: text(u.num), t: text(u.t), cases: cases(u.cases) };
+                }),
+            };
+          }),
+      };
+    });
+}
+
 function mapMaterial(row: MaterialRow): CourseMaterialEntry {
   // Backwards-compatible: no kind column. provider="youtube" marker OR a YouTube URL implies YouTube.
   const rawProvider = row.provider ?? undefined;
   const videoId = getCourseMaterialVideoId({ kind: undefined, url: row.url ?? "", provider: rawProvider });
   const kind: CourseMaterialEntry["kind"] = rawProvider === "youtube" || videoId ? "youtube" : "link";
   const entryType = (row.entry_type ?? "material") as CourseMaterialEntry["entryType"];
-  return { id: row.id, departmentId: row.department_id, courseCode: row.course_code ?? undefined, courseTitle: row.course_title, studyYear: row.study_year as CourseMaterialEntry["studyYear"], semester: (row.semester ?? null) as CourseMaterialEntry["semester"], entryType, parentId: row.parent_id ?? null, materialType: (row.material_type ?? null) as CourseMaterialEntry["materialType"], hiddenVideos: Array.isArray(row.hidden_videos) ? row.hidden_videos : [], topics: Array.isArray(row.topics) ? row.topics.filter((item) => item && typeof item.id === "string").map((item) => ({ id: item.id, name: String(item.name ?? "") })) : [], topicId: row.topic_id ?? null, extraVideos: Array.isArray(row.extra_videos) ? row.extra_videos.filter((item) => item && typeof item.videoId === "string").map((item) => ({ videoId: item.videoId, title: String(item.title ?? ""), ...(item.channel ? { channel: String(item.channel) } : {}), ...(item.kind === "lesson" || item.kind === "worked" ? { kind: item.kind } : {}), ...(typeof item.minutes === "number" && item.minutes > 0 ? { minutes: item.minutes } : {}) })) : [], description: row.description ?? undefined, url: kind === "youtube" && videoId ? buildYouTubeWatchUrl(videoId) : row.url ?? "", provider: kind === "youtube" ? videoId ?? rawProvider : rawProvider === "youtube" ? undefined : rawProvider, kind, order: row.order_index, status: row.status as ContentStatus, available: row.available !== false, createdAt: row.created_at, updatedAt: row.updated_at };
+  return { id: row.id, departmentId: row.department_id, courseCode: row.course_code ?? undefined, courseTitle: row.course_title, studyYear: row.study_year as CourseMaterialEntry["studyYear"], semester: (row.semester ?? null) as CourseMaterialEntry["semester"], entryType, parentId: row.parent_id ?? null, materialType: (row.material_type ?? null) as CourseMaterialEntry["materialType"], hiddenVideos: Array.isArray(row.hidden_videos) ? row.hidden_videos : [], topics: Array.isArray(row.topics) ? row.topics.filter((item) => item && typeof item.id === "string").map((item) => ({ id: item.id, name: String(item.name ?? "") })) : [], topicId: row.topic_id ?? null, outline: parseOutline(row.outline), extraVideos: Array.isArray(row.extra_videos) ? row.extra_videos.filter((item) => item && typeof item.videoId === "string").map((item) => ({ videoId: item.videoId, title: String(item.title ?? ""), ...(item.channel ? { channel: String(item.channel) } : {}), ...(item.kind === "lesson" || item.kind === "worked" ? { kind: item.kind } : {}), ...(typeof item.minutes === "number" && item.minutes > 0 ? { minutes: item.minutes } : {}) })) : [], description: row.description ?? undefined, url: kind === "youtube" && videoId ? buildYouTubeWatchUrl(videoId) : row.url ?? "", provider: kind === "youtube" ? videoId ?? rawProvider : rawProvider === "youtube" ? undefined : rawProvider, kind, order: row.order_index, status: row.status as ContentStatus, available: row.available !== false, createdAt: row.created_at, updatedAt: row.updated_at };
 }
 
 function toRowMaterial(input: { departmentId: string; courseCode?: string; courseTitle: string; description?: string; url: string; provider?: string; kind?: CourseMaterialEntry["kind"]; status: string }) {
