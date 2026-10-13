@@ -14,6 +14,8 @@ export interface CourseNode<T extends CourseMaterialEntry = CourseMaterialEntry>
   isNew: boolean;
   /** false = the administrator switched this course to "not available at the moment". */
   available: boolean;
+  /** The course's topics, in order (none for a legacy group). */
+  topics: Array<{ id: string; name: string }>;
 }
 
 export interface SemesterNode<T extends CourseMaterialEntry = CourseMaterialEntry> {
@@ -65,6 +67,7 @@ export function buildSemesters<T extends CourseMaterialEntry>(entries: T[], depa
           materials,
           legacy: false,
           available: course.available !== false,
+          topics: course.topics ?? [],
           isNew: Date.now() - new Date(course.createdAt).getTime() < FORTNIGHT,
         };
       });
@@ -74,7 +77,7 @@ export function buildSemesters<T extends CourseMaterialEntry>(entries: T[], depa
       const code = (entry.courseCode ?? "").trim();
       if (legacySemester(code) !== semester) continue;
       const key = `legacy:${code}-${entry.courseTitle}`;
-      const group = legacyGroups.get(key) ?? { key, courseCode: code, courseTitle: entry.courseTitle, semester, materials: [], legacy: true, isNew: false, available: true };
+      const group = legacyGroups.get(key) ?? { key, courseCode: code, courseTitle: entry.courseTitle, semester, materials: [], legacy: true, isNew: false, available: true, topics: [] };
       group.materials.push(entry);
       if (Date.now() - new Date(entry.createdAt).getTime() < FORTNIGHT) group.isNew = true;
       legacyGroups.set(key, group);

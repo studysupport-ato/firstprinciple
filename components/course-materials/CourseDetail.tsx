@@ -9,7 +9,7 @@ import { buildYouTubeEmbedUrl, getCourseMaterialVideoId } from "@/lib/youtube";
 import { buildYouTubePlaylistUrl, parseYouTubePlaylistId, type PlaylistDetails } from "@/lib/youtubePlaylist";
 
 interface CourseDetailProps {
-  course: { courseCode?: string; courseTitle: string };
+  course: { courseCode?: string; courseTitle: string; topics?: Array<{ id: string; name: string }> };
   materials: MaterialRow[];
   backLabel: string;
   onBack: () => void;
@@ -28,6 +28,48 @@ const TABS: Array<{ key: TabKey; label: string; type: MaterialType }> = [
   { key: "links", label: "Links", type: "External Link" },
 ];
 
+/** Each topic gets a colour by its position, used on its heading, its stripe and its tag in the player. */
+const TOPIC_COLORS = ["#E9BC3A", "#E0835A", "#8FB8E8", "#7FC9A2", "#B9A4EA", "#F2A7C3", "#C9B27C", "#9AD0D6"];
+const NO_TOPIC = "__none";
+
+type TopicView = { id: string; name: string; color: string };
+type TopicGroup<T> = { topic: TopicView | null; items: T[] };
+
+/** Group items under the course's topics, in the topics' order; anything without a known topic goes last. */
+function groupByTopic<T extends MaterialRow>(items: T[], topics: TopicView[]): TopicGroup<T>[] {
+  if (topics.length === 0) return [{ topic: null, items }];
+  const known = new Set(topics.map((topic) => topic.id));
+  const groups: TopicGroup<T>[] = topics.map((topic) => ({ topic, items: items.filter((item) => item.topicId === topic.id) }));
+  groups.push({ topic: null, items: items.filter((item) => !item.topicId || !known.has(item.topicId)) });
+  return groups.filter((group) => group.items.length > 0);
+}
+
+function topicOf(item: MaterialRow, topics: TopicView[]) {
+  return topics.find((topic) => topic.id === item.topicId) ?? null;
+}
+
+function TopicTag({ topic }: { topic: TopicView | null }) {
+  if (!topic) return null;
+  return (
+    <span className="mr-2 inline-flex items-center rounded-full px-2.5 py-0.5 align-middle text-[10px] font-black uppercase tracking-[0.08em] text-[#1A1814]" style={{ background: topic.color }}>
+      {topic.name}
+    </span>
+  );
+}
+
+/** The heading over a group in the dark side list. */
+function ListTopicHeading({ group, show }: { group: TopicGroup<unknown>; show: boolean }) {
+  if (!show) return null;
+  return (
+    <div className="flex items-center gap-2.5 px-1.5 pb-1.5 pt-3">
+      <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: group.topic?.color ?? "#8F8671" }} />
+      <span className="text-[11px] font-black uppercase tracking-[0.12em] text-[#F6EFDC]">{group.topic?.name ?? "Not in a topic"}</span>
+      <span className="text-[11px] font-bold text-[#F6EFDC]/45">{group.items.length}</span>
+      <span className="h-px flex-1 bg-[#3A3428]" />
+    </div>
+  );
+}
+
 function thumb(videoId: string) {
   return `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/mqdefault.jpg`;
 }
@@ -44,7 +86,25 @@ export function CourseDetail({ course, materials, backLabel, onBack, bookmarks, 
   }, [materials]);
   const firstWithItems = TABS.find((tab) => (byTab.get(tab.key)?.length ?? 0) > 0)?.key ?? "videos";
   const [tab, setTab] = useState<TabKey>(firstWithItems);
-  const items = byTab.get(tab) ?? [];
+  const [topicFilter, setTopicFilter] = useState<string>("all");
+  const topics: TopicView[] = useMemo(
+    () => (course.topics ?? []).map((topic, index) => ({ ...topic, color: TOPIC_COLORS[index % TOPIC_COLORS.length] })),
+    [course.topics],
+  );
+  const tabItems = byTab.get(tab) ?? [];
+  const knownTopic = (item: MaterialRow) => Boolean(item.topicId && topics.some((topic) => topic.id === item.topicId));
+  const items =
+    topicFilter === "all"
+      ? tabItems
+      : topicFilter === NO_TOPIC
+        ? tabItems.filter((item) => !knownTopic(item))
+        : tabItems.filter((item) => item.topicId === topicFilter);
+  const looseCount = tabItems.filter((item) => !knownTopic(item)).length;
+  const chips = [
+    { id: "all", name: "All topics", color: "#1A1814", count: tabItems.length },
+    ...topics.map((topic) => ({ ...topic, count: tabItems.filter((item) => item.topicId === topic.id).length })),
+    ...(looseCount > 0 && looseCount < tabItems.length ? [{ id: NO_TOPIC, name: "Not in a topic", color: "#8F8671", count: looseCount }] : []),
+  ];
 
   return (
     <div>
@@ -75,7 +135,10 @@ export function CourseDetail({ course, materials, backLabel, onBack, bookmarks, 
               role="tab"
               aria-selected={active}
               disabled={count === 0}
-              onClick={() => setTab(item.key)}
+              onClick={() => {
+                setTab(item.key);
+                setTopicFilter("all");
+              }}
               className={`inline-flex min-h-[42px] shrink-0 items-center gap-2 rounded-full px-5 text-[14px] font-extrabold transition ${
                 active
                   ? "bg-[#1A1814] text-[#E9BC3A]"
@@ -91,17 +154,42 @@ export function CourseDetail({ course, materials, backLabel, onBack, bookmarks, 
         })}
       </div>
 
+      {topics.length > 0 && tabItems.length > 0 ? (
+        <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex-wrap md:overflow-visible">
+          <span className="mr-1 shrink-0 text-[11px] font-black uppercase tracking-[0.14em] text-[#1A1814]/60">Topic</span>
+          {chips.map((chip) => {
+            const active = topicFilter === chip.id;
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                aria-pressed={active}
+                disabled={chip.count === 0}
+                onClick={() => setTopicFilter(chip.id)}
+                className={`inline-flex min-h-[38px] shrink-0 items-center gap-2 rounded-full border-[1.5px] px-3.5 text-[13px] font-extrabold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                  active ? "border-[#1A1814] bg-[#1A1814] text-[#F6EFDC]" : "border-[#1A1814]/35 text-[#1A1814] hover:bg-[#1A1814]/[0.06]"
+                }`}
+              >
+                {chip.id !== "all" ? <span className="h-2 w-2 rounded-full" style={{ background: chip.color }} /> : null}
+                {chip.name}
+                <span className="font-semibold opacity-65">{chip.count}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
       <div className="mt-6">
         {items.length === 0 ? (
           <div className="rounded-[20px] border-[1.5px] border-dashed border-[#1A1814]/30 bg-[#1A1814]/[0.06] p-7 text-[15px] font-semibold text-[#1A1814]/70">
             Nothing here yet for this course.
           </div>
         ) : tab === "videos" ? (
-          <VideosPanel key="videos" videos={items} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />
+          <VideosPanel key={`videos-${topicFilter}`} videos={items} topics={topics} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />
         ) : tab === "playlists" ? (
-          <PlaylistsPanel key="playlists" playlists={items} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />
+          <PlaylistsPanel key={`playlists-${topicFilter}`} playlists={items} topics={topics} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />
         ) : (
-          <TileGrid key={tab} items={items} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />
+          <TileGrid key={tab} items={items} topics={topics} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />
         )}
       </div>
     </div>
@@ -179,8 +267,10 @@ function ListRow({
   title,
   sub,
   disabled,
+  accent,
   onClick,
 }: {
+  accent?: string;
   index: number;
   active: boolean;
   videoId?: string;
@@ -195,6 +285,7 @@ function ListRow({
       onClick={onClick}
       disabled={disabled}
       aria-current={active ? "true" : undefined}
+      style={accent ? { borderLeft: `3px solid ${accent}` } : undefined}
       className={`flex w-full items-center gap-3 rounded-xl px-1.5 py-2 text-left transition ${active ? "bg-[#E9BC3A]/[0.16]" : "hover:bg-[#F6EFDC]/[0.05]"} ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
     >
       <span className={`w-5 shrink-0 text-right text-[12px] font-extrabold ${active ? "text-[#E9BC3A]" : "text-[#F6EFDC]/45"}`}>{active ? "▶" : index + 1}</span>
@@ -210,7 +301,10 @@ function ListRow({
   );
 }
 
-function VideosPanel({ videos, bookmarks, toggleBookmark }: { videos: MaterialRow[]; bookmarks: string[]; toggleBookmark: (id: string) => void }) {
+function VideosPanel({ videos: given, topics, bookmarks, toggleBookmark }: { videos: MaterialRow[]; topics: TopicView[]; bookmarks: string[]; toggleBookmark: (id: string) => void }) {
+  // Play in the same order the list shows: grouped by topic.
+  const groups = groupByTopic(given, topics);
+  const videos = groups.flatMap((group) => group.items);
   const playable = videos.filter((v) => v.available !== false && getCourseMaterialVideoId(v));
   const [selectedId, setSelectedId] = useState(playable[0]?.id ?? videos[0]?.id);
   const [started, setStarted] = useState(false);
@@ -234,6 +328,7 @@ function VideosPanel({ videos, bookmarks, toggleBookmark }: { videos: MaterialRo
           <Stage videoId={currentVideoId} title={current?.courseTitle ?? "Video"} autoplay={started} onStart={() => setStarted(true)} />
           <div className="px-1.5 pb-1 pt-4">
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#E9BC3A]">
+              {current ? <TopicTag topic={topicOf(current, topics)} /> : null}
               Video · {position + 1} of {playable.length}
             </p>
             <h2 className="mt-1.5 text-[22px] font-black leading-tight">{current?.courseTitle}</h2>
@@ -254,11 +349,16 @@ function VideosPanel({ videos, bookmarks, toggleBookmark }: { videos: MaterialRo
       list={
         <>
           <p className="px-1.5 pb-2 pt-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#F6EFDC]/55">Videos · {videos.length}</p>
-          {videos.map((video, index) => {
+          {groups.map((group) => (
+            <div key={group.topic?.id ?? NO_TOPIC}>
+              <ListTopicHeading group={group} show={topics.length > 0} />
+              {group.items.map((video) => {
+            const index = videos.indexOf(video);
             const off = video.available === false || !getCourseMaterialVideoId(video);
             return (
               <ListRow
                 key={video.id}
+                accent={topics.length > 0 ? group.topic?.color ?? "#5A4F3A" : undefined}
                 index={index}
                 active={video.id === current?.id}
                 videoId={getCourseMaterialVideoId(video)}
@@ -268,7 +368,9 @@ function VideosPanel({ videos, bookmarks, toggleBookmark }: { videos: MaterialRo
                 onClick={() => pick(video.id)}
               />
             );
-          })}
+              })}
+            </div>
+          ))}
         </>
       }
     />
@@ -311,7 +413,9 @@ function usePlaylists(playlists: MaterialRow[]) {
   return state;
 }
 
-function PlaylistsPanel({ playlists, bookmarks, toggleBookmark }: { playlists: MaterialRow[]; bookmarks: string[]; toggleBookmark: (id: string) => void }) {
+function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }: { playlists: MaterialRow[]; topics: TopicView[]; bookmarks: string[]; toggleBookmark: (id: string) => void }) {
+  const groups = groupByTopic(given, topics);
+  const playlists = groups.flatMap((group) => group.items);
   const loaded = usePlaylists(playlists);
   const [openId, setOpenId] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
@@ -365,6 +469,7 @@ function PlaylistsPanel({ playlists, bookmarks, toggleBookmark }: { playlists: M
           )}
           <div className="px-1.5 pb-1 pt-4">
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#E9BC3A]">
+              <TopicTag topic={topicOf(featured, topics)} />
               Playlist{channel ? ` · ${channel}` : ""}
               {open && featuredVideos.length ? ` · ${index + 1} of ${featuredVideos.length}` : ""}
             </p>
@@ -413,7 +518,10 @@ function PlaylistsPanel({ playlists, bookmarks, toggleBookmark }: { playlists: M
         ) : (
           <>
             <p className="px-1.5 pb-2 pt-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#F6EFDC]/55">Playlists · {playlists.length}</p>
-            {playlists.map((playlist) => {
+            {groups.map((group) => (
+              <div key={group.topic?.id ?? NO_TOPIC}>
+                <ListTopicHeading group={group} show={topics.length > 0} />
+                {group.items.map((playlist) => {
               const state = loaded[playlist.id];
               const videosHere = visibleVideos(playlist);
               const off = playlist.available === false;
@@ -424,6 +532,7 @@ function PlaylistsPanel({ playlists, bookmarks, toggleBookmark }: { playlists: M
                   type="button"
                   disabled={off}
                   onClick={() => openPlaylist(playlist.id)}
+                  style={topics.length > 0 ? { borderLeft: `3px solid ${group.topic?.color ?? "#5A4F3A"}` } : undefined}
                   className={`flex w-full items-center gap-3 rounded-xl px-1.5 py-2.5 text-left transition hover:bg-[#F6EFDC]/[0.05] ${off ? "cursor-not-allowed opacity-50" : ""}`}
                 >
                   <span className="relative w-[124px] shrink-0 pt-1.5">
@@ -444,7 +553,9 @@ function PlaylistsPanel({ playlists, bookmarks, toggleBookmark }: { playlists: M
                   </span>
                 </button>
               );
-            })}
+                })}
+              </div>
+            ))}
           </>
         )
       }
@@ -461,15 +572,31 @@ const TILE_LOOK: Record<string, { icon: ReactNode; bg: string; fg: string; badge
   "External Link": { icon: <Link2 className="h-9 w-9" strokeWidth={1.6} />, bg: "bg-[#8F6500]", fg: "text-[#F6EFDC]", badge: "Link" },
 };
 
-function TileGrid({ items, bookmarks, toggleBookmark }: { items: MaterialRow[]; bookmarks: string[]; toggleBookmark: (id: string) => void }) {
+function TileGrid({ items, topics, bookmarks, toggleBookmark }: { items: MaterialRow[]; topics: TopicView[]; bookmarks: string[]; toggleBookmark: (id: string) => void }) {
+  const groups = groupByTopic(items, topics);
   return (
+    <div className="flex flex-col gap-7">
+      {groups.map((group) => (
+        <section key={group.topic?.id ?? NO_TOPIC}>
+          {topics.length > 0 ? (
+            <div className="mb-3 flex items-center gap-2.5">
+              <span className="h-3 w-3 rounded-[3px]" style={{ background: group.topic?.color ?? "#8F8671" }} />
+              <h2 className="text-[18px] font-black text-[#1A1814]">{group.topic?.name ?? "Not in a topic"}</h2>
+              <span className="text-[13px] font-bold text-[#1A1814]/55">{group.items.length}</span>
+              <span className="h-[1.5px] flex-1 bg-[#1A1814]/[0.18]" />
+            </div>
+          ) : null}
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {items.map((item) => {
+      {group.items.map((item) => {
         const look = TILE_LOOK[item.type] ?? TILE_LOOK["External Link"];
         const off = item.available === false;
         const saved = bookmarks.includes(item.id);
         return (
-          <article key={item.id} className={`flex flex-col gap-3 rounded-[18px] bg-[#1A1814] p-2.5 pb-3.5 shadow-[0_2px_14px_rgba(0,0,0,0.18)] ${off ? "opacity-55" : ""}`}>
+          <article
+            key={item.id}
+            style={topics.length > 0 ? { borderTop: `4px solid ${group.topic?.color ?? "#8F8671"}` } : undefined}
+            className={`flex flex-col gap-3 rounded-[18px] bg-[#1A1814] p-2.5 pb-3.5 shadow-[0_2px_14px_rgba(0,0,0,0.18)] ${off ? "opacity-55" : ""}`}
+          >
             <div className={`flex aspect-video flex-col items-center justify-center gap-1.5 rounded-[11px] ${look.bg} ${look.fg}`}>
               {look.icon}
               <span className="text-[10px] font-black uppercase tracking-[0.14em]">{look.badge}</span>
@@ -502,6 +629,9 @@ function TileGrid({ items, bookmarks, toggleBookmark }: { items: MaterialRow[]; 
           </article>
         );
       })}
+    </div>
+        </section>
+      ))}
     </div>
   );
 }

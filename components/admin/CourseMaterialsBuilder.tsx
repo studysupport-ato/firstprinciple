@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { AvailabilityToggle } from "@/components/admin/AvailabilityToggle";
 import { PlaylistEditor, type PlaylistEdit } from "@/components/admin/PlaylistEditor";
+import { TopicSelect, TopicsEditor, type Topic } from "@/components/admin/TopicsEditor";
 import { PlaylistImporter, type PlaylistImport } from "@/components/admin/PlaylistImporter";
 import {
   createCourseMaterialAction,
@@ -61,6 +62,7 @@ export function CourseMaterialsBuilder({
   const [openCourseId, setOpenCourseId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [newTopicId, setNewTopicId] = useState<string | null>(null);
 
   const [courseCode, setCourseCode] = useState("");
   const [courseTitle, setCourseTitle] = useState("");
@@ -162,6 +164,7 @@ export function CourseMaterialsBuilder({
           url: videoId ? `https://www.youtube.com/watch?v=${videoId}` : materialUrl.trim(),
           provider: videoId,
           kind: videoId ? "youtube" : "link",
+          topicId: newTopicId ?? undefined,
           status: "published",
         }),
       "Material added.",
@@ -174,6 +177,14 @@ export function CourseMaterialsBuilder({
 
   function isPlaylist(entry: CourseMaterialEntry) {
     return entry.materialType === "playlist" || (!entry.materialType && Boolean(parseYouTubePlaylistId(entry.url)) && !parseYouTubeVideoId(entry.url));
+  }
+
+  function saveTopics(course: CourseMaterialEntry, topics: Topic[], notice: string) {
+    void run(() => updateCourseMaterialAction(course.id, { topics }), notice);
+  }
+
+  function setMaterialTopic(material: CourseMaterialEntry, topicId: string | null) {
+    void run(() => updateCourseMaterialAction(material.id, { topicId }), topicId ? "Topic set." : "Removed from its topic.");
   }
 
   function savePlaylist(entry: CourseMaterialEntry, edit: PlaylistEdit) {
@@ -195,6 +206,7 @@ export function CourseMaterialsBuilder({
           url: playlist.url,
           provider: playlist.provider,
           hiddenVideos: playlist.hiddenVideos,
+          topicId: newTopicId ?? undefined,
           kind: "link",
           status: "published",
         }),
@@ -331,6 +343,7 @@ export function CourseMaterialsBuilder({
               </h2>
               <div className="mt-1 text-[15px] text-[#C9BFA6]">{openMaterials.length} materials</div>
             </div>
+            <TopicsEditor course={openCourse} materials={openMaterials} busy={busy} onSave={(topics, notice) => saveTopics(openCourse, topics, notice)} />
             {openMaterials.length === 0 ? <p className="text-base text-[#C9BFA6]">No materials yet. Add the first one below.</p> : null}
             {openMaterials.map((material) => {
               const type = MATERIAL_TYPES.find((item) => item.value === material.materialType);
@@ -343,6 +356,7 @@ export function CourseMaterialsBuilder({
                       {editingId === material.id ? "Close" : "Edit playlist"}
                     </button>
                   ) : null}
+                  <TopicSelect topics={openCourse.topics ?? []} value={material.topicId} onChange={(topicId) => setMaterialTopic(material, topicId)} disabled={busy} label={`Topic for ${material.courseTitle}`} />
                   <AvailabilityToggle available={material.available !== false} disabled={busy} onChange={(next) => setAvailable(material, next)} label={material.courseTitle} />
                   <button type="button" disabled={busy} onClick={() => remove(material, "Material")} className={removeButton} aria-label={`Remove ${material.courseTitle}`}>
                     Remove
@@ -359,6 +373,7 @@ export function CourseMaterialsBuilder({
                 <select value={materialType} onChange={(event) => setMaterialType(event.target.value as CourseMaterialType)} aria-label="Material type" className={`${inputClass} flex-[1_1_170px]`}>
                   {MATERIAL_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                 </select>
+                <TopicSelect topics={openCourse.topics ?? []} value={newTopicId} onChange={setNewTopicId} label="Topic for the new material" />
                 {materialType === "playlist" ? null : (
                   <>
                   <input value={materialTitle} onChange={(event) => setMaterialTitle(event.target.value)} placeholder="Title" aria-label="Material title" className={`${inputClass} flex-[2_1_200px]`} />

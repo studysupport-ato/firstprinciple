@@ -68,6 +68,8 @@ export type AdminCourseMaterialInput = Pick<CourseMaterialEntry, "departmentId" 
   materialType?: CourseMaterialType | null;
   hiddenVideos?: string[];
   extraVideos?: Array<{ videoId: string; title: string }>;
+  topics?: Array<{ id: string; name: string }>;
+  topicId?: string | null;
 };
 
 export type AdminPlacementTarget = ResourcePlacementTarget;

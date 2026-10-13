@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { AvailabilityToggle } from "@/components/admin/AvailabilityToggle";
 import { PlaylistEditor, type PlaylistEdit } from "@/components/admin/PlaylistEditor";
+import { TopicSelect, TopicsEditor, type Topic } from "@/components/admin/TopicsEditor";
 import { PlaylistImporter, type PlaylistImport } from "@/components/admin/PlaylistImporter";
 import { createCourseMaterialAction, deleteMaterialAction, updateCourseMaterialAction } from "@/lib/adminContentActions";
 import type { CourseMaterialEntry } from "@/lib/content/adminContract";
@@ -46,6 +47,7 @@ export function GeneralCoursesBuilder({
   const [openId, setOpenId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [newTopicId, setNewTopicId] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [title, setTitle] = useState("");
   const [materialType, setMaterialType] = useState<CourseMaterialType>("pdf");
@@ -93,6 +95,14 @@ export function GeneralCoursesBuilder({
     return entry.materialType === "playlist" || (!entry.materialType && Boolean(parseYouTubePlaylistId(entry.url)) && !parseYouTubeVideoId(entry.url));
   }
 
+  function saveTopics(course: CourseMaterialEntry, topics: Topic[], notice: string) {
+    void run(() => updateCourseMaterialAction(course.id, { topics }), notice);
+  }
+
+  function setMaterialTopic(material: CourseMaterialEntry, topicId: string | null) {
+    void run(() => updateCourseMaterialAction(material.id, { topicId }), topicId ? "Topic set." : "Removed from its topic.");
+  }
+
   function savePlaylist(entry: CourseMaterialEntry, edit: PlaylistEdit) {
     return run(() => updateCourseMaterialAction(entry.id, { ...edit, materialType: "playlist" }), "Playlist updated.");
   }
@@ -110,6 +120,7 @@ export function GeneralCoursesBuilder({
           url: playlist.url,
           provider: playlist.provider,
           hiddenVideos: playlist.hiddenVideos,
+          topicId: newTopicId ?? undefined,
           kind: "link",
           status: "published",
         }),
@@ -133,6 +144,7 @@ export function GeneralCoursesBuilder({
           url: videoId ? `https://www.youtube.com/watch?v=${videoId}` : materialUrl.trim(),
           provider: videoId,
           kind: videoId ? "youtube" : "link",
+          topicId: newTopicId ?? undefined,
           status: "published",
         }),
       "Material added.",
@@ -172,7 +184,8 @@ export function GeneralCoursesBuilder({
             <AvailabilityToggle available={open.available !== false} disabled={busy} onChange={(next) => setAvailable(open, next)} label={open.courseTitle} />
           </div>
         </div>
-        {materials.length === 0 ? <p className="text-base text-[#C9BFA6]">No materials yet. Add the first one below.</p> : null}
+        <TopicsEditor course={open} materials={materials} busy={busy} onSave={(topics, notice) => saveTopics(open, topics, notice)} />
+            {materials.length === 0 ? <p className="text-base text-[#C9BFA6]">No materials yet. Add the first one below.</p> : null}
         {materials.map((material) => {
           const type = MATERIAL_TYPES.find((item) => item.value === material.materialType);
           return (
@@ -184,7 +197,8 @@ export function GeneralCoursesBuilder({
                   {editingId === material.id ? "Close" : "Edit playlist"}
                 </button>
               ) : null}
-              <AvailabilityToggle available={material.available !== false} disabled={busy} onChange={(next) => setAvailable(material, next)} label={material.courseTitle} />
+              <TopicSelect topics={open.topics ?? []} value={material.topicId} onChange={(topicId) => setMaterialTopic(material, topicId)} disabled={busy} label={`Topic for ${material.courseTitle}`} />
+                  <AvailabilityToggle available={material.available !== false} disabled={busy} onChange={(next) => setAvailable(material, next)} label={material.courseTitle} />
               <button type="button" disabled={busy} onClick={() => remove(material)} className={removeButton} aria-label={`Remove ${material.courseTitle}`}>
                 Remove
               </button>
@@ -200,6 +214,7 @@ export function GeneralCoursesBuilder({
             <select value={materialType} onChange={(event) => setMaterialType(event.target.value as CourseMaterialType)} aria-label="Material type" className={`${inputClass} flex-[1_1_170px]`}>
               {MATERIAL_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
             </select>
+                <TopicSelect topics={open.topics ?? []} value={newTopicId} onChange={setNewTopicId} label="Topic for the new material" />
             {materialType === "playlist" ? null : (
               <>
               <input value={materialTitle} onChange={(event) => setMaterialTitle(event.target.value)} placeholder="Title" aria-label="Material title" className={`${inputClass} flex-[2_1_200px]`} />

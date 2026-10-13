@@ -11,6 +11,10 @@ export type CourseMaterialSemester = 1 | 2;
  * Rows saved before this existed have no entry type; they read as "material" with no parent.
  */
 export type CourseMaterialEntryType = "course" | "material" | "semester_link";
+export interface CourseMaterialTopic {
+  id: string;
+  name: string;
+}
 export type CourseMaterialType = "pdf" | "slides" | "past_questions" | "video" | "link" | "playlist";
 
 export interface CourseMaterialsDepartment {
@@ -43,6 +47,10 @@ export interface CourseMaterialEntry {
   hiddenVideos?: string[];
   /** For a playlist: extra YouTube videos the administrator added, shown after the playlist's own. */
   extraVideos?: Array<{ videoId: string; title: string }>;
+  /** For a course: its topics, in the order students see them. */
+  topics?: CourseMaterialTopic[];
+  /** For a material: the topic it is grouped under (an id from its course's topics). */
+  topicId?: string | null;
   description?: string;
   /** Empty for a course (a course has no link of its own). */
   url: string;
