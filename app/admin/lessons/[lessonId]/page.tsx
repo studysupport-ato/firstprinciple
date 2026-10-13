@@ -14,6 +14,7 @@ import type { ContentBlock, GeoGebraInteractiveConfig, Lesson } from "@/lib/cont
 import { MathText } from "@/components/learning/blocks/MathText";
 import { MarkdownBlock } from "@/components/learning/blocks/MarkdownBlock";
 import { AssetPicker } from "@/components/admin/AssetPicker";
+import { LessonPageLayout } from "@/components/admin/LessonPageLayout";
 
 const supportedBlockTypes = [
   "heading",
@@ -83,6 +84,7 @@ export default function AdminLessonEditorPage() {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [revertTarget, setRevertTarget] = useState(false);
   const [uploadingBlockId, setUploadingBlockId] = useState<string | null>(null);
+  const [layoutPage, setLayoutPage] = useState<number | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -115,6 +117,9 @@ export default function AdminLessonEditorPage() {
     [draft?.blocks, selectedBlockId],
   );
 
+  // The page the layout board and the preview show: the one picked on the board, else the selected block's.
+  const currentPage = layoutPage ?? activeBlock?.step ?? 1;
+
   function triggerMessage(text: string) {
     setSaveError(null);
     setMessage(text);
@@ -145,8 +150,8 @@ export default function AdminLessonEditorPage() {
     // when the lesson is empty). The old behaviour of always using max+1 silently
     // placed every new block on a brand-new step, hiding it from students who had
     // not yet clicked "Continue" through all prior steps.
-    const activeStep = activeBlock?.step ?? (draft.blocks.length > 0 ? Math.max(1, ...draft.blocks.map((block) => block.step ?? 1)) : 1);
-    const block = createDefaultBlock(type, activeStep);
+    // New blocks go on the page open on the layout board.
+    const block = createDefaultBlock(type, currentPage);
     setDraft((current) => current ? { ...current, blocks: [...current.blocks, block] } : current);
     setSelectedBlockId(block.id);
   }
@@ -740,6 +745,21 @@ export default function AdminLessonEditorPage() {
               />
             </div>
 
+            <LessonPageLayout
+              blocks={draft.blocks}
+              page={currentPage}
+              onPageChange={setLayoutPage}
+              selectedId={selectedBlockId}
+              onSelect={(blockId) => {
+                setSelectedBlockId(blockId);
+                requestAnimationFrame(() => document.getElementById(`block-${blockId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+              }}
+              onBlocksChange={(blocks, notice) => {
+                setDraft((current) => (current ? { ...current, blocks } : current));
+                if (notice) triggerMessage(`${notice} Save the lesson to keep it.`);
+              }}
+            />
+
             <div className="rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#666666]">Lesson blocks</span>
@@ -761,10 +781,11 @@ export default function AdminLessonEditorPage() {
                 {draft.blocks.map((block, index) => (
                   <div
                     key={block.id}
+                    id={`block-${block.id}`}
                     className={`rounded-2xl border p-3 transition-colors ${selectedBlockId === block.id ? "border-[#111111] bg-white" : "border-[#E5E5E5] bg-white"}`}
                   >
                     <div className="mb-3 flex items-center justify-between gap-2">
-                      <button type="button" onClick={() => setSelectedBlockId(block.id)} className="text-left text-sm font-semibold text-[#111111]">
+                      <button type="button" onClick={() => { setSelectedBlockId(block.id); setLayoutPage(block.step ?? 1); }} className="text-left text-sm font-semibold text-[#111111]">
                         {index + 1}. {block.type}
                       </button>
                       <div className="flex items-center gap-2">
@@ -843,11 +864,11 @@ export default function AdminLessonEditorPage() {
 
           {previewMode || !selectedBlockId ? (
             <div className="rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] p-5">
-              <LessonRenderer lesson={draft} step={1} />
+              <LessonRenderer lesson={draft} step={layoutPage ?? 1} />
             </div>
           ) : (
             <div className="rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] p-5">
-              <LessonRenderer lesson={draft} step={activeBlock?.step ?? 1} />
+              <LessonRenderer lesson={draft} step={currentPage} />
             </div>
           )}
         </section>
