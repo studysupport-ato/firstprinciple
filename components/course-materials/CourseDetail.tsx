@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowLeft, ArrowUpRight, Bookmark, FileQuestion, FileText, Link2, ListVideo, Play, Presentation, SkipForward } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { ArrowLeft, ArrowUpRight, Bookmark, FileQuestion, FileText, LayoutGrid, Link2, ListVideo, Play, Presentation, SkipForward } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import type { MaterialRow, MaterialType } from "@/lib/courseMaterialsDisplay";
 import { linkHost } from "@/lib/courseMaterialsTree";
@@ -154,7 +154,7 @@ export function CourseDetail({ course, materials, backLabel, onBack, bookmarks, 
         })}
       </div>
 
-      {topics.length > 0 && tabItems.length > 0 ? (
+      {topics.length > 0 && tabItems.length > 0 && tab !== "playlists" ? (
         <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex-wrap md:overflow-visible">
           <span className="mr-1 shrink-0 text-[11px] font-black uppercase tracking-[0.14em] text-[#1A1814]/60">Topic</span>
           {chips.map((chip) => {
@@ -418,15 +418,60 @@ function usePlaylists(playlists: MaterialRow[]) {
   return state;
 }
 
+/* Lessons are solid red, worked examples solid blue. Only used inside an opened playlist. */
+const LESSON_RED = "#C62828";
+const WORKED_BLUE = "#1E5BC6";
+
+type WatchVideo = { videoId: string; title: string; position: number; channel?: string; kind?: "lesson" | "worked"; minutes?: number };
+type VideoFilter = "all" | "lesson" | "worked";
+
+/** "Chapter 2: Force Systems" → { num: "2", name: "Force Systems" }. Anything else keeps its whole title. */
+function chapterParts(title: string) {
+  const match = title.match(/^\s*(?:chapter|ch\.?)\s*(\d+)\s*[:.\-–]\s*(.+)$/i);
+  return match ? { num: match[1], name: match[2].trim() } : { num: null as string | null, name: title };
+}
+
+/** "2.2.1 Vector addition of forces · Case 2: Trig" → subtopic, its number and name, and the part after the dot. */
+function videoParts(title: string) {
+  const cut = title.indexOf(" · ");
+  const sub = cut >= 0 ? title.slice(0, cut) : title;
+  const rest = cut >= 0 ? title.slice(cut + 3) : "";
+  const numbered = sub.match(/^(\d+(?:\.\d+)*)\s+(.+)$/);
+  return { sub, rest, num: numbered ? numbered[1] : null, name: numbered ? numbered[2] : sub };
+}
+
+function hoursAndMinutes(total: number) {
+  const hours = Math.floor(total / 60);
+  return hours ? `${hours} h ${total % 60} min` : `${total} min`;
+}
+
+function KindTag({ kind, long }: { kind?: "lesson" | "worked"; long?: boolean }) {
+  if (!kind) return null;
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center rounded-[5px] font-black tracking-[0.04em] text-white ${long ? "px-2.5 py-1 text-[11px]" : "w-[62px] py-[3px] text-[10px]"}`}
+      style={{ background: kind === "worked" ? WORKED_BLUE : LESSON_RED }}
+    >
+      {kind === "worked" ? (long ? "WORKED EXAMPLE" : "WORKED") : "LESSON"}
+    </span>
+  );
+}
+
 function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }: { playlists: MaterialRow[]; topics: TopicView[]; bookmarks: string[]; toggleBookmark: (id: string) => void }) {
-  const groups = groupByTopic(given, topics);
-  const playlists = groups.flatMap((group) => group.items);
+  const ordered = groupByTopic(given, topics).flatMap((group) => group.items);
+  const handBuilt = ordered.filter((playlist) => !parseYouTubePlaylistId(playlist.url));
+  const fromYouTube = ordered.filter((playlist) => Boolean(parseYouTubePlaylistId(playlist.url)));
+  const playlists = [...handBuilt, ...fromYouTube];
   const loaded = usePlaylists(playlists);
   const [openId, setOpenId] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
   const [started, setStarted] = useState(false);
+  const [filter, setFilter] = useState<VideoFilter>("all");
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const topRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<HTMLElement>(null);
 
-  const visibleVideos = (entry: MaterialRow) => {
+  const visibleVideos = (entry: MaterialRow): WatchVideo[] => {
     const state = loaded[entry.id];
     if (state?.status !== "ready") return [];
     const hidden = new Set(entry.hiddenVideos ?? []);
@@ -435,142 +480,372 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }:
     // Videos the administrator added on top of the playlist play after its own.
     const extras = (entry.extraVideos ?? [])
       .filter((video) => !ownIds.has(video.videoId))
-      .map((video, i) => ({ videoId: video.videoId, title: video.title, position: own.length + i, channel: video.channel }));
+      .map((video, i) => ({ videoId: video.videoId, title: video.title, position: own.length + i, channel: video.channel, kind: video.kind, minutes: video.minutes }));
     return [...own, ...extras];
   };
 
-  const open = playlists.find((p) => p.id === openId) ?? null;
-  const featured = open ?? playlists.find((p) => p.available !== false) ?? playlists[0];
-  const featuredState = loaded[featured.id];
-  const featuredVideos = visibleVideos(featured);
-  const currentVideo = open ? featuredVideos[index] : featuredVideos[0];
-  const providerName = featured.provider?.replace(/\s*-\s*YouTube$/i, "");
-  const channel = featuredState?.status === "ready" ? featuredState.data.channel || providerName : providerName;
-  const featuredListId = parseYouTubePlaylistId(featured.url);
-  const youtubeLink = featuredListId ? buildYouTubePlaylistUrl(featuredListId) : featured.url;
+  const colorOf = (playlist: MaterialRow) => topicOf(playlist, topics)?.color ?? "#E9BC3A";
+  const channelOf = (playlist: MaterialRow) => {
+    const state = loaded[playlist.id];
+    const provider = playlist.provider?.replace(/\s*-\s*YouTube$/i, "") ?? "";
+    return state?.status === "ready" ? state.data.channel || provider : provider;
+  };
 
-  function openPlaylist(id: string) {
+  function openPlaylist(id: string, at = 0, play = false) {
     setOpenId(id);
-    setIndex(0);
-    setStarted(true);
+    setIndex(at);
+    setStarted(play);
+    setFilter("all");
+    setExpanded({});
+    requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
+  const open = playlists.find((playlist) => playlist.id === openId) ?? null;
+
+  /* ── Landing: one card per playlist ── */
+  if (!open) {
+    const chapterHeading = handBuilt.some((playlist) => chapterParts(playlist.courseTitle).num) ? "Chapters" : "Playlists";
+    return (
+      <div ref={topRef} className="@container flex flex-col gap-8">
+        {handBuilt.length > 0 ? (
+          <section>
+            <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h2 className="text-[20px] font-black text-[#1A1814]">{chapterHeading}</h2>
+              <span className="text-[13px] font-semibold text-[#1A1814]/65">Every video is named after the subtopic it covers.</span>
+            </div>
+            <div className="grid grid-cols-1 gap-3.5 @xl:grid-cols-2 @4xl:grid-cols-3 @6xl:grid-cols-4">
+              {handBuilt.map((playlist) => {
+                const { num, name } = chapterParts(playlist.courseTitle);
+                const videos = visibleVideos(playlist);
+                const minutes = videos.reduce((sum, video) => sum + (video.minutes ?? 0), 0);
+                const worked = videos.filter((video) => video.kind === "worked").length;
+                const lessons = videos.filter((video) => video.kind === "lesson").length;
+                const sections: string[] = [];
+                for (const video of videos) {
+                  const { sub, num: subNum } = videoParts(video.title);
+                  if (subNum && subNum.split(".").length === 2 && !sections.includes(sub)) sections.push(sub);
+                }
+                const off = playlist.available === false;
+                return (
+                  <button
+                    key={playlist.id}
+                    type="button"
+                    disabled={off}
+                    onClick={() => openPlaylist(playlist.id)}
+                    className="flex min-h-[212px] flex-col overflow-hidden rounded-[18px] bg-[#1A1814] text-left text-[#F6EFDC] shadow-[0_2px_12px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(0,0,0,0.25)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span aria-hidden="true" className="block h-[7px] w-full shrink-0" style={{ background: colorOf(playlist) }} />
+                    <span className="flex flex-1 flex-col gap-2.5 px-4 pb-3.5 pt-3">
+                    <span className="flex items-baseline justify-between gap-3">
+                      {num ? <span className="text-[40px] font-black leading-[0.9] tracking-[-0.03em] text-[#E9BC3A]">{num}</span> : <ListVideo className="h-7 w-7 text-[#E9BC3A]" />}
+                      <span className="text-right text-[11px] font-bold text-[#F6EFDC]/55">
+                        {videos.length} videos{minutes ? ` · ${hoursAndMinutes(minutes)}` : ""}
+                      </span>
+                    </span>
+                    <span className="text-[16px] font-black leading-tight">{name}</span>
+                    {sections.length ? (
+                      <span className="flex flex-col gap-[3px]">
+                        {sections.slice(0, 3).map((section) => (
+                          <span key={section} className="truncate text-[12px] text-[#F6EFDC]/55">{section}</span>
+                        ))}
+                      </span>
+                    ) : playlist.description ? (
+                      <span className="line-clamp-3 text-[12px] text-[#F6EFDC]/55">{playlist.description}</span>
+                    ) : null}
+                    <span className="mt-auto flex items-center gap-2 border-t border-[#2E2A22] pt-2.5">
+                      <span className="text-[11px] font-bold text-[#F6EFDC]/60">
+                        {off ? "Not available at the moment" : lessons || worked ? `${lessons} lessons · ${worked} worked examples` : channelOf(playlist)}
+                      </span>
+                      <span className="flex-1" />
+                      {!off ? <span className="text-[12px] font-black text-[#E9BC3A]">Open →</span> : null}
+                    </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+
+        {fromYouTube.length > 0 ? (
+          <section>
+            <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h2 className="text-[20px] font-black text-[#1A1814]">{handBuilt.length ? "Full courses by channel" : "Playlists"}</h2>
+              <span className="text-[13px] font-semibold text-[#1A1814]/65">Whole YouTube series, for watching start to finish.</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 @2xl:grid-cols-3 @5xl:grid-cols-5">
+              {fromYouTube.map((playlist) => {
+                const state = loaded[playlist.id];
+                const videos = visibleVideos(playlist);
+                const off = playlist.available === false;
+                return (
+                  <button
+                    key={playlist.id}
+                    type="button"
+                    disabled={off}
+                    onClick={() => openPlaylist(playlist.id)}
+                    className="flex flex-col gap-2 overflow-hidden rounded-[14px] bg-[#1A1814] pb-3 text-left text-[#F6EFDC] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span aria-hidden="true" className="block h-[5px] w-full shrink-0" style={{ background: colorOf(playlist) }} />
+                    <span className="relative mx-2 block aspect-video overflow-hidden rounded-lg bg-[#2B261D]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {videos[0] ? <img src={thumb(videos[0].videoId)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" /> : null}
+                      <span className="absolute inset-y-0 right-0 flex w-[42px] flex-col items-center justify-center gap-0.5 bg-black/75 text-[11px] font-extrabold">
+                        <ListVideo className="h-4 w-4" />
+                        {state?.status === "ready" ? videos.length : "…"}
+                      </span>
+                    </span>
+                    <span className="line-clamp-2 px-3 text-[13px] font-extrabold leading-tight">{playlist.courseTitle}</span>
+                    <span className="px-3 text-[11px] text-[#F6EFDC]/55">{off ? "Not available at the moment" : channelOf(playlist)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+      </div>
+    );
+  }
+
+  /* ── Watching: the cards move to a strip on top, player and outline below ── */
+  const openState = loaded[open.id];
+  const videos = visibleVideos(open);
+  const matches = (video: WatchVideo) => filter === "all" || video.kind === filter;
+  const current = videos[index] ?? videos[0];
+  const step = (by: 1 | -1) => {
+    if (!videos.length) return;
+    for (let n = 1; n <= videos.length; n += 1) {
+      const at = (index + by * n + videos.length * n) % videos.length;
+      if (matches(videos[at])) {
+        setIndex(at);
+        setStarted(true);
+        return;
+      }
+    }
+  };
+  const nextAt = (() => {
+    for (let n = 1; n < videos.length; n += 1) {
+      const at = (index + n) % videos.length;
+      if (matches(videos[at])) return at;
+    }
+    return -1;
+  })();
+  const hasKinds = videos.some((video) => video.kind);
+  const structured = videos.some((video) => videoParts(video.title).num);
+  const openTitle = chapterParts(open.courseTitle);
+  const openChannel = channelOf(open);
+  const listId = parseYouTubePlaylistId(open.url);
+  const youtubeLink = listId ? buildYouTubePlaylistUrl(listId) : open.url;
+  const totalMinutes = videos.reduce((sum, video) => sum + (video.minutes ?? 0), 0);
+  const workedCount = videos.filter((video) => video.kind === "worked").length;
+  const label = (video: WatchVideo) => {
+    const parts = videoParts(video.title);
+    if (!structured) return video.title;
+    return parts.rest && parts.rest !== "Worked example" ? parts.rest : parts.name;
+  };
+  const currentParts = current ? videoParts(current.title) : null;
+
+  // Consecutive videos that share a subtopic make one group in the outline.
+  const groups: Array<{ key: string; num: string | null; name: string; items: Array<{ video: WatchVideo; at: number }> }> = [];
+  videos.forEach((video, at) => {
+    const parts = videoParts(video.title);
+    const key = structured ? parts.sub : "all";
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) last.items.push({ video, at });
+    else groups.push({ key, num: structured ? parts.num : null, name: structured ? parts.name : "", items: [{ video, at }] });
+  });
+  const currentKey = structured && currentParts ? currentParts.sub : "all";
+
   return (
-    <WatchLayout
-      stage={
-        <>
-          {featuredState?.status === "error" ? (
+    <div ref={topRef} className="scroll-mt-4">
+      <div role="tablist" aria-label="Playlists" className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <button
+          type="button"
+          onClick={() => setOpenId(null)}
+          aria-label="All playlists"
+          title="All playlists"
+          className="flex min-h-[60px] w-11 shrink-0 items-center justify-center rounded-xl bg-[#1A1814]/[0.12] text-[#1A1814] transition hover:bg-[#1A1814]/[0.2]"
+        >
+          <LayoutGrid className="h-5 w-5" />
+        </button>
+        {playlists.map((playlist) => {
+          const on = playlist.id === open.id;
+          const parts = chapterParts(playlist.courseTitle);
+          return (
+            <button
+              key={playlist.id}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              disabled={playlist.available === false}
+              onClick={() => openPlaylist(playlist.id)}
+              className={`flex min-h-[62px] min-w-[112px] flex-1 flex-col gap-[3px] overflow-hidden rounded-xl pb-2 text-left transition disabled:opacity-40 ${on ? "bg-[#1A1814] text-[#F6EFDC]" : "bg-[#1A1814]/10 text-[#1A1814] hover:bg-[#1A1814]/[0.16]"}`}
+            >
+              <span aria-hidden="true" className="mb-1 block h-[5px] w-full shrink-0" style={{ background: colorOf(playlist) }} />
+              <span className={`px-2.5 text-[17px] font-black leading-none ${on ? "text-[#E9BC3A]" : "text-[#1A1814]/55"}`}>{parts.num ?? "▶"}</span>
+              <span className="line-clamp-2 px-2.5 text-[11px] font-extrabold leading-tight">{parts.num ? parts.name : playlist.courseTitle}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-start">
+        <section ref={playerRef} aria-label="Player" className="min-w-0 flex-1 scroll-mt-4 rounded-[22px] bg-[#1A1814] p-3.5 text-[#F6EFDC] shadow-[0_2px_14px_rgba(0,0,0,0.22)]">
+          {openState?.status === "error" ? (
             <div className="flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-[14px] border border-[#3A3428] bg-[#221F19] p-6 text-center">
-              <p className="text-[14px] text-[#F6EFDC]/75">{featuredState.message}</p>
+              <p className="text-[14px] text-[#F6EFDC]/75">{openState.message}</p>
               <a href={youtubeLink} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center gap-2 rounded-full bg-[#8F6500] px-5 text-[14px] font-extrabold text-[#F6EFDC]">
                 Open on YouTube <ArrowUpRight className="h-4 w-4" />
               </a>
             </div>
           ) : (
-            <Stage
-              videoId={currentVideo?.videoId}
-              title={currentVideo?.title ?? featured.courseTitle}
-              autoplay={started && Boolean(open)}
-              onStart={() => openPlaylist(featured.id)}
-            />
+            <Stage videoId={current?.videoId} title={current?.title ?? open.courseTitle} autoplay={started} onStart={() => setStarted(true)} />
           )}
           <div className="px-1.5 pb-1 pt-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#E9BC3A]">
-              <TopicTag topic={topicOf(featured, topics)} />
-              Playlist{channel ? ` · ${channel}` : ""}
-              {open && featuredVideos.length ? ` · ${index + 1} of ${featuredVideos.length}` : ""}
+            <p className="text-[12px] font-extrabold text-[#E9BC3A]">
+              {openTitle.num ? `Chapter ${openTitle.num}` : open.courseTitle}
+              {structured && currentParts ? ` · ${currentParts.sub}` : ""}
             </p>
-            <h2 className="mt-1.5 text-[22px] font-black leading-tight">{open && currentVideo ? currentVideo.title : featured.courseTitle}</h2>
-            {open && currentVideo && "channel" in currentVideo && currentVideo.channel ? (
-              <p className="mt-1 text-[13px] font-semibold text-[#F6EFDC]/60">Video by {currentVideo.channel}</p>
-            ) : null}
-            {!open && featured.description ? <p className="mt-1.5 line-clamp-3 text-[14px] leading-relaxed text-[#F6EFDC]/72">{featured.description}</p> : null}
-            <div className="mt-4 flex flex-wrap gap-2.5">
-              {open ? (
-                featuredVideos.length > 1 ? (
-                  <button type="button" onClick={() => setIndex((i) => (i + 1) % featuredVideos.length)} className="inline-flex h-10 items-center gap-2 rounded-full bg-[#8F6500] px-5 text-[13px] font-extrabold text-[#F6EFDC] transition hover:brightness-110">
-                    Next video <SkipForward className="h-4 w-4" />
-                  </button>
-                ) : null
-              ) : (
-                <button type="button" onClick={() => openPlaylist(featured.id)} disabled={featuredVideos.length === 0} className="inline-flex h-10 items-center gap-2 rounded-full bg-[#8F6500] px-5 text-[13px] font-extrabold text-[#F6EFDC] transition hover:brightness-110 disabled:opacity-50">
-                  Play playlist <Play className="h-4 w-4" fill="currentColor" />
-                </button>
-              )}
-              <SaveButton saved={bookmarks.includes(featured.id)} onClick={() => toggleBookmark(featured.id)} label={featured.courseTitle} />
+            <h2 className="mt-1.5 text-[22px] font-black leading-tight">{current ? label(current) : open.courseTitle}</h2>
+            <div className="mt-2 flex flex-wrap items-center gap-2.5">
+              <KindTag kind={current?.kind} long />
+              <span className="text-[14px] text-[#F6EFDC]/68">
+                {current?.channel || openChannel ? `Video by ${current?.channel || openChannel}` : ""}
+                {current?.minutes ? ` · ${current.minutes} min` : ""}
+                {videos.length ? ` · ${index + 1} of ${videos.length}` : ""}
+              </span>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center gap-2.5">
+              <button type="button" onClick={() => step(-1)} disabled={videos.length < 2} className="inline-flex h-10 items-center gap-2 rounded-full border-[1.5px] border-[#5A4F3A] px-4 text-[13px] font-extrabold transition hover:bg-[#F6EFDC]/5 disabled:opacity-40">
+                ← Previous
+              </button>
+              <button type="button" onClick={() => step(1)} disabled={videos.length < 2} className="inline-flex h-10 items-center gap-2 rounded-full bg-[#8F6500] px-5 text-[13px] font-extrabold text-[#F6EFDC] transition hover:brightness-110 disabled:opacity-40">
+                Next video <SkipForward className="h-4 w-4" />
+              </button>
+              <SaveButton saved={bookmarks.includes(open.id)} onClick={() => toggleBookmark(open.id)} label={open.courseTitle} />
               <a href={youtubeLink} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold text-[#E9BC3A] hover:underline">
                 On YouTube <ArrowUpRight className="h-4 w-4" />
               </a>
             </div>
+            {nextAt >= 0 ? (
+              <div className="mt-4 flex items-baseline gap-2.5 border-t border-[#3A3428] pt-3.5">
+                <span className="shrink-0 text-[11px] font-black tracking-[0.12em] text-[#F6EFDC]/50">UP NEXT</span>
+                <span className="truncate text-[13px] font-bold text-[#F6EFDC]/85">
+                  {structured
+                    ? label(videos[nextAt]) === videoParts(videos[nextAt].title).name
+                      ? videoParts(videos[nextAt].title).sub
+                      : `${videoParts(videos[nextAt].title).sub} · ${label(videos[nextAt])}`
+                    : label(videos[nextAt])}
+                  {videos[nextAt].channel ? ` — ${videos[nextAt].channel}` : ""}
+                </span>
+              </div>
+            ) : null}
           </div>
-        </>
-      }
-      list={
-        open ? (
-          <>
-            <button type="button" onClick={() => { setOpenId(null); setStarted(false); }} className="min-h-[40px] px-1.5 text-[12px] font-extrabold text-[#E9BC3A]">
-              ← All playlists
-            </button>
-            <div className="mx-1.5 mb-2 border-b border-[#3A3428] pb-3">
-              <p className="text-[16px] font-black leading-tight">{open.courseTitle}</p>
-              <p className="mt-1 text-[12px] text-[#F6EFDC]/60">
-                {channel ? `${channel} · ` : ""}
-                {featuredVideos.length} videos
-              </p>
-              {featuredState?.status === "ready" && featuredState.data.source === "feed" ? (
-                <p className="mt-1 text-[11px] text-[#F6EFDC]/45">Showing the newest {featuredVideos.length}. The full list is on YouTube.</p>
-              ) : null}
-            </div>
-            {featuredVideos.map((video, i) => (
-              <ListRow key={video.videoId} index={i} active={i === index} videoId={video.videoId} title={video.title} sub={"channel" in video && video.channel ? video.channel : undefined} onClick={() => { setIndex(i); setStarted(true); }} />
-            ))}
-          </>
-        ) : (
-          <>
-            <p className="px-1.5 pb-2 pt-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#F6EFDC]/55">Playlists · {playlists.length}</p>
-            {groups.map((group) => (
-              <div key={group.topic?.id ?? NO_TOPIC}>
-                <ListTopicHeading group={group} show={topics.length > 0} />
-                {group.items.map((playlist) => {
-              const state = loaded[playlist.id];
-              const videosHere = visibleVideos(playlist);
-              const off = playlist.available === false;
-              const providerHere = playlist.provider?.replace(/\s*-\s*YouTube$/i, "") ?? "";
-              const sub = state?.status === "ready" ? state.data.channel || providerHere : providerHere;
-              return (
-                <button
-                  key={playlist.id}
-                  type="button"
-                  disabled={off}
-                  onClick={() => openPlaylist(playlist.id)}
-                  style={topics.length > 0 ? { borderLeft: `3px solid ${group.topic?.color ?? "#5A4F3A"}` } : undefined}
-                  className={`flex w-full items-center gap-3 rounded-xl px-1.5 py-2.5 text-left transition hover:bg-[#F6EFDC]/[0.05] ${off ? "cursor-not-allowed opacity-50" : ""}`}
-                >
-                  <span className="relative w-[124px] shrink-0 pt-1.5">
-                    <span className="absolute inset-x-2.5 top-0 h-3 rounded-t-md bg-[#3A3428]" />
-                    <span className="relative block aspect-video overflow-hidden rounded-lg bg-[#2B261D]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {videosHere[0] ? <img src={thumb(videosHere[0].videoId)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" /> : null}
-                      <span className="absolute inset-y-0 right-0 flex w-[46px] flex-col items-center justify-center gap-0.5 bg-black/75 text-[11px] font-extrabold text-[#F6EFDC]">
-                        <ListVideo className="h-4 w-4" />
-                        {state?.status === "ready" ? videosHere.length : "…"}
-                      </span>
-                    </span>
-                  </span>
-                  <span className="min-w-0">
-                    <span className="line-clamp-2 block text-[13px] font-extrabold leading-tight text-[#F6EFDC]">{playlist.courseTitle}</span>
-                    <span className="mt-1 block text-[11px] text-[#F6EFDC]/55">{off ? "Not available at the moment" : sub}</span>
-                    {!off ? <span className="mt-1 block text-[11px] font-extrabold text-[#E9BC3A]">View full playlist</span> : null}
-                  </span>
-                </button>
-              );
+        </section>
+
+        <aside aria-label="Playlist outline" className="flex w-full shrink-0 flex-col overflow-hidden rounded-[22px] bg-[#1A1814] text-[#F6EFDC] shadow-[0_2px_14px_rgba(0,0,0,0.22)] lg:max-h-[720px] lg:w-[400px]">
+          <div className="border-b border-[#3A3428] px-4 pb-3 pt-4">
+            <p className="text-[11px] font-black tracking-[0.12em] text-[#E9BC3A]">{openTitle.num ? `CHAPTER ${openTitle.num}` : "PLAYLIST"}</p>
+            <p className="mt-1 text-[19px] font-black leading-tight">{openTitle.name}</p>
+            <p className="mt-1 text-[12px] text-[#F6EFDC]/60">
+              {videos.length} videos{totalMinutes ? ` · ${hoursAndMinutes(totalMinutes)}` : ""}
+              {hasKinds ? ` · ${workedCount} worked examples` : openChannel ? ` · ${openChannel}` : ""}
+            </p>
+            {openState?.status === "ready" && openState.data.source === "feed" ? (
+              <p className="mt-1 text-[11px] text-[#F6EFDC]/45">Showing the newest {videos.length}. The full list is on YouTube.</p>
+            ) : null}
+            {hasKinds ? (
+              <div role="group" aria-label="Show" className="mt-3 grid grid-cols-3 gap-1 rounded-[10px] bg-[#26231C] p-1">
+                {(
+                  [
+                    ["all", "All"],
+                    ["lesson", "Lessons"],
+                    ["worked", "Worked examples"],
+                  ] as const
+                ).map(([key, text]) => {
+                  const on = filter === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => setFilter(key)}
+                      style={on && key !== "all" ? { background: key === "worked" ? WORKED_BLUE : LESSON_RED } : undefined}
+                      className={`h-8 rounded-[7px] text-[12px] font-extrabold transition ${on ? (key === "all" ? "bg-[#F6EFDC] text-[#1A1814]" : "text-white") : "text-[#F6EFDC]/70 hover:text-[#F6EFDC]"}`}
+                    >
+                      {text}
+                    </button>
+                  );
                 })}
               </div>
-            ))}
-          </>
-        )
-      }
-    />
+            ) : null}
+          </div>
+          <div className="flex-1 overflow-y-auto px-2 pb-3 pt-1.5 [scrollbar-color:#3A3428_transparent] [scrollbar-width:thin]">
+            {openState?.status === "loading" ? <p className="px-2 py-4 text-[13px] text-[#F6EFDC]/60">Loading the playlist…</p> : null}
+            {groups.map((group) => {
+              const rows = group.items.filter(({ video }) => matches(video));
+              if (!rows.length) return null;
+              const isOpen = !structured || (expanded[group.key] ?? group.key === currentKey);
+              const here = group.key === currentKey;
+              return (
+                <div key={group.key + group.items[0].at} className={structured ? "border-b border-[#2E2A22]" : ""}>
+                  {structured ? (
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      onClick={() => setExpanded((prev) => ({ ...prev, [group.key]: !isOpen }))}
+                      className="flex min-h-[44px] w-full items-center gap-2.5 px-1.5 py-2.5 text-left"
+                    >
+                      {group.num ? (
+                        <span className={`shrink-0 rounded-md px-1.5 py-[3px] text-[11px] font-black ${here ? "bg-[#E9BC3A] text-[#1A1814]" : "bg-[#3A3428] text-[#F6EFDC]/85"}`}>{group.num}</span>
+                      ) : null}
+                      <span className="min-w-0 flex-1 text-[14px] font-extrabold leading-tight">{group.name}</span>
+                      <span className="shrink-0 text-[11px] font-bold text-[#F6EFDC]/50">{rows.length}</span>
+                      <span aria-hidden="true" className="w-3 text-[12px] text-[#F6EFDC]/50">{isOpen ? "▾" : "▸"}</span>
+                    </button>
+                  ) : null}
+                  {isOpen ? (
+                    <div className="pb-2">
+                      {rows.map(({ video, at }) => {
+                        const on = at === index;
+                        return (
+                          <button
+                            key={`${video.videoId}-${at}`}
+                            type="button"
+                            aria-current={on ? "true" : undefined}
+                            onClick={() => {
+                              setIndex(at);
+                              setStarted(true);
+                              // On a phone the list sits under the player: bring the player back into view.
+                              if (window.innerWidth < 1024) playerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                            }}
+                            className={`flex w-full items-center gap-2.5 rounded-[10px] py-1.5 pl-2 pr-1.5 text-left transition ${on ? "bg-[#E9BC3A]/[0.14]" : "hover:bg-[#F6EFDC]/[0.05]"}`}
+                          >
+                            <span className={`w-5 shrink-0 text-right text-[11px] font-extrabold ${on ? "text-[#E9BC3A]" : "text-[#F6EFDC]/40"}`}>{on ? "▶" : at + 1}</span>
+                            <span className="relative aspect-video w-[80px] shrink-0 overflow-hidden rounded-md bg-[#2B261D]">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={thumb(video.videoId)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="line-clamp-2 block text-[13px] font-extrabold leading-tight">{label(video)}</span>
+                              <span className="mt-0.5 block truncate text-[11px] text-[#F6EFDC]/55">
+                                {video.channel ?? openChannel}
+                                {video.minutes ? ` · ${video.minutes} min` : ""}
+                              </span>
+                            </span>
+                            <KindTag kind={video.kind} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </aside>
+      </div>
+    </div>
   );
 }
 

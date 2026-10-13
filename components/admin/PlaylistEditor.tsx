@@ -8,7 +8,7 @@ import { buildYouTubeVideoListUrl, parseYouTubePlaylistId, type PlaylistDetails 
 export interface PlaylistEdit {
   courseTitle: string;
   hiddenVideos: string[];
-  extraVideos: Array<{ videoId: string; title: string; channel?: string }>;
+  extraVideos: Array<{ videoId: string; title: string; channel?: string; kind?: "lesson" | "worked"; minutes?: number }>;
   /** For a playlist built by hand: its "open on YouTube" link, rebuilt from its videos. */
   url?: string;
 }
@@ -38,7 +38,7 @@ export function PlaylistEditor({
 }) {
   const [name, setName] = useState(material.courseTitle);
   const [hidden, setHidden] = useState<Set<string>>(new Set(material.hiddenVideos ?? []));
-  const [extras, setExtras] = useState<Array<{ videoId: string; title: string; channel?: string }>>(material.extraVideos ?? []);
+  const [extras, setExtras] = useState<Array<{ videoId: string; title: string; channel?: string; kind?: "lesson" | "worked"; minutes?: number }>>(material.extraVideos ?? []);
   const [playlist, setPlaylist] = useState<PlaylistDetails | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [addLink, setAddLink] = useState("");
@@ -163,9 +163,24 @@ export function PlaylistEditor({
                   aria-label={`Name of video ${index + 1}`}
                   className="min-h-[38px] w-full rounded-lg border border-[#5A4F3A] bg-[#1A1814] px-2.5 text-[14px] text-[#F6EFDC]"
                 />
-                <span className="text-[12px] text-[#8F8671]">
-                  {video.channel ? `${video.channel} · ` : ""}
-                  {playlist.source === "custom" ? "name it after what it covers" : "added by you"}
+                <span className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={video.kind ?? ""}
+                    onChange={(event) => {
+                      const kind = event.target.value === "lesson" || event.target.value === "worked" ? event.target.value : undefined;
+                      setExtras((current) => current.map((item) => (item.videoId === video.videoId ? { ...item, kind } : item)));
+                    }}
+                    aria-label={`Type of video ${index + 1}`}
+                    className="min-h-[32px] rounded-lg border border-[#5A4F3A] bg-[#1A1814] px-2 text-[12px] font-semibold text-[#F6EFDC]"
+                  >
+                    <option value="">Not marked</option>
+                    <option value="lesson">Lesson</option>
+                    <option value="worked">Worked example</option>
+                  </select>
+                  <span className="text-[12px] text-[#8F8671]">
+                    {video.channel ? `${video.channel} · ` : ""}
+                    {playlist.source === "custom" ? "name it after what it covers" : "added by you"}
+                  </span>
                 </span>
               </span>
               <button

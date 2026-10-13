@@ -67,7 +67,7 @@ export type AdminCourseMaterialInput = Pick<CourseMaterialEntry, "departmentId" 
   parentId?: string | null;
   materialType?: CourseMaterialType | null;
   hiddenVideos?: string[];
-  extraVideos?: Array<{ videoId: string; title: string; channel?: string }>;
+  extraVideos?: Array<{ videoId: string; title: string; channel?: string; kind?: "lesson" | "worked"; minutes?: number }>;
   topics?: Array<{ id: string; name: string }>;
   topicId?: string | null;
 };
