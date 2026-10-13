@@ -125,3 +125,27 @@ export async function fetchYouTubePlaylist(playlistId: string): Promise<Playlist
   }
   return fetchFromFeed(playlistId);
 }
+
+/** Server only: one video's title, for adding a single video to a playlist (cached for an hour). */
+export async function fetchYouTubeVideoTitle(videoId: string): Promise<string> {
+  const key = process.env.YOUTUBE_API_KEY?.trim();
+  if (key) {
+    try {
+      const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${encodeURIComponent(videoId)}&key=${encodeURIComponent(key)}`, { next: { revalidate: REVALIDATE_SECONDS } });
+      if (response.ok) {
+        const body = (await response.json()) as { items?: Array<{ snippet?: { title?: string } }> };
+        const title = body.items?.[0]?.snippet?.title;
+        if (title) return title;
+        throw new Error("That video was not found. It may be private or deleted.");
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.startsWith("That video")) throw error;
+      console.warn("[Back2Basics with Kwamina] YouTube Data API failed for a video, falling back to oEmbed", error);
+    }
+  }
+  const watch = `https://www.youtube.com/watch?v=${videoId}`;
+  const response = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(watch)}&format=json`, { next: { revalidate: REVALIDATE_SECONDS } });
+  if (!response.ok) throw new Error("That video was not found. It may be private or deleted.");
+  const body = (await response.json()) as { title?: string };
+  return body.title ?? "Video";
+}

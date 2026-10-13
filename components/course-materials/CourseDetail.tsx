@@ -321,7 +321,13 @@ function PlaylistsPanel({ playlists, bookmarks, toggleBookmark }: { playlists: M
     const state = loaded[entry.id];
     if (state?.status !== "ready") return [];
     const hidden = new Set(entry.hiddenVideos ?? []);
-    return state.data.videos.filter((video) => !hidden.has(video.videoId));
+    const own = state.data.videos.filter((video) => !hidden.has(video.videoId));
+    const ownIds = new Set(own.map((video) => video.videoId));
+    // Videos the administrator added on top of the playlist play after its own.
+    const extras = (entry.extraVideos ?? [])
+      .filter((video) => !ownIds.has(video.videoId))
+      .map((video, i) => ({ videoId: video.videoId, title: video.title, position: own.length + i }));
+    return [...own, ...extras];
   };
 
   const open = playlists.find((p) => p.id === openId) ?? null;

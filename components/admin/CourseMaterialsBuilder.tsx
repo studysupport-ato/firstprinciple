@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { AvailabilityToggle } from "@/components/admin/AvailabilityToggle";
+import { PlaylistEditor, type PlaylistEdit } from "@/components/admin/PlaylistEditor";
 import { PlaylistImporter, type PlaylistImport } from "@/components/admin/PlaylistImporter";
 import {
   createCourseMaterialAction,
@@ -13,6 +14,7 @@ import type { CourseMaterialEntry } from "@/lib/content/adminContract";
 import type { CourseMaterialSemester, CourseMaterialType, CourseMaterialYear } from "@/lib/courseMaterials";
 import { linkHost } from "@/lib/courseMaterialsTree";
 import { parseYouTubeVideoId } from "@/lib/youtube";
+import { parseYouTubePlaylistId } from "@/lib/youtubePlaylist";
 
 const YEARS: Array<{ value: CourseMaterialYear; label: string }> = [
   { value: 1, label: "First year" },
@@ -58,6 +60,7 @@ export function CourseMaterialsBuilder({
   const [semester, setSemester] = useState<CourseMaterialSemester>(1);
   const [openCourseId, setOpenCourseId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [courseCode, setCourseCode] = useState("");
   const [courseTitle, setCourseTitle] = useState("");
@@ -167,6 +170,14 @@ export function CourseMaterialsBuilder({
         setMaterialUrl("");
       },
     );
+  }
+
+  function isPlaylist(entry: CourseMaterialEntry) {
+    return entry.materialType === "playlist" || (!entry.materialType && Boolean(parseYouTubePlaylistId(entry.url)) && !parseYouTubeVideoId(entry.url));
+  }
+
+  function savePlaylist(entry: CourseMaterialEntry, edit: PlaylistEdit) {
+    return run(() => updateCourseMaterialAction(entry.id, { ...edit, materialType: "playlist" }), "Playlist updated.");
   }
 
   function importPlaylist(playlist: PlaylistImport) {
@@ -327,10 +338,18 @@ export function CourseMaterialsBuilder({
                 <div key={material.id} className="flex flex-wrap items-center gap-3 border-t border-[#3A3428] py-3.5">
                   <span className={`min-w-[104px] rounded-full px-3 py-1.5 text-center text-[13px] font-extrabold ${type?.chip ?? "bg-[#BFE3CF] text-[#0F3D2E]"}`}>{type?.label.replace(" (YouTube)", "") ?? "Link"}</span>
                   <span className="min-w-[200px] flex-1 text-lg font-semibold">{material.courseTitle}</span>
+                  {isPlaylist(material) ? (
+                    <button type="button" disabled={busy} onClick={() => setEditingId(editingId === material.id ? null : material.id)} className="min-h-[44px] rounded-full border border-[#E9BC3A]/60 px-4 text-sm font-semibold text-[#E9BC3A] transition hover:bg-[#E9BC3A]/10" aria-expanded={editingId === material.id}>
+                      {editingId === material.id ? "Close" : "Edit playlist"}
+                    </button>
+                  ) : null}
                   <AvailabilityToggle available={material.available !== false} disabled={busy} onChange={(next) => setAvailable(material, next)} label={material.courseTitle} />
                   <button type="button" disabled={busy} onClick={() => remove(material, "Material")} className={removeButton} aria-label={`Remove ${material.courseTitle}`}>
                     Remove
                   </button>
+                  {editingId === material.id ? (
+                    <PlaylistEditor material={material} busy={busy} onSave={(edit) => savePlaylist(material, edit)} onClose={() => setEditingId(null)} onError={onError} />
+                  ) : null}
                 </div>
               );
             })}

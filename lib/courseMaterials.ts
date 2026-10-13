@@ -41,6 +41,8 @@ export interface CourseMaterialEntry {
   materialType?: CourseMaterialType | null;
   /** For a playlist: YouTube video ids the administrator hid from students. */
   hiddenVideos?: string[];
+  /** For a playlist: extra YouTube videos the administrator added, shown after the playlist's own. */
+  extraVideos?: Array<{ videoId: string; title: string }>;
   description?: string;
   /** Empty for a course (a course has no link of its own). */
   url: string;

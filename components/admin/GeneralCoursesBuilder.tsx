@@ -3,11 +3,13 @@
 import { useMemo, useState } from "react";
 
 import { AvailabilityToggle } from "@/components/admin/AvailabilityToggle";
+import { PlaylistEditor, type PlaylistEdit } from "@/components/admin/PlaylistEditor";
 import { PlaylistImporter, type PlaylistImport } from "@/components/admin/PlaylistImporter";
 import { createCourseMaterialAction, deleteMaterialAction, updateCourseMaterialAction } from "@/lib/adminContentActions";
 import type { CourseMaterialEntry } from "@/lib/content/adminContract";
 import { GENERAL_DEPARTMENT_ID, type CourseMaterialType } from "@/lib/courseMaterials";
 import { parseYouTubeVideoId } from "@/lib/youtube";
+import { parseYouTubePlaylistId } from "@/lib/youtubePlaylist";
 
 const MATERIAL_TYPES: Array<{ value: CourseMaterialType; label: string; hint: string; chip: string }> = [
   { value: "pdf", label: "PDF", hint: "Link to the PDF", chip: "bg-[#F6C9C0] text-[#5A1A10]" },
@@ -43,6 +45,7 @@ export function GeneralCoursesBuilder({
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [title, setTitle] = useState("");
   const [materialType, setMaterialType] = useState<CourseMaterialType>("pdf");
@@ -84,6 +87,14 @@ export function GeneralCoursesBuilder({
         setTitle("");
       },
     );
+  }
+
+  function isPlaylist(entry: CourseMaterialEntry) {
+    return entry.materialType === "playlist" || (!entry.materialType && Boolean(parseYouTubePlaylistId(entry.url)) && !parseYouTubeVideoId(entry.url));
+  }
+
+  function savePlaylist(entry: CourseMaterialEntry, edit: PlaylistEdit) {
+    return run(() => updateCourseMaterialAction(entry.id, { ...edit, materialType: "playlist" }), "Playlist updated.");
   }
 
   function importPlaylist(playlist: PlaylistImport) {
@@ -168,10 +179,18 @@ export function GeneralCoursesBuilder({
             <div key={material.id} className={`flex flex-wrap items-center gap-3 border-t border-[#3A3428] py-3.5 ${material.available === false ? "opacity-70" : ""}`}>
               <span className={`min-w-[104px] rounded-full px-3 py-1.5 text-center text-[13px] font-extrabold ${type?.chip ?? "bg-[#BFE3CF] text-[#0F3D2E]"}`}>{type?.label.replace(" (YouTube)", "") ?? "Link"}</span>
               <span className="min-w-[200px] flex-1 text-lg font-semibold">{material.courseTitle}</span>
+              {isPlaylist(material) ? (
+                <button type="button" disabled={busy} onClick={() => setEditingId(editingId === material.id ? null : material.id)} className="min-h-[44px] rounded-full border border-[#E9BC3A]/60 px-4 text-sm font-semibold text-[#E9BC3A] transition hover:bg-[#E9BC3A]/10" aria-expanded={editingId === material.id}>
+                  {editingId === material.id ? "Close" : "Edit playlist"}
+                </button>
+              ) : null}
               <AvailabilityToggle available={material.available !== false} disabled={busy} onChange={(next) => setAvailable(material, next)} label={material.courseTitle} />
               <button type="button" disabled={busy} onClick={() => remove(material)} className={removeButton} aria-label={`Remove ${material.courseTitle}`}>
                 Remove
               </button>
+              {editingId === material.id ? (
+                <PlaylistEditor material={material} busy={busy} onSave={(edit) => savePlaylist(material, edit)} onClose={() => setEditingId(null)} onError={onError} />
+              ) : null}
             </div>
           );
         })}
