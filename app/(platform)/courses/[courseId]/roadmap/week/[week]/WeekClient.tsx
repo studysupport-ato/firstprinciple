@@ -13,6 +13,12 @@ import type { DayProgress } from "@/lib/progress";
 import type { Course, Week } from "@/lib/content/types/course";
 import type { Lesson } from "@/lib/content/types/lesson";
 
+/**
+ * TEMPORARY: true opens every lesson in a week for manual checking (no "Locked" lessons).
+ * Set back to false to restore the normal order (finish a lesson to unlock the next).
+ */
+const UNLOCK_ALL_LESSONS = true;
+
 export default function WeekClient({ course, week, days, preview = false }: { course: Course; week: Week; days: Lesson[]; preview?: boolean }) {
   const [dayProgress, setDayProgress] = useState<Record<string, DayProgress>>({});
   const { authenticated } = useAuthSession();
@@ -144,8 +150,8 @@ export default function WeekClient({ course, week, days, preview = false }: { co
                     // The lesson immediately following the active one
                     visualState = "next_up";
                   } else {
-                    // Strictly lock anything that comes after
-                    visualState = "locked";
+                    // Strictly lock anything that comes after (unless every lesson is temporarily open for checking)
+                    visualState = UNLOCK_ALL_LESSONS ? "next_up" : "locked";
                   }
                   
                   const previewQuery = preview ? "&preview=1" : "";
