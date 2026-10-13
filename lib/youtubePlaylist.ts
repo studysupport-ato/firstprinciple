@@ -11,6 +11,8 @@ export interface PlaylistVideo {
   videoId: string;
   title: string;
   position: number;
+  /** Set for videos added by hand, which can come from any channel. */
+  channel?: string;
 }
 
 export interface PlaylistDetails {
@@ -19,7 +21,7 @@ export interface PlaylistDetails {
   channel: string;
   videos: PlaylistVideo[];
   /** "api" = full playlist; "feed" = newest 15 only (no API key configured). */
-  source: "api" | "feed";
+  source: "api" | "feed" | "custom";
 }
 
 /** Accepts a playlist link (youtube.com/playlist?list=…, or a watch link that carries &list=…) or a bare playlist id. */
@@ -37,6 +39,11 @@ export function parseYouTubePlaylistId(value: string | undefined | null): string
   if (!(host === "youtube.com" || host.endsWith(".youtube.com") || host === "youtu.be")) return undefined;
   const list = url.searchParams.get("list") ?? "";
   return YOUTUBE_PLAYLIST_ID_PATTERN.test(list) ? list : undefined;
+}
+
+/** A playlist built by hand from single videos opens on YouTube as an unnamed list of up to 50 videos. */
+export function buildYouTubeVideoListUrl(videoIds: string[]) {
+  return `https://www.youtube.com/watch_videos?video_ids=${videoIds.slice(0, 50).join(",")}`;
 }
 
 export function buildYouTubePlaylistUrl(playlistId: string) {

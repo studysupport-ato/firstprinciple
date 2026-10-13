@@ -46,7 +46,7 @@ export interface CourseMaterialEntry {
   /** For a playlist: YouTube video ids the administrator hid from students. */
   hiddenVideos?: string[];
   /** For a playlist: extra YouTube videos the administrator added, shown after the playlist's own. */
-  extraVideos?: Array<{ videoId: string; title: string }>;
+  extraVideos?: Array<{ videoId: string; title: string; channel?: string }>;
   /** For a course: its topics, in the order students see them. */
   topics?: CourseMaterialTopic[];
   /** For a material: the topic it is grouped under (an id from its course's topics). */

@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 
 import type { CourseMaterialEntry } from "@/lib/content/adminContract";
-import { parseYouTubePlaylistId, type PlaylistDetails } from "@/lib/youtubePlaylist";
+import { buildYouTubeVideoListUrl, parseYouTubePlaylistId, type PlaylistDetails } from "@/lib/youtubePlaylist";
 
 export interface PlaylistEdit {
   courseTitle: string;
   hiddenVideos: string[];
-  extraVideos: Array<{ videoId: string; title: string }>;
+  extraVideos: Array<{ videoId: string; title: string; channel?: string }>;
+  /** For a playlist built by hand: its "open on YouTube" link, rebuilt from its videos. */
+  url?: string;
 }
 
 const inputClass =
@@ -36,7 +38,7 @@ export function PlaylistEditor({
 }) {
   const [name, setName] = useState(material.courseTitle);
   const [hidden, setHidden] = useState<Set<string>>(new Set(material.hiddenVideos ?? []));
-  const [extras, setExtras] = useState<Array<{ videoId: string; title: string }>>(material.extraVideos ?? []);
+  const [extras, setExtras] = useState<Array<{ videoId: string; title: string; channel?: string }>>(material.extraVideos ?? []);
   const [playlist, setPlaylist] = useState<PlaylistDetails | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [addLink, setAddLink] = useState("");
@@ -45,7 +47,8 @@ export function PlaylistEditor({
   useEffect(() => {
     const listId = parseYouTubePlaylistId(material.url);
     if (!listId) {
-      setLoadError("This playlist's link is not a valid YouTube playlist link.");
+      // Built by hand from single videos: its videos are all "added" ones.
+      setPlaylist({ playlistId: "", title: material.courseTitle, channel: "", videos: [], source: "custom" });
       return;
     }
     let cancelled = false;
@@ -103,7 +106,14 @@ export function PlaylistEditor({
     // Only keep hidden ids that still belong to the playlist, so the list never grows stale.
     const stillInPlaylist = playlist ? new Set(playlist.videos.map((video) => video.videoId)) : null;
     const hiddenVideos = [...hidden].filter((id) => !stillInPlaylist || stillInPlaylist.has(id));
-    const ok = await onSave({ courseTitle: name.trim(), hiddenVideos, extraVideos: extras });
+    const custom = playlist?.source === "custom";
+    if (custom && extras.length === 0) return onError("A playlist needs at least one video.");
+    const ok = await onSave({
+      courseTitle: name.trim(),
+      hiddenVideos,
+      extraVideos: extras.map((video) => ({ ...video, title: video.title.trim() || video.videoId })),
+      ...(custom ? { url: buildYouTubeVideoListUrl(extras.map((video) => video.videoId)) } : {}),
+    });
     if (ok) onClose();
   }
 
@@ -146,9 +156,17 @@ export function PlaylistEditor({
               <span className="w-6 text-right text-[13px] text-[#8F8671]">{playlist.videos.length + index + 1}</span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg`} alt="" loading="lazy" className="aspect-video w-[88px] shrink-0 rounded-md object-cover" />
-              <span className="flex-1 text-[15px]">
-                {video.title}
-                <span className="ml-2 rounded-full bg-[#E9BC3A]/15 px-2 py-0.5 text-[11px] font-bold text-[#E9BC3A]">Added by you</span>
+              <span className="flex min-w-0 flex-1 flex-col gap-1">
+                <input
+                  value={video.title}
+                  onChange={(event) => setExtras((current) => current.map((item) => (item.videoId === video.videoId ? { ...item, title: event.target.value } : item)))}
+                  aria-label={`Name of video ${index + 1}`}
+                  className="min-h-[38px] w-full rounded-lg border border-[#5A4F3A] bg-[#1A1814] px-2.5 text-[14px] text-[#F6EFDC]"
+                />
+                <span className="text-[12px] text-[#8F8671]">
+                  {video.channel ? `${video.channel} · ` : ""}
+                  {playlist.source === "custom" ? "name it after what it covers" : "added by you"}
+                </span>
               </span>
               <button
                 type="button"

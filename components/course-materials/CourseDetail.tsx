@@ -387,6 +387,11 @@ function usePlaylists(playlists: MaterialRow[]) {
     let cancelled = false;
     for (const playlist of playlists) {
       const listId = parseYouTubePlaylistId(playlist.url);
+      if (!listId && (playlist.extraVideos?.length ?? 0) > 0) {
+        // Built by hand from single videos: nothing to read from YouTube.
+        setState((prev) => ({ ...prev, [playlist.id]: { status: "ready", data: { playlistId: "", title: playlist.courseTitle, channel: "", videos: [], source: "custom" } } }));
+        continue;
+      }
       if (!listId) {
         setState((prev) => ({ ...prev, [playlist.id]: { status: "error", message: "This playlist link is not valid." } }));
         continue;
@@ -430,7 +435,7 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }:
     // Videos the administrator added on top of the playlist play after its own.
     const extras = (entry.extraVideos ?? [])
       .filter((video) => !ownIds.has(video.videoId))
-      .map((video, i) => ({ videoId: video.videoId, title: video.title, position: own.length + i }));
+      .map((video, i) => ({ videoId: video.videoId, title: video.title, position: own.length + i, channel: video.channel }));
     return [...own, ...extras];
   };
 
@@ -439,8 +444,10 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }:
   const featuredState = loaded[featured.id];
   const featuredVideos = visibleVideos(featured);
   const currentVideo = open ? featuredVideos[index] : featuredVideos[0];
-  const channel = featuredState?.status === "ready" ? featuredState.data.channel : featured.provider?.replace(/\s*-\s*YouTube$/i, "");
-  const youtubeLink = buildYouTubePlaylistUrl(parseYouTubePlaylistId(featured.url) ?? "");
+  const providerName = featured.provider?.replace(/\s*-\s*YouTube$/i, "");
+  const channel = featuredState?.status === "ready" ? featuredState.data.channel || providerName : providerName;
+  const featuredListId = parseYouTubePlaylistId(featured.url);
+  const youtubeLink = featuredListId ? buildYouTubePlaylistUrl(featuredListId) : featured.url;
 
   function openPlaylist(id: string) {
     setOpenId(id);
@@ -474,6 +481,9 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }:
               {open && featuredVideos.length ? ` · ${index + 1} of ${featuredVideos.length}` : ""}
             </p>
             <h2 className="mt-1.5 text-[22px] font-black leading-tight">{open && currentVideo ? currentVideo.title : featured.courseTitle}</h2>
+            {open && currentVideo && "channel" in currentVideo && currentVideo.channel ? (
+              <p className="mt-1 text-[13px] font-semibold text-[#F6EFDC]/60">Video by {currentVideo.channel}</p>
+            ) : null}
             {!open && featured.description ? <p className="mt-1.5 line-clamp-3 text-[14px] leading-relaxed text-[#F6EFDC]/72">{featured.description}</p> : null}
             <div className="mt-4 flex flex-wrap gap-2.5">
               {open ? (
@@ -512,7 +522,7 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }:
               ) : null}
             </div>
             {featuredVideos.map((video, i) => (
-              <ListRow key={video.videoId} index={i} active={i === index} videoId={video.videoId} title={video.title} onClick={() => { setIndex(i); setStarted(true); }} />
+              <ListRow key={video.videoId} index={i} active={i === index} videoId={video.videoId} title={video.title} sub={"channel" in video && video.channel ? video.channel : undefined} onClick={() => { setIndex(i); setStarted(true); }} />
             ))}
           </>
         ) : (
@@ -525,7 +535,8 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }:
               const state = loaded[playlist.id];
               const videosHere = visibleVideos(playlist);
               const off = playlist.available === false;
-              const sub = state?.status === "ready" ? (state.data.channel || "") : playlist.provider?.replace(/\s*-\s*YouTube$/i, "") ?? "";
+              const providerHere = playlist.provider?.replace(/\s*-\s*YouTube$/i, "") ?? "";
+              const sub = state?.status === "ready" ? state.data.channel || providerHere : providerHere;
               return (
                 <button
                   key={playlist.id}
