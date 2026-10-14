@@ -104,9 +104,15 @@ function visualizerColor(source: string): string | null {
   return null;
 }
 
-function isLightColor(hex: string) {
-  const full = hex.length === 4 ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}` : hex.slice(0, 7);
-  const [r, g, b] = [1, 3, 5].map((at) => parseInt(full.slice(at, at + 2), 16) / 255);
+function isLightColor(colour: string) {
+  let channels: number[];
+  const rgb = colour.match(/rgba?\(([^)]+)\)/);
+  if (rgb) channels = rgb[1].split(",").slice(0, 3).map((part) => Number(part.trim()) / 255);
+  else {
+    const full = colour.length === 4 ? `#${colour[1]}${colour[1]}${colour[2]}${colour[2]}${colour[3]}${colour[3]}` : colour.slice(0, 7);
+    channels = [1, 3, 5].map((at) => parseInt(full.slice(at, at + 2), 16) / 255);
+  }
+  const [r, g, b] = channels;
   return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.6;
 }
 
@@ -173,9 +179,23 @@ export function LessonExperience({
   const baseTheme = themeForStep(activeBlocks, darkMode, blueprint);
   // A visualizer with a page to itself: the whole page takes the visualizer's own background colour.
   const pageVisualizer = activeBlocks.length > 0 && activeBlocks.every((block) => block.type === "visualizer") ? activeBlocks[0] : null;
-  const pageColor = baseTheme === "blue" && pageVisualizer && pageVisualizer.type === "visualizer" ? visualizerColor(pageVisualizer.source) : null;
+  // The visualizer reports its colour as it changes (a board turns green for an analogy, purple to check);
+  // until it does, the colour is read from its source.
+  const [liveColor, setLiveColor] = useState<{ step: number; color: string } | null>(null);
+  useEffect(() => {
+    const onColor = (event: Event) => {
+      const color = (event as CustomEvent<string>).detail;
+      if (typeof color === "string") setLiveColor({ step: activeStep, color });
+    };
+    window.addEventListener("b2b-visualizer-color", onColor);
+    return () => window.removeEventListener("b2b-visualizer-color", onColor);
+  }, [activeStep]);
+  const pageColor =
+    baseTheme === "blue" && pageVisualizer && pageVisualizer.type === "visualizer"
+      ? (liveColor?.step === activeStep ? liveColor.color : null) ?? visualizerColor(pageVisualizer.source)
+      : null;
   const theme: LessonTheme = pageColor && isLightColor(pageColor) ? "paper" : baseTheme;
-  const pageBackground = pageColor ? { ...THEME_BACKGROUNDS[theme], backgroundColor: pageColor } : THEME_BACKGROUNDS[theme];
+  const pageBackground = pageColor ? { ...THEME_BACKGROUNDS[theme], backgroundColor: pageColor, transition: "background-color 0.6s ease" } : THEME_BACKGROUNDS[theme];
   const stepTitles = useMemo(
     () =>
       uniqueSteps.map((step, index) => {

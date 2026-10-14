@@ -54,6 +54,32 @@ const CHECK_GREEN_STYLE = `<style>
 #ck .btn.ghost { color: #fff !important; }
 </style>`;
 
+// Tells the lesson page the colour the visualizer is painted with right now, so a page that is
+// only this visualizer can match it (boards change colour as they move between modes).
+const COLOR_REPORTER = `<script>
+(function () {
+  function painted() {
+    var first = document.getElementById('first-principles-visualizer-error');
+    var candidates = [document.getElementById('lb'), document.getElementById('ck'), document.querySelector('[data-b2b-board]'), document.querySelector('.v'), first ? first.nextElementSibling : null, document.body];
+    for (var i = 0; i < candidates.length; i++) {
+      var el = candidates[i];
+      if (!el || el === first) continue;
+      var colour = getComputedStyle(el).backgroundColor;
+      if (colour && colour !== 'transparent' && colour !== 'rgba(0, 0, 0, 0)') return colour;
+    }
+    return null;
+  }
+  var last = null, timer = null;
+  function report() { var colour = painted(); if (colour && colour !== last) { last = colour; window.parent.postMessage({ source: 'b2b-board-color', color: colour }, '*'); } }
+  function soon() { clearTimeout(timer); timer = setTimeout(report, 60); }
+  window.addEventListener('load', function () {
+    report();
+    new MutationObserver(soon).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['data-mode', 'class', 'style', 'data-theme'] });
+    document.addEventListener('transitionend', soon, true);
+  });
+})();
+</script>`;
+
 function buildSourceDocument(source: string, blueprint = false) {
   const mobileBoardStyles = isBoardSource(source)
     ? `<style>
@@ -388,6 +414,7 @@ window.addEventListener('error', function () {
 ${source}
 ${mobileBoardStyles}
 ${blueprint ? (source.includes("data-b2b-check") ? CHECK_GREEN_STYLE : BLUEPRINT_STYLE) : ""}
+${COLOR_REPORTER}
 </body>
 </html>`;
 }
@@ -441,6 +468,12 @@ export function VisualizerBlock({
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return;
+        if (event.data?.source === "b2b-board-color") {
+          if (typeof event.data.color === "string" && /^rgba?\([\d.,\s]+\)$/.test(event.data.color)) {
+            window.dispatchEvent(new CustomEvent("b2b-visualizer-color", { detail: event.data.color }));
+          }
+          return;
+        }
         if (event.data?.source === "b2b-board-layout") {
           if (!fill || !isBoardSource(source)) return;
           const reportedHeight = event.data.height;
