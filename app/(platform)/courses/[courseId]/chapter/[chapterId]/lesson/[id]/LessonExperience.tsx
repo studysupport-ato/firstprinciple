@@ -217,6 +217,8 @@ export function LessonExperience({
   const hasVisualizerFit = activeBlocks.some((block) => block.type === "visualizer" && !isCanvasSource(block.source) && (blueprint || block.fit));
   // A page that is only a visualizer runs edge to edge, with no padding or card around it.
   const visualizerPage = hasVisualizerFit && !hasSidePane && activeBlocks.every((block) => block.type === "visualizer");
+  // A visualizer in the right-hand card: the text column keeps most of the width.
+  const hasSideVisualizer = activeBlocks.some((block) => block.type === "visualizer" && block.pane === "side");
 
   const [sideSlot, setSideSlot] = useState<HTMLElement | null>(null);
   const [quizDone, setQuizDone] = useState<Record<string, boolean>>({});
@@ -391,10 +393,10 @@ export function LessonExperience({
             <div className={`flex min-h-0 flex-1 flex-col ${visualizerPage ? "gap-0 overflow-hidden p-0" : "gap-4 overflow-y-auto overscroll-contain touch-pan-y px-4 pb-20 pt-4 md:px-10 md:py-8 lg:flex-row lg:gap-8 lg:overflow-hidden lg:px-14 lg:py-8"}`}>
               <div
                 className={`min-w-0 shrink-0 lg:min-h-0 lg:shrink lg:overflow-y-auto lg:overscroll-contain ${
-                  hasSidePane ? (hasVisualizerFit ? "lg:flex-[3]" : "lg:flex-[11]") : "flex-1"
+                  hasSidePane ? (hasSideVisualizer ? "lg:flex-[5]" : hasVisualizerFit ? "lg:flex-[3]" : "lg:flex-[11]") : "flex-1"
                 }`}
               >
-                <div className={`lesson-guided-content mr-auto ${hasVisualizerFit || blueprint ? "max-w-none w-full" : "max-w-[680px]"}`}>
+                <div className={`lesson-guided-content mr-auto ${hasVisualizerFit || hasSideVisualizer || blueprint ? "max-w-none w-full" : "max-w-[680px]"}`}>
                   <LessonRenderer
                     lesson={lesson}
                     step={activeStep}
@@ -418,7 +420,7 @@ export function LessonExperience({
                 <aside
                   aria-label="Notes"
                   className={`lesson-side-card lesson-guided-content min-w-0 shrink-0 rounded-2xl border p-5 lg:min-h-0 lg:shrink lg:overflow-y-auto lg:overscroll-contain ${
-                    hasVisualizerFit ? "lg:flex-[2]" : "lg:flex-[9]"
+                    hasSideVisualizer ? "lg:flex-[3]" : hasVisualizerFit ? "lg:flex-[2]" : "lg:flex-[9]"
                   }`}
                 >
                   <div ref={setSideSlot} className="flex flex-col gap-3" />
