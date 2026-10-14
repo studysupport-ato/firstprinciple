@@ -76,7 +76,7 @@ const THEME_BACKGROUNDS: Record<LessonTheme, { backgroundColor: string; backgrou
 // Videos and questions sit on the wine print, visualizers on the blue grid,
 // everything else on the dotted paper (which can switch to dark mode).
 // The blue-print look for visualizers is switched on week by week as lessons are redone.
-const BLUEPRINT_WEEKS = ["math151-week-1"];
+const BLUEPRINT_WEEKS = ["math151-week-1", "math151-week-2", "math151-week-3"];
 
 function themeForStep(blocks: ContentBlock[], dark: boolean, blueprint: boolean): LessonTheme {
   const quiz = blocks.find((block) => block.type === "quiz");
