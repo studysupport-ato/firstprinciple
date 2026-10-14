@@ -81,11 +81,33 @@ const BLUEPRINT_WEEKS = ["math151-week-1"];
 function themeForStep(blocks: ContentBlock[], dark: boolean, blueprint: boolean): LessonTheme {
   const quiz = blocks.find((block) => block.type === "quiz");
   if (quiz && quiz.type === "quiz") return quiz.variant === "end" ? "green" : "purple";
-  if (blocks.some((block) => block.type === "visualizer" && block.source.includes("data-b2b-check"))) return "green";
   if (blocks.some((block) => block.type === "question")) return "purple";
   if (blocks.some((block) => block.type === "video")) return "wine";
-  if (blocks.some((block) => block.type === "visualizer" && (blueprint || block.fit || !isBoardSource(block.source)))) return "blue";
+  // A visualizer only colours the page when it has the page to itself (see visualizerBackground).
+  // Next to other blocks it keeps its own colours inside its frame, on the normal lesson page.
+  const onlyVisualizers = blocks.length > 0 && blocks.every((block) => block.type === "visualizer");
+  if (onlyVisualizers && blocks.some((block) => block.type === "visualizer" && (block.source.includes("data-b2b-check") || blueprint || block.fit || !isBoardSource(block.source)))) return "blue";
   return dark ? "dark" : "paper";
+}
+
+/** The background colour a visualizer paints itself with, read from its source. */
+function visualizerColor(source: string): string | null {
+  const patterns = [
+    /--board\s*:\s*(#[0-9a-f]{3,8})\b/i,
+    /#[\w-]+\s*\{[^}]*?\bbackground(?:-color)?\s*:\s*(#[0-9a-f]{3,8})\b/i,
+    /\bbackground(?:-color)?\s*:\s*(#[0-9a-f]{3,8})\b/i,
+  ];
+  for (const pattern of patterns) {
+    const match = source.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+function isLightColor(hex: string) {
+  const full = hex.length === 4 ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}` : hex.slice(0, 7);
+  const [r, g, b] = [1, 3, 5].map((at) => parseInt(full.slice(at, at + 2), 16) / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.6;
 }
 
 function plainHeading(text: string) {
@@ -148,7 +170,12 @@ export function LessonExperience({
   );
 
   const blueprint = BLUEPRINT_WEEKS.includes(lesson.weekId);
-  const theme = themeForStep(activeBlocks, darkMode, blueprint);
+  const baseTheme = themeForStep(activeBlocks, darkMode, blueprint);
+  // A visualizer with a page to itself: the whole page takes the visualizer's own background colour.
+  const pageVisualizer = activeBlocks.length > 0 && activeBlocks.every((block) => block.type === "visualizer") ? activeBlocks[0] : null;
+  const pageColor = baseTheme === "blue" && pageVisualizer && pageVisualizer.type === "visualizer" ? visualizerColor(pageVisualizer.source) : null;
+  const theme: LessonTheme = pageColor && isLightColor(pageColor) ? "paper" : baseTheme;
+  const pageBackground = pageColor ? { ...THEME_BACKGROUNDS[theme], backgroundColor: pageColor } : THEME_BACKGROUNDS[theme];
   const stepTitles = useMemo(
     () =>
       uniqueSteps.map((step, index) => {
@@ -327,7 +354,7 @@ export function LessonExperience({
             aria-label={`Lesson step ${currentStep + 1}`}
             data-lesson-theme={theme}
             className={`lesson-themed ${blueprint ? "lesson-blueprint" : ""} relative ${boardFullscreen ? "z-[60]" : "z-10"} flex min-h-0 flex-col ${hasGeoSide ? "w-full lg:w-[45%]" : "w-full"}`}
-            style={THEME_BACKGROUNDS[theme]}
+            style={pageBackground}
           >
             <div
               aria-label={`Lesson progress: step ${currentStep + 1} of ${totalSteps}`}
