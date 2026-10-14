@@ -109,7 +109,34 @@ const COLOR_REPORTER = `<script>
 })();
 </script>`;
 
-function buildSourceDocument(source: string, blueprint = false) {
+// Picture-only boards (a board in the right-hand card): the lesson text carries the words,
+// so only the board's picture and its own Back / Play / Next controls are shown.
+const PICTURE_ONLY_STYLE = `<style>
+html.b2b-board-picture #lb { grid-template-rows: minmax(0, 1fr) !important; background-color: #12335A !important; }
+html.b2b-board-picture #lb > .lb-topic,
+html.b2b-board-picture #lb > .b4,
+html.b2b-board-picture #lb > .lb-prog,
+html.b2b-board-picture #lb > .lb-tools,
+html.b2b-board-picture #lb > .lb-ctl,
+html.b2b-board-picture #lb .lb-main > #lb-vp,
+html.b2b-board-picture #lb .lb-main > #lb-cap,
+html.b2b-board-picture #lb .lb-pcap,
+html.b2b-board-picture #lb .lb-pz { display: none !important; }
+html.b2b-board-picture #lb .lb-main,
+html.b2b-board-picture #lb .lb-main.lb-side {
+  display: flex !important; flex-direction: column !important; align-items: stretch !important; justify-content: center !important;
+  padding: 14px !important; overflow: hidden !important; min-height: 0 !important; grid-template-columns: none !important; grid-template-rows: none !important;
+}
+html.b2b-board-picture #lb .lb-main > #lb-pic {
+  display: flex !important; flex-direction: column !important; gap: 10px !important; width: 100% !important; max-width: none !important;
+  margin: 0 !important; min-height: 0 !important; flex: 1 1 auto !important;
+}
+html.b2b-board-picture #lb .lb-main > #lb-pic svg { width: 100% !important; height: auto !important; max-height: calc(100vh - 120px) !important; flex: 1 1 auto; }
+html.b2b-board-picture #lb .lb-main > #lb-pic .lb-pbar { justify-content: center !important; margin: 0 !important; }
+</style>
+<script>document.documentElement.classList.add('b2b-board-picture');</script>`;
+
+function buildSourceDocument(source: string, blueprint = false, pictureOnly = false) {
   const mobileBoardStyles = isBoardSource(source)
     ? `<style>
 @media (max-width: 767px) {
@@ -443,6 +470,7 @@ window.addEventListener('error', function () {
 ${source}
 ${mobileBoardStyles}
 ${isCanvasSource(source) ? CANVAS_SCRIPT : ""}
+${pictureOnly && isBoardSource(source) ? PICTURE_ONLY_STYLE : ""}
 ${blueprint && !isCanvasSource(source) ? (source.includes("data-b2b-check") ? CHECK_GREEN_STYLE : BLUEPRINT_STYLE) : ""}
 ${isCanvasSource(source) ? "" : COLOR_REPORTER}
 </body>
@@ -455,8 +483,9 @@ export function VisualizerBlock({
   height,
   fit = false,
   fill = false,
+  pictureOnly = false,
   onFullscreenChange,
-}: VisualizerBlockData & { fill?: boolean; onFullscreenChange?: (open: boolean) => void }) {
+}: VisualizerBlockData & { fill?: boolean; pictureOnly?: boolean; onFullscreenChange?: (open: boolean) => void }) {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mobileBoardHeight, setMobileBoardHeight] = useState(0);
@@ -474,7 +503,7 @@ export function VisualizerBlock({
   // attaches onLoad, which left the first step stuck on "Loading visualizer...".
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
-  const iframeSource = useMemo(() => buildSourceDocument(source, fit), [source, fit]);
+  const iframeSource = useMemo(() => buildSourceDocument(source, fit, pictureOnly), [source, fit, pictureOnly]);
   const requestedHeight = visualizerHeight(height);
   const [viewportHeight, setViewportHeight] = useState(800);
   useEffect(() => {
@@ -765,7 +794,7 @@ export function VisualizerBlock({
             >
               ‹ Back
             </button>
-            <button
+            {pictureOnly ? null : <button
               type="button"
               aria-label="Show all boards"
               disabled={status !== "ready"}
@@ -773,7 +802,7 @@ export function VisualizerBlock({
               className="inline-flex h-10 min-w-20 items-center justify-center rounded-full border border-[#BDB8AE] bg-white px-4 text-xs font-semibold text-[#25231F] shadow-sm disabled:opacity-50"
             >
               All boards
-            </button>
+            </button>}
             <button
               type="button"
               aria-label="Open board full screen"

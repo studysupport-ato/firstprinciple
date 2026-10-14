@@ -82,7 +82,7 @@ function LessonContentBlock({
         data-testid="lesson-board"
         className="my-1 w-full"
       >
-        <VisualizerBlock {...block} fill onFullscreenChange={onFullscreenChange} />
+        <VisualizerBlock {...block} fill pictureOnly={block.pane === "side"} onFullscreenChange={onFullscreenChange} />
       </div>
     );
   }
