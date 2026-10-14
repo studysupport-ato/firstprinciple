@@ -37,6 +37,8 @@ export interface HeadingBlock extends BaseContentBlock {
   type: "heading";
   text: string;
   level?: 2 | 3 | 4;
+  /** "subtopic" shows the heading centred, bold and highlighted (e.g. "Base step"). */
+  variant?: "subtopic";
 }
 
 export interface WorkedExampleBlock extends BaseContentBlock {
