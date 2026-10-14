@@ -263,3 +263,26 @@
 .lesson-steps-item[aria-current="step"] { background: rgba(255, 199, 0, 0.25); font-weight: 600; }
 .lesson-steps-num { border-color: #d9d4c7; }
 .lesson-steps-item[aria-current="step"] .lesson-steps-num { background: #ffc700; border-color: #ffc700; }
+
+/* Subtopic headings (heading blocks with variant "subtopic"): centred, bold, highlighted. */
+.lesson-subtopic { margin: 0.35rem 0 0.15rem; text-align: center; }
+.lesson-subtopic h3 {
+  display: inline-block;
+  margin: 0;
+  padding: 0.4rem 1.15rem;
+  border: 1.5px solid #e9bc3a;
+  border-radius: 999px;
+  background: #fff3c4;
+  color: #3b2f00;
+  font-family: var(--font-newsreader), Georgia, serif;
+  font-size: clamp(1.2rem, 2.6vw, 1.55rem);
+  font-weight: 700;
+  line-height: 1.3;
+}
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-guided-content .lesson-subtopic h3,
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-subtopic h3 {
+  border-color: #ffc700;
+  background: rgba(255, 199, 0, 0.14);
+  color: #ffe48a !important;
+}
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-subtopic h3 * { color: #ffe48a !important; }
