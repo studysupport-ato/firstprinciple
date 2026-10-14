@@ -117,7 +117,6 @@ html.b2b-board-picture #lb > .lb-topic,
 html.b2b-board-picture #lb > .b4,
 html.b2b-board-picture #lb > .lb-prog,
 html.b2b-board-picture #lb > .lb-tools,
-html.b2b-board-picture #lb > .lb-ctl,
 html.b2b-board-picture #lb .lb-main > #lb-vp,
 html.b2b-board-picture #lb .lb-main > #lb-cap,
 html.b2b-board-picture #lb .lb-pcap,
@@ -125,7 +124,7 @@ html.b2b-board-picture #lb .lb-pz { display: none !important; }
 html.b2b-board-picture #lb .lb-main,
 html.b2b-board-picture #lb .lb-main.lb-side {
   display: flex !important; flex-direction: column !important; align-items: stretch !important; justify-content: center !important;
-  padding: 14px !important; overflow: hidden !important; min-height: 0 !important; grid-template-columns: none !important; grid-template-rows: none !important;
+  padding: 14px 14px 84px !important; overflow: hidden !important; min-height: 0 !important; grid-template-columns: none !important; grid-template-rows: none !important;
 }
 html.b2b-board-picture #lb .lb-main > #lb-pic {
   display: flex !important; flex-direction: column !important; gap: 10px !important; width: 100% !important; max-width: none !important;
@@ -133,8 +132,33 @@ html.b2b-board-picture #lb .lb-main > #lb-pic {
 }
 html.b2b-board-picture #lb .lb-main > #lb-pic svg { width: 100% !important; height: auto !important; max-height: calc(100vh - 120px) !important; flex: 1 1 auto; }
 html.b2b-board-picture #lb .lb-main > #lb-pic .lb-pbar { justify-content: center !important; margin: 0 !important; }
+html.b2b-board-picture #lb #lb-next { font-size: 0 !important; }
+html.b2b-board-picture #lb #lb-next::after { content: "Next \\203A"; font-size: 15px; }
+html.b2b-board-picture #lb #lb-next.b2b-end { opacity: .4 !important; pointer-events: none !important; }
 </style>
-<script>document.documentElement.classList.add('b2b-board-picture');</script>`;
+<script>
+(function () {
+  document.documentElement.classList.add('b2b-board-picture');
+  function isEnd(b) { return /all boards/i.test(b.textContent || ''); }
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('#lb-next') : null;
+    if (b && isEnd(b)) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
+  window.addEventListener('message', function (e) {
+    if (e.data && e.data.source === 'b2b-board-controls' && e.data.action === 'next') {
+      var b = document.getElementById('lb-next');
+      if (b && isEnd(b)) e.stopImmediatePropagation();
+    }
+  }, true);
+  window.addEventListener('load', function () {
+    var b = document.getElementById('lb-next');
+    if (!b) return;
+    var sync = function () { b.classList.toggle('b2b-end', isEnd(b)); };
+    new MutationObserver(sync).observe(b, { childList: true, characterData: true, subtree: true });
+    sync();
+  });
+})();
+</script>`;
 
 function buildSourceDocument(source: string, blueprint = false, pictureOnly = false) {
   const mobileBoardStyles = isBoardSource(source)
