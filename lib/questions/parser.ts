@@ -31,6 +31,8 @@ const DIFFICULTY_ALIASES: Record<string, Difficulty> = {
   hard: "hard",
 };
 
+const PARAGRAPH_BREAK = "\u0000PARAGRAPH\u0000";
+
 function normalizeOptionId(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "") || "a";
 }
@@ -43,7 +45,8 @@ function asLines(block: string) {
 }
 
 function parseFieldValue(line: string) {
-  const match = line.match(/^[*#_\-\s]*[:\*]*\**?\s*([^\n:]+?)\s*[:\*]*\s*[:\-]?\s*(.+)$/i);
+  // "**Topic:** Algebra", "**Topic**: Algebra" or "Topic: Algebra".
+  const match = line.match(/^\**\s*([A-Za-z][A-Za-z ]{0,30}?)\s*\**\s*:\s*\**\s*(.+)$/);
   if (match) {
     return { key: match[1].trim().toLowerCase(), value: match[2].trim() };
   }
@@ -104,10 +107,16 @@ function parseOptionsFromBlock(lines: string[]) {
 function parseQuestionPrompt(lines: string[]) {
   const promptSection = lines.findIndex((line) => /^###\s*question\s*$/i.test(line.trim()));
   if (promptSection >= 0) {
+    // Paragraphs are kept apart with a blank line so a reading passage
+    // placed before the question stays readable; lines inside one paragraph
+    // are joined with spaces as before.
     const chunks: string[] = [];
     for (let index = promptSection + 1; index < lines.length; index += 1) {
       const line = lines[index].trim();
-      if (!line) continue;
+      if (!line) {
+        if (chunks.length && chunks[chunks.length - 1] !== PARAGRAPH_BREAK) chunks.push(PARAGRAPH_BREAK);
+        continue;
+      }
       if (/^(###|\*\*|\-\s*[A-Za-z0-9]\.?|\*\s*[A-Za-z0-9]\.?)/.test(line)) {
         if (/^###\s*(options?|answer|explanation|hint)/i.test(line)) {
           break;
@@ -115,7 +124,14 @@ function parseQuestionPrompt(lines: string[]) {
       }
       chunks.push(line);
     }
-    const value = chunks.join(" ").trim();
+    while (chunks.length && chunks[chunks.length - 1] === PARAGRAPH_BREAK) chunks.pop();
+    const value = chunks
+      .join(" ")
+      .split(` ${PARAGRAPH_BREAK} `)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
     if (value) return value;
   }
 
@@ -129,14 +145,15 @@ function parseAnswer(lines: string[], type: QuestionType, options: { id: string;
     const trimmed = line.trim();
     const answerHeader = trimmed.match(/^\*\*?\s*(answer|correct answer)\s*\*?\s*[:\-]\s*(.+)$/i);
     if (answerHeader) {
-      const raw = answerHeader[2].trim();
+      // "**Answer:** B" leaves the closing "**" in front of the value.
+      const raw = answerHeader[2].replace(/^\*+\s*/, "").trim();
       if (type === "true-false") {
         const lower = raw.toLowerCase();
         if (lower.includes("true")) return true;
         if (lower.includes("false")) return false;
       }
       if (type === "multiple-choice") {
-        const optionId = normalizeOptionId(raw.replace(/^[A-Za-z]\.?\s*$/i, "$1"));
+        const optionId = normalizeOptionId(raw.replace(/^([A-Za-z])\.?\s*$/i, "$1"));
         const matched = options.find((option) => option.id === optionId || option.label.toLowerCase() === optionId.toLowerCase());
         return matched?.id ?? optionId;
       }
@@ -202,11 +219,28 @@ function parseHint(lines: string[]) {
   return undefined;
 }
 
+function readHeaderFields(lines: string[]) {
+  const fields: { status?: string; chapter?: string } = {};
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^###\s*question\s*$/i.test(trimmed)) break;
+    const match = trimmed.match(/^\*\*\s*(status|chapter)\s*:?\s*\*\*\s*:?\s*(.+)$/i);
+    if (!match) continue;
+    const key = match[1].toLowerCase() as "status" | "chapter";
+    fields[key] = key === "status" ? match[2].trim().toLowerCase() : match[2].trim();
+  }
+  return fields;
+}
+
 function parseQuestionBlock(block: string, courseId: string, fallbackChapterId: string, fallbackLessonId: string, index: number) {
   const lines = asLines(block);
   const data: Record<string, string> = {};
 
-  for (const line of lines) {
+  // Metadata fields sit above "### Question"; when that heading is present,
+  // the question, options and explanation text are never read as fields.
+  const questionHeading = lines.findIndex((line) => /^###\s*question\s*$/i.test(line.trim()));
+  const fieldLines = questionHeading >= 0 ? lines.slice(0, questionHeading) : lines;
+  for (const line of fieldLines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     const parsed = parseFieldValue(trimmed);
@@ -223,7 +257,11 @@ function parseQuestionBlock(block: string, courseId: string, fallbackChapterId: 
   const answer = parseAnswer(lines, inferredType, options);
   const explanation = parseExplanation(lines) || "No explanation was included in the source markdown.";
   const hint = parseHint(lines);
-  const chapterId = fallbackChapterId;
+  // Status and Chapter are read only from the header lines above
+  // "### Question" so passage or explanation text can never set them.
+  const header = readHeaderFields(lines);
+  const chapterId = header.chapter || fallbackChapterId;
+  const status = header.status === "published" ? "published" : "draft";
   const lessonId = fallbackLessonId;
 
   const question: Question = {
@@ -244,7 +282,7 @@ function parseQuestionBlock(block: string, courseId: string, fallbackChapterId: 
     tags: ["imported", courseId],
     metadata: {
       source: "imported",
-      status: "draft",
+      status,
       author: "Admin import",
     },
   };

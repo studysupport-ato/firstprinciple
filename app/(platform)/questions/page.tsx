@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import QuestionsExperience from "./QuestionsExperience";
 import { withServerRouteTiming } from "@/lib/performance/serverTiming";
 
-export default async function QuestionsPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
+export default async function QuestionsPage({ searchParams }: { searchParams: Promise<{ preview?: string; course?: string }> }) {
   return withServerRouteTiming("questions", async (timing) => {
     const query = await searchParams;
     const preview = query.preview === "1";
@@ -26,6 +26,7 @@ export default async function QuestionsPage({ searchParams }: { searchParams: Pr
         initialQuestions={initialQuestions}
         courses={courses}
         preview={preview}
+        initialCourseId={query.course}
       />
     );
   });

@@ -3,6 +3,7 @@ import type { Difficulty } from "@/lib/content/types/question";
 import { createQuestionRepository } from "@/lib/questions/repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ChapterPracticePageClient } from "./ChapterPracticePageClient";
+import { getTopicBank } from "@/lib/questions/topicBanks";
 
 export type PracticePageProps = {
   params: Promise<{ courseId: string; chapterId: string }>;
@@ -45,6 +46,22 @@ export default async function PracticePage({ params, searchParams }: PracticePag
       subtopic={query.subtopic}
       difficulty={difficulty}
       limit={Number.isFinite(limit) && limit > 0 ? limit : 5}
+      {...topicBankNavigation(route.courseId, query.topic, query.subtopic, preview)}
     />
   );
+}
+
+/**
+ * Question-bank-only courses have no chapter page or roadmap, so their
+ * practice sessions lead back to the course's topic tiles under Questions.
+ */
+function topicBankNavigation(courseId: string, topic: string | undefined, subtopic: string | undefined, preview: boolean) {
+  if (!getTopicBank(courseId)) return {};
+  const params = new URLSearchParams({ course: courseId });
+  if (preview) params.set("preview", "1");
+  return {
+    returnHref: `/questions?${params.toString()}`,
+    returnLabel: "Back to topics",
+    title: [topic, subtopic].filter(Boolean).join(" · ") || undefined,
+  };
 }

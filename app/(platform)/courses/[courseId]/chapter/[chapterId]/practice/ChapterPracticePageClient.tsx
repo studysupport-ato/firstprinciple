@@ -25,13 +25,29 @@ function QuestionRenderer({
   onToggleHint: () => void;
 }) {
   const optionMap = question.options ?? [];
+  // A prompt written as several paragraphs carries a reading passage or
+  // instruction first; only its last paragraph is the question itself.
+  const promptParagraphs = question.prompt.split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean);
+  const promptParts = {
+    passage: promptParagraphs.slice(0, -1),
+    question: promptParagraphs[promptParagraphs.length - 1] ?? question.prompt,
+  };
 
   return (
     <div className="space-y-8">
       <div className="rounded-2xl border border-[#E5E5E5] bg-transparent p-5">
         <span className="font-sans text-[10px] font-bold uppercase tracking-[0.24em] text-[#2563EB]">Practice question</span>
+        {promptParts.passage.length ? (
+          <div className="mt-4 max-h-[420px] space-y-3 overflow-y-auto rounded-xl bg-[#F7F5EE] p-4 font-sans text-[15px] leading-relaxed text-[#26231C]">
+            {promptParts.passage.map((paragraph, index) => (
+              <p key={index} className="whitespace-pre-line">
+                <EducationalText text={paragraph} />
+              </p>
+            ))}
+          </div>
+        ) : null}
         <h2 className="mt-4 editorial-heading text-2xl md:text-3xl text-[#111111] leading-relaxed">
-          <EducationalText text={question.prompt} />
+          <EducationalText text={promptParts.question} />
         </h2>
       </div>
 
@@ -129,6 +145,9 @@ export function ChapterPracticePageClient({
   subtopic,
   difficulty,
   limit,
+  returnHref,
+  returnLabel,
+  title,
 }: {
   initialQuestions: Question[];
   courseId: string;
@@ -138,6 +157,11 @@ export function ChapterPracticePageClient({
   subtopic?: string;
   difficulty?: Difficulty;
   limit: number;
+  /** Where the back links go; defaults to the chapter page. */
+  returnHref?: string;
+  returnLabel?: string;
+  /** Header label; defaults to the chapter name. */
+  title?: string;
 }) {
   const [mounted, setMounted] = useState(false);
   const [session, setSession] = useState<PracticeSession | null>(null);
@@ -183,7 +207,9 @@ export function ChapterPracticePageClient({
   const currentQuestion = session?.questionIds[session.currentIndex] ? questions.find((question) => question.id === session.questionIds[session.currentIndex]) ?? null : null;
   const summary = useMemo(() => (session && questions.length ? getPracticeSummary(session, questions) : null), [session, questions]);
 
-  const chapterTitle = chapterId.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const chapterTitle = title ?? chapterId.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const backHref = returnHref ?? `/courses/${courseId}/chapter/${chapterId}`;
+  const backLabel = returnLabel ?? "Back to chapter";
 
   if (!mounted) return null;
 
@@ -205,8 +231,8 @@ export function ChapterPracticePageClient({
           <p className="font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#666666]">Practice unavailable</p>
           <h1 className="mt-4 editorial-heading text-4xl text-[#111111]">Could not load questions.</h1>
           <p className="mt-4 font-sans text-sm leading-relaxed text-[#666666]">{error}</p>
-          <Link href={`/courses/${courseId}/chapter/${chapterId}`} className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#111111] px-6 py-3 font-sans text-sm font-semibold text-white transition hover:bg-[#2563EB]">
-            Back to chapter
+          <Link href={backHref} className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#111111] px-6 py-3 font-sans text-sm font-semibold text-white transition hover:bg-[#2563EB]">
+            {backLabel}
           </Link>
         </div>
       </div>
@@ -220,8 +246,8 @@ export function ChapterPracticePageClient({
           <p className="font-sans text-[10px] font-bold uppercase tracking-[0.28em] text-[#666666]">Practice unavailable</p>
           <h1 className="mt-4 editorial-heading text-4xl text-[#111111]">No questions are available yet.</h1>
           <p className="mt-4 font-sans text-sm leading-relaxed text-[#666666]">This chapter does not yet have an active practice set in the hosted question bank.</p>
-          <Link href={`/courses/${courseId}/chapter/${chapterId}`} className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#111111] px-6 py-3 font-sans text-sm font-semibold text-white transition hover:bg-[#2563EB]">
-            Back to chapter
+          <Link href={backHref} className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#111111] px-6 py-3 font-sans text-sm font-semibold text-white transition hover:bg-[#2563EB]">
+            {backLabel}
           </Link>
         </div>
       </div>
@@ -331,8 +357,8 @@ export function ChapterPracticePageClient({
             <button type="button" onClick={handleReset} className="flex flex-1 items-center justify-center gap-2 rounded-full border border-[#E5E5E5] bg-white px-5 py-3 font-sans text-sm font-semibold text-[#111111] transition hover:border-[#111111]">
               <RotateCcw size={16} /> Practice again
             </button>
-            <Link href={`/courses/${courseId}/roadmap`} className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#111111] px-5 py-3 font-sans text-sm font-semibold text-white transition hover:bg-[#2563EB]">
-              Return to Roadmap
+            <Link href={returnHref ?? `/courses/${courseId}/roadmap`} className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#111111] px-5 py-3 font-sans text-sm font-semibold text-white transition hover:bg-[#2563EB]">
+              {returnHref ? backLabel : "Return to Roadmap"}
             </Link>
           </div>
         </div>
@@ -344,7 +370,7 @@ export function ChapterPracticePageClient({
     <div className="flex min-h-screen flex-col bg-transparent">
       <header className="flex h-16 items-center justify-between border-b border-[#E5E5E5] bg-white px-6 md:px-8">
         <div className="flex items-center gap-4">
-          <Link href={`/courses/${courseId}/chapter/${chapterId}`} className="text-[#666666] transition-colors hover:text-[#111111]">
+          <Link href={backHref} className="text-[#666666] transition-colors hover:text-[#111111]">
             <ChevronLeft size={20} />
           </Link>
           <div className="flex items-center gap-2">

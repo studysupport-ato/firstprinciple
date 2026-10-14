@@ -28,7 +28,7 @@ export interface QuestionRepository {
   deleteQuestion(questionId: string): Promise<void>;
 }
 
-export type QuestionDirectorySummary = Pick<Question, "courseId" | "chapterId">;
+export type QuestionDirectorySummary = Pick<Question, "courseId" | "chapterId" | "topic" | "subtopic">;
 
 function applyStudentVisibility(questions: Question[], options: QuestionRepositoryListOptions) {
   if (options.visibility !== "student") return questions;
@@ -133,7 +133,7 @@ export async function listQuestionDirectorySummaries(
   for (;;) {
     let query = clientFactory()
       .from("questions")
-      .select("course_id,chapter_id")
+      .select("course_id,chapter_id,topic,subtopic")
       .order("id", { ascending: true });
     if (options.courseId) query = query.eq("course_id", options.courseId);
     if (options.visibility === "student") {
@@ -144,8 +144,8 @@ export async function listQuestionDirectorySummaries(
 
     const { data, error } = await query.range(offset, offset + pageSize - 1);
     if (error) throw error;
-    const rows = (data ?? []) as Array<{ course_id: string; chapter_id: string | null }>;
-    summaries.push(...rows.map((row) => ({ courseId: row.course_id, chapterId: row.chapter_id ?? "" })));
+    const rows = (data ?? []) as Array<{ course_id: string; chapter_id: string | null; topic: string; subtopic: string }>;
+    summaries.push(...rows.map((row) => ({ courseId: row.course_id, chapterId: row.chapter_id ?? "", topic: row.topic, subtopic: row.subtopic })));
     if (rows.length < pageSize) return summaries;
     offset += pageSize;
   }

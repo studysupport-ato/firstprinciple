@@ -19,6 +19,7 @@ import {
   readStudentDayProgressMap,
 } from "@/lib/student/readProgress";
 import { createCourseStructureSupabaseRepository } from "@/lib/content/repository";
+import { isQuestionBankOnlyCourse } from "@/lib/questions/topicBanks";
 import {
   type ActivityDisplay,
   type ActivityEvent,
@@ -265,7 +266,7 @@ export default function DashboardPage() {
           setContinueLearning(null);
           setCourses(
             courseRows
-              .filter((course) => !course.status || course.status === "published")
+              .filter((course) => (!course.status || course.status === "published") && !isQuestionBankOnlyCourse(course.id))
               .map((course) => {
                 // Task 40F.2: authoritative published week/day counts.
                 const summary = structure[course.id];
@@ -315,7 +316,7 @@ export default function DashboardPage() {
         const courseAssessmentAttempts = assessmentAttempts.filter((attempt) => attempt.courseId === "math-151");
 
         const courseFacts = courseRows
-          .filter((course) => !course.status || course.status === "published")
+          .filter((course) => (!course.status || course.status === "published") && !isQuestionBankOnlyCourse(course.id))
           .map((course) => {
             // Task 40F.2: authoritative published week/day counts.
             const summary = structure[course.id];

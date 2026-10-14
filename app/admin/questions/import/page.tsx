@@ -17,6 +17,8 @@ export default function AdminQuestionImportPage() {
   const [markdown, setMarkdown] = useState("");
   const [result, setResult] = useState<ReturnType<typeof parseMarkdownQuestionBatch> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   useEffect(() => {
     async function fetchCourses() {
@@ -56,12 +58,32 @@ export default function AdminQuestionImportPage() {
       return;
     }
 
+    // Save in small groups so large banks (hundreds of questions) do not fire
+    // hundreds of server actions at once, and report any that fail instead
+    // of silently dropping them.
+    setImporting(true);
+    setProgress({ done: 0, total: valid.length });
+    const failures: string[] = [];
+    const groupSize = 8;
     try {
-      await Promise.all(valid.map((question) => createQuestionAction(question)));
-      router.push(`/admin/questions?courseId=${selectedCourseId}`);
+      for (let start = 0; start < valid.length; start += groupSize) {
+        const group = valid.slice(start, start + groupSize);
+        const results = await Promise.all(group.map((question) => createQuestionAction(question)));
+        results.forEach((res, offset) => {
+          if (!res.ok) failures.push(`Question ${start + offset + 1}: ${res.error}`);
+        });
+        setProgress({ done: Math.min(start + group.length, valid.length), total: valid.length });
+      }
     } catch (e: any) {
-      setError("Failed to import: " + e.message);
+      failures.push("Import stopped: " + e.message);
     }
+    setImporting(false);
+
+    if (failures.length) {
+      setError(`${valid.length - failures.length} of ${valid.length} questions were saved. ${failures.length} failed:\n${failures.join("\n")}`);
+      return;
+    }
+    router.push(`/admin/questions?courseId=${selectedCourseId}`);
   }
 
   async function handleFile(file: File) {
@@ -126,16 +148,21 @@ export default function AdminQuestionImportPage() {
           />
         </label>
 
-        {error ? <div className="mt-5 rounded-2xl bg-[#FEF2F2] px-4 py-3 text-sm text-[#E11D48]">{error}</div> : null}
+        {error ? <div className="mt-5 whitespace-pre-line rounded-2xl bg-[#FEF2F2] px-4 py-3 text-sm text-[#E11D48]">{error}</div> : null}
+        {progress ? (
+          <div className="mt-5 rounded-2xl bg-[#F7F7F8] px-4 py-3 text-sm text-[#111111]">
+            {importing ? "Saving" : "Saved"} {progress.done} of {progress.total} questions…
+          </div>
+        ) : null}
 
         <div className="mt-6 flex flex-wrap gap-3">
           <button type="button" onClick={parseInput} className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#2563EB]">
             <Upload size={15} />
             Parse questions
           </button>
-          <button type="button" onClick={importQuestions} disabled={!result || !result.validQuestions.length} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] px-5 py-2.5 text-sm font-medium text-[#111111] hover:border-[#111111] disabled:cursor-not-allowed disabled:opacity-40">
+          <button type="button" onClick={importQuestions} disabled={!result || !result.validQuestions.length || importing} className="inline-flex items-center gap-2 rounded-full border border-[#E5E5E5] px-5 py-2.5 text-sm font-medium text-[#111111] hover:border-[#111111] disabled:cursor-not-allowed disabled:opacity-40">
             <Save size={15} />
-            Import to {selectedCourse?.course.code ?? "course"}
+            {importing ? "Importing…" : `Import ${result?.validQuestions.length ?? 0} to ${selectedCourse?.course.code ?? "course"}`}
           </button>
         </div>
       </section>
@@ -182,7 +209,7 @@ export default function AdminQuestionImportPage() {
                   </div>
                 </div>
 
-                <div className="font-medium text-[#111111]">{question.prompt}</div>
+                <div className="whitespace-pre-line font-medium text-[#111111]">{question.prompt}</div>
                 <div className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.14em] text-[#666666]">
                   <span>{question.type}</span>
                   <span>·</span>
@@ -191,6 +218,8 @@ export default function AdminQuestionImportPage() {
                   <span>{question.topic}</span>
                   <span>·</span>
                   <span>{question.marks} marks</span>
+                  <span>·</span>
+                  <span>{question.metadata?.status ?? "draft"}</span>
                 </div>
                 {question.options?.length ? (
                   <div className="mt-3 space-y-2">
