@@ -19,6 +19,35 @@ export function isBoardSource(source: string | undefined) {
   return typeof source === "string" && source.includes(BOARD_MARKER);
 }
 
+// A "canvas" is a visualizer drawn straight onto the lesson page: no blue print, no card, no caption.
+// It follows the page's light or dark mode and sizes itself to its content. Its source carries this marker.
+export const CANVAS_MARKER = "data-b2b-canvas";
+
+export function isCanvasSource(source: string | undefined) {
+  return typeof source === "string" && source.includes(CANVAS_MARKER);
+}
+
+const CANVAS_SCRIPT = `<script>
+(function () {
+  function setMode(dark) { document.documentElement.setAttribute('data-mode', dark ? 'dark' : 'light'); }
+  setMode(false);
+  window.addEventListener('message', function (event) {
+    if (event.source !== window.parent || !event.data || event.data.source !== 'b2b-canvas-theme') return;
+    setMode(event.data.dark === true);
+  });
+  var last = 0;
+  function report() {
+    var root = document.querySelector('[${CANVAS_MARKER}]');
+    if (!root) return;
+    var height = Math.ceil(root.getBoundingClientRect().bottom + 4);
+    if (Math.abs(height - last) > 1) { last = height; window.parent.postMessage({ source: 'b2b-canvas-height', height: height }, '*'); }
+  }
+  window.addEventListener('load', report);
+  window.addEventListener('resize', report);
+  if (window.ResizeObserver) new ResizeObserver(report).observe(document.body);
+})();
+</script>`;
+
 function visualizerHeight(value: number | undefined) {
   return typeof value === "number" && Number.isFinite(value) ? Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, Math.round(value))) : DEFAULT_HEIGHT;
 }
@@ -384,7 +413,8 @@ window.addEventListener('error', function () {
 <div id="first-principles-visualizer-error">This visualizer could not render. Please ask an administrator to check its code.</div>
 ${source}
 ${mobileBoardStyles}
-${blueprint ? (source.includes("data-b2b-check") ? CHECK_GREEN_STYLE : BLUEPRINT_STYLE) : ""}
+${isCanvasSource(source) ? CANVAS_SCRIPT : ""}
+${blueprint && !isCanvasSource(source) ? (source.includes("data-b2b-check") ? CHECK_GREEN_STYLE : BLUEPRINT_STYLE) : ""}
 </body>
 </html>`;
 }
@@ -429,6 +459,8 @@ export function VisualizerBlock({
     ? (fit ? fitHeight : Math.max(BOARD_MIN_HEIGHT, requestedHeight))
     : requestedHeight;
   const embeddedFrameHeight = Math.max(frameHeight, mobileBoardHeight);
+  const canvas = isCanvasSource(source);
+  const [canvasHeight, setCanvasHeight] = useState(0);
   const timeoutRef = useRef<number | undefined>(undefined);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const sendBoardAction = (action: "previous" | "all" | "next" | "play" | "zoom-in" | "zoom-out" | "fullscreen" | "exit-fullscreen" | "picture-next" | "picture-back" | "picture-play" | "picture-zoom" | "measure-layout") => {
@@ -438,6 +470,11 @@ export function VisualizerBlock({
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return;
+        if (event.data?.source === "b2b-canvas-height") {
+          const reported = event.data.height;
+          if (canvas && Number.isFinite(reported)) setCanvasHeight(Math.min(MAX_MOBILE_BOARD_HEIGHT, Math.max(120, Math.round(reported))));
+          return;
+        }
         if (event.data?.source === "b2b-board-layout") {
           if (!fill || !isBoardSource(source)) return;
           const reportedHeight = event.data.height;
@@ -475,7 +512,22 @@ export function VisualizerBlock({
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [fill, frameHeight, source, title]);
+  }, [canvas, fill, frameHeight, source, title]);
+
+  // A canvas follows the lesson page's theme: tell it whether the page is dark, now and whenever it changes.
+  useEffect(() => {
+    if (!canvas || status !== "ready") return;
+    const themed = iframeRef.current?.closest("[data-lesson-theme]") ?? null;
+    const send = () => {
+      const theme = themed?.getAttribute("data-lesson-theme") ?? "paper";
+      iframeRef.current?.contentWindow?.postMessage({ source: "b2b-canvas-theme", dark: theme !== "paper" }, "*");
+    };
+    send();
+    if (!themed) return;
+    const observer = new MutationObserver(send);
+    observer.observe(themed, { attributes: true, attributeFilter: ["data-lesson-theme"] });
+    return () => observer.disconnect();
+  }, [canvas, status]);
 
   useEffect(() => {
     setMobileBoardHeight(0);
@@ -548,6 +600,22 @@ export function VisualizerBlock({
       </p>
     </div>
   ) : null;
+
+  // Canvas mode: drawn straight on the lesson page, no card and no caption.
+  if (canvas) {
+    return (
+      <div className="lesson-visualizer-canvas relative w-full" style={{ height: canvasHeight || requestedHeight }}>
+        {status !== "ready" ? (
+          <div className="absolute inset-0 z-10 flex items-center justify-center p-6 text-center">
+            <p className="max-w-sm text-xs leading-5 opacity-70">
+              {status === "error" ? "This visualizer could not be loaded. Please ask an administrator to check its code." : "Loading visualizer..."}
+            </p>
+          </div>
+        ) : null}
+        {frame}
+      </div>
+    );
+  }
 
   // Board mode: no card, no caption. The board takes all the space its parent gives it.
   if (fill) {

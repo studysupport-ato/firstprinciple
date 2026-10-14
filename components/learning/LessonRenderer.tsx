@@ -15,7 +15,7 @@ import { QuestionBlock } from "./blocks/QuestionBlock";
 import { TextBlock } from "./blocks/TextBlock";
 import { WorkedExampleBlock } from "./blocks/WorkedExampleBlock";
 import { QuizBlock } from "./blocks/QuizBlock";
-import { isBoardSource, VisualizerBlock } from "./blocks/VisualizerBlock";
+import { isBoardSource, isCanvasSource, VisualizerBlock } from "./blocks/VisualizerBlock";
 
 export function renderBlock(block: ContentBlock, assetsById?: Record<string, Asset>, questionsById?: Record<string, Question>) {
   switch (block.type) {
@@ -153,7 +153,7 @@ export function LessonRenderer({
               data-block-type={block.type}
             >
               <LessonContentBlock
-                block={blueprint && block.type === "visualizer" ? { ...block, fit: true } : block}
+                block={blueprint && block.type === "visualizer" && !isCanvasSource(block.source) ? { ...block, fit: true } : block}
                 assetsById={assetsById}
                 questionsById={questionsById}
                 deferGeoGebra={deferGeoGebra}

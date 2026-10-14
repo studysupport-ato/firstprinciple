@@ -5,7 +5,7 @@ import { CheckCircle2, ChevronLeft, ListOrdered, MessageCircle, Moon, Sun, X } f
 import Link from "next/link";
 import { completeDay, startDay } from "@/lib/progress";
 import { LessonRenderer } from "@/components/learning/LessonRenderer";
-import { isBoardSource } from "@/components/learning/blocks/VisualizerBlock";
+import { isBoardSource, isCanvasSource } from "@/components/learning/blocks/VisualizerBlock";
 import { LessonSideContext } from "@/components/learning/LessonContext";
 import { GeoGebraProvider } from "@/components/learning/GeoGebraProvider";
 import { LessonVideo, SupplementaryResources } from "@/components/learning/SupplementaryResources";
@@ -84,7 +84,8 @@ function themeForStep(blocks: ContentBlock[], dark: boolean, blueprint: boolean)
   if (blocks.some((block) => block.type === "visualizer" && block.source.includes("data-b2b-check"))) return "green";
   if (blocks.some((block) => block.type === "question")) return "purple";
   if (blocks.some((block) => block.type === "video")) return "wine";
-  if (blocks.some((block) => block.type === "visualizer" && (blueprint || block.fit || !isBoardSource(block.source)))) return "blue";
+  // Canvas visualizers sit on the ordinary lesson page, so they keep the paper (or dark) theme.
+  if (blocks.some((block) => block.type === "visualizer" && !isCanvasSource(block.source) && (blueprint || block.fit || !isBoardSource(block.source)))) return "blue";
   return dark ? "dark" : "paper";
 }
 
@@ -167,7 +168,7 @@ export function LessonExperience({
   const hasSideBlocks = activeBlocks.some((block) => block.pane === "side");
   const hasQuiz = activeBlocks.some((block) => block.type === "quiz");
   const hasSidePane = !hasGeoSide && (hasSideBlocks || hasQuiz);
-  const hasVisualizerFit = activeBlocks.some((block) => block.type === "visualizer" && (blueprint || block.fit));
+  const hasVisualizerFit = activeBlocks.some((block) => block.type === "visualizer" && !isCanvasSource(block.source) && (blueprint || block.fit));
 
   const [sideSlot, setSideSlot] = useState<HTMLElement | null>(null);
   const [quizDone, setQuizDone] = useState<Record<string, boolean>>({});
