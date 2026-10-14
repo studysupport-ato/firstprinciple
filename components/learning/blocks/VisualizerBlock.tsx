@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, LayoutGrid, Maximize2, Pause, Play, X, ZoomIn, ZoomOut } from "lucide-react";
 
 import type { VisualizerBlock as VisualizerBlockData } from "@/lib/content/types/lesson";
+import { BOARD_FONT_STYLE } from "./boardFonts";
 
 const DEFAULT_HEIGHT = 420;
 const BOARD_MIN_HEIGHT = 480;
@@ -11,6 +12,8 @@ const MIN_HEIGHT = 280;
 const MAX_HEIGHT = 900;
 const MAX_MOBILE_BOARD_HEIGHT = 1400;
 const LOAD_TIMEOUT = 12000;
+// Height of a picture-only board card: the screen minus the lesson header, progress bar and step buttons.
+const PICTURE_CARD_HEIGHT = "clamp(340px, calc(100dvh - 250px), 720px)";
 
 // A "board" is a visualizer written to fill the whole learning space. Its source carries this marker.
 export const BOARD_MARKER = "data-b2b-board";
@@ -109,52 +112,159 @@ const COLOR_REPORTER = `<script>
 })();
 </script>`;
 
-// Picture-only boards (a board in the right-hand card): the lesson text carries the words,
-// so only the board's picture and its own Back / Play / Next controls are shown.
+// Shorter animation timing for boards: pictures move on sooner, so it is clear they play by themselves.
+// Each pair is [text in the board script, replacement]. A board without these snippets is left as it is.
+const BOARD_TIMING_PATCHES: Array<[string, string]> = [
+  [
+    "function dur() { return Math.min(9000, 2200 + String(fr[fi].t || '').split(' ').length * 230); }",
+    "function dur() { var d = Math.min(3400, 1300 + String(fr[fi].t || '').split(' ').length * 70); try { window.dispatchEvent(new CustomEvent('b2b-frame', { detail: d })); } catch (e) {} return d; }",
+  ],
+  ["timer = setTimeout(function () { go(at + 1); schedule(); }, 2200 + words * 170);", "timer = setTimeout(function () { go(at + 1); schedule(); }, 1500 + words * 90);"],
+  ["timer = setTimeout(schedule, 600);", "timer = setTimeout(schedule, 380);"],
+  ["setTimeout(render, first ? 40 : 560);", "setTimeout(render, first ? 40 : 320);"],
+  ["animation: lbdraw .9s ease both;", "animation: lbdraw .55s ease both;"],
+];
+
+function patchBoardTiming(source: string) {
+  return BOARD_TIMING_PATCHES.reduce((text, [from, to]) => text.split(from).join(to), source);
+}
+
+// Picture-only boards (a board in the right-hand card): the lesson text carries the words, so the
+// card shows the picture, a title line and one control bar (Back, Play, progress, Next) that always
+// sits inside the card. Back and Next step through the picture's frames first, then the board's lines.
 const PICTURE_ONLY_STYLE = `<style>
-html.b2b-board-picture #lb { grid-template-rows: minmax(0, 1fr) !important; background-color: #12335A !important; }
+html.b2b-board-picture, html.b2b-board-picture body { height: 100%; }
+html.b2b-board-picture body { background: #12335A !important; }
+html.b2b-board-picture #lb {
+  display: block !important; position: relative !important; height: 100vh !important; min-height: 0 !important; overflow: hidden !important;
+  background-color: #12335A !important;
+  background-image: linear-gradient(rgba(234,242,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(234,242,255,.06) 1px, transparent 1px) !important;
+  background-size: 26px 26px !important;
+}
 html.b2b-board-picture #lb > .lb-topic,
 html.b2b-board-picture #lb > .b4,
 html.b2b-board-picture #lb > .lb-prog,
 html.b2b-board-picture #lb > .lb-tools,
+html.b2b-board-picture #lb > .lb-ctl,
 html.b2b-board-picture #lb .lb-main > #lb-vp,
 html.b2b-board-picture #lb .lb-main > #lb-cap,
+html.b2b-board-picture #lb .lb-pbar,
 html.b2b-board-picture #lb .lb-pcap,
 html.b2b-board-picture #lb .lb-pz { display: none !important; }
 html.b2b-board-picture #lb .lb-main,
 html.b2b-board-picture #lb .lb-main.lb-side {
-  display: flex !important; flex-direction: column !important; align-items: stretch !important; justify-content: center !important;
-  padding: 14px 14px 84px !important; overflow: hidden !important; min-height: 0 !important; grid-template-columns: none !important; grid-template-rows: none !important;
+  position: absolute !important; inset: 44px 0 62px 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;
+  padding: 4px 12px !important; margin: 0 !important; overflow: hidden !important; min-height: 0 !important; height: auto !important;
+  grid-template-columns: none !important; grid-template-rows: none !important;
 }
 html.b2b-board-picture #lb .lb-main > #lb-pic {
-  display: flex !important; flex-direction: column !important; gap: 10px !important; width: 100% !important; max-width: none !important;
-  margin: 0 !important; min-height: 0 !important; flex: 1 1 auto !important;
+  display: flex !important; align-items: center !important; justify-content: center !important; width: 100% !important; height: 100% !important;
+  max-width: none !important; margin: 0 !important; padding: 0 !important; min-height: 0 !important; border: 0 !important; background: none !important;
 }
-html.b2b-board-picture #lb .lb-main > #lb-pic svg { width: 100% !important; height: auto !important; max-height: calc(100vh - 120px) !important; flex: 1 1 auto; }
-html.b2b-board-picture #lb .lb-main > #lb-pic .lb-pbar { justify-content: center !important; margin: 0 !important; }
-html.b2b-board-picture #lb #lb-next { font-size: 0 !important; }
-html.b2b-board-picture #lb #lb-next::after { content: "Next \\203A"; font-size: 15px; }
-html.b2b-board-picture #lb #lb-next.b2b-end { opacity: .4 !important; pointer-events: none !important; }
+html.b2b-board-picture #lb .lb-main > #lb-pic::before { display: none !important; }
+html.b2b-board-picture #lb .lb-main > #lb-pic svg { width: 100% !important; height: 100% !important; max-width: 100% !important; max-height: 100% !important; margin: 0 !important; }
+#b2b-head, #b2b-bar { position: fixed; left: 0; right: 0; z-index: 30; display: flex; align-items: center; gap: 10px; font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif; color: #EAF1FA; }
+#b2b-head { top: 0; height: 44px; padding: 0 16px; font-size: 11.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: #9FB4CE; }
+#b2b-head .t { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#b2b-head .n { font-variant-numeric: tabular-nums; letter-spacing: .03em; }
+#b2b-bar { bottom: 0; height: 62px; padding: 0 12px; background: #0E2A4A; border-top: 1px solid rgba(255,255,255,.08); }
+#b2b-bar button { font: inherit; font-size: 14.5px; font-weight: 700; height: 40px; padding: 0 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,.24); background: transparent; color: #EAF1FA; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+#b2b-bar button:disabled { opacity: .35; cursor: default; }
+#b2b-bar button:focus-visible { outline: 3px solid #8FC3FF; outline-offset: 2px; }
+#b2b-bar .play { width: 40px; padding: 0; justify-content: center; font-size: 13px; }
+#b2b-bar .next { margin-left: auto; background: #F5C84B; border-color: #F5C84B; color: #1A1400; }
+#b2b-bar .dots { display: flex; gap: 6px; margin-left: auto; align-items: center; }
+#b2b-bar .dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.25); transition: background .2s; }
+#b2b-bar .dots i.on { background: #F5C84B; }
+#b2b-tick { position: absolute; left: 0; top: -1px; height: 3px; width: 100%; transform-origin: left center; transform: scaleX(0); background: #F5C84B; opacity: 0; }
+#b2b-tick.run { opacity: .9; animation: b2b-tick var(--d, 2000ms) linear forwards; }
+@keyframes b2b-tick { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+/* A question on the board shows as a panel over the picture until it is answered. */
+html.b2b-board-picture.b2b-quiz #lb .lb-main > #lb-vp {
+  display: block !important; position: fixed !important; left: 10px !important; right: 10px !important; top: auto !important; bottom: 72px !important;
+  z-index: 40 !important; width: auto !important; height: auto !important; max-height: calc(100% - 130px) !important; overflow: auto !important;
+  padding: 14px 16px !important; border-radius: 14px !important; background: #0B2240 !important; border: 1px solid rgba(245,200,75,.45) !important; box-shadow: 0 10px 30px rgba(0,0,0,.35) !important;
+}
+html.b2b-board-picture.b2b-quiz #lb-vp .lb-wall { transform: none !important; width: auto !important; height: auto !important; min-height: 0 !important; padding: 0 !important; background: none !important; }
+html.b2b-board-picture.b2b-quiz #lb-vp .lb-wall > *:not(:has(.lb-quiz:not([hidden]))) { display: none !important; }
+html.b2b-board-picture.b2b-quiz #lb-vp .lb-st:not(:has(.lb-quiz:not([hidden]))) { display: none !important; }
+html.b2b-board-picture.b2b-quiz #lb-vp .lb-quiz p { font-size: 17px !important; }
+html.b2b-board-picture.b2b-quiz #lb-vp .lb-opt { font-size: 15px !important; padding: 8px 14px !important; }
+@media (max-width: 360px) { #b2b-bar button { padding: 0 11px; font-size: 13.5px; } #b2b-bar .dots { display: none; } }
+@media (prefers-reduced-motion: reduce) { #b2b-tick.run { animation: none; opacity: 0; } }
 </style>
 <script>
 (function () {
   document.documentElement.classList.add('b2b-board-picture');
-  function isEnd(b) { return /all boards/i.test(b.textContent || ''); }
+  function $(id) { return document.getElementById(id); }
+  function pbarButtons() {
+    var list = Array.prototype.slice.call(document.querySelectorAll('#lb-pic .lb-pbar .lb-pb'));
+    function find(re) { return list.filter(function (b) { return re.test(b.textContent || ''); })[0] || null; }
+    var shown = list.length && list[0].style.display !== 'none';
+    return { shown: !!shown, back: find(/back/i), play: find(/play|pause/i), next: document.querySelector('#lb-pic .lb-pgo'), count: document.querySelector('#lb-pic .lb-pcnt') };
+  }
+  function boardEnd() { var b = $('lb-next'); return !b || b.disabled || /all boards/i.test(b.textContent || ''); }
+  function usable(b) { return !!b && !b.disabled; }
+  // The board's own "All boards" step is never reached from the card.
   document.addEventListener('click', function (e) {
     var b = e.target && e.target.closest ? e.target.closest('#lb-next') : null;
-    if (b && isEnd(b)) { e.stopPropagation(); e.preventDefault(); }
+    if (b && /all boards/i.test(b.textContent || '')) { e.stopPropagation(); e.preventDefault(); }
   }, true);
   window.addEventListener('message', function (e) {
-    if (e.data && e.data.source === 'b2b-board-controls' && e.data.action === 'next') {
-      var b = document.getElementById('lb-next');
-      if (b && isEnd(b)) e.stopImmediatePropagation();
-    }
+    if (e.data && e.data.source === 'b2b-board-controls' && e.data.action === 'next' && boardEnd()) e.stopImmediatePropagation();
   }, true);
   window.addEventListener('load', function () {
-    var b = document.getElementById('lb-next');
-    if (!b) return;
-    var sync = function () { b.classList.toggle('b2b-end', isEnd(b)); };
-    new MutationObserver(sync).observe(b, { childList: true, characterData: true, subtree: true });
+    var lb = $('lb'), pic = $('lb-pic');
+    if (!lb || $('b2b-bar')) return;
+    var head = document.createElement('div'); head.id = 'b2b-head';
+    head.innerHTML = '<span class="t"></span><span class="n"></span>';
+    var bar = document.createElement('div'); bar.id = 'b2b-bar';
+    bar.innerHTML = '<span id="b2b-tick"></span><button type="button" class="back" aria-label="Back">‹ Back</button>'
+      + '<button type="button" class="play" aria-label="Play">▶</button><span class="dots" aria-hidden="true"></span>'
+      + '<button type="button" class="next" aria-label="Next">Next ›</button>';
+    document.body.appendChild(head); document.body.appendChild(bar);
+    var tEl = head.querySelector('.t'), nEl = head.querySelector('.n'), tick = $('b2b-tick'),
+        bBack = bar.querySelector('.back'), bPlay = bar.querySelector('.play'), bNext = bar.querySelector('.next'), dots = bar.querySelector('.dots');
+    function playing() { var p = pbarButtons().play; return !!p && /pause/i.test(p.textContent || ''); }
+    function set(el, text) { if (el.textContent !== text) el.textContent = text; }
+    function stopTick() { tick.classList.remove('run'); }
+    function sync() {
+      var pb = pbarButtons();
+      var label = (pic && pic.getAttribute('data-label')) || (($('lb-title') || {}).textContent || '');
+      set(tEl, label.replace(/^\\s*picture\\s*[·:-]\\s*/i, ''));
+      var m = pb.shown && pb.count ? /(\\d+)\\s*\\/\\s*(\\d+)/.exec(pb.count.textContent || '') : null;
+      var cur = m ? +m[1] : 1, total = m ? +m[2] : 1;
+      set(nEl, total > 1 ? cur + ' / ' + total : '');
+      if (dots.childElementCount !== Math.min(total, 12)) { dots.innerHTML = ''; for (var i = 0; i < Math.min(total, 12); i++) dots.appendChild(document.createElement('i')); }
+      Array.prototype.forEach.call(dots.children, function (d, i) { d.classList.toggle('on', i < cur); });
+      dots.style.display = total > 1 ? '' : 'none';
+      bPlay.style.display = pb.shown && total > 1 ? '' : 'none';
+      var on = playing();
+      set(bPlay, on ? '❚❚' : '▶');
+      bPlay.setAttribute('aria-label', on ? 'Pause' : 'Play');
+      if (!on) stopTick();
+      document.documentElement.classList.toggle('b2b-quiz', !!document.querySelector('#lb-vp .lb-quiz:not([hidden])'));
+      bBack.disabled = !(pb.shown && usable(pb.back)) && !usable($('lb-back'));
+      bNext.disabled = !(pb.shown && usable(pb.next)) && boardEnd();
+    }
+    bNext.addEventListener('click', function () {
+      var pb = pbarButtons();
+      if (pb.shown && usable(pb.next)) pb.next.click();
+      else if (!boardEnd()) $('lb-next').click();
+      setTimeout(sync, 30);
+    });
+    bBack.addEventListener('click', function () {
+      var pb = pbarButtons();
+      if (pb.shown && usable(pb.back)) pb.back.click();
+      else if (usable($('lb-back'))) $('lb-back').click();
+      setTimeout(sync, 30);
+    });
+    bPlay.addEventListener('click', function () { var p = pbarButtons().play; if (p) p.click(); setTimeout(sync, 30); });
+    window.addEventListener('b2b-frame', function (e) {
+      tick.classList.remove('run'); void tick.offsetWidth;
+      tick.style.setProperty('--d', (e.detail || 2000) + 'ms'); tick.classList.add('run');
+    });
+    new MutationObserver(sync).observe(lb, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['disabled', 'style', 'data-label', 'hidden'] });
     sync();
   });
 })();
@@ -491,7 +601,8 @@ window.addEventListener('error', function () {
 </head>
 <body>
 <div id="first-principles-visualizer-error">This visualizer could not render. Please ask an administrator to check its code.</div>
-${source}
+${isBoardSource(source) ? patchBoardTiming(source) : source}
+${isBoardSource(source) ? BOARD_FONT_STYLE : ""}
 ${mobileBoardStyles}
 ${isCanvasSource(source) ? CANVAS_SCRIPT : ""}
 ${pictureOnly && isBoardSource(source) ? PICTURE_ONLY_STYLE : ""}
@@ -543,6 +654,8 @@ export function VisualizerBlock({
     : requestedHeight;
   const embeddedFrameHeight = Math.max(frameHeight, mobileBoardHeight);
   const canvas = isCanvasSource(source);
+  // A picture-only board in the right-hand card: sized to the screen so its control bar is always in view.
+  const pictureCard = pictureOnly && isBoardSource(source);
   const [canvasHeight, setCanvasHeight] = useState(0);
   const timeoutRef = useRef<number | undefined>(undefined);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -716,8 +829,8 @@ export function VisualizerBlock({
         className={isFullscreen ? "fixed inset-0 z-[100] overflow-hidden bg-[#142F55]" : "w-full"}
       >
         <div
-          className={isFullscreen ? "absolute inset-0 overflow-hidden bg-[#12335A]" : (fit ? "relative w-full overflow-hidden bg-transparent" : "relative w-full overflow-hidden rounded-xl bg-[#12335A]")}
-          style={isFullscreen ? undefined : { height: embeddedFrameHeight }}
+          className={isFullscreen ? "absolute inset-0 overflow-hidden bg-[#12335A]" : pictureCard ? "lesson-picture-card relative w-full overflow-hidden rounded-2xl bg-[#12335A] shadow-[0_10px_30px_rgba(10,25,45,0.25)]" : (fit ? "relative w-full overflow-hidden bg-transparent" : "relative w-full overflow-hidden rounded-xl bg-[#12335A]")}
+          style={isFullscreen ? undefined : { height: pictureCard ? PICTURE_CARD_HEIGHT : embeddedFrameHeight }}
         >
           {overlay}
           {frame}
@@ -807,7 +920,7 @@ export function VisualizerBlock({
             </nav>
           </>
         )}
-        {!isFullscreen && !fit && isBoardSource(source) ? (
+        {!isFullscreen && !fit && !pictureCard && isBoardSource(source) ? (
           <div className="flex items-center justify-between gap-1 px-1 py-2">
             <button
               type="button"

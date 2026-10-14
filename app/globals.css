@@ -266,10 +266,11 @@
 .lesson-steps-num { border-color: #d9d4c7; }
 .lesson-steps-item[aria-current="step"] .lesson-steps-num { background: #E9BC3A; border-color: #E9BC3A; }
 
-/* Equations: a centred grey box, never mixed into the sentence */
-.lesson-math-box { display: block; max-width: 100%; margin: 1rem auto; padding: 0.65rem 1rem; overflow-x: auto; text-align: center; border-radius: 0.75rem; background: #ecebe6; color: #1a1814; }
+/* Equations: centred on their own line, no box, so they take little space */
+.lesson-math-box { display: block; max-width: 100%; margin: 0.4rem auto; padding: 0.1rem 0; overflow-x: auto; overflow-y: hidden; text-align: center; background: none; color: inherit; }
 .lesson-math-box .katex-display { margin: 0; }
-:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-math-box { background: rgba(255, 255, 255, 0.12); color: #ffffff; }
+.lesson-math-box + .lesson-math-box { margin-top: -0.1rem; }
+span.lesson-math-box { margin: 0.3rem auto; }
 
 /* Right-hand pane: plain like the page; only a genuine extra note gets a card */
 .lesson-note { border: 1px solid #e3dccb; border-radius: 16px; padding: 14px 18px; background: rgba(255, 253, 246, 0.92); }
@@ -319,3 +320,9 @@
   color: #ffe48a !important;
 }
 :is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-subtopic h3 * { color: #ffe48a !important; }
+
+/* Callouts: slim notes with tight paragraphs */
+.lesson-callout .markdown-content p,
+.lesson-guided-content .lesson-callout .markdown-content p { margin: 0.3rem 0; font-size: clamp(1rem, 1.9vw, 1.12rem); line-height: 1.5; }
+.lesson-callout .markdown-content :is(ul, ol) { margin: 0.35rem 0; }
+.lesson-callout .lesson-math-box { margin: 0.25rem auto; }
