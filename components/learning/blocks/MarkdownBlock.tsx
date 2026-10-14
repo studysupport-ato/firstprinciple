@@ -53,7 +53,8 @@ function renderTable(lines: string[], key: string) {
   return <div key={key} className="my-5 overflow-x-auto"><table className="min-w-full border-collapse text-left text-sm"><thead><tr>{headers.map((header, index) => <th key={`${key}-h-${index}`} className="border border-[#D9D9D9] bg-[#F7F7F8] px-3 py-2 font-semibold text-[#111111]">{inlineContent(header, `${key}-header-${index}`)}</th>)}</tr></thead><tbody>{rows.map((row, rowIndex) => <tr key={`${key}-r-${rowIndex}`}>{headers.map((_, columnIndex) => <td key={`${key}-c-${rowIndex}-${columnIndex}`} className="border border-[#E5E5E5] px-3 py-2 text-[#444444]">{inlineContent(row[columnIndex] ?? "", `${key}-cell-${rowIndex}-${columnIndex}`)}</td>)}</tr>)}</tbody></table></div>;
 }
 
-export function MarkdownBlock({ markdown }: { markdown: string }) {
+export function MarkdownBlock({ markdown, size }: { markdown: string; size?: "sm" }) {
+  const small = size === "sm";
   const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
   const output: ReactNode[] = [];
   let index = 0;
@@ -116,7 +117,9 @@ export function MarkdownBlock({ markdown }: { markdown: string }) {
     if (heading) {
       const level = Math.min(heading[1].length, 4);
       const Tag = `h${level}` as "h1" | "h2" | "h3" | "h4";
-      const classes = level === 1 ? "mt-8 font-serif text-4xl text-[#111111]" : level === 2 ? "mt-7 font-serif text-3xl text-[#111111]" : "mt-6 font-serif text-2xl text-[#111111]";
+      const classes = small
+        ? (level === 1 ? "mt-6 font-serif text-3xl text-[#111111]" : level === 2 ? "mt-5 font-serif text-2xl text-[#111111]" : "mt-4 font-serif text-xl text-[#111111]")
+        : (level === 1 ? "mt-8 font-serif text-4xl text-[#111111]" : level === 2 ? "mt-7 font-serif text-3xl text-[#111111]" : "mt-6 font-serif text-2xl text-[#111111]");
       output.push(<Tag key={`heading-${index}`} className={classes}>{inlineContent(heading[2], `heading-${index}`)}</Tag>);
       index += 1;
       continue;
@@ -127,7 +130,7 @@ export function MarkdownBlock({ markdown }: { markdown: string }) {
     if (line.trim().startsWith(">")) {
       const quoteLines: string[] = [];
       while (index < lines.length && lines[index].trim().startsWith(">")) { quoteLines.push(lines[index].trim().replace(/^>\s?/, "")); index += 1; }
-      output.push(<blockquote key={`quote-${index}`} className="my-5 border-l-4 border-[#E9BC3A] bg-[#F7F7F8] px-5 py-3 font-serif text-lg italic leading-8 text-[#444444]">{quoteLines.map((quote, quoteIndex) => <p key={quoteIndex}>{inlineContent(quote, `quote-${index}-${quoteIndex}`)}</p>)}</blockquote>);
+      output.push(<blockquote key={`quote-${index}`} className={`my-5 border-l-4 border-[#E9BC3A] bg-[#F7F7F8] px-5 py-3 font-serif italic text-[#444444] ${small ? "text-base leading-7" : "text-lg leading-8"}`}>{quoteLines.map((quote, quoteIndex) => <p key={quoteIndex}>{inlineContent(quote, `quote-${index}-${quoteIndex}`)}</p>)}</blockquote>);
       continue;
     }
 
@@ -159,5 +162,5 @@ export function MarkdownBlock({ markdown }: { markdown: string }) {
     output.push(<p key={`paragraph-${index}`} className="my-4 text-base leading-8 text-[#333333]">{inlineContent(paragraph.join(" "), `paragraph-${index}`)}</p>);
   }
 
-  return <div className="markdown-content">{output.length ? output : <p className="text-sm text-[#999999]">No Markdown content yet.</p>}</div>;
+  return <div className={small ? "markdown-content markdown-sm" : "markdown-content"}>{output.length ? output : <p className="text-sm text-[#999999]">No Markdown content yet.</p>}</div>;
 }

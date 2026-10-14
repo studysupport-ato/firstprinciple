@@ -150,6 +150,17 @@
   margin: 0.6rem 0;
 }
 
+/* Smaller text for long worked solutions (markdown blocks with size "sm"). */
+.markdown-content.markdown-sm p,
+.lesson-guided-content .markdown-content.markdown-sm p {
+  font-size: clamp(0.98rem, 1.8vw, 1.08rem);
+  line-height: 1.5;
+  margin: 0.45rem 0;
+}
+.markdown-content.markdown-sm li { font-size: 0.98rem; }
+.markdown-content.markdown-sm .katex-display,
+.markdown-content.markdown-sm .text-xl { font-size: 1.05rem; margin-top: 0.75rem; margin-bottom: 0.75rem; }
+
 /* Lesson page themes: dotted paper (light or dark), blue grid for visualizers,
    wine print for videos and questions. Dark themes recolour page text; cards
    become translucent so tables, callouts and examples stay readable. */

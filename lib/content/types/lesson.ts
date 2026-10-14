@@ -106,6 +106,8 @@ export interface QuestionBlock extends BaseContentBlock {
 export interface MarkdownBlock extends BaseContentBlock {
   type: "markdown";
   markdown: string;
+  /** "sm" sets the text a little smaller, for long worked solutions. */
+  size?: "sm";
 }
 
 export interface QuizQuestion {

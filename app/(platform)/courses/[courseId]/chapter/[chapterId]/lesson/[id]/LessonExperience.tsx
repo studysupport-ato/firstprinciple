@@ -5,7 +5,7 @@ import { CheckCircle2, ChevronLeft, ListOrdered, MessageCircle, Moon, Sun, X } f
 import Link from "next/link";
 import { completeDay, startDay } from "@/lib/progress";
 import { LessonRenderer } from "@/components/learning/LessonRenderer";
-import { isBoardSource } from "@/components/learning/blocks/VisualizerBlock";
+import { isBoardSource, isCanvasSource } from "@/components/learning/blocks/VisualizerBlock";
 import { LessonSideContext } from "@/components/learning/LessonContext";
 import { GeoGebraProvider } from "@/components/learning/GeoGebraProvider";
 import { LessonVideo, SupplementaryResources } from "@/components/learning/SupplementaryResources";
@@ -86,7 +86,7 @@ function themeForStep(blocks: ContentBlock[], dark: boolean, blueprint: boolean)
   // A visualizer only colours the page when it has the page to itself (see visualizerBackground).
   // Next to other blocks it keeps its own colours inside its frame, on the normal lesson page.
   const onlyVisualizers = blocks.length > 0 && blocks.every((block) => block.type === "visualizer");
-  if (onlyVisualizers && blocks.some((block) => block.type === "visualizer" && (block.source.includes("data-b2b-check") || blueprint || block.fit || !isBoardSource(block.source)))) return "blue";
+  if (onlyVisualizers && blocks.some((block) => block.type === "visualizer" && !isCanvasSource(block.source) && (block.source.includes("data-b2b-check") || blueprint || block.fit || !isBoardSource(block.source)))) return "blue";
   return dark ? "dark" : "paper";
 }
 
@@ -214,7 +214,7 @@ export function LessonExperience({
   const hasSideBlocks = activeBlocks.some((block) => block.pane === "side");
   const hasQuiz = activeBlocks.some((block) => block.type === "quiz");
   const hasSidePane = !hasGeoSide && (hasSideBlocks || hasQuiz);
-  const hasVisualizerFit = activeBlocks.some((block) => block.type === "visualizer" && (blueprint || block.fit));
+  const hasVisualizerFit = activeBlocks.some((block) => block.type === "visualizer" && !isCanvasSource(block.source) && (blueprint || block.fit));
   // A page that is only a visualizer runs edge to edge, with no padding or card around it.
   const visualizerPage = hasVisualizerFit && !hasSidePane && activeBlocks.every((block) => block.type === "visualizer");
 
