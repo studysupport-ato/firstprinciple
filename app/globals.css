@@ -279,3 +279,9 @@
 .cs-spine { transform-origin: top; animation: cs-grow 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .cs-pulse { animation: cs-pulse 2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .cs-rise, .cs-drop, .cs-spine, .cs-pulse { animation: none; } }
+
+/* Lesson markdown: "-> text <-" centres a line, "->" … "<-" centres a block */
+.markdown-content .lesson-centre,
+.markdown-content .lesson-centre :is(p, h1, h2, h3, h4) { text-align: center; }
+.markdown-content .lesson-centre .markdown-content { display: flow-root; }
+.markdown-content .lesson-centre :is(ul, ol) { display: inline-block; text-align: left; }

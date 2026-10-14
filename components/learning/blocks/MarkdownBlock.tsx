@@ -95,6 +95,23 @@ export function MarkdownBlock({ markdown }: { markdown: string }) {
       continue;
     }
 
+    // Centring: "-> text <-" centres one line (a heading too, "-> ## Title <-").
+    // A line holding just "->" starts a centred block that runs to a line holding just "<-".
+    if (line.trim() === "->") {
+      const inner: string[] = [];
+      index += 1;
+      while (index < lines.length && lines[index].trim() !== "<-") { inner.push(lines[index]); index += 1; }
+      if (index < lines.length) index += 1;
+      output.push(<div key={`centre-${index}`} className="lesson-centre"><MarkdownBlock markdown={inner.join("\n")} /></div>);
+      continue;
+    }
+    const centred = line.trim().match(/^->\s*(.+?)\s*<-$/);
+    if (centred) {
+      output.push(<div key={`centre-${index}`} className="lesson-centre"><MarkdownBlock markdown={centred[1]} /></div>);
+      index += 1;
+      continue;
+    }
+
     const heading = line.match(/^(#{1,6})\s+(.+)$/);
     if (heading) {
       const level = Math.min(heading[1].length, 4);
@@ -138,7 +155,7 @@ export function MarkdownBlock({ markdown }: { markdown: string }) {
 
     const paragraph: string[] = [line];
     index += 1;
-    while (index < lines.length && lines[index].trim() && !/^(#{1,6})\s+/.test(lines[index]) && !/^\s*[-*+]\s+/.test(lines[index]) && !/^\s*\d+[.)]\s+/.test(lines[index]) && !lines[index].trim().startsWith(">") && !lines[index].trim().startsWith("```") && !/^(\*{3,}|-{3,}|_{3,})\s*$/.test(lines[index].trim())) { paragraph.push(lines[index]); index += 1; }
+    while (index < lines.length && lines[index].trim() && !/^(#{1,6})\s+/.test(lines[index]) && !/^\s*[-*+]\s+/.test(lines[index]) && !/^\s*\d+[.)]\s+/.test(lines[index]) && !lines[index].trim().startsWith(">") && !lines[index].trim().startsWith("->") && !lines[index].trim().startsWith("```") && !/^(\*{3,}|-{3,}|_{3,})\s*$/.test(lines[index].trim())) { paragraph.push(lines[index]); index += 1; }
     output.push(<p key={`paragraph-${index}`} className="my-4 text-base leading-8 text-[#333333]">{inlineContent(paragraph.join(" "), `paragraph-${index}`)}</p>);
   }
 
