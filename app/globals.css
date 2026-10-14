@@ -321,8 +321,14 @@ span.lesson-math-box { margin: 0.3rem auto; }
 }
 :is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-subtopic h3 * { color: #ffe48a !important; }
 
-/* Callouts: slim notes with tight paragraphs */
+/* Callouts: ordinary centred text inside a very thin grey outline; equations share one line */
+.lesson-callout { border: 1px solid rgba(120, 113, 100, 0.28) !important; background: transparent !important; }
+:is(.lesson-themed[data-lesson-theme="dark"], .lesson-themed[data-lesson-theme="blue"], .lesson-themed[data-lesson-theme="wine"], .lesson-themed[data-lesson-theme="purple"], .lesson-themed[data-lesson-theme="green"]) .lesson-callout { border-color: rgba(255, 255, 255, 0.22) !important; }
 .lesson-callout .markdown-content p,
-.lesson-guided-content .lesson-callout .markdown-content p { margin: 0.3rem 0; font-size: clamp(1rem, 1.9vw, 1.12rem); line-height: 1.5; }
-.lesson-callout .markdown-content :is(ul, ol) { margin: 0.35rem 0; }
-.lesson-callout .lesson-math-box { margin: 0.25rem auto; }
+.lesson-guided-content .lesson-callout .markdown-content p { margin: 0.3rem 0; text-align: center; }
+.lesson-callout .markdown-content :is(ul, ol) { display: inline-block; margin: 0.35rem auto; text-align: left; }
+.lesson-callout .lesson-math-box { margin: 0.2rem auto; }
+.lesson-math-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; column-gap: 2.5rem; row-gap: 0.2rem; margin: 0.35rem 0; }
+.lesson-math-row > .lesson-math-box { margin: 0; max-width: 100%; }
+.lesson-note .lesson-callout { border: 0 !important; padding: 0 !important; text-align: left; }
+.lesson-note .lesson-callout .markdown-content p { text-align: left; }

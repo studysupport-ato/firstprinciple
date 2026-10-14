@@ -162,5 +162,20 @@ export function MarkdownBlock({ markdown, size }: { markdown: string; size?: "sm
     output.push(<p key={`paragraph-${index}`} className="my-4 text-base leading-8 text-[#333333]">{inlineContent(paragraph.join(" "), `paragraph-${index}`)}</p>);
   }
 
-  return <div className={small ? "markdown-content markdown-sm" : "markdown-content"}>{output.length ? output : <p className="text-sm text-[#999999]">No Markdown content yet.</p>}</div>;
+  // Equations written one after another sit side by side on one centred line.
+  const grouped: ReactNode[] = [];
+  let mathRun: ReactNode[] = [];
+  const isMath = (node: ReactNode) => typeof node === "object" && node !== null && "key" in node && String(node.key).startsWith("display-math-");
+  const flush = () => {
+    if (mathRun.length > 1) grouped.push(<div key={`math-row-${grouped.length}`} className="lesson-math-row">{mathRun}</div>);
+    else grouped.push(...mathRun);
+    mathRun = [];
+  };
+  for (const node of output) {
+    if (isMath(node)) mathRun.push(node);
+    else { flush(); grouped.push(node); }
+  }
+  flush();
+
+  return <div className={small ? "markdown-content markdown-sm" : "markdown-content"}>{grouped.length ? grouped : <p className="text-sm text-[#999999]">No Markdown content yet.</p>}</div>;
 }
