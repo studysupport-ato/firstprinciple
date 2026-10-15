@@ -43,6 +43,10 @@ export const TOPIC_BANKS: Record<string, TopicBank> = {
     groupedTopic: "Uncertain",
     groupedTopicNote: "Answers worth checking with your lecturer",
   },
+  "me-161": {
+    chapterId: "me-161-question-bank",
+    topics: ["Forces in 2D", "Forces in 3D", "Particle equilibrium", "Moments", "Trusses", "Friction"],
+  },
 };
 
 export function getTopicBank(courseId: string): TopicBank | undefined {

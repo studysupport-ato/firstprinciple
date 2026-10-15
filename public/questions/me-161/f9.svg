@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 440" width="560" height="440" role="img" aria-label="Screw eye at the origin with three cable forces: F1 350 N, F2 100 N and F3 250 N, with their direction angles listed under the figure">
+<rect width="560" height="440" fill="#ffffff"/>
+<line x1="290.0" y1="180.0" x2="197.2" y2="242.8" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="197.2,242.8 201.4,236.0 205.1,241.6" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="187.3" y="249.6" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">x</text>
+<line x1="290.0" y1="180.0" x2="430.6" y2="209.9" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="430.6,209.9 422.8,211.7 424.2,205.1" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="442.4" y="212.4" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">y</text>
+<line x1="290.0" y1="180.0" x2="290.0" y2="30.4" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="290.0,30.4 293.4,37.7 286.6,37.7" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="290.0" y="18.4" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">z</text>
+<circle cx="290.0" cy="180.0" r="14" fill="none" stroke="#7A4FB3" stroke-width="6"/>
+<line x1="372.2" y1="197.5" x2="372.2" y2="93.3" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="290.0" y1="180.0" x2="372.2" y2="93.3" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="372.2,93.3 368.4,104.7 361.0,97.7" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="402.2" y="83.3" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">F1 = 350 N</text>
+<line x1="294.3" y1="234.0" x2="294.3" y2="302.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="290.0" y1="180.0" x2="294.3" y2="302.0" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="294.3,302.0 288.8,291.3 299.0,290.9" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="342.3" y="308.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">F2 = 100 N</text>
+<line x1="157.4" y1="189.3" x2="157.4" y2="121.3" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="290.0" y1="180.0" x2="157.4" y2="121.3" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="157.4,121.3 169.4,121.1 165.3,130.4" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="117.4" y="107.3" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">F3 = 250 N</text>
+<text x="40.0" y="372.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#1A1814" text-anchor="start" dominant-baseline="middle">F1: in the y–z plane, 40° from +z</text>
+<text x="40.0" y="396.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#1A1814" text-anchor="start" dominant-baseline="middle">F2: α = 45°, β = 60°, γ = 120°</text>
+<text x="40.0" y="420.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#1A1814" text-anchor="start" dominant-baseline="middle">F3: α = 60°, β = 135°, γ = 60°</text>
+</svg>

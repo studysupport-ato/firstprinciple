@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 330" width="560" height="330" role="img" aria-label="Symmetric roof truss on a pin and a roller with six bottom panels; it has a centre vertical, two verticals and two diagonals on each side; a single load P hangs at the centre of the bottom chord">
+<rect width="560" height="330" fill="#ffffff"/>
+<line x1="70.0" y1="240.0" x2="140.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="70.0" y1="240.0" x2="140.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="140.0" y1="240.0" x2="210.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="140.0" y1="240.0" x2="210.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="210.0" y1="240.0" x2="280.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="210.0" y1="240.0" x2="280.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="280.0" y1="240.0" x2="350.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="280.0" y1="240.0" x2="350.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="350.0" y1="240.0" x2="420.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="350.0" y1="240.0" x2="420.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="420.0" y1="240.0" x2="490.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="420.0" y1="240.0" x2="490.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="70.0" y1="240.0" x2="140.0" y2="193.3" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="70.0" y1="240.0" x2="140.0" y2="193.3" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="140.0" y1="193.3" x2="210.0" y2="146.7" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="140.0" y1="193.3" x2="210.0" y2="146.7" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="210.0" y1="146.7" x2="280.0" y2="100.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="210.0" y1="146.7" x2="280.0" y2="100.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="280.0" y1="100.0" x2="350.0" y2="146.7" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="280.0" y1="100.0" x2="350.0" y2="146.7" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="350.0" y1="146.7" x2="420.0" y2="193.3" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="350.0" y1="146.7" x2="420.0" y2="193.3" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="420.0" y1="193.3" x2="490.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="420.0" y1="193.3" x2="490.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="140.0" y1="193.3" x2="140.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="140.0" y1="193.3" x2="140.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="140.0" y1="193.3" x2="210.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="140.0" y1="193.3" x2="210.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="210.0" y1="146.7" x2="210.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="210.0" y1="146.7" x2="210.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="210.0" y1="146.7" x2="280.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="210.0" y1="146.7" x2="280.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="280.0" y1="100.0" x2="280.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="280.0" y1="100.0" x2="280.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="350.0" y1="146.7" x2="280.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="350.0" y1="146.7" x2="280.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="350.0" y1="146.7" x2="350.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="350.0" y1="146.7" x2="350.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="420.0" y1="193.3" x2="350.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="420.0" y1="193.3" x2="350.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="420.0" y1="193.3" x2="420.0" y2="240.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="420.0" y1="193.3" x2="420.0" y2="240.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<circle cx="70.0" cy="240.0" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="140.0" cy="240.0" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="210.0" cy="240.0" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="280.0" cy="240.0" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="350.0" cy="240.0" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="420.0" cy="240.0" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="490.0" cy="240.0" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="140.0" cy="193.3" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="210.0" cy="146.7" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="280.0" cy="100.0" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="350.0" cy="146.7" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="420.0" cy="193.3" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<polygon points="70.0,240.0 56.0,257.5 84.0,257.5" fill="#E8E2D2" stroke="#1A1814" stroke-width="2" stroke-linejoin="round"/>
+<line x1="50.0" y1="257.5" x2="90.0" y2="257.5" stroke="#1A1814" stroke-width="2" stroke-linecap="round"/>
+<line x1="54.0" y1="257.5" x2="46.0" y2="265.5" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="64.0" y1="257.5" x2="56.0" y2="265.5" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="74.0" y1="257.5" x2="66.0" y2="265.5" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="84.0" y1="257.5" x2="76.0" y2="265.5" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<circle cx="70.0" cy="240.0" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<polygon points="490.0,240.0 476.0,254.0 504.0,254.0" fill="#E8E2D2" stroke="#1A1814" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="482.0" cy="258.0" r="3.5" fill="#ffffff" stroke="#1A1814" stroke-width="1.5"/>
+<circle cx="490.0" cy="258.0" r="3.5" fill="#ffffff" stroke="#1A1814" stroke-width="1.5"/>
+<circle cx="498.0" cy="258.0" r="3.5" fill="#ffffff" stroke="#1A1814" stroke-width="1.5"/>
+<line x1="470.0" y1="262.0" x2="510.0" y2="262.0" stroke="#1A1814" stroke-width="2" stroke-linecap="round"/>
+<line x1="474.0" y1="262.0" x2="466.0" y2="270.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="484.0" y1="262.0" x2="476.0" y2="270.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="494.0" y1="262.0" x2="486.0" y2="270.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="504.0" y1="262.0" x2="496.0" y2="270.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<circle cx="490.0" cy="240.0" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<line x1="280.0" y1="240.0" x2="280.0" y2="310.0" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="280.0,310.0 274.9,299.1 285.1,299.1" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="296.0" y="304.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">P</text>
+</svg>

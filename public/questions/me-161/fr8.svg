@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 420" width="560" height="420" role="img" aria-label="A 100 kg block on a 20 degree slope carries a small pulley; a cable anchored at the top passes round it and over the top pulley, then down to a block of mass m that rests on wheels against a face tilted 10 degrees from the vertical">
+<rect width="560" height="420" fill="#ffffff"/>
+<polygon points="40.0,300.0 350.1,187.1 388.3,403.8 40.0,403.8" fill="#E8E2D2" stroke="#1A1814" stroke-width="2" stroke-linejoin="round"/>
+<path d="M86.0,300.0 A46,46 0 0 0 83.2,284.3" fill="none" stroke="#6B6B6B" stroke-width="1.3"/>
+<text x="101.1" y="289.2" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">20°</text>
+<line x1="40.0" y1="300.0" x2="120.0" y2="300.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<polygon points="152.8,259.0 246.7,224.8 227.6,172.1 133.6,206.3" fill="#A9C4EA" stroke="#1A1814" stroke-width="2" stroke-linejoin="round"/>
+<text x="190.2" y="215.5" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">100 kg</text>
+<circle cx="252.2" cy="193.0" r="10" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<line x1="323.8" y1="149.9" x2="338.8" y2="191.2" stroke="#1A1814" stroke-width="3" stroke-linecap="round"/>
+<circle cx="323.8" cy="149.9" r="16" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="323.8" cy="149.9" r="4" fill="#1A1814" stroke="#1A1814" stroke-width="2"/>
+<line x1="248.8" y1="183.6" x2="318.3" y2="134.9" stroke="#1A1814" stroke-width="2" stroke-linecap="round"/>
+<line x1="255.6" y1="202.4" x2="321.6" y2="161.3" stroke="#1A1814" stroke-width="2" stroke-linecap="round"/>
+<polygon points="371.3,272.8 382.4,335.8 421.8,328.8 410.7,265.8" fill="#C9744E" stroke="#1A1814" stroke-width="2" stroke-linejoin="round"/>
+<text x="396.5" y="300.8" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">m</text>
+<circle cx="371.7" cy="286.9" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="1.5"/>
+<circle cx="378.0" cy="322.3" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="1.5"/>
+<line x1="339.8" y1="149.9" x2="391.0" y2="269.3" stroke="#1A1814" stroke-width="2" stroke-linecap="round"/>
+<line x1="350.1" y1="187.1" x2="350.1" y2="307.1" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<path d="M350.1,247.1 A60,60 0 0 0 360.5,246.2" fill="none" stroke="#6B6B6B" stroke-width="1.3"/>
+<text x="356.7" y="262.8" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">10°</text>
+<text x="40.0" y="30.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#1A1814" text-anchor="start" dominant-baseline="middle">μs = 0.30, μk = 0.25 under the 100 kg block</text>
+<text x="40.0" y="52.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#1A1814" text-anchor="start" dominant-baseline="middle">Wheels and pulleys are frictionless</text>
+</svg>

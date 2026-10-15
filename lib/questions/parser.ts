@@ -189,9 +189,12 @@ function parseExplanation(lines: string[]) {
   const explanationIndex = lines.findIndex((line) => /^###\s*explanation\s*$/i.test(line.trim()));
   if (explanationIndex >= 0) {
     const next = lines.slice(explanationIndex + 1);
+    // Keep line breaks so worked steps stay on their own lines.
     const text = next
       .filter((line) => !/^###\s*(options?|answer|hint|question)\s*$/i.test(line.trim()))
-      .join(" ")
+      .map((line) => line.trim())
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
       .trim();
     if (text) return text;
   }
@@ -230,6 +233,18 @@ function readHeaderFields(lines: string[]) {
     fields[key] = key === "status" ? match[2].trim().toLowerCase() : match[2].trim();
   }
   return fields;
+}
+
+// Optional header fields that become tags: "**Media:** <key>" links a figure
+// and video solution (see lib/questions/videoSolutions.ts) and
+// "**Tolerance:** 0.02" accepts numerical answers within ±2 %.
+function buildTags(courseId: string, data: Record<string, string>) {
+  const tags = ["imported", courseId];
+  const media = data.media?.trim();
+  if (media && /^[a-z0-9-]+$/i.test(media)) tags.push(`media:${media}`);
+  const tolerance = Number(data.tolerance);
+  if (Number.isFinite(tolerance) && tolerance > 0 && tolerance < 1) tags.push(`tolerance:${tolerance}`);
+  return tags;
 }
 
 function parseQuestionBlock(block: string, courseId: string, fallbackChapterId: string, fallbackLessonId: string, index: number) {
@@ -279,7 +294,7 @@ function parseQuestionBlock(block: string, courseId: string, fallbackChapterId: 
     hint,
     difficulty: parseDifficulty(data.difficulty),
     marks: parseMarks(data.marks),
-    tags: ["imported", courseId],
+    tags: buildTags(courseId, data),
     metadata: {
       source: "imported",
       status,

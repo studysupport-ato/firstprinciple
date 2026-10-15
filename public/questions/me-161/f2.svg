@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 400" width="560" height="400" role="img" aria-label="500 N force from the origin pointing up, toward the viewer and toward negative y, making 60 degrees with the x axis and 60 degrees with the z axis">
+<rect width="560" height="400" fill="#ffffff"/>
+<line x1="280.0" y1="250.0" x2="180.8" y2="317.2" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="180.8,317.2 184.9,310.3 188.7,315.9" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="170.9" y="323.9" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">x</text>
+<line x1="280.0" y1="250.0" x2="437.9" y2="283.6" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="437.9,283.6 430.1,285.4 431.5,278.8" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="449.7" y="286.1" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">y</text>
+<line x1="280.0" y1="250.0" x2="280.0" y2="74.0" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="280.0,74.0 283.4,81.3 276.6,81.3" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="280.0" y="62.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">z</text>
+<line x1="280.0" y1="250.0" x2="129.6" y2="218.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="124.1" y1="261.0" x2="124.1" y2="181.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="280.0" y1="250.0" x2="124.1" y2="261.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="280.0" y1="250.0" x2="124.1" y2="181.0" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="124.1,181.0 136.0,180.7 131.9,190.0" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="104.1" y="165.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">F = 500 N</text>
+<text x="420.0" y="350.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">α = 60°,  γ = 60°</text>
+</svg>

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 440" width="560" height="440" role="img" aria-label="A hook A on a wall lying in the x-z plane, 1 m along x from the corner at height z; a 4 m cord runs from A down to point B on the floor at coordinates x, y">
+<rect width="560" height="440" fill="#ffffff"/>
+<polygon points="210.0,280.0 76.1,370.7 76.1,207.5 210.0,116.8" fill="#F1D9D2" stroke="#1A1814" stroke-width="1.5" stroke-linejoin="round"/>
+<line x1="210.0" y1="280.0" x2="49.3" y2="388.9" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="49.3,388.9 53.4,382.0 57.2,387.6" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="39.4" y="395.6" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">x</text>
+<line x1="210.0" y1="280.0" x2="417.6" y2="324.2" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="417.6,324.2 409.8,326.0 411.2,319.3" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="429.3" y="326.7" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">y</text>
+<line x1="210.0" y1="280.0" x2="210.0" y2="88.0" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="210.0,88.0 213.4,95.3 206.6,95.3" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="210.0" y="76.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">z</text>
+<line x1="180.2" y1="209.9" x2="192.0" y2="377.4" stroke="#1A1814" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="180.2" cy="209.9" r="6" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="192.0" cy="377.4" r="5" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<text x="164.2" y="201.9" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">A</text>
+<text x="208.0" y="383.4" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">B</text>
+<line x1="180.2" y1="300.2" x2="180.2" y2="209.9" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="169.0" y="252.2" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#6B6B6B" text-anchor="end" dominant-baseline="middle" font-style="italic">z</text>
+<line x1="96.3" y1="357.0" x2="192.0" y2="377.4" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="305.7" y1="300.4" x2="192.0" y2="377.4" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="246.9" y="351.4" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#6B6B6B" text-anchor="middle" dominant-baseline="middle" font-style="italic">x</text>
+<text x="135.8" y="372.8" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#6B6B6B" text-anchor="middle" dominant-baseline="middle" font-style="italic">y</text>
+<text x="181.6" y="287.2" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#6B6B6B" text-anchor="middle" dominant-baseline="middle">1 m</text>
+<text x="189.6" y="281.2" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#6B6B6B" text-anchor="middle" dominant-baseline="middle">4 m</text>
+<text x="420.0" y="70.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">F = {12i + 9j − 8k} kN</text>
+</svg>

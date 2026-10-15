@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 400" width="560" height="400" role="img" aria-label="500 N force from the origin making 60 degrees with x, 45 degrees with y and 120 degrees with z, so it points slightly downward">
+<rect width="560" height="400" fill="#ffffff"/>
+<line x1="270.0" y1="220.0" x2="170.8" y2="287.2" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="170.8,287.2 174.9,280.3 178.7,285.9" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="160.9" y="293.9" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">x</text>
+<line x1="270.0" y1="220.0" x2="435.4" y2="255.2" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="435.4,255.2 427.6,257.0 429.1,250.4" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="447.2" y="257.7" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">y</text>
+<line x1="270.0" y1="220.0" x2="270.0" y2="52.0" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="270.0,52.0 273.4,59.3 266.6,59.3" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="270.0" y="40.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">z</text>
+<line x1="270.0" y1="220.0" x2="326.7" y2="276.2" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="326.7" y1="276.2" x2="326.7" y2="356.2" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="270.0" y1="220.0" x2="326.7" y2="356.2" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="326.7,356.2 317.9,348.1 327.2,344.2" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="360.7" y="352.2" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">500 N</text>
+<text x="280.0" y="384.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">θx = 60°   θy = 45°   θz = 120°</text>
+</svg>

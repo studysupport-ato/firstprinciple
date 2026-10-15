@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 420" width="560" height="420" role="img" aria-label="Bent bracket fixed at A on the x axis; the force of 450 N acts at the top of post B, 0.15 m along negative x, 0.3 m along y and 0.1 m up from A">
+<rect width="560" height="420" fill="#ffffff"/>
+<line x1="220.0" y1="300.0" x2="41.4" y2="421.0" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="41.4,421.0 45.5,414.1 49.3,419.7" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="31.5" y="427.7" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">x</text>
+<line x1="220.0" y1="300.0" x2="575.3" y2="375.6" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="575.3,375.6 567.5,377.4 568.9,370.8" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="587.1" y="378.1" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">y</text>
+<line x1="220.0" y1="300.0" x2="220.0" y2="30.0" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="220.0,30.0 223.4,37.3 216.6,37.3" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="220.0" y="18.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">z</text>
+<line x1="220.0" y1="300.0" x2="372.3" y2="332.4" stroke="#1A1814" stroke-width="17" stroke-linecap="round"/>
+<line x1="220.0" y1="300.0" x2="372.3" y2="332.4" stroke="#C9C4B6" stroke-width="14" stroke-linecap="round"/>
+<line x1="372.3" y1="332.4" x2="557.5" y2="297.3" stroke="#1A1814" stroke-width="17" stroke-linecap="round"/>
+<line x1="372.3" y1="332.4" x2="557.5" y2="297.3" stroke="#C9C4B6" stroke-width="14" stroke-linecap="round"/>
+<line x1="557.5" y1="297.3" x2="557.5" y2="207.3" stroke="#1A1814" stroke-width="15" stroke-linecap="round"/>
+<line x1="557.5" y1="297.3" x2="557.5" y2="207.3" stroke="#C9C4B6" stroke-width="12" stroke-linecap="round"/>
+<line x1="557.5" y1="207.3" x2="676.8" y2="82.3" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="676.8,82.3 673.0,93.7 665.7,86.6" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="706.8" y="82.3" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">450 N</text>
+<text x="204.0" y="288.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">A</text>
+<text x="539.5" y="203.3" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">B</text>
+<text x="60.0" y="360.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#1A1814" text-anchor="start" dominant-baseline="middle">r(AB) = {−0.15i + 0.3j + 0.1k} m</text>
+<text x="60.0" y="384.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#1A1814" text-anchor="start" dominant-baseline="middle">F = 450 N: α = 120°, β = 60°, γ = 45°</text>
+</svg>

@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 380" width="560" height="380" role="img" aria-label="Truss with pin A, joint B 3 m to the right, roller C a further 1 m, and joint D 4 m above A; members AB, BC, AD, BD and CD; 5 kN acts horizontally to the right at D and 8 kN acts down at B">
+<rect width="560" height="380" fill="#ffffff"/>
+<line x1="150.0" y1="300.0" x2="336.0" y2="300.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="150.0" y1="300.0" x2="336.0" y2="300.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="336.0" y1="300.0" x2="398.0" y2="300.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="336.0" y1="300.0" x2="398.0" y2="300.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="150.0" y1="300.0" x2="150.0" y2="52.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="150.0" y1="300.0" x2="150.0" y2="52.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="336.0" y1="300.0" x2="150.0" y2="52.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="336.0" y1="300.0" x2="150.0" y2="52.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<line x1="398.0" y1="300.0" x2="150.0" y2="52.0" stroke="#1A1814" stroke-width="9" stroke-linecap="round"/>
+<line x1="398.0" y1="300.0" x2="150.0" y2="52.0" stroke="#C9C4B6" stroke-width="6" stroke-linecap="round"/>
+<circle cx="150.0" cy="300.0" r="4.5" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="336.0" cy="300.0" r="4.5" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="398.0" cy="300.0" r="4.5" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="150.0" cy="52.0" r="4.5" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<text x="130.0" y="290.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">A</text>
+<text x="336.0" y="282.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">B</text>
+<text x="416.0" y="288.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">C</text>
+<text x="132.0" y="46.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">D</text>
+<polygon points="150.0,300.0 136.0,317.5 164.0,317.5" fill="#E8E2D2" stroke="#1A1814" stroke-width="2" stroke-linejoin="round"/>
+<line x1="130.0" y1="317.5" x2="170.0" y2="317.5" stroke="#1A1814" stroke-width="2" stroke-linecap="round"/>
+<line x1="134.0" y1="317.5" x2="126.0" y2="325.5" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="144.0" y1="317.5" x2="136.0" y2="325.5" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="154.0" y1="317.5" x2="146.0" y2="325.5" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="164.0" y1="317.5" x2="156.0" y2="325.5" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<circle cx="150.0" cy="300.0" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<polygon points="398.0,300.0 384.0,314.0 412.0,314.0" fill="#E8E2D2" stroke="#1A1814" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="390.0" cy="318.0" r="3.5" fill="#ffffff" stroke="#1A1814" stroke-width="1.5"/>
+<circle cx="398.0" cy="318.0" r="3.5" fill="#ffffff" stroke="#1A1814" stroke-width="1.5"/>
+<circle cx="406.0" cy="318.0" r="3.5" fill="#ffffff" stroke="#1A1814" stroke-width="1.5"/>
+<line x1="378.0" y1="322.0" x2="418.0" y2="322.0" stroke="#1A1814" stroke-width="2" stroke-linecap="round"/>
+<line x1="382.0" y1="322.0" x2="374.0" y2="330.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="392.0" y1="322.0" x2="384.0" y2="330.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="402.0" y1="322.0" x2="394.0" y2="330.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="412.0" y1="322.0" x2="404.0" y2="330.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<circle cx="398.0" cy="300.0" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<line x1="150.0" y1="52.0" x2="230.0" y2="52.0" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="230.0,52.0 219.1,57.1 219.1,46.9" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="260.0" y="52.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">5 kN</text>
+<line x1="336.0" y1="300.0" x2="336.0" y2="370.0" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="336.0,370.0 330.9,359.1 341.1,359.1" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="306.0" y="364.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">8 kN</text>
+<line x1="100.0" y1="52.0" x2="100.0" y2="300.0" stroke="#6B6B6B" stroke-width="1.2" stroke-linecap="butt"/>
+<line x1="105.0" y1="52.0" x2="95.0" y2="52.0" stroke="#6B6B6B" stroke-width="1.2" stroke-linecap="round"/>
+<line x1="105.0" y1="300.0" x2="95.0" y2="300.0" stroke="#6B6B6B" stroke-width="1.2" stroke-linecap="round"/>
+<text x="80.0" y="176.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#6B6B6B" text-anchor="middle" dominant-baseline="middle">4 m</text>
+<line x1="150.0" y1="340.0" x2="336.0" y2="340.0" stroke="#6B6B6B" stroke-width="1.2" stroke-linecap="butt"/>
+<line x1="150.0" y1="335.0" x2="150.0" y2="345.0" stroke="#6B6B6B" stroke-width="1.2" stroke-linecap="round"/>
+<line x1="336.0" y1="335.0" x2="336.0" y2="345.0" stroke="#6B6B6B" stroke-width="1.2" stroke-linecap="round"/>
+<text x="243.0" y="356.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#6B6B6B" text-anchor="middle" dominant-baseline="middle">3 m</text>
+<line x1="336.0" y1="340.0" x2="398.0" y2="340.0" stroke="#6B6B6B" stroke-width="1.2" stroke-linecap="butt"/>
+<line x1="336.0" y1="335.0" x2="336.0" y2="345.0" stroke="#6B6B6B" stroke-width="1.2" stroke-linecap="round"/>
+<line x1="398.0" y1="335.0" x2="398.0" y2="345.0" stroke="#6B6B6B" stroke-width="1.2" stroke-linecap="round"/>
+<text x="379.0" y="356.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#6B6B6B" text-anchor="middle" dominant-baseline="middle">1 m</text>
+</svg>

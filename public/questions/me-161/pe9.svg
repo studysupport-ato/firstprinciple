@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 440" width="560" height="440" role="img" aria-label="Uniform 12 m by 12 m plate hung from ring A, 12 m above its centre, by three cables to points B, C and D on its edges">
+<rect width="560" height="440" fill="#ffffff"/>
+<polygon points="260.2,242.3 144.9,320.5 319.8,357.7 435.1,279.5" fill="#C7B3E6" stroke="#1A1814" stroke-width="2" stroke-linejoin="round"/>
+<line x1="290.0" y1="114.0" x2="415.9" y2="292.6" stroke="#1A1814" stroke-width="2" stroke-linecap="round"/>
+<line x1="290.0" y1="114.0" x2="290.6" y2="351.5" stroke="#1A1814" stroke-width="2" stroke-linecap="round"/>
+<line x1="290.0" y1="114.0" x2="164.1" y2="307.4" stroke="#1A1814" stroke-width="2" stroke-linecap="round"/>
+<line x1="290.0" y1="114.0" x2="290.0" y2="78.0" stroke="#1A1814" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="290.0" cy="74.0" r="6" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="290.0" cy="114.0" r="5" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<text x="304.0" y="110.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">A</text>
+<circle cx="415.9" cy="292.6" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<text x="415.9" y="310.6" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">B</text>
+<circle cx="290.6" cy="351.5" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<text x="308.6" y="357.5" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">C</text>
+<circle cx="164.1" cy="307.4" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<text x="158.1" y="325.4" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">D</text>
+<line x1="290.0" y1="114.0" x2="290.0" y2="300.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="298.7" y="208.9" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#6B6B6B" text-anchor="start" dominant-baseline="middle">12 m</text>
+</svg>

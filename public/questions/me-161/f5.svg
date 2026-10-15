@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 440" width="560" height="440" role="img" aria-label="A man at B, 12 ft along x, 8 ft along negative y and 6 ft up, pulls a cord tied to support A, 30 ft up on the z axis, with 70 lb">
+<rect width="560" height="440" fill="#ffffff"/>
+<line x1="340.0" y1="320.0" x2="245.8" y2="383.8" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="245.8,383.8 249.9,377.0 253.7,382.6" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="235.8" y="390.6" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">x</text>
+<line x1="340.0" y1="320.0" x2="429.3" y2="339.0" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="429.3,339.0 421.5,340.8 422.9,334.2" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="441.0" y="341.5" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">y</text>
+<line x1="340.0" y1="320.0" x2="340.0" y2="25.5" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="340.0,25.5 343.4,32.8 336.6,32.8" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="340.0" y="13.5" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">z</text>
+<rect x="330.0" y="21.0" width="20.0" height="14.0" rx="0" fill="#B9B4A6" stroke="#1A1814" stroke-width="2"/>
+<line x1="340.0" y1="35.0" x2="197.9" y2="295.7" stroke="#1A1814" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="340.0" cy="35.0" r="5" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="197.9" cy="295.7" r="5" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<text x="356.0" y="39.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">A</text>
+<text x="179.9" y="291.7" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">B</text>
+<line x1="197.9" y1="352.7" x2="197.9" y2="295.7" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="269.3" y1="367.9" x2="197.9" y2="352.7" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="268.6" y1="304.8" x2="197.9" y2="352.7" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="268.6" y1="304.8" x2="340.0" y2="320.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="227.7" y="364.3" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#6B6B6B" text-anchor="middle" dominant-baseline="middle">8 ft</text>
+<text x="219.8" y="325.9" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#6B6B6B" text-anchor="middle" dominant-baseline="middle">12 ft</text>
+<text x="184.5" y="321.3" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#6B6B6B" text-anchor="middle" dominant-baseline="middle">6 ft</text>
+<text x="354.3" y="180.5" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#6B6B6B" text-anchor="middle" dominant-baseline="middle">30 ft</text>
+<text x="228.9" y="165.3" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">70 lb</text>
+</svg>

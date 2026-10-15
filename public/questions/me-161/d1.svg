@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 380" width="560" height="380" role="img" aria-label="Screw eye hanging from a ceiling with a 6 kN force pulling 60 degrees below the negative x axis and a 2 kN force 45 degrees below the positive x axis">
+<rect width="560" height="380" fill="#ffffff"/>
+<line x1="220.0" y1="80.0" x2="340.0" y2="80.0" stroke="#1A1814" stroke-width="2" stroke-linecap="round"/>
+<line x1="224.0" y1="80.0" x2="232.0" y2="72.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="234.0" y1="80.0" x2="242.0" y2="72.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="244.0" y1="80.0" x2="252.0" y2="72.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="254.0" y1="80.0" x2="262.0" y2="72.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="264.0" y1="80.0" x2="272.0" y2="72.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="274.0" y1="80.0" x2="282.0" y2="72.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="284.0" y1="80.0" x2="292.0" y2="72.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="294.0" y1="80.0" x2="302.0" y2="72.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="304.0" y1="80.0" x2="312.0" y2="72.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="314.0" y1="80.0" x2="322.0" y2="72.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="324.0" y1="80.0" x2="332.0" y2="72.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="334.0" y1="80.0" x2="342.0" y2="72.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="280.0" y1="80.0" x2="280.0" y2="112.0" stroke="#1A1814" stroke-width="3" stroke-linecap="round"/>
+<circle cx="280.0" cy="120.0" r="10" fill="none" stroke="#1A1814" stroke-width="3"/>
+<line x1="140.0" y1="130.0" x2="420.0" y2="130.0" stroke="#6B6B6B" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="5 4"/>
+<text x="432.0" y="130.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">x</text>
+<line x1="280.0" y1="130.0" x2="190.0" y2="285.9" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="190.0,285.9 191.0,273.9 199.8,279.0" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="164.0" y="285.9" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">6 kN</text>
+<line x1="280.0" y1="130.0" x2="371.9" y2="221.9" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="371.9,221.9 360.6,217.8 367.8,210.6" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="395.9" y="221.9" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">2 kN</text>
+<path d="M220.0,130.0 A60,60 0 0 0 250.0,182.0" fill="none" stroke="#6B6B6B" stroke-width="1.3"/>
+<text x="214.2" y="168.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">60°</text>
+<path d="M322.4,172.4 A60,60 0 0 0 340.0,130.0" fill="none" stroke="#6B6B6B" stroke-width="1.3"/>
+<text x="350.2" y="159.1" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">45°</text>
+</svg>

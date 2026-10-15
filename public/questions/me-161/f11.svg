@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 420" width="560" height="420" role="img" aria-label="Triangular plate with corners A at (3, 1, 1) m, B at (3, 3, 4) m and C at (6, 5, 0) m; theta is the angle at A between sides AB and AC">
+<rect width="560" height="420" fill="#ffffff"/>
+<line x1="250.0" y1="250.0" x2="111.1" y2="344.1" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="111.1,344.1 115.2,337.2 119.0,342.8" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="101.2" y="350.8" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">x</text>
+<line x1="250.0" y1="250.0" x2="442.5" y2="291.0" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="442.5,291.0 434.7,292.8 436.1,286.1" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="454.2" y="293.5" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">y</text>
+<line x1="250.0" y1="250.0" x2="250.0" y2="77.2" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="250.0,77.2 253.4,84.5 246.6,84.5" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="250.0" y="65.2" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">z</text>
+<polygon points="220.6,264.7 280.7,181.5 281.4,362.6" fill="#7FB3D9" stroke="#1A1814" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="220.6" cy="264.7" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<text x="204.6" y="266.7" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">A</text>
+<circle cx="280.7" cy="181.5" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<text x="294.7" y="175.5" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">B</text>
+<circle cx="281.4" cy="362.6" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<text x="295.4" y="370.6" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">C</text>
+<text x="242.6" y="258.7" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">θ</text>
+<text x="280.0" y="404.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">A (3, 1, 1) m   B (3, 3, 4) m   C (6, 5, 0) m</text>
+</svg>

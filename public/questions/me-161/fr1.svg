@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 380" width="560" height="380" role="img" aria-label="A 50 kg block resting on a 15 degree slope; force P pulls on a handle at 20 degrees above the slope surface, up the slope">
+<rect width="560" height="380" fill="#ffffff"/>
+<polygon points="40.0,320.0 523.0,320.0 523.0,190.6" fill="#E8E2D2" stroke="#1A1814" stroke-width="2" stroke-linejoin="round"/>
+<path d="M86.0,320.0 A46,46 0 0 0 84.4,308.1" fill="none" stroke="#6B6B6B" stroke-width="1.3"/>
+<text x="101.5" y="311.9" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">15°</text>
+<polygon points="223.5,270.8 339.4,239.8 318.7,162.5 202.8,193.6" fill="#D9B98A" stroke="#1A1814" stroke-width="2" stroke-linejoin="round"/>
+<text x="271.1" y="216.7" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">50 kg</text>
+<line x1="300.1" y1="208.9" x2="373.8" y2="157.3" stroke="#1A1814" stroke-width="11" stroke-linecap="round"/>
+<line x1="300.1" y1="208.9" x2="373.8" y2="157.3" stroke="#C9C4B6" stroke-width="8" stroke-linecap="round"/>
+<circle cx="300.1" cy="208.9" r="6" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<line x1="377.9" y1="154.4" x2="423.0" y2="122.9" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="423.0,122.9 417.0,133.2 411.2,124.9" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="437.0" y="116.9" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">P</text>
+<line x1="300.1" y1="208.9" x2="416.0" y2="177.8" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<path d="M367.7,190.8 A70,70 0 0 0 357.4,168.7" fill="none" stroke="#6B6B6B" stroke-width="1.3"/>
+<text x="378.0" y="172.5" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">20°</text>
+<text x="420.0" y="330.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">μs = 0.25,  μk = 0.20</text>
+</svg>

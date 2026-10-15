@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 420" width="560" height="420" role="img" aria-label="Pipe along the x axis from O with two wrenches 200 mm apart: wrench A 600 mm from O with its handle 150 mm toward negative y, wrench B with its handle 150 mm toward positive y; 125 N acts down at A's handle and up at B's handle">
+<rect width="560" height="420" fill="#ffffff"/>
+<line x1="380.0" y1="110.0" x2="156.8" y2="261.2" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="156.8,261.2 160.9,254.3 164.7,259.9" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="146.9" y="267.9" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">x</text>
+<line x1="380.0" y1="110.0" x2="492.8" y2="134.0" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="492.8,134.0 485.0,135.8 486.4,129.2" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="504.5" y="136.5" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">y</text>
+<line x1="380.0" y1="110.0" x2="380.0" y2="22.0" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="380.0,22.0 383.4,29.3 376.6,29.3" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="380.0" y="10.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">z</text>
+<line x1="380.0" y1="110.0" x2="181.6" y2="244.4" stroke="#1A1814" stroke-width="15" stroke-linecap="round"/>
+<line x1="380.0" y1="110.0" x2="181.6" y2="244.4" stroke="#C9C4B6" stroke-width="12" stroke-linecap="round"/>
+<line x1="231.2" y1="210.8" x2="174.8" y2="198.8" stroke="#1A1814" stroke-width="11" stroke-linecap="round"/>
+<line x1="231.2" y1="210.8" x2="174.8" y2="198.8" stroke="#C9C4B6" stroke-width="8" stroke-linecap="round"/>
+<line x1="181.6" y1="244.4" x2="238.0" y2="256.4" stroke="#1A1814" stroke-width="11" stroke-linecap="round"/>
+<line x1="181.6" y1="244.4" x2="238.0" y2="256.4" stroke="#C9C4B6" stroke-width="8" stroke-linecap="round"/>
+<line x1="174.8" y1="118.8" x2="174.8" y2="198.8" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="174.8,198.8 169.7,187.9 179.9,187.9" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="174.8" y="104.8" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">125 N</text>
+<line x1="238.0" y1="320.4" x2="238.0" y2="256.4" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="238.0,256.4 243.1,267.3 232.9,267.3" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="278.0" y="306.4" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">125 N</text>
+<text x="160.8" y="204.8" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">A</text>
+<text x="252.0" y="250.4" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">B</text>
+<text x="390.0" y="94.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">O</text>
+<text x="40.0" y="370.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#1A1814" text-anchor="start" dominant-baseline="middle">Wrench A is 600 mm from O; wrench B is 200 mm further along x.</text>
+<text x="40.0" y="392.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#1A1814" text-anchor="start" dominant-baseline="middle">Handle A points 150 mm along −y; handle B points 150 mm along +y.</text>
+<text x="40.0" y="414.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#1A1814" text-anchor="start" dominant-baseline="middle">125 N acts down at A and up at B.</text>
+</svg>

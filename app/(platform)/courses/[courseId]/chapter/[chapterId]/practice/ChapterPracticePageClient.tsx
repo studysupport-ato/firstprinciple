@@ -2,12 +2,81 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Check, CheckCircle2, ChevronLeft, CloudCheck, Lightbulb, RotateCcw, Trophy, XCircle } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, CheckCircle2, ChevronLeft, CloudCheck, Lightbulb, Lock, Play, RotateCcw, Trophy, XCircle } from "lucide-react";
 import Link from "next/link";
 import { EducationalText } from "@/components/learning/EducationalText";
 import type { Difficulty, Question } from "@/lib/content/types/question";
 import { createPracticeSession, evaluateQuestionAnswer, getPracticeSummary, type PracticeSession, type PracticeValue } from "@/lib/practice/session";
 import { listMyPracticeAttempts, recordPracticeAttempt, recordPracticeStarted } from "@/lib/progress";
+import { getVideoSolution, type VideoSolution } from "@/lib/questions/videoSolutions";
+import { buildYouTubeEmbedUrl, buildYouTubeWatchUrl } from "@/lib/youtube";
+
+/**
+ * "Watch the solution": the worked video for a question that has one. It
+ * stays locked until the student checks an answer (or chooses to watch
+ * anyway), then embeds the YouTube video and credits the channel and the
+ * textbook the problem comes from.
+ */
+function VideoSolutionPanel({ solution, submitted }: { solution: VideoSolution; submitted: boolean }) {
+  const [revealed, setRevealed] = useState(false);
+  const unlocked = submitted || revealed;
+  const { video } = solution;
+  const embed = `${buildYouTubeEmbedUrl(video.youtubeId)}${video.start ? `&start=${video.start}` : ""}`;
+  const watch = `${buildYouTubeWatchUrl(video.youtubeId)}${video.start ? `&t=${video.start}s` : ""}`;
+  const meta = [video.channel, video.minutes ? `${video.minutes} min` : null, video.part].filter(Boolean).join(" · ");
+
+  return (
+    <section aria-label="Video solution" className="space-y-4 rounded-[24px] bg-[#1A1814] p-5 text-[#F6EFDC] md:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <p className="font-sans text-[11px] font-bold uppercase tracking-[0.18em] text-[#E9BC3A]">Watch the solution</p>
+          <h2 className="font-sans text-[17px] font-semibold leading-snug text-[#F6EFDC]">{video.title}</h2>
+          <p className="font-sans text-[13px] text-[#D9D1BC]">{meta}</p>
+        </div>
+        {!unlocked ? (
+          <button
+            type="button"
+            onClick={() => setRevealed(true)}
+            className="inline-flex min-h-[44px] items-center rounded-full border border-[#E9BC3A] px-4 font-sans text-[14px] font-semibold text-[#E9BC3A] hover:bg-[#2C2820]"
+          >
+            Show me anyway
+          </button>
+        ) : null}
+      </div>
+      {unlocked ? (
+        <div className="aspect-video overflow-hidden rounded-2xl bg-black">
+          <iframe
+            src={embed}
+            title={`Video solution: ${video.title}`}
+            className="h-full w-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            loading="lazy"
+          />
+        </div>
+      ) : (
+        <div className="flex aspect-video flex-col items-center justify-center gap-2 rounded-2xl bg-[#2C2820] px-6 text-center">
+          <Lock size={28} className="text-[#E9BC3A]" aria-hidden />
+          <p className="font-sans text-[17px] font-semibold">Have a go first</p>
+          <p className="max-w-sm font-sans text-[14px] text-[#D9D1BC]">The video unlocks when you check your answer. You can also watch it now.</p>
+        </div>
+      )}
+      <div className="flex flex-wrap items-start justify-between gap-3 border-t border-[#3A352C] pt-4">
+        <p className="max-w-xl font-sans text-[12px] leading-relaxed text-[#D9D1BC]">
+          Problem from {solution.source}. Video by {video.channel} on YouTube. Figure redrawn for Back2Basics.
+        </p>
+        <a
+          href={watch}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1 font-sans text-[13px] font-semibold text-[#E9BC3A] hover:underline"
+        >
+          <Play size={14} aria-hidden /> Open on YouTube <ArrowUpRight size={14} aria-hidden />
+        </a>
+      </div>
+    </section>
+  );
+}
 
 function QuestionRenderer({
   question,
@@ -46,6 +115,7 @@ function QuestionRenderer({
   // Skip explanations that only repeat the answer letter or are the import
   // placeholder; the correct answer line above already covers them.
   const explanationText = trimAnswerEcho(question.explanation?.trim() ?? "", correctOption);
+  const solution = getVideoSolution(question.tags);
   const hasExplanation =
     Boolean(explanationText) &&
     !/^no explanation was included/i.test(explanationText) &&
@@ -64,11 +134,16 @@ function QuestionRenderer({
           </div>
         ) : null}
         <div className="rounded-2xl border border-[#E5E5E5] bg-white p-5">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center rounded-full bg-[#1A1814] px-3 py-1 font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-[#F6EFDC]">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center whitespace-nowrap rounded-full bg-[#1A1814] px-3 py-1 font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-[#F6EFDC]">
               Question {number}
             </span>
-            <span className="font-sans text-[12px] font-medium text-[#666666]">of {total}</span>
+            <span className="whitespace-nowrap font-sans text-[12px] font-medium text-[#666666]">of {total}</span>
+            {solution ? (
+              <span className="ml-auto inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#1A1814] px-3 py-1 font-sans text-[11px] font-semibold text-[#F6EFDC]">
+                <Play size={12} className="text-[#E9BC3A]" aria-hidden /> Video solution
+              </span>
+            ) : null}
           </div>
           {promptParts.instruction ? (
             <p className="mt-3 font-sans text-sm leading-relaxed text-[#555555]">
@@ -78,6 +153,15 @@ function QuestionRenderer({
           <p className="mt-2 whitespace-pre-line font-sans text-[17px] font-normal leading-relaxed text-[#111111] md:text-[18px]">
             <EducationalText text={promptParts.question} />
           </p>
+          {solution ? (
+            <figure className="mt-4 rounded-xl border border-[#E5E5E5] bg-white p-3">
+              <a href={solution.figure} target="_blank" rel="noreferrer" title="Open the figure full size">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={solution.figure} alt={solution.figureAlt} className="mx-auto h-auto w-full max-w-[560px]" />
+              </a>
+              <figcaption className="mt-1 text-center font-sans text-[11px] text-[#888888] md:hidden">Tap the figure to enlarge it</figcaption>
+            </figure>
+          ) : null}
         </div>
       </section>
 
@@ -117,14 +201,28 @@ function QuestionRenderer({
       ) : (
         <div className="rounded-2xl border border-[#E5E5E5] bg-white px-5 py-4">
           <label className="mb-2 block font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#666666]">Your answer</label>
-          <input
-            type={question.type === "numerical" ? "number" : "text"}
-            value={selectedValue === null || selectedValue === undefined ? "" : String(selectedValue)}
-            onChange={(event) => onSelect(question.type === "numerical" ? Number(event.target.value) : event.target.value)}
-            disabled={submitted}
-            placeholder={question.type === "numerical" ? "Enter a number" : "Type your answer"}
-            className="w-full rounded-xl border border-[#E5E5E5] bg-transparent px-4 py-3 font-sans text-base text-[#111111] outline-none transition focus:border-[#2563EB]"
-          />
+          <div className="flex items-center gap-3">
+            <input
+              type={question.type === "numerical" ? "number" : "text"}
+              step={question.type === "numerical" ? "any" : undefined}
+              value={selectedValue === null || selectedValue === undefined ? "" : String(selectedValue)}
+              onChange={(event) =>
+                onSelect(
+                  question.type === "numerical"
+                    ? event.target.value === ""
+                      ? null
+                      : Number(event.target.value)
+                    : event.target.value,
+                )
+              }
+              disabled={submitted}
+              placeholder={question.type === "numerical" ? "Enter a number" : "Type your answer"}
+              className="w-full min-w-0 rounded-xl border border-[#E5E5E5] bg-transparent px-4 py-3 font-sans text-base text-[#111111] outline-none transition focus:border-[#2563EB]"
+            />
+            {question.type === "numerical" && solution?.unit ? (
+              <span className="shrink-0 font-sans text-base font-semibold text-[#555555]">{solution.unit}</span>
+            ) : null}
+          </div>
         </div>
       )}
 
@@ -162,13 +260,21 @@ function QuestionRenderer({
               Correct answer: {correctOption.label}. <EducationalText text={correctOption.text} />
             </p>
           ) : null}
+          {question.type === "numerical" ? (
+            <p className="mt-3 font-sans text-sm font-semibold text-[#111111]">
+              Correct answer: {String(question.correctAnswer)}
+              {solution?.unit ? ` ${solution.unit}` : ""}
+            </p>
+          ) : null}
           {hasExplanation ? (
-            <p className="mt-2 font-sans text-sm leading-relaxed text-[#111111]">
+            <p className="mt-2 whitespace-pre-line font-sans text-sm leading-relaxed text-[#111111]">
               <EducationalText text={explanationText} />
             </p>
           ) : null}
         </motion.div>
       ) : null}
+
+      {solution ? <VideoSolutionPanel key={question.id} solution={solution} submitted={submitted} /> : null}
     </div>
   );
 }

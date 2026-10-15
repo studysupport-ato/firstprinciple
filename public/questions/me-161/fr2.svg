@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 380" width="560" height="380" role="img" aria-label="A 45 kg block pressed against a vertical wall by a 500 N push applied through a rod from below right, at angle theta below the horizontal">
+<rect width="560" height="380" fill="#ffffff"/>
+<line x1="160.0" y1="40.0" x2="160.0" y2="340.0" stroke="#1A1814" stroke-width="2" stroke-linecap="round"/>
+<line x1="160.0" y1="44.0" x2="152.0" y2="36.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="54.0" x2="152.0" y2="46.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="64.0" x2="152.0" y2="56.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="74.0" x2="152.0" y2="66.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="84.0" x2="152.0" y2="76.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="94.0" x2="152.0" y2="86.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="104.0" x2="152.0" y2="96.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="114.0" x2="152.0" y2="106.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="124.0" x2="152.0" y2="116.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="134.0" x2="152.0" y2="126.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="144.0" x2="152.0" y2="136.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="154.0" x2="152.0" y2="146.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="164.0" x2="152.0" y2="156.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="174.0" x2="152.0" y2="166.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="184.0" x2="152.0" y2="176.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="194.0" x2="152.0" y2="186.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="204.0" x2="152.0" y2="196.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="214.0" x2="152.0" y2="206.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="224.0" x2="152.0" y2="216.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="234.0" x2="152.0" y2="226.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="244.0" x2="152.0" y2="236.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="254.0" x2="152.0" y2="246.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="264.0" x2="152.0" y2="256.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="274.0" x2="152.0" y2="266.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="284.0" x2="152.0" y2="276.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="294.0" x2="152.0" y2="286.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="304.0" x2="152.0" y2="296.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="314.0" x2="152.0" y2="306.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="324.0" x2="152.0" y2="316.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<line x1="160.0" y1="334.0" x2="152.0" y2="326.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round"/>
+<rect x="160.0" y="120.0" width="120.0" height="120.0" rx="0" fill="#9FC9E6" stroke="#1A1814" stroke-width="2"/>
+<text x="220.0" y="150.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">45 kg</text>
+<circle cx="220.0" cy="190.0" r="8" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<line x1="220.0" y1="190.0" x2="358.6" y2="270.0" stroke="#1A1814" stroke-width="11" stroke-linecap="round"/>
+<line x1="220.0" y1="190.0" x2="358.6" y2="270.0" stroke="#C9C4B6" stroke-width="8" stroke-linecap="round"/>
+<line x1="419.2" y1="305.0" x2="363.8" y2="273.0" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="363.8,273.0 375.7,274.0 370.6,282.8" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="409.2" y="327.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">P = 500 N</text>
+<line x1="220.0" y1="190.0" x2="370.0" y2="190.0" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<path d="M306.6,240.0 A100,100 0 0 0 320.0,190.0" fill="none" stroke="#6B6B6B" stroke-width="1.3"/>
+<text x="332.0" y="220.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="13" font-weight="500" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">θ</text>
+<text x="130.0" y="360.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="start" dominant-baseline="middle">μs = 0.50,  μk = 0.40 (block on wall)</text>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 460" width="560" height="460" role="img" aria-label="Rod AC from A at height 4 m on the z axis to C on the floor; a 600 N force acts at B, the midpoint of the rod, directed toward point D on the floor">
+<rect width="560" height="460" fill="#ffffff"/>
+<line x1="250.0" y1="250.0" x2="150.8" y2="317.2" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="150.8,317.2 154.9,310.3 158.7,315.9" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="140.9" y="323.9" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">x</text>
+<line x1="250.0" y1="250.0" x2="466.6" y2="296.1" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="466.6,296.1 458.8,297.9 460.2,291.3" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="478.3" y="298.6" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">y</text>
+<line x1="250.0" y1="250.0" x2="250.0" y2="70.8" stroke="#6B6B6B" stroke-width="1.4" stroke-linecap="round"/>
+<polygon points="250.0,70.8 253.4,78.1 246.6,78.1" fill="#6B6B6B" stroke="#6B6B6B" stroke-width="1" stroke-linejoin="round"/>
+<text x="250.0" y="58.8" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="600" fill="#1A1814" text-anchor="middle" dominant-baseline="middle" font-style="italic">z</text>
+<line x1="250.0" y1="122.0" x2="429.8" y2="235.3" stroke="#1A1814" stroke-width="11" stroke-linecap="round"/>
+<line x1="250.0" y1="122.0" x2="429.8" y2="235.3" stroke="#C9C4B6" stroke-width="8" stroke-linecap="round"/>
+<circle cx="250.0" cy="122.0" r="5" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<circle cx="429.8" cy="235.3" r="5" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<line x1="339.9" y1="178.6" x2="351.1" y2="342.2" stroke="#1A1814" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="6 4"/>
+<line x1="339.9" y1="178.6" x2="343.7" y2="234.0" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+<polygon points="343.7,234.0 337.9,223.5 348.0,222.8" fill="#2563EB" stroke="#2563EB" stroke-width="1" stroke-linejoin="round"/>
+<text x="363.7" y="252.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="15" font-weight="700" fill="#2563EB" text-anchor="middle" dominant-baseline="middle">F = 600 N</text>
+<circle cx="339.9" cy="178.6" r="5" fill="#1A1814" stroke="#1A1814" stroke-width="2"/>
+<circle cx="351.1" cy="342.2" r="4" fill="#ffffff" stroke="#1A1814" stroke-width="2"/>
+<text x="234.0" y="118.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">A</text>
+<text x="327.9" y="162.6" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">B</text>
+<text x="443.8" y="245.3" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">C</text>
+<text x="335.1" y="352.2" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="16" font-weight="700" fill="#1A1814" text-anchor="middle" dominant-baseline="middle">D</text>
+<line x1="309.5" y1="209.7" x2="429.8" y2="235.3" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="370.3" y1="275.6" x2="429.8" y2="235.3" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="170.6" y1="303.8" x2="351.1" y2="342.2" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="430.5" y1="288.4" x2="351.1" y2="342.2" stroke="#6B6B6B" stroke-width="1" stroke-linecap="round" stroke-dasharray="4 4"/>
+<text x="40.0" y="420.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#1A1814" text-anchor="start" dominant-baseline="middle">A (0, 0, 4) m   C (−3, 4, 0) m   D (4, 6, 0) m</text>
+<text x="40.0" y="442.0" font-family="Outfit, Arial, Helvetica, sans-serif" font-size="14" font-weight="600" fill="#1A1814" text-anchor="start" dominant-baseline="middle">B is the midpoint of AC; F acts from B toward D</text>
+</svg>

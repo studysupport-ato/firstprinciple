@@ -117,6 +117,13 @@ export function evaluateQuestionAnswer(question: Question, providedAnswer: Pract
       if (given === null || expected === null) {
         return false;
       }
+      // A "tolerance:<fraction>" tag accepts answers within that relative
+      // error (engineering answers are rounded to three figures).
+      const toleranceTag = question.tags?.find((tag) => tag.startsWith("tolerance:"));
+      const tolerance = toleranceTag ? Number(toleranceTag.slice("tolerance:".length)) : 0;
+      if (Number.isFinite(tolerance) && tolerance > 0) {
+        return Math.abs(given - expected) <= Math.max(Math.abs(expected) * tolerance, 1e-8);
+      }
       return Math.abs(given - expected) < 1e-8;
     }
     case "short-answer": {
