@@ -270,6 +270,50 @@ html.b2b-board-picture.b2b-quiz #lb-vp .lb-opt { font-size: 15px !important; pad
 })();
 </script>`;
 
+// Hand-built boards (not the standard line board, player or check) are drawn for a wide frame. In a
+// shorter frame, such as the right-hand card, their buttons fell below the bottom edge. This shrinks
+// the whole board until everything, buttons included, fits.
+const CUSTOM_BOARD_FIT = `<script>
+(function () {
+  var busy = false, board = null, seen = '';
+  function size() { return board ? board.offsetWidth + 'x' + board.offsetHeight : ''; }
+  function fit() {
+    if (busy || document.documentElement.classList.contains('b2b-board-fullscreen')) return;
+    busy = true;
+    var body = document.body, root = document.documentElement;
+    body.style.transform = '';
+    body.style.transformOrigin = '';
+    body.style.overflow = '';
+    body.style.height = '';
+    var have = window.innerHeight;
+    var need = Math.max(body.scrollHeight, root.scrollHeight, board ? board.getBoundingClientRect().bottom + window.scrollY : 0);
+    if (have > 0 && need > have + 1) {
+      // Scaling does not change the board's layout, so one measurement gives the right size.
+      body.style.overflow = 'visible';
+      body.style.height = need + 'px';
+      body.style.transformOrigin = 'top center';
+      body.style.transform = 'scale(' + Math.max(0.45, (have - 2) / need) + ')';
+    }
+    seen = size();
+    busy = false;
+  }
+  var timer = null;
+  function soon() { clearTimeout(timer); timer = setTimeout(fit, 40); }
+  window.addEventListener('load', function () {
+    board = document.querySelector('[data-b2b-board]') || document.body;
+    fit();
+    window.addEventListener('resize', soon);
+    // Refit when the board itself grows or shrinks (new rows, a new mode), not on its own refit.
+    if (window.ResizeObserver) new ResizeObserver(function () { if (size() !== seen) soon(); }).observe(board);
+    setTimeout(fit, 300);
+  });
+})();
+</script>`;
+
+function isCustomBoard(source: string) {
+  return isBoardSource(source) && !/id=["']?(lb|ck)\b/.test(source) && !/class=["'][^"']*\bv\b/.test(source);
+}
+
 function buildSourceDocument(source: string, blueprint = false, pictureOnly = false) {
   const mobileBoardStyles = isBoardSource(source)
     ? `<style>
@@ -607,6 +651,7 @@ ${mobileBoardStyles}
 ${isCanvasSource(source) ? CANVAS_SCRIPT : ""}
 ${pictureOnly && isBoardSource(source) ? PICTURE_ONLY_STYLE : ""}
 ${blueprint && !isCanvasSource(source) ? (source.includes("data-b2b-check") ? CHECK_GREEN_STYLE : BLUEPRINT_STYLE) : ""}
+${isCustomBoard(source) ? CUSTOM_BOARD_FIT : ""}
 ${isCanvasSource(source) ? "" : COLOR_REPORTER}
 </body>
 </html>`;
