@@ -162,6 +162,12 @@ html.b2b-board-picture #lb .lb-main > #lb-pic {
   max-width: none !important; margin: 0 !important; padding: 0 !important; min-height: 0 !important; border: 0 !important; background: none !important;
 }
 html.b2b-board-picture #lb .lb-main > #lb-pic::before { display: none !important; }
+/* A story part switches the board's own zoom on. Inside the card that zoom is a full-window layer that
+   covered the control bar and let the picture spill out, so here the picture stays in its place. */
+html.b2b-board-picture:not(.b2b-board-fullscreen) #lb .lb-main > #lb-pic.lb-zoom {
+  position: static !important; inset: auto !important; z-index: auto !important; grid-template-columns: none !important; grid-template-rows: none !important; gap: 0 !important;
+}
+html.b2b-board-picture #lb .lb-main > #lb-pic svg { overflow: hidden !important; grid-column: auto !important; grid-row: auto !important; }
 html.b2b-board-picture #lb .lb-main > #lb-pic svg { width: 100% !important; height: 100% !important; max-width: 100% !important; max-height: 100% !important; margin: 0 !important; }
 #b2b-head, #b2b-bar { position: fixed; left: 0; right: 0; z-index: 30; display: flex; align-items: center; gap: 10px; font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif; color: #EAF1FA; }
 #b2b-head { top: 0; height: 44px; padding: 0 16px; font-size: 11.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: #9FB4CE; }
