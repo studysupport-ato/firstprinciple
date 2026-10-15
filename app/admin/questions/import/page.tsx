@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
-import { getAdminCoursesAction, createQuestionAction } from "@/lib/adminContentActions";
+import { getAdminCoursesAction, createQuestionAction, deleteQuestionAction, getAdminQuestionsAction } from "@/lib/adminContentActions";
 import { parseMarkdownQuestionBatch } from "@/lib/questions/parser";
 import type { AdminCourseListRow } from "@/lib/content/adminContract";
 
@@ -18,6 +18,7 @@ export default function AdminQuestionImportPage() {
   const [result, setResult] = useState<ReturnType<typeof parseMarkdownQuestionBatch> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [replaceExisting, setReplaceExisting] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   useEffect(() => {
@@ -65,6 +66,27 @@ export default function AdminQuestionImportPage() {
     setProgress({ done: 0, total: valid.length });
     const failures: string[] = [];
     const groupSize = 8;
+
+    // Optional: clear the course's current questions first, so a corrected
+    // bank replaces the old one instead of being added a second time.
+    if (replaceExisting) {
+      const existing = await getAdminQuestionsAction(selectedCourseId);
+      if (!existing.ok) {
+        setImporting(false);
+        setError("Could not load the course's current questions: " + existing.error);
+        return;
+      }
+      const ids = existing.data.map((question) => question.id);
+      for (let start = 0; start < ids.length; start += groupSize) {
+        const results = await Promise.all(ids.slice(start, start + groupSize).map((id) => deleteQuestionAction(id)));
+        const failed = results.find((res) => !res.ok);
+        if (failed && !failed.ok) {
+          setImporting(false);
+          setError("Stopped while removing old questions: " + failed.error);
+          return;
+        }
+      }
+    }
     try {
       for (let start = 0; start < valid.length; start += groupSize) {
         const group = valid.slice(start, start + groupSize);
@@ -154,6 +176,14 @@ export default function AdminQuestionImportPage() {
             {importing ? "Saving" : "Saved"} {progress.done} of {progress.total} questions…
           </div>
         ) : null}
+
+        <label className="mt-6 flex items-start gap-3 rounded-2xl border border-[#E5E5E5] bg-[#F7F7F8] px-4 py-3 text-sm text-[#111111]">
+          <input type="checkbox" checked={replaceExisting} onChange={(event) => setReplaceExisting(event.target.checked)} className="mt-0.5 h-4 w-4" />
+          <span>
+            <span className="font-semibold">Replace this course&apos;s existing questions</span>
+            <span className="block text-[#666666]">Deletes every question currently in {selectedCourse?.course.code ?? "the course"} (and students&apos; answers to them) before importing.</span>
+          </span>
+        </label>
 
         <div className="mt-6 flex flex-wrap gap-3">
           <button type="button" onClick={parseInput} className="inline-flex items-center gap-2 rounded-full bg-[#111111] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#2563EB]">

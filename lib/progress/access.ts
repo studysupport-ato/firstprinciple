@@ -266,6 +266,16 @@ export async function recordPracticeAttempt(input: PracticeAttemptInput) {
   }
 }
 
+/**
+ * The signed-in student's saved practice answers for one course, newest
+ * first. Practice pages use these to resume a set where the student left off.
+ */
+export async function listMyPracticeAttempts(courseId: string) {
+  if (isPreviewMode()) return [];
+  const identity = await resolveProgressIdentity();
+  return progressRepos(identity).listPracticeAttempts(identity.studentId, { courseId });
+}
+
 export async function recordPracticeStarted(courseId: string, chapterId?: string, lessonId?: string) {
   if (isPreviewMode()) return;
 
@@ -444,4 +454,4 @@ export function resetStudentProgress() {
   const fresh = createEmptyStudentProgress();
   localProgressRepository.write(fresh);
   return fresh;
-}
+}

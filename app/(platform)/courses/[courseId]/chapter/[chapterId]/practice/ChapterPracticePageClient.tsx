@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Check, CheckCircle2, ChevronLeft, Lightbulb, RotateCcw, Trophy, XCircle } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, ChevronLeft, CloudCheck, Lightbulb, RotateCcw, Trophy, XCircle } from "lucide-react";
 import Link from "next/link";
 import { EducationalText } from "@/components/learning/EducationalText";
 import type { Difficulty, Question } from "@/lib/content/types/question";
 import { createPracticeSession, evaluateQuestionAnswer, getPracticeSummary, type PracticeSession, type PracticeValue } from "@/lib/practice/session";
-import { recordPracticeAttempt, recordPracticeStarted } from "@/lib/progress";
+import { listMyPracticeAttempts, recordPracticeAttempt, recordPracticeStarted } from "@/lib/progress";
 
 function QuestionRenderer({
   question,
@@ -16,7 +16,11 @@ function QuestionRenderer({
   submitted,
   showHint,
   onToggleHint,
+  number,
+  total,
 }: {
+  number: number;
+  total: number;
   question: Question;
   selectedValue: PracticeValue;
   onSelect: (value: PracticeValue) => void;
@@ -28,17 +32,30 @@ function QuestionRenderer({
   // A prompt written as several paragraphs carries a reading passage or
   // instruction first; only its last paragraph is the question itself.
   const promptParagraphs = question.prompt.split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean);
+  const leading = promptParagraphs.slice(0, -1);
+  // A short lead-in ("Choose the pattern of the given sentence.") is an
+  // instruction shown inside the question card; anything longer is a reading
+  // passage shown in its own box above it.
+  const isInstruction = leading.length > 0 && leading.join(" ").length <= 220;
   const promptParts = {
-    passage: promptParagraphs.slice(0, -1),
+    passage: isInstruction ? [] : leading,
+    instruction: isInstruction ? leading.join(" ") : "",
     question: promptParagraphs[promptParagraphs.length - 1] ?? question.prompt,
   };
+  const correctOption = question.type === "multiple-choice" ? optionMap.find((option) => option.id === question.correctAnswer) : undefined;
+  // Skip explanations that only repeat the answer letter or are the import
+  // placeholder; the correct answer line above already covers them.
+  const explanationText = trimAnswerEcho(question.explanation?.trim() ?? "", correctOption);
+  const hasExplanation =
+    Boolean(explanationText) &&
+    !/^no explanation was included/i.test(explanationText) &&
+    !(correctOption && /^[a-z]\.?$/i.test(explanationText));
 
   return (
     <div className="space-y-8">
-      <div className="rounded-2xl border border-[#E5E5E5] bg-transparent p-5">
-        <span className="font-sans text-[10px] font-bold uppercase tracking-[0.24em] text-[#2563EB]">Practice question</span>
+      <section aria-label={`Question ${number} of ${total}`} className="space-y-4">
         {promptParts.passage.length ? (
-          <div className="mt-4 max-h-[420px] space-y-3 overflow-y-auto rounded-xl bg-[#F7F5EE] p-4 font-sans text-[15px] leading-relaxed text-[#26231C]">
+          <div className="max-h-[420px] space-y-3 overflow-y-auto rounded-xl border border-[#E8E2D2] bg-[#FBF8EF] p-4 font-sans text-[15px] leading-relaxed text-[#26231C]">
             {promptParts.passage.map((paragraph, index) => (
               <p key={index} className="whitespace-pre-line">
                 <EducationalText text={paragraph} />
@@ -46,10 +63,23 @@ function QuestionRenderer({
             ))}
           </div>
         ) : null}
-        <h2 className="mt-4 editorial-heading text-2xl md:text-3xl text-[#111111] leading-relaxed">
-          <EducationalText text={promptParts.question} />
-        </h2>
-      </div>
+        <div className="rounded-2xl border border-[#E5E5E5] bg-white p-5">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-[#1A1814] px-3 py-1 font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-[#F6EFDC]">
+              Question {number}
+            </span>
+            <span className="font-sans text-[12px] font-medium text-[#666666]">of {total}</span>
+          </div>
+          {promptParts.instruction ? (
+            <p className="mt-3 font-sans text-sm leading-relaxed text-[#555555]">
+              <EducationalText text={promptParts.instruction} />
+            </p>
+          ) : null}
+          <p className="mt-2 whitespace-pre-line font-sans text-[17px] font-normal leading-relaxed text-[#111111] md:text-[18px]">
+            <EducationalText text={promptParts.question} />
+          </p>
+        </div>
+      </section>
 
       {question.type === "multiple-choice" && optionMap.length > 0 ? (
         <div className="space-y-3">
@@ -125,11 +155,18 @@ function QuestionRenderer({
         >
           <div className="flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#666666]">
             {evaluateQuestionAnswer(question, selectedValue) ? <Check size={14} className="text-[#059669]" /> : <XCircle size={14} className="text-[#E11D48]" />}
-            {evaluateQuestionAnswer(question, selectedValue) ? "Correct" : "Feedback"}
+            {evaluateQuestionAnswer(question, selectedValue) ? "Correct" : question.type === "short-answer" ? "Compare with the model answer" : "Not quite"}
           </div>
-          <p className="mt-3 font-sans text-sm leading-relaxed text-[#111111]">
-            <EducationalText text={question.explanation} />
-          </p>
+          {correctOption ? (
+            <p className="mt-3 font-sans text-sm font-semibold text-[#111111]">
+              Correct answer: {correctOption.label}. <EducationalText text={correctOption.text} />
+            </p>
+          ) : null}
+          {hasExplanation ? (
+            <p className="mt-2 font-sans text-sm leading-relaxed text-[#111111]">
+              <EducationalText text={explanationText} />
+            </p>
+          ) : null}
         </motion.div>
       ) : null}
     </div>
@@ -172,6 +209,11 @@ export function ChapterPracticePageClient({
   const [sessionComplete, setSessionComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Saved progress: answers already recorded for this set (from practice
+  // attempts) are restored so the student continues where they stopped.
+  const [restoredCount, setRestoredCount] = useState(0);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const resetKey = `b2b-practice-reset:${courseId}:${chapterId}:${topic ?? ""}:${subtopic ?? ""}:${difficulty ?? ""}`;
 
   useEffect(() => {
     setMounted(true);
@@ -201,8 +243,48 @@ export function ChapterPracticePageClient({
     setSubmitted(false);
     setShowHint(false);
     setSessionComplete(false);
-    recordPracticeStarted(courseId, chapterId);
-  }, [chapterId, courseId, difficulty, initialQuestions, limit, preview, subtopic, topic]);
+    setRestoredCount(0);
+    void recordPracticeStarted(courseId, chapterId).catch(() => undefined);
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const resetAt = readResetAt(resetKey);
+        const ids = new Set(nextSession.questionIds);
+        const attempts = (await listMyPracticeAttempts(courseId))
+          .filter((attempt) => ids.has(attempt.questionId) && (!resetAt || attempt.answeredAt > resetAt))
+          .sort((first, second) => second.answeredAt.localeCompare(first.answeredAt));
+        if (cancelled || !attempts.length) return;
+
+        const answers: PracticeSession["answers"] = {};
+        for (const attempt of attempts) {
+          if (answers[attempt.questionId]) continue; // newest attempt wins
+          answers[attempt.questionId] = {
+            questionId: attempt.questionId,
+            selectedValue: attempt.answer as PracticeValue,
+            submitted: true,
+            isCorrect: attempt.isCorrect,
+            answeredAt: attempt.answeredAt,
+          };
+        }
+        const firstOpen = nextSession.questionIds.findIndex((id) => !answers[id]);
+        const resumeIndex = firstOpen === -1 ? nextSession.questionIds.length - 1 : firstOpen;
+        const resumeAnswer = answers[nextSession.questionIds[resumeIndex]];
+        setSession({ ...nextSession, answers, currentIndex: resumeIndex });
+        setSelectedValue(resumeAnswer?.selectedValue ?? null);
+        setSubmitted(Boolean(resumeAnswer?.submitted));
+        setRestoredCount(Object.keys(answers).length);
+        setLastSavedAt(attempts[0].answeredAt);
+      } catch (loadError) {
+        // Saved progress is a convenience; practice still works without it.
+        console.warn("[Practice] could not load saved progress.", loadError);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chapterId, courseId, difficulty, initialQuestions, limit, preview, subtopic, topic, resetKey]);
 
   const currentQuestion = session?.questionIds[session.currentIndex] ? questions.find((question) => question.id === session.questionIds[session.currentIndex]) ?? null : null;
   const summary = useMemo(() => (session && questions.length ? getPracticeSummary(session, questions) : null), [session, questions]);
@@ -293,6 +375,7 @@ export function ChapterPracticePageClient({
         marksAvailable: currentQuestion.marks,
       });
       setSubmitted(true);
+      setLastSavedAt(new Date().toISOString());
     } catch (error) {
       console.error("[Practice] failed to persist attempt.", error);
       setError("Your answer was evaluated, but the attempt could not be saved. Please try again.");
@@ -305,11 +388,8 @@ export function ChapterPracticePageClient({
       const nextIndex = session.currentIndex + 1;
       const nextQuestionId = session.questionIds[nextIndex];
       setSession((previous) => previous ? { ...previous, currentIndex: nextIndex } : previous);
-      setSelectedValue((previous) => {
-        const previousSession = session ?? previous;
-        return previousSession.answers[nextQuestionId]?.selectedValue ?? null;
-      });
-      setSubmitted(false);
+      setSelectedValue(session.answers[nextQuestionId]?.selectedValue ?? null);
+      setSubmitted(Boolean(session.answers[nextQuestionId]?.submitted));
       setShowHint(false);
       return;
     }
@@ -319,6 +399,9 @@ export function ChapterPracticePageClient({
   };
 
   const handleReset = () => {
+    writeResetAt(resetKey, new Date().toISOString());
+    setRestoredCount(0);
+    setLastSavedAt(null);
     const freshQuestions = initialQuestions.filter((question) => {
       if (courseId && question.courseId !== courseId) return false;
       if (chapterId && question.chapterId !== chapterId) return false;
@@ -379,6 +462,18 @@ export function ChapterPracticePageClient({
             <span className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-[#111111]">Practice</span>
           </div>
         </div>
+        <div className="flex items-center gap-3 md:hidden">
+          <span className="font-sans text-xs font-semibold text-[#666666]">{currentIndex} / {session.questionIds.length}</span>
+        </div>
+        <div className="hidden items-center gap-4 md:flex">
+          <span className="inline-flex items-center gap-1.5 font-sans text-xs text-[#666666]" title="Your answers are saved as you go">
+            <CloudCheck size={15} className="text-[#059669]" />
+            {lastSavedAt ? "Progress saved" : "Saves as you go"}
+          </span>
+          <Link href={backHref} className="rounded-full border border-[#E5E5E5] px-4 py-1.5 font-sans text-xs font-semibold text-[#111111] transition hover:border-[#111111]">
+            Save &amp; exit
+          </Link>
+        </div>
         <div className="hidden w-64 items-center gap-3 md:flex">
           <span className="font-sans text-xs font-semibold text-[#666666]">{currentIndex} / {session.questionIds.length}</span>
           <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#E5E5E5]">
@@ -389,7 +484,19 @@ export function ChapterPracticePageClient({
 
       <main className="flex flex-1 items-center justify-center p-6">
         <div className="w-full max-w-4xl rounded-[30px] border border-[#E5E5E5] bg-white p-6 shadow-sm md:p-10">
+          {restoredCount > 0 ? (
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#FBF3D5] px-4 py-3 font-sans text-sm text-[#1A1814]">
+              <span>
+                Welcome back — your progress was saved. {restoredCount} of {session.questionIds.length} answered.
+              </span>
+              <button type="button" onClick={handleReset} className="inline-flex items-center gap-1.5 rounded-full border border-[#1A1814]/30 px-3 py-1.5 text-xs font-semibold hover:border-[#1A1814]">
+                <RotateCcw size={13} /> Start over
+              </button>
+            </div>
+          ) : null}
           <QuestionRenderer
+            number={currentIndex}
+            total={session.questionIds.length}
             question={currentQuestion}
             selectedValue={selectedValue}
             onSelect={handleSelect}
@@ -408,7 +515,7 @@ export function ChapterPracticePageClient({
                   const previousQuestionId = session.questionIds[previousIndex];
                   setSession((previous) => previous ? { ...previous, currentIndex: previousIndex } : previous);
                   setSelectedValue(session.answers[previousQuestionId]?.selectedValue ?? null);
-                  setSubmitted(false);
+                  setSubmitted(Boolean(session.answers[previousQuestionId]?.submitted));
                   setShowHint(false);
                 }
               }}
@@ -441,4 +548,39 @@ export function ChapterPracticePageClient({
       </main>
     </div>
   );
+}
+
+function readResetAt(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeResetAt(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Storage can be unavailable (private mode); starting over still works for this visit.
+  }
+}
+
+/**
+ * Explanations often begin by restating the answer ("b. will be (first
+ * conditional…)"). The correct answer is already shown above, so drop that
+ * echo and keep the reasoning.
+ */
+function trimAnswerEcho(text: string, option?: { label: string; text: string }) {
+  if (!option || !text) return text;
+  let rest = text;
+  const letter = new RegExp(`^${option.label}(?:/[a-d])?[.)]\\s*`, "i");
+  if (!letter.test(rest)) return text;
+  rest = rest.replace(letter, "");
+  const optionText = option.text.trim().replace(/[.]+$/, "");
+  if (optionText && rest.toLowerCase().startsWith(optionText.toLowerCase())) rest = rest.slice(optionText.length);
+  rest = rest.replace(/^[\s.,;:–—-]+/, "").trim();
+  if (rest.startsWith("(") && rest.endsWith(")")) rest = rest.slice(1, -1).trim();
+  if (!rest) return "";
+  return rest.charAt(0).toUpperCase() + rest.slice(1);
 }
