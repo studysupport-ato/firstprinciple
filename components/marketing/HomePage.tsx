@@ -31,28 +31,6 @@ export function HomePage({ firstLessonHref }: { firstLessonHref: string | null }
 
   return (
     <div className="min-h-screen text-[#1A1814]" style={{ fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif" }}>
-      <header className="sticky top-0 z-40 border-b border-[#F6EFDC]/10" style={darkGrid}>
-        <nav aria-label="Main" className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-7 px-5 py-3 md:px-6">
-          <Link href="/" aria-label="Back2Basics with Kwamina, home" className="flex items-center">
-            <img src="/brand-logo.png" alt="Back2Basics with Kwamina" width={396} height={125} className="h-9 w-auto md:h-10" />
-          </Link>
-          <div className="hidden flex-1 gap-6 text-[15px] font-semibold text-[#F6EFDC] md:flex">
-            <a href="#pillars" className="hover:text-[#E9BC3A]">What we do</a>
-            <Link href="/courses" className="hover:text-[#E9BC3A]">Courses</Link>
-            <Link href="/questions" className="hover:text-[#E9BC3A]">Self tests</Link>
-            <Link href="/course-materials" className="hover:text-[#E9BC3A]">Materials</Link>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <button type="button" onClick={() => setAuth("login")} className="inline-flex min-h-[44px] items-center rounded-xl px-3 text-[15px] font-semibold text-[#F6EFDC] hover:text-[#E9BC3A]">
-              Log in
-            </button>
-            <button type="button" onClick={() => setAuth("signup")} className="inline-flex min-h-[44px] items-center rounded-xl bg-[#E9BC3A] px-4 text-[15px] font-bold text-[#1A1814] hover:bg-[#F2CC5C]">
-              Sign up free
-            </button>
-          </div>
-        </nav>
-      </header>
-
       <main>
         {/* Opening */}
         <section className="relative overflow-hidden" style={goldGround}>
@@ -181,54 +159,11 @@ export function HomePage({ firstLessonHref }: { firstLessonHref: string | null }
           </div>
         </section>
 
-        {/* Self tests */}
-        <section id="tests" className="scroll-mt-20 bg-[#F6EFDC]">
-          <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-12 px-5 py-16 md:px-6 md:py-20">
-            <div className="flex min-w-0 flex-[1_1_400px] flex-col gap-4">
-              <p className={`${eyebrow} text-[#8F6500]`}>Academics · self tests</p>
-              <h2 className={sectionTitle}>Test yourself, with the answers.</h2>
-              <p className="text-[17px] leading-relaxed text-[#26231C]">
-                Self tests collated from past questions and lecture slides, sorted by topic. Every question comes with its answer and a worked explanation, so you see where you went wrong.
-              </p>
-              <ol className="mt-1 flex flex-col gap-3">
-                {["Pick a course and a topic.", "Answer at your own pace.", "Check the worked answer after each one."].map((step, index) => (
-                  <li key={step} className="flex items-center gap-3.5">
-                    <span className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[10px] bg-[#E9BC3A] font-sans font-black">{index + 1}</span>
-                    <span className="text-[16px]">{step}</span>
-                  </li>
-                ))}
-              </ol>
-              <Link href="/questions" className="mt-1.5 inline-flex min-h-[44px] items-center gap-2.5 self-start rounded-2xl bg-[#1A1814] px-5 py-3.5 text-[16px] font-bold text-[#F6EFDC] hover:bg-black">
-                Browse self tests <ArrowRight size={18} strokeWidth={2.6} className="text-[#E9BC3A]" />
-              </Link>
-            </div>
-            <div className="flex min-w-0 flex-[1_1_440px] flex-col gap-3.5 rounded-[24px] border border-[#1A1814]/10 bg-white p-6 shadow-[0_10px_30px_rgba(26,24,20,.08)]">
-              <div className="flex justify-between text-[12px] font-extrabold uppercase tracking-[0.1em] text-[#6B5A2E]">
-                <span>Determinants &amp; inverses</span>
-                <span>Sample question</span>
-              </div>
-              <p className="text-[17px] font-semibold leading-relaxed">
-                If det[a<sub>ij</sub>] = 4 for a 3 × 3 matrix, find det(3[a<sub>ij</sub>]).
-              </p>
-              <div className="grid grid-cols-2 gap-2.5">
-                {["A. 4", "B. 12", "C. 36"].map((option) => (
-                  <span key={option} className="rounded-xl border-2 border-[#1A1814]/15 px-3.5 py-3 font-semibold">{option}</span>
-                ))}
-                <span className="rounded-xl border-2 border-[#1A1814] bg-[#E9BC3A] px-3.5 py-3 font-extrabold">D. 108 ✓</span>
-              </div>
-              <div className="rounded-xl bg-[#F6EFDC] px-4 py-3.5 text-[14.5px] leading-relaxed">
-                <b>Why:</b> multiplying a 3 × 3 matrix by 3 multiplies each of its 3 rows by 3, so the determinant is 3³ × 4 = 108.
-              </div>
-              <p className="text-[12.5px] font-semibold text-[#6B5A2E]">From a past paper</p>
-            </div>
-          </div>
-        </section>
-
         {/* Collaborate */}
-        <section id="collaborate" className="scroll-mt-20" style={goldGround}>
+        <section id="collaborate" className="scroll-mt-20 bg-[#F6EFDC]">
           <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-10 px-5 py-16 md:px-6 md:py-20">
             <div className="flex min-w-0 flex-[1_1_520px] flex-col gap-4">
-              <p className={`${eyebrow} text-[#1A1814]/75`}>Build it with us</p>
+              <p className={`${eyebrow} text-[#8F6500]`}>Build it with us</p>
               <h2 className={sectionTitle}>This works when everyone is on board.</h2>
               <p className="max-w-[580px] text-[17px] leading-relaxed text-[#26231C]">
                 Back2Basics benefits all of us, so we need everyone on board to execute it. If you are willing to collaborate, send us a DM on any of our socials or fill in our collaboration form.
@@ -279,21 +214,6 @@ export function HomePage({ firstLessonHref }: { firstLessonHref: string | null }
         </section>
       </main>
 
-      <footer className="bg-[#110F0C] text-[#F6EFDC]/70">
-        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-6 px-5 py-10 md:px-6">
-          <div className="flex flex-col gap-2.5">
-            <img src="/brand-logo.png" alt="Back2Basics with Kwamina" width={396} height={125} className="h-[34px] w-auto self-start" />
-            <span className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#E9BC3A]">Actualize tomorrow&apos;s outcome now</span>
-          </div>
-          <nav aria-label="Footer" className="flex flex-wrap gap-5 text-[14px] font-semibold text-[#F6EFDC]">
-            <Link href="/courses" className="hover:text-[#E9BC3A]">Courses</Link>
-            <Link href="/questions" className="hover:text-[#E9BC3A]">Self tests</Link>
-            <Link href="/course-materials" className="hover:text-[#E9BC3A]">Course materials</Link>
-            <Link href="/terms" className="hover:text-[#E9BC3A]">Terms</Link>
-          </nav>
-          <span className="text-[13px]">Built by Kxy</span>
-        </div>
-      </footer>
 
       <AuthModal open={auth !== null} initialView={auth ?? "login"} onClose={() => setAuth(null)} redirectTo="/courses" />
     </div>
