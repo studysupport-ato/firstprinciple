@@ -13,6 +13,12 @@ import type { DayProgress } from "@/lib/progress";
 import type { Course, Week } from "@/lib/content/types/course";
 import type { Lesson } from "@/lib/content/types/lesson";
 
+/**
+ * TEMPORARY: true opens every lesson in a week for manual checking (no "Locked" lessons).
+ * Set back to false to restore the normal order (finish a lesson to unlock the next).
+ */
+const UNLOCK_ALL_LESSONS = true;
+
 export default function WeekClient({ course, week, days, preview = false }: { course: Course; week: Week; days: Lesson[]; preview?: boolean }) {
   const [dayProgress, setDayProgress] = useState<Record<string, DayProgress>>({});
   const { authenticated } = useAuthSession();
@@ -46,9 +52,11 @@ export default function WeekClient({ course, week, days, preview = false }: { co
     }
   }, [authenticated, pendingHref, router]);
 
-  function handleDayClick(event: React.MouseEvent, href: string) {
+  function handleDayClick(event: React.MouseEvent, href: string, free: boolean) {
     if (preview) return;
     if (authenticated === true) return;
+    // The first lesson of each topic opens without an account.
+    if (free) return;
 
     event.preventDefault();
     setPendingHref(href);
@@ -64,7 +72,7 @@ export default function WeekClient({ course, week, days, preview = false }: { co
   return (
     <div
       className="relative min-h-screen overflow-x-clip pb-16"
-      style={{ background: "linear-gradient(135deg, #f0c84a 0%, #E9BC3A 45%, #d4a82e 100%)" }}
+      style={{ background: "var(--gold-sweep)" }}
     >
       <AuthModal
         open={pendingHref !== null && authenticated === false}
@@ -144,8 +152,8 @@ export default function WeekClient({ course, week, days, preview = false }: { co
                     // The lesson immediately following the active one
                     visualState = "next_up";
                   } else {
-                    // Strictly lock anything that comes after
-                    visualState = "locked";
+                    // Strictly lock anything that comes after (unless every lesson is temporarily open for checking)
+                    visualState = UNLOCK_ALL_LESSONS ? "next_up" : "locked";
                   }
                   
                   const previewQuery = preview ? "&preview=1" : "";
@@ -183,6 +191,11 @@ export default function WeekClient({ course, week, days, preview = false }: { co
                       break;
                   }
 
+                  if (index === 0 && authenticated === false && !isComplete) {
+                    statusText = "Free lesson · no account needed";
+                    statusColor = "text-[#E9BC3A]";
+                  }
+
                   // Add bottom border to all except the last row(s) to match the separated rows look
                   const isLastRow = index >= days.length - 2 && (days.length % 2 === 0 ? true : index === days.length - 1);
 
@@ -190,7 +203,7 @@ export default function WeekClient({ course, week, days, preview = false }: { co
                     <AnimatedItem key={day.id} index={index} delay={0.06}>
                       <Link
                         href={href}
-                        onClick={(event) => handleDayClick(event, href)}
+                        onClick={(event) => handleDayClick(event, href, index === 0)}
                         className={`group flex items-center gap-4 py-5 transition hover:opacity-80 ${!isLastRow ? 'border-b border-[#3A3428]/60' : ''}`}
                       >
                         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${circleStyle}`}>

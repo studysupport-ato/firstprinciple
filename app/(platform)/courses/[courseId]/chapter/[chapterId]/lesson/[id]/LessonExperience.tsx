@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ChevronLeft, ListOrdered, MessageCircle, Moon, Sun, X } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ListOrdered, Moon, Sun, X } from "lucide-react";
 import Link from "next/link";
 import { completeDay, startDay } from "@/lib/progress";
 import { LessonRenderer } from "@/components/learning/LessonRenderer";
@@ -24,6 +24,8 @@ type LessonExperienceProps = {
   supplementaryResources: LearningResource[];
   assetsById?: Record<string, Asset>;
   questionsById?: Record<string, Question>;
+  /** A visitor without an account is reading this topic's free first lesson. */
+  freePreview?: boolean;
 };
 
 function formatSectionLabel(chapterId: string) {
@@ -81,12 +83,39 @@ const BLUEPRINT_WEEKS = ["math151-week-1", "math151-week-2", "math151-week-3"];
 function themeForStep(blocks: ContentBlock[], dark: boolean, blueprint: boolean): LessonTheme {
   const quiz = blocks.find((block) => block.type === "quiz");
   if (quiz && quiz.type === "quiz") return quiz.variant === "end" ? "green" : "purple";
-  if (blocks.some((block) => block.type === "visualizer" && block.source.includes("data-b2b-check"))) return "green";
   if (blocks.some((block) => block.type === "question")) return "purple";
   if (blocks.some((block) => block.type === "video")) return "wine";
-  // Canvas visualizers sit on the ordinary lesson page, so they keep the paper (or dark) theme.
-  if (blocks.some((block) => block.type === "visualizer" && !isCanvasSource(block.source) && (blueprint || block.fit || !isBoardSource(block.source)))) return "blue";
+  // A visualizer only colours the page when it has the page to itself (see visualizerBackground).
+  // Next to other blocks it keeps its own colours inside its frame, on the normal lesson page.
+  const onlyVisualizers = blocks.length > 0 && blocks.every((block) => block.type === "visualizer");
+  if (onlyVisualizers && blocks.some((block) => block.type === "visualizer" && !isCanvasSource(block.source) && (block.source.includes("data-b2b-check") || blueprint || block.fit || !isBoardSource(block.source)))) return "blue";
   return dark ? "dark" : "paper";
+}
+
+/** The background colour a visualizer paints itself with, read from its source. */
+function visualizerColor(source: string): string | null {
+  const patterns = [
+    /--board\s*:\s*(#[0-9a-f]{3,8})\b/i,
+    /#[\w-]+\s*\{[^}]*?\bbackground(?:-color)?\s*:\s*(#[0-9a-f]{3,8})\b/i,
+    /\bbackground(?:-color)?\s*:\s*(#[0-9a-f]{3,8})\b/i,
+  ];
+  for (const pattern of patterns) {
+    const match = source.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+function isLightColor(colour: string) {
+  let channels: number[];
+  const rgb = colour.match(/rgba?\(([^)]+)\)/);
+  if (rgb) channels = rgb[1].split(",").slice(0, 3).map((part) => Number(part.trim()) / 255);
+  else {
+    const full = colour.length === 4 ? `#${colour[1]}${colour[1]}${colour[2]}${colour[2]}${colour[3]}${colour[3]}` : colour.slice(0, 7);
+    channels = [1, 3, 5].map((at) => parseInt(full.slice(at, at + 2), 16) / 255);
+  }
+  const [r, g, b] = channels;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.6;
 }
 
 function plainHeading(text: string) {
@@ -101,6 +130,7 @@ export function LessonExperience({
   supplementaryResources,
   assetsById,
   questionsById,
+  freePreview = false,
 }: LessonExperienceProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [boardFullscreen, setBoardFullscreen] = useState(false);
@@ -149,7 +179,26 @@ export function LessonExperience({
   );
 
   const blueprint = BLUEPRINT_WEEKS.includes(lesson.weekId);
-  const theme = themeForStep(activeBlocks, darkMode, blueprint);
+  const baseTheme = themeForStep(activeBlocks, darkMode, blueprint);
+  // A visualizer with a page to itself: the whole page takes the visualizer's own background colour.
+  const pageVisualizer = activeBlocks.length > 0 && activeBlocks.every((block) => block.type === "visualizer") ? activeBlocks[0] : null;
+  // The visualizer reports its colour as it changes (a board turns green for an analogy, purple to check);
+  // until it does, the colour is read from its source.
+  const [liveColor, setLiveColor] = useState<{ step: number; color: string } | null>(null);
+  useEffect(() => {
+    const onColor = (event: Event) => {
+      const color = (event as CustomEvent<string>).detail;
+      if (typeof color === "string") setLiveColor({ step: activeStep, color });
+    };
+    window.addEventListener("b2b-visualizer-color", onColor);
+    return () => window.removeEventListener("b2b-visualizer-color", onColor);
+  }, [activeStep]);
+  const pageColor =
+    baseTheme === "blue" && pageVisualizer && pageVisualizer.type === "visualizer"
+      ? (liveColor?.step === activeStep ? liveColor.color : null) ?? visualizerColor(pageVisualizer.source)
+      : null;
+  const theme: LessonTheme = pageColor && isLightColor(pageColor) ? "paper" : baseTheme;
+  const pageBackground = pageColor ? { ...THEME_BACKGROUNDS[theme], backgroundColor: pageColor, transition: "background-color 0.6s ease" } : THEME_BACKGROUNDS[theme];
   const stepTitles = useMemo(
     () =>
       uniqueSteps.map((step, index) => {
@@ -169,6 +218,8 @@ export function LessonExperience({
   const hasQuiz = activeBlocks.some((block) => block.type === "quiz");
   const hasSidePane = !hasGeoSide && (hasSideBlocks || hasQuiz);
   const hasVisualizerFit = activeBlocks.some((block) => block.type === "visualizer" && !isCanvasSource(block.source) && (blueprint || block.fit));
+  // A page that is only a visualizer runs edge to edge, with no padding or card around it.
+  const visualizerPage = hasVisualizerFit && !hasSidePane && activeBlocks.every((block) => block.type === "visualizer");
   // A visualizer in the right-hand card: the text column keeps most of the width.
   const hasSideVisualizer = activeBlocks.some((block) => block.type === "visualizer" && block.pane === "side");
 
@@ -207,7 +258,7 @@ export function LessonExperience({
           type="button"
           disabled={quizPending}
           onClick={() => setCurrentStep((step) => Math.min(totalSteps - 1, step + 1))}
-          className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#FFC700] px-7 font-sans text-sm font-bold text-[#1A1814] transition-colors hover:bg-[#F0BC21] disabled:opacity-40 md:max-w-[220px] md:flex-none"
+          className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#E9BC3A] px-7 font-sans text-sm font-bold text-[#1A1814] transition-colors hover:bg-[#F0BC21] disabled:opacity-40 md:max-w-[220px] md:flex-none"
         >
           {quizPending ? "Finish the questions" : "Continue"} <span aria-hidden>›</span>
         </button>
@@ -270,7 +321,12 @@ export function LessonExperience({
     <LessonSideContext.Provider value={sideContextValue}>
     <div
       className={`flex flex-col ${preview ? "h-[calc(100dvh-76px)] md:h-[calc(100dvh-48px)]" : "h-[calc(100dvh-28px)] md:h-screen"}`}
-      style={{ background: "#FBFAF5" }}
+      style={{
+        background: "#FBFAF5",
+        // Lessons keep their own type: Inter for UI text, Newsreader for reading.
+        ["--font-sans" as string]: "var(--font-inter), ui-sans-serif, system-ui, sans-serif",
+        fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif",
+      }}
     >
       <header className="z-20 flex h-9 flex-shrink-0 items-center border-b border-[#E3DED3] bg-white px-3 md:h-12 md:px-6">
         <div className="flex min-w-0 items-center gap-2">
@@ -317,13 +373,27 @@ export function LessonExperience({
         <div className="lesson-steps-host text-[#25231F]">{stepsButton}</div>
       </header>
 
+      {freePreview ? (
+        <div className="flex flex-shrink-0 flex-wrap items-center gap-x-4 gap-y-2 bg-[#1A1814] px-4 py-2.5 font-sans text-[13px] text-[#F6EFDC] md:px-6">
+          <span className="min-w-0 flex-1">
+            <span className="font-bold text-[#E9BC3A]">Free lesson.</span> The first lesson of every topic is open to everyone. Sign up free to unlock the rest and keep your progress.
+          </span>
+          <Link
+            href={`/courses?auth=required&next=${encodeURIComponent(`/courses/${courseId}/chapter/${lesson.chapterId}/lesson/${lesson.id}${week ? `?week=${week}` : ""}`)}`}
+            className="inline-flex min-h-[36px] shrink-0 items-center rounded-full bg-[#E9BC3A] px-4 text-[13px] font-bold text-[#1A1814] transition hover:bg-[#F2CC5C]"
+          >
+            Sign up free
+          </Link>
+        </div>
+      ) : null}
+
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {!isFullWidthInteractive ? (
           <section
             aria-label={`Lesson step ${currentStep + 1}`}
             data-lesson-theme={theme}
-            className={`lesson-themed relative ${boardFullscreen ? "z-[60]" : "z-10"} flex min-h-0 flex-col ${hasGeoSide ? "w-full lg:w-[45%]" : "w-full"}`}
-            style={THEME_BACKGROUNDS[theme]}
+            className={`lesson-themed ${blueprint ? "lesson-blueprint" : ""} relative ${boardFullscreen ? "z-[60]" : "z-10"} flex min-h-0 flex-col ${hasGeoSide ? "w-full lg:w-[45%]" : "w-full"}`}
+            style={pageBackground}
           >
             <div
               aria-label={`Lesson progress: step ${currentStep + 1} of ${totalSteps}`}
@@ -337,13 +407,13 @@ export function LessonExperience({
                 />
               ))}
             </div>
-            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain touch-pan-y px-4 pb-20 pt-4 md:px-10 md:py-8 lg:flex-row lg:gap-8 lg:overflow-hidden lg:px-14 lg:py-8">
+            <div className={`flex min-h-0 flex-1 flex-col ${visualizerPage ? "gap-0 overflow-hidden p-0" : "gap-4 overflow-y-auto overscroll-contain touch-pan-y px-4 pb-20 pt-4 md:px-10 md:py-8 lg:flex-row lg:gap-8 lg:overflow-hidden lg:px-14 lg:py-8"}`}>
               <div
                 className={`min-w-0 shrink-0 lg:min-h-0 lg:shrink lg:overflow-y-auto lg:overscroll-contain ${
                   hasSidePane ? (hasSideVisualizer ? "lg:flex-[5]" : hasVisualizerFit ? "lg:flex-[3]" : "lg:flex-[11]") : "flex-1"
                 }`}
               >
-                <div className={`lesson-guided-content mr-auto ${hasVisualizerFit || hasSideVisualizer ? "max-w-none" : "max-w-[680px]"}`}>
+                <div className={`lesson-guided-content mr-auto ${hasVisualizerFit || hasSideVisualizer || blueprint ? "max-w-none w-full" : "max-w-[680px]"}`}>
                   <LessonRenderer
                     lesson={lesson}
                     step={activeStep}
@@ -408,13 +478,6 @@ export function LessonExperience({
         ) : null}
       </div>
 
-      <button
-        type="button"
-        aria-label="Open chat"
-        className="fixed bottom-[72px] right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#E9BC3A] shadow-[0_4px_16px_rgba(0,0,0,0.20)] transition-transform hover:scale-105 active:scale-95 md:bottom-[80px]"
-      >
-        <MessageCircle size={20} strokeWidth={2} className="text-[#1A1814]" />
-      </button>
     </div>
     </LessonSideContext.Provider>
   );

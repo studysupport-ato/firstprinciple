@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { BuiltByKxy } from "@/components/marketing/BuiltByKxy";
 import { BrandLogo } from "@/components/branding/BrandLogo";
 import { AuthModal } from "@/components/auth/AuthModal";
@@ -11,6 +12,7 @@ export default function MarketingLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const [isSolid, setIsSolid] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
 
@@ -33,6 +35,9 @@ export default function MarketingLayout({
     handler();
     return () => window.removeEventListener("scroll", handler);
   }, []);
+
+  // The front page brings its own header and footer.
+  if (pathname === "/") return <>{children}</>;
 
   return (
     <div className="min-h-screen bg-transparent flex flex-col">
