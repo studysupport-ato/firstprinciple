@@ -231,7 +231,8 @@ export default function QuestionsExperience({
 
           {/* Year cards grid */}
           <div className="mt-12 grid gap-4 sm:grid-cols-2">
-            {yearStats.map(({ value, label, courseCount, questionCount }) => (
+            {/* Years without any questions yet are left out rather than shown empty. */}
+            {yearStats.filter((year) => year.questionCount > 0).map(({ value, label, courseCount, questionCount }) => (
               <button
                 key={value}
                 onClick={() => setSelectedYear(value)}

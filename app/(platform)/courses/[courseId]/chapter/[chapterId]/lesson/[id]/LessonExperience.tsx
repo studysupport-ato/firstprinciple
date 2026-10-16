@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ChevronLeft, ListOrdered, MessageCircle, Moon, Sun, X } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ListOrdered, Moon, Sun, X } from "lucide-react";
 import Link from "next/link";
 import { completeDay, startDay } from "@/lib/progress";
 import { LessonRenderer } from "@/components/learning/LessonRenderer";
@@ -24,6 +24,8 @@ type LessonExperienceProps = {
   supplementaryResources: LearningResource[];
   assetsById?: Record<string, Asset>;
   questionsById?: Record<string, Question>;
+  /** A visitor without an account is reading this topic's free first lesson. */
+  freePreview?: boolean;
 };
 
 function formatSectionLabel(chapterId: string) {
@@ -128,6 +130,7 @@ export function LessonExperience({
   supplementaryResources,
   assetsById,
   questionsById,
+  freePreview = false,
 }: LessonExperienceProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [boardFullscreen, setBoardFullscreen] = useState(false);
@@ -370,6 +373,20 @@ export function LessonExperience({
         <div className="lesson-steps-host text-[#25231F]">{stepsButton}</div>
       </header>
 
+      {freePreview ? (
+        <div className="flex flex-shrink-0 flex-wrap items-center gap-x-4 gap-y-2 bg-[#1A1814] px-4 py-2.5 font-sans text-[13px] text-[#F6EFDC] md:px-6">
+          <span className="min-w-0 flex-1">
+            <span className="font-bold text-[#E9BC3A]">Free lesson.</span> The first lesson of every topic is open to everyone. Sign up free to unlock the rest and keep your progress.
+          </span>
+          <Link
+            href={`/courses?auth=required&next=${encodeURIComponent(`/courses/${courseId}/chapter/${lesson.chapterId}/lesson/${lesson.id}${week ? `?week=${week}` : ""}`)}`}
+            className="inline-flex min-h-[36px] shrink-0 items-center rounded-full bg-[#E9BC3A] px-4 text-[13px] font-bold text-[#1A1814] transition hover:bg-[#F2CC5C]"
+          >
+            Sign up free
+          </Link>
+        </div>
+      ) : null}
+
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {!isFullWidthInteractive ? (
           <section
@@ -461,13 +478,6 @@ export function LessonExperience({
         ) : null}
       </div>
 
-      <button
-        type="button"
-        aria-label="Open chat"
-        className="fixed bottom-[72px] right-5 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#E9BC3A] shadow-[0_4px_16px_rgba(0,0,0,0.20)] transition-transform hover:scale-105 active:scale-95 md:bottom-[80px]"
-      >
-        <MessageCircle size={20} strokeWidth={2} className="text-[#1A1814]" />
-      </button>
     </div>
     </LessonSideContext.Provider>
   );

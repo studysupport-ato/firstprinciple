@@ -8,6 +8,7 @@ import type { Question } from "@/lib/content/types/question";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { withServerRouteTiming } from "@/lib/performance/serverTiming";
 import { withServerTimingSpan } from "@/lib/performance/timingSpans";
+import { isFreeLesson } from "@/lib/content/freeLessons";
 
 type LessonPageProps = {
   params: Promise<{ courseId: string; chapterId: string; id: string }>;
@@ -25,11 +26,14 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
   // policy instead of silently resolving a service-role client.
   const supabase = await withServerTimingSpan(timing, "supabase_client_create_ms", () => createSupabaseServerClient(timing));
 
+  let freePreview = false;
   if (query.preview !== "1") {
     // The authenticated server client is created above (Task 40G.4) and reused here.
     const { data, error } = await withServerTimingSpan(timing, "auth_get_user_ms", () => supabase.auth.getUser());
 
-    if (error || !data.user) {
+    // The first lesson of each topic is open to visitors without an account.
+    freePreview = Boolean(error || !data.user) && (await isFreeLesson(supabase, route.courseId, route.id));
+    if ((error || !data.user) && !freePreview) {
       const weekQuery = query.week ? `?week=${encodeURIComponent(query.week)}` : "";
       const destination = `/courses/${encodeURIComponent(route.courseId)}/chapter/${encodeURIComponent(route.chapterId)}/lesson/${encodeURIComponent(route.id)}${weekQuery}`;
       redirect(`/courses?auth=required&next=${encodeURIComponent(destination)}`);
@@ -135,6 +139,6 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
     }));
   }
 
-  return <LessonExperience lesson={result.lesson} courseId={route.courseId} preview={query.preview === "1"} week={query.week} supplementaryResources={supplementaryResources} assetsById={assetsById} questionsById={questionsById} />;
+  return <LessonExperience lesson={result.lesson} courseId={route.courseId} preview={query.preview === "1"} week={query.week} supplementaryResources={supplementaryResources} assetsById={assetsById} questionsById={questionsById} freePreview={freePreview} />;
   });
 }

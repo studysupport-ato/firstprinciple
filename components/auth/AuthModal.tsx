@@ -59,6 +59,7 @@ function parseFriendlyAuthError(error: unknown): string {
 export function AuthModal({
   open,
   onClose,
+  initialView,
   redirectTo,
   onSuccess,
 }: {
@@ -69,7 +70,11 @@ export function AuthModal({
   onSuccess?: (destination: string) => void;
 }) {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>("login");
+  const [mode, setMode] = useState<AuthMode>(initialView ?? "login");
+  // Opening the modal from a "Sign up" button starts on the sign-up tab.
+  useEffect(() => {
+    if (open) setMode(initialView ?? "login");
+  }, [open, initialView]);
   const [form, setForm] = useState<AuthState>(defaultAuthState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
