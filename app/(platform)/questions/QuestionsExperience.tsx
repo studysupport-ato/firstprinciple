@@ -344,8 +344,13 @@ function TopicBankView({
   // Sub-tiles of a grouped topic (the "Uncertain" questions keep their
   // original topic as a sub-heading).
   if (group) {
-    const ordered = [...bank.topics, ...inBank.map((question) => question.subtopic)];
+    const listed = bank.subtopics?.[group] ?? [];
+    const ordered = [...listed, ...bank.topics, ...inBank.map((question) => question.subtopic)];
     const subtopics = ordered.filter((subtopic, index) => ordered.indexOf(subtopic) === index && countFor(group, subtopic) > 0);
+    const numberOf = (subtopic: string) => {
+      if (listed.length) return subtopics.indexOf(subtopic) + 1;
+      return bank.topics.indexOf(subtopic) >= 0 ? bank.topics.indexOf(subtopic) + 1 : null;
+    };
     return (
       <GoldBackdrop>
         <button type="button" onClick={onBack} className="mb-5 inline-flex items-center gap-1.5 text-[14px] font-bold text-[#1A1814]/80 transition hover:text-[#1A1814]">
@@ -356,14 +361,14 @@ function TopicBankView({
         </p>
         <h1 className="font-sans text-[clamp(3rem,7vw,5rem)] font-black leading-[1.0] tracking-[-0.03em] text-[#1A1814]">{group}</h1>
         <p className="mt-3 text-[18px] font-medium text-[#26231C]/80">
-          {bank.groupedTopicNote ? `${bank.groupedTopicNote}. ` : ""}{plural(countFor(group), "question")}, grouped by topic.
+          {group === bank.groupedTopic && bank.groupedTopicNote ? `${bank.groupedTopicNote}. ` : ""}{plural(countFor(group), "question")}, grouped by {listed.length ? "subtopic" : "topic"}.
         </p>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <TopicTile number={null} title={`All ${group.toLowerCase()} questions`} meta={plural(countFor(group), "question")} href={practiceHref(course.id, bank, group, null, preview)} />
           {subtopics.map((subtopic) => (
             <TopicTile
               key={subtopic}
-              number={bank.topics.indexOf(subtopic) >= 0 ? bank.topics.indexOf(subtopic) + 1 : null}
+              number={numberOf(subtopic)}
               title={subtopic}
               meta={plural(countFor(group, subtopic), "question")}
               href={practiceHref(course.id, bank, group, subtopic, preview)}
@@ -392,15 +397,16 @@ function TopicBankView({
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {bank.topics.map((topic, index) => {
           const count = countFor(topic);
-          const grouped = topic === bank.groupedTopic;
+          const isGroupedTopic = topic === bank.groupedTopic;
+          const grouped = isGroupedTopic || Boolean(bank.subtopics?.[topic]?.length);
           return (
             <TopicTile
               key={topic}
               number={index + 1}
               title={topic}
               meta={count ? plural(count, "question") : "No questions yet"}
-              note={grouped ? bank.groupedTopicNote : undefined}
-              dashed={grouped}
+              note={isGroupedTopic ? bank.groupedTopicNote : undefined}
+              dashed={isGroupedTopic}
               disabled={!count}
               href={grouped ? undefined : practiceHref(course.id, bank, topic, null, preview)}
               onClick={grouped ? () => onSelectGroup(topic) : undefined}

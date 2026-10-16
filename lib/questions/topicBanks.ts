@@ -19,6 +19,13 @@ export interface TopicBank {
    */
   groupedTopic?: string;
   groupedTopicNote?: string;
+  /**
+   * Every topic opens tiles for its subtopics (in this order) instead of
+   * going straight into practice.
+   */
+  subtopics?: Record<string, string[]>;
+  /** The course also has lessons, so it stays in the Course library and Dashboard. */
+  hasLessons?: boolean;
 }
 
 export const TOPIC_BANKS: Record<string, TopicBank> = {
@@ -43,6 +50,32 @@ export const TOPIC_BANKS: Record<string, TopicBank> = {
     groupedTopic: "Uncertain",
     groupedTopicNote: "Answers worth checking with your lecturer",
   },
+  "math-151": {
+    chapterId: "math-151-past-questions",
+    hasLessons: true,
+    topics: [
+      "Real Numbers & Fields",
+      "Complex Numbers",
+      "Trig Identities via De Moivre",
+      "Matrices",
+      "Determinants & Inverses",
+      "Systems of Equations & Rank",
+      "Eigenvalues & Linear Maps",
+      "Vectors",
+      "Lines & Planes",
+    ],
+    subtopics: {
+      "Real Numbers & Fields": ["Fields"],
+      "Complex Numbers": ["Equality and Cartesian form", "Polar and exponential form", "De Moivre's theorem", "Roots of complex numbers"],
+      "Trig Identities via De Moivre": ["Multiple angles", "Powers of sine and cosine"],
+      Matrices: ["Matrix algebra", "Special matrices"],
+      "Determinants & Inverses": ["Minors and determinants", "Inverse and adjoint"],
+      "Systems of Equations & Rank": ["Rank and consistency", "Row reduction", "Vector spaces"],
+      "Eigenvalues & Linear Maps": ["Characteristic equation", "Eigenvalues and eigenvectors", "Linear transformations"],
+      Vectors: ["Dot and cross products", "Triple products", "Linear independence and coplanarity"],
+      "Lines & Planes": ["Lines", "Planes", "Intersections"],
+    },
+  },
   "me-161": {
     chapterId: "me-161-question-bank",
     topics: ["Forces in 2D", "Forces in 3D", "Particle equilibrium", "Moments", "Trusses", "Friction"],
@@ -54,5 +87,5 @@ export function getTopicBank(courseId: string): TopicBank | undefined {
 }
 
 export function isQuestionBankOnlyCourse(courseId: string): boolean {
-  return Object.prototype.hasOwnProperty.call(TOPIC_BANKS, courseId);
+  return Object.prototype.hasOwnProperty.call(TOPIC_BANKS, courseId) && !TOPIC_BANKS[courseId].hasLessons;
 }
