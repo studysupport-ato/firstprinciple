@@ -122,9 +122,8 @@ function parseQuestionPrompt(lines: string[]) {
     for (let index = promptSection + 1; index < lines.length; index += 1) {
       const line = lines[index].trim();
       if (!line) continue;
-      if (/^\*{0,2}\s*(image|diagram|asset)(\s*id)?\s*\*{0,2}\s*[:\-]/i.test(line)) continue;
       if (/^(###|\*\*|\-\s*[A-Za-z0-9]\.?|\*\s*[A-Za-z0-9]\.?)/.test(line)) {
-        if (/^###\s*(options?|answer|explanation|hint|image|diagram)/i.test(line)) {
+        if (/^###\s*(options?|answer|explanation|hint)/i.test(line)) {
           break;
         }
       }
@@ -188,7 +187,7 @@ function parseExplanation(lines: string[]) {
   if (explanationIndex >= 0) {
     const next = lines.slice(explanationIndex + 1);
     const text = next
-      .filter((line) => !/^###\s*(options?|answer|hint|question|image|diagram)\s*$/i.test(line.trim()))
+      .filter((line) => !/^###\s*(options?|answer|hint|question)\s*$/i.test(line.trim()))
       .join(" ")
       .trim();
     if (text) return text;
@@ -205,7 +204,7 @@ function parseHint(lines: string[]) {
   if (hintIndex >= 0) {
     const text = lines
       .slice(hintIndex + 1)
-      .filter((line) => !/^###\s*(question|options?|answer|explanation|image|diagram)\s*$/i.test(line.trim()))
+      .filter((line) => !/^###\s*(question|options?|answer|explanation)\s*$/i.test(line.trim()))
       .join(" ")
       .trim();
     if (text) return text;
@@ -214,19 +213,6 @@ function parseHint(lines: string[]) {
   const matched = lines.find((line) => /^\*\*?\s*hint\s*\*?\s*[:\-]\s*/i.test(line.trim()));
   if (matched) return matched.replace(/^\*\*?\s*hint\s*\*?\s*[:\-]\s*/i, "").trim();
 
-  return undefined;
-}
-
-function parseImageAssetId(lines: string[]) {
-  // Accepts "**Image:** <asset-id>" / "**Diagram:** <asset-id>" (also "Asset"),
-  // or a "### Image" / "### Diagram" heading followed by the id on the next line.
-  const inline = lines.map((line) => line.trim().match(/^\*{0,2}\s*(?:image|diagram|asset)(?:\s*id)?\s*\*{0,2}\s*[:\-]\s*\*{0,2}\s*(\S+)\s*$/i)).find(Boolean);
-  if (inline) return inline[1].trim();
-  const headingIndex = lines.findIndex((line) => /^###\s*(image|diagram)\s*$/i.test(line.trim()));
-  if (headingIndex >= 0) {
-    const next = lines.slice(headingIndex + 1).map((line) => line.trim()).find((line) => line && !/^###/.test(line));
-    if (next && /^\S+$/.test(next)) return next;
-  }
   return undefined;
 }
 
@@ -251,7 +237,6 @@ function parseQuestionBlock(block: string, courseId: string, fallbackChapterId: 
   const answer = parseAnswer(lines, inferredType, options);
   const explanation = parseExplanation(lines) || "No explanation was included in the source markdown.";
   const hint = parseHint(lines);
-  const assetId = parseImageAssetId(lines);
   const chapterId = (data.chapter && slugify(data.chapter)) || fallbackChapterId;
   const lessonId = fallbackLessonId;
 
@@ -264,7 +249,6 @@ function parseQuestionBlock(block: string, courseId: string, fallbackChapterId: 
     subtopic: data.subtopic || "General",
     type: inferredType,
     prompt,
-    assetId,
     options: inferredType === "multiple-choice" && options.length ? options : undefined,
     correctAnswer: answer,
     explanation,
