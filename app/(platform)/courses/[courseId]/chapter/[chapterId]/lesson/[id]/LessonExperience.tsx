@@ -376,7 +376,7 @@ export function LessonExperience({
       {freePreview ? (
         <div className="flex flex-shrink-0 flex-wrap items-center gap-x-4 gap-y-2 bg-[#1A1814] px-4 py-2.5 font-sans text-[13px] text-[#F6EFDC] md:px-6">
           <span className="min-w-0 flex-1">
-            <span className="font-bold text-[#E9BC3A]">Free lesson.</span> The first lesson of every topic is open to everyone. Sign up free to unlock the rest and keep your progress.
+            <span className="font-bold text-[#E9BC3A]">Open lesson.</span> You can view this lesson without signing up. To access the rest of the lessons, sign up for free.
           </span>
           <Link
             href={`/courses?auth=required&next=${encodeURIComponent(`/courses/${courseId}/chapter/${lesson.chapterId}/lesson/${lesson.id}${week ? `?week=${week}` : ""}`)}`}

@@ -8,5 +8,5 @@
  */
 export const COLLABORATE = {
   socials: [] as { name: string; handle: string; href: string }[],
-  formUrl: null as string | null,
+  formUrl: "https://docs.google.com/forms/d/e/1FAIpQLSd12ITHgiKXkFKbTEmroaHru2MmuPDvTudkKhEjHh7FiQdUeQ/viewform?usp=send_form" as string | null,
 };

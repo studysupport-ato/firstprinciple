@@ -192,7 +192,7 @@ export default function WeekClient({ course, week, days, preview = false }: { co
                   }
 
                   if (index === 0 && authenticated === false && !isComplete) {
-                    statusText = "Free lesson · no account needed";
+                    statusText = "Open lesson · no sign-up needed";
                     statusColor = "text-[#E9BC3A]";
                   }
 
@@ -209,8 +209,8 @@ export default function WeekClient({ course, week, days, preview = false }: { co
                         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${circleStyle}`}>
                           {visualState === "completed" ? <Check size={16} strokeWidth={3} /> : (index + 1)}
                         </span>
-                        <div>
-                          <h3 className={`font-sans text-[15px] font-bold leading-tight ${textStyle} line-clamp-1`}>
+                        <div className="min-w-0">
+                          <h3 className={`font-sans text-[15px] font-bold leading-snug break-words ${textStyle}`}>
                             <EducationalText text={day.title} />
                           </h3>
                           <p className={`mt-0.5 text-[12px] font-medium ${statusColor}`}>

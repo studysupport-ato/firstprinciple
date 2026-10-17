@@ -237,11 +237,15 @@ function readHeaderFields(lines: string[]) {
 
 // Optional header fields that become tags: "**Media:** <key>" links a figure
 // and video solution (see lib/questions/videoSolutions.ts) and
-// "**Tolerance:** 0.02" accepts numerical answers within ±2 %.
+// "**Tolerance:** 0.02" accepts numerical answers within ±2 %, and
+// "**Figure:** <folder/name>" attaches a redrawn diagram (see below).
 function buildTags(courseId: string, data: Record<string, string>) {
   const tags = ["imported", courseId];
   const media = data.media?.trim();
   if (media && /^[a-z0-9-]+$/i.test(media)) tags.push(`media:${media}`);
+  // "**Figure:** ee-151/e2003-f1" shows /questions/ee-151/e2003-f1.svg with the question.
+  const figure = data.figure?.trim();
+  if (figure && /^[a-z0-9][a-z0-9/-]*$/i.test(figure) && !figure.includes("..")) tags.push(`figure:${figure}`);
   const tolerance = Number(data.tolerance);
   if (Number.isFinite(tolerance) && tolerance > 0 && tolerance < 1) tags.push(`tolerance:${tolerance}`);
   return tags;

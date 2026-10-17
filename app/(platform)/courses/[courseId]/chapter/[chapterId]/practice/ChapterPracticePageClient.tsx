@@ -116,6 +116,13 @@ function QuestionRenderer({
   // placeholder; the correct answer line above already covers them.
   const explanationText = trimAnswerEcho(question.explanation?.trim() ?? "", correctOption);
   const solution = getVideoSolution(question.tags);
+  // A redrawn diagram attached with "**Figure:**" (no video solution).
+  const figureKey = question.tags?.find((tag) => tag.startsWith("figure:"))?.slice("figure:".length);
+  const figure = solution
+    ? { src: solution.figure, alt: solution.figureAlt }
+    : figureKey
+      ? { src: `/questions/${figureKey}.svg`, alt: "Diagram for this question" }
+      : null;
   const hasExplanation =
     Boolean(explanationText) &&
     !/^no explanation was included/i.test(explanationText) &&
@@ -153,11 +160,11 @@ function QuestionRenderer({
           <p className="mt-2 whitespace-pre-line font-sans text-[17px] font-normal leading-relaxed text-[#111111] md:text-[18px]">
             <EducationalText text={promptParts.question} />
           </p>
-          {solution ? (
+          {figure ? (
             <figure className="mt-4 rounded-xl border border-[#E5E5E5] bg-white p-3">
-              <a href={solution.figure} target="_blank" rel="noreferrer" title="Open the figure full size">
+              <a href={figure.src} target="_blank" rel="noreferrer" title="Open the figure full size">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={solution.figure} alt={solution.figureAlt} className="mx-auto h-auto w-full max-w-[560px]" />
+                <img src={figure.src} alt={figure.alt} className="mx-auto h-auto w-full max-w-[560px]" />
               </a>
               <figcaption className="mt-1 text-center font-sans text-[11px] text-[#888888] md:hidden">Tap the figure to enlarge it</figcaption>
             </figure>
