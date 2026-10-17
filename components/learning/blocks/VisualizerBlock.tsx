@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, LayoutGrid, Maximize2, Pause, Play, X, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowRight, LayoutGrid, Maximize2, X, ZoomIn, ZoomOut } from "lucide-react";
 
 import type { VisualizerBlock as VisualizerBlockData } from "@/lib/content/types/lesson";
 import { BOARD_FONT_STYLE } from "./boardFonts";
+import { VISUALIZER_FONT_STYLE, applyVisualizerFont } from "./visualizerFont";
 
 const DEFAULT_HEIGHT = 420;
 const BOARD_MIN_HEIGHT = 480;
@@ -169,7 +170,7 @@ html.b2b-board-picture:not(.b2b-board-fullscreen) #lb .lb-main > #lb-pic.lb-zoom
 }
 html.b2b-board-picture #lb .lb-main > #lb-pic svg { overflow: hidden !important; grid-column: auto !important; grid-row: auto !important; }
 html.b2b-board-picture #lb .lb-main > #lb-pic svg { width: 100% !important; height: 100% !important; max-width: 100% !important; max-height: 100% !important; margin: 0 !important; }
-#b2b-head, #b2b-bar { position: fixed; left: 0; right: 0; z-index: 30; display: flex; align-items: center; gap: 10px; font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif; color: #EAF1FA; }
+#b2b-head, #b2b-bar { position: fixed; left: 0; right: 0; z-index: 30; display: flex; align-items: center; gap: 10px; font-family: B2B_Futura, "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif; color: #EAF1FA; }
 #b2b-head { top: 0; height: 44px; padding: 0 16px; font-size: 11.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: #9FB4CE; }
 #b2b-head .t { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 #b2b-head .n { font-variant-numeric: tabular-nums; letter-spacing: .03em; }
@@ -177,7 +178,7 @@ html.b2b-board-picture #lb .lb-main > #lb-pic svg { width: 100% !important; heig
 #b2b-bar button { font: inherit; font-size: 14.5px; font-weight: 700; height: 40px; padding: 0 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,.24); background: transparent; color: #EAF1FA; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 #b2b-bar button:disabled { opacity: .35; cursor: default; }
 #b2b-bar button:focus-visible { outline: 3px solid #8FC3FF; outline-offset: 2px; }
-#b2b-bar .play { width: 40px; padding: 0; justify-content: center; font-size: 13px; }
+#b2b-bar .play { justify-content: center; }
 #b2b-bar .next { margin-left: auto; background: #F5C84B; border-color: #F5C84B; color: #1A1400; }
 #b2b-bar .dots { display: flex; gap: 6px; margin-left: auto; align-items: center; }
 #b2b-bar .dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.25); transition: background .2s; }
@@ -226,7 +227,7 @@ html.b2b-board-picture.b2b-quiz #lb-vp .lb-opt { font-size: 15px !important; pad
     head.innerHTML = '<span class="t"></span><span class="n"></span>';
     var bar = document.createElement('div'); bar.id = 'b2b-bar';
     bar.innerHTML = '<span id="b2b-tick"></span><button type="button" class="back" aria-label="Back">‹ Back</button>'
-      + '<button type="button" class="play" aria-label="Play">▶</button><span class="dots" aria-hidden="true"></span>'
+      + '<button type="button" class="play" aria-label="Play">Play</button><span class="dots" aria-hidden="true"></span>'
       + '<button type="button" class="next" aria-label="Next">Next ›</button>';
     document.body.appendChild(head); document.body.appendChild(bar);
     var tEl = head.querySelector('.t'), nEl = head.querySelector('.n'), tick = $('b2b-tick'),
@@ -246,7 +247,7 @@ html.b2b-board-picture.b2b-quiz #lb-vp .lb-opt { font-size: 15px !important; pad
       dots.style.display = total > 1 ? '' : 'none';
       bPlay.style.display = pb.shown && total > 1 ? '' : 'none';
       var on = playing();
-      set(bPlay, on ? '❚❚' : '▶');
+      set(bPlay, on ? 'Pause' : 'Play');
       bPlay.setAttribute('aria-label', on ? 'Pause' : 'Play');
       if (!on) stopTick();
       document.documentElement.classList.toggle('b2b-quiz', !!document.querySelector('#lb-vp .lb-quiz:not([hidden])'));
@@ -320,7 +321,15 @@ function isCustomBoard(source: string) {
   return isBoardSource(source) && !/id=["']?(lb|ck)\b/.test(source) && !/class=["'][^"']*\bv\b/.test(source);
 }
 
-function buildSourceDocument(source: string, blueprint = false, pictureOnly = false) {
+// Play / pause controls read as plain words: drop the ▶ and ❚❚ symbols visualizers put in front of them.
+function plainPlayLabels(source: string) {
+  return source
+    .replace(/(?:\\u275a|❚)(?:\\u275a|❚)\s*Pause/g, "Pause")
+    .replace(/(?:\\u25b6|▶)\s*Play/g, "Play");
+}
+
+function buildSourceDocument(rawSource: string, blueprint = false, pictureOnly = false) {
+  const source = applyVisualizerFont(plainPlayLabels(rawSource));
   const mobileBoardStyles = isBoardSource(source)
     ? `<style>
 @media (max-width: 767px) {
@@ -650,6 +659,7 @@ window.addEventListener('error', function () {
 </script>
 </head>
 <body>
+${VISUALIZER_FONT_STYLE}
 <div id="first-principles-visualizer-error">This visualizer could not render. Please ask an administrator to check its code.</div>
 ${isBoardSource(source) ? patchBoardTiming(source) : source}
 ${isBoardSource(source) ? BOARD_FONT_STYLE : ""}
@@ -898,7 +908,7 @@ export function VisualizerBlock({
                 </>
               ) : (
                 <>
-                  <div className="min-w-0 flex-1 truncate font-serif text-sm font-semibold">{boardState.title}</div>
+                  <div className="min-w-0 flex-1 truncate font-sans text-sm font-semibold">{boardState.title}</div>
                   <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold tabular-nums">
                     {boardState.current} / {boardState.total}
                   </span>
@@ -956,7 +966,6 @@ export function VisualizerBlock({
                 onClick={() => sendBoardAction(boardState.hasPicture ? "picture-play" : "play")}
                 className="flex min-h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full border border-white/70 px-3 text-xs font-semibold disabled:opacity-40 sm:max-w-32"
               >
-                {boardState.playing ? <Pause size={14} /> : <Play size={14} />}
                 {boardState.playing ? "Pause" : "Play"}
               </button>
               <button
