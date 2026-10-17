@@ -66,7 +66,7 @@ export default function WeekClient({ course, week, days, preview = false }: { co
   const percent = days.length ? Math.round((completed / days.length) * 100) : 0;
   
   // Find the first non-completed lesson
-  const firstIncompleteIndex = days.findIndex(day => dayProgress[day.id]?.status !== "completed");
+  const firstIncompleteIndex = days.findIndex(day => !day.comingSoon && dayProgress[day.id]?.status !== "completed");
   const nextLesson = firstIncompleteIndex !== -1 ? days[firstIncompleteIndex] : undefined;
 
   return (
@@ -196,15 +196,39 @@ export default function WeekClient({ course, week, days, preview = false }: { co
                     statusColor = "text-[#E9BC3A]";
                   }
 
+                  if (day.comingSoon) {
+                    circleStyle = "bg-[#3A3428] text-[#F6EFDC]/35";
+                    textStyle = "text-[#F6EFDC]/40";
+                    statusText = "Coming soon";
+                    statusColor = "text-[#F6EFDC]/30";
+                  }
+
                   // Add bottom border to all except the last row(s) to match the separated rows look
                   const isLastRow = index >= days.length - 2 && (days.length % 2 === 0 ? true : index === days.length - 1);
 
+                  const rowClass = `group flex items-center gap-4 py-5 ${!isLastRow ? 'border-b border-[#3A3428]/60' : ''}`;
+
                   return (
                     <AnimatedItem key={day.id} index={index} delay={0.06}>
+                      {day.comingSoon ? (
+                        <div aria-disabled="true" className={`${rowClass} cursor-not-allowed grayscale`}>
+                        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${circleStyle}`}>
+                          {visualState === "completed" ? <Check size={16} strokeWidth={3} /> : (index + 1)}
+                        </span>
+                        <div className="min-w-0">
+                          <h3 className={`font-sans text-[15px] font-bold leading-snug break-words ${textStyle}`}>
+                            <EducationalText text={day.title} />
+                          </h3>
+                          <p className={`mt-0.5 text-[12px] font-medium ${statusColor}`}>
+                            {statusText}
+                          </p>
+                        </div>
+                        </div>
+                      ) : (
                       <Link
                         href={href}
                         onClick={(event) => handleDayClick(event, href, index === 0)}
-                        className={`group flex items-center gap-4 py-5 transition hover:opacity-80 ${!isLastRow ? 'border-b border-[#3A3428]/60' : ''}`}
+                        className={`${rowClass} transition hover:opacity-80`}
                       >
                         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${circleStyle}`}>
                           {visualState === "completed" ? <Check size={16} strokeWidth={3} /> : (index + 1)}
@@ -218,6 +242,7 @@ export default function WeekClient({ course, week, days, preview = false }: { co
                           </p>
                         </div>
                       </Link>
+                      )}
                     </AnimatedItem>
                   );
                 })}

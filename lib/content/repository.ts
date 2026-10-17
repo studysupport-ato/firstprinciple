@@ -32,10 +32,10 @@ async function withRepositoryTiming<T>(
 }
 
 /** Admin-authored patch shapes: only the fields a caller explicitly supplies are written. */
-export type CoursePatch = Partial<Pick<Course, "code" | "title" | "shortTitle" | "description" | "department" | "status">>;
+export type CoursePatch = Partial<Pick<Course, "code" | "title" | "shortTitle" | "description" | "department" | "status" | "comingSoon">>;
 export type WeekPatch = Partial<Pick<Week, "title" | "description" | "weekNumber" | "status" | "comingSoon">>;
 export type DayPatch = Partial<
-  Pick<Lesson, "chapterId" | "title" | "description" | "order" | "estimatedMinutes" | "objectives" | "blocks" | "status">
+  Pick<Lesson, "chapterId" | "title" | "description" | "order" | "estimatedMinutes" | "objectives" | "blocks" | "status" | "comingSoon">
 >;
 
 export interface CourseStructureRepository {
@@ -229,6 +229,7 @@ type SupabaseCourseRow = {
   description: string;
   department: string | null;
   status: string;
+  coming_soon?: boolean | null;
 };
 
 type SupabaseWeekRow = {
@@ -253,6 +254,7 @@ type SupabaseDayRow = {
   objectives: unknown;
   content_blocks: unknown;
   status: string;
+  coming_soon?: boolean | null;
 };
 
 function mapCourseRow(row: SupabaseCourseRow): Course {
@@ -266,6 +268,7 @@ function mapCourseRow(row: SupabaseCourseRow): Course {
     chapterIds: [],
     weekIds: [],
     status: row.status as Course["status"],
+    comingSoon: Boolean(row.coming_soon),
   };
 }
 
@@ -300,6 +303,7 @@ function mapDayRow(row: SupabaseDayRow, validateContent = false, timing?: Reposi
         ? (row.content_blocks as Lesson["blocks"])
         : [],
     status: row.status as Lesson["status"],
+    comingSoon: Boolean(row.coming_soon),
   };
 }
 
@@ -314,6 +318,7 @@ function dayPatchRow(patch: DayPatch) {
   if (patch.objectives !== undefined) row.objectives = patch.objectives;
   if (patch.blocks !== undefined) row.content_blocks = patch.blocks;
   if (patch.status !== undefined) row.status = patch.status;
+  if (patch.comingSoon !== undefined) row.coming_soon = patch.comingSoon;
   return row;
 }
 
@@ -346,7 +351,7 @@ export function createCourseStructureSupabaseRepository(
   async function getDayInScope(courseId: string, dayId: string, weekId?: string, validateContent = false) {
     let query = clientFactory()
       .from("days")
-      .select("id,course_id,week_id,chapter_id,title,description,order_index,estimated_minutes,objectives,content_blocks,status")
+      .select("id,course_id,week_id,chapter_id,title,description,order_index,estimated_minutes,objectives,content_blocks,status,coming_soon")
       .eq("course_id", courseId)
       .eq("id", dayId);
     if (weekId) query = query.eq("week_id", weekId);
@@ -374,6 +379,7 @@ export function createCourseStructureSupabaseRepository(
       chapterIds: [],
       weekIds: [],
       status: row.status as Course["status"],
+      comingSoon: Boolean(row.coming_soon),
     }));
   },
   async getCourse(courseId: string) {
@@ -394,6 +400,7 @@ export function createCourseStructureSupabaseRepository(
         chapterIds: [],
         weekIds: [],
         status: row.status as Course["status"],
+        comingSoon: Boolean(row.coming_soon),
       }));
   },
   async listWeeksForCourse(courseId: string) {
@@ -412,6 +419,7 @@ export function createCourseStructureSupabaseRepository(
         weekNumber: row.week_number,
         sessionIds: [],
         status: row.status as Week["status"],
+        comingSoon: Boolean(row.coming_soon),
       }))));
   },
   async listDaysForCourse(courseId: string) {
@@ -431,6 +439,7 @@ export function createCourseStructureSupabaseRepository(
       objectives: Array.isArray(row.objectives) ? (row.objectives as string[]) : [],
       blocks: Array.isArray(row.content_blocks) ? (row.content_blocks as Lesson["blocks"]) : [],
       status: row.status as Lesson["status"],
+      comingSoon: Boolean(row.coming_soon),
     }));
   },
   async getWeek(courseId: string, weekId: string) {
@@ -448,6 +457,7 @@ export function createCourseStructureSupabaseRepository(
       weekNumber: row.week_number,
       sessionIds: [],
       status: row.status as Week["status"],
+      comingSoon: Boolean(row.coming_soon),
     };
   },
   async listDaysForWeek(courseId: string, weekId: string) {
@@ -467,6 +477,7 @@ export function createCourseStructureSupabaseRepository(
       objectives: Array.isArray(row.objectives) ? (row.objectives as string[]) : [],
       blocks: Array.isArray(row.content_blocks) ? (row.content_blocks as Lesson["blocks"]) : [],
       status: row.status as Lesson["status"],
+      comingSoon: Boolean(row.coming_soon),
     }));
   },
   async getDay(courseId: string, weekId: string, dayId: string, options: { validateContent?: boolean } = {}) {
@@ -523,6 +534,7 @@ export function createCourseStructureSupabaseRepository(
     if (patch.description !== undefined) row.description = patch.description;
     if (patch.department !== undefined) row.department = patch.department || null;
     if (patch.status !== undefined) row.status = patch.status;
+    if (patch.comingSoon !== undefined) row.coming_soon = patch.comingSoon;
     if (Object.keys(row).length === 0) throw new Error("No Course fields were supplied to update.");
     const { data, error } = await client.from("courses").update(row as never).eq("id", courseId).select("*").single();
     if (error) throw error;

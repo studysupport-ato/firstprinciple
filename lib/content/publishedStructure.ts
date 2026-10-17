@@ -19,8 +19,8 @@ function published<T extends { status?: string }>(value: T | undefined): value i
  * (`getPublishedDay`). The returned objects keep the `Lesson` shape with empty
  * `blocks` / `objectives` so existing consumers are unchanged.
  */
-const DAY_STRUCTURE_COLUMNS = "id, course_id, week_id, chapter_id, title, description, order_index, estimated_minutes, status";
-type DayStructureRow = { id: string; course_id: string; week_id: string; chapter_id: string | null; title: string; description: string; order_index: number; estimated_minutes: number; status: string };
+const DAY_STRUCTURE_COLUMNS = "id, course_id, week_id, chapter_id, title, description, order_index, estimated_minutes, status, coming_soon";
+type DayStructureRow = { id: string; course_id: string; week_id: string; chapter_id: string | null; title: string; description: string; order_index: number; estimated_minutes: number; status: string; coming_soon?: boolean | null };
 
 async function listDayStructure(clientFactory: ContentClientFactory | undefined, courseId: string, weekId?: string): Promise<Lesson[]> {
   const client = (clientFactory ?? createSupabaseAdminClient)();
@@ -40,6 +40,7 @@ async function listDayStructure(clientFactory: ContentClientFactory | undefined,
     objectives: [],
     blocks: [],
     status: row.status as Lesson["status"],
+    comingSoon: Boolean(row.coming_soon),
   }));
 }
 

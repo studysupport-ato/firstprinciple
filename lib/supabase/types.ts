@@ -20,8 +20,8 @@ export type Database = {
   public: {
     Tables: {
       courses: {
-        Row: { id: string; code: string; title: string; short_title: string; description: string; department: string | null; status: ContentStatus; created_at: string; updated_at: string };
-        Insert: { id: string; code: string; title: string; short_title: string; description: string; department?: string | null; status?: ContentStatus; created_at?: string; updated_at?: string };
+        Row: { id: string; code: string; title: string; short_title: string; description: string; department: string | null; status: ContentStatus; coming_soon: boolean; created_at: string; updated_at: string };
+        Insert: { id: string; code: string; title: string; short_title: string; description: string; department?: string | null; status?: ContentStatus; coming_soon?: boolean; created_at?: string; updated_at?: string };
         Update: Partial<Database["public"]["Tables"]["courses"]["Insert"]>;
       };
       weeks: {
@@ -30,8 +30,8 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["weeks"]["Insert"]>;
       };
       days: {
-        Row: { id: string; course_id: string; week_id: string; chapter_id: string | null; title: string; description: string; order_index: number; estimated_minutes: number; objectives: Json; content_blocks: Json; status: ContentStatus; created_at: string; updated_at: string };
-        Insert: { id: string; course_id: string; week_id: string; chapter_id?: string | null; title: string; description: string; order_index: number; estimated_minutes: number; objectives?: Json; content_blocks?: Json; status?: ContentStatus; created_at?: string; updated_at?: string };
+        Row: { id: string; course_id: string; week_id: string; chapter_id: string | null; title: string; description: string; order_index: number; estimated_minutes: number; objectives: Json; content_blocks: Json; status: ContentStatus; coming_soon: boolean; created_at: string; updated_at: string };
+        Insert: { id: string; course_id: string; week_id: string; chapter_id?: string | null; title: string; description: string; order_index: number; estimated_minutes: number; objectives?: Json; content_blocks?: Json; status?: ContentStatus; coming_soon?: boolean; created_at?: string; updated_at?: string };
         Update: Partial<Database["public"]["Tables"]["days"]["Insert"]>;
       };
       questions: {

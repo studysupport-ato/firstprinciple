@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import CourseOverviewClient from "./CourseOverviewClient";
 import { getPublishedRoadmap } from "@/lib/content/publishedStructure";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -9,6 +9,7 @@ export default async function CourseOverviewPage({ params }: { params: Promise<{
   const supabase = await createSupabaseServerClient();
   const result = await getPublishedRoadmap(route.courseId, () => supabase);
   if (result.kind === "not-found") notFound();
+  if (result.value.course.comingSoon) redirect("/courses");
   const weekOrder = new Map(result.value.weeks.map((week, index) => [week.id, index] as const));
   const days = Object.values(result.value.daysByWeek)
     .flat()

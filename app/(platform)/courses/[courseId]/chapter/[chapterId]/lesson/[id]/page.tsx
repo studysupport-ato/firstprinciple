@@ -47,6 +47,7 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
   );
 
   if (result.kind === "not-found") notFound();
+  if (result.unavailable && query.preview !== "1") redirect(`/courses/${encodeURIComponent(route.courseId)}`);
 
   // Task 40G.6C: the request-scoped client created above is supplied explicitly so
   // this student resource/placement read is constrained by the published-only

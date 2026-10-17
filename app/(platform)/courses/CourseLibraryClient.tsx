@@ -126,7 +126,9 @@ export default function CourseLibraryClient({
         // Task 40F.2: authoritative published week/day counts.
         const summary = structure[course.id];
         return { ...course, weeks: summary?.weekCount ?? 0, days: summary?.dayCount ?? 0 };
-      }),
+      })
+      // A course with no published lessons yet stays off the library until it has some.
+      .filter((course) => course.days > 0),
     [courses, structure],
   );
 
@@ -191,13 +193,10 @@ export default function CourseLibraryClient({
 
             <div className="flex flex-col gap-4 max-w-[540px]">
               {libraryCourses.map((course, i) => {
-                const info = progress[course.id];
-                return (
-                  <AnimatedItem key={course.id} index={i} delay={0.08} direction="up" distance={18}>
-                    <Link
-                      href={`/courses/${course.id}`}
-                      className="group flex items-center gap-5 rounded-[18px] bg-[#1A1814] px-5 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.25)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(0,0,0,0.32)]"
-                    >
+                const info = course.comingSoon ? undefined : progress[course.id];
+                const cardClass = "group flex items-center gap-5 rounded-[18px] bg-[#1A1814] px-5 py-5 shadow-[0_4px_20px_rgba(0,0,0,0.25)]";
+                const card = (
+                  <>
                       {/* Icon square — solid gold */}
                       <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[12px] bg-[#E9BC3A]">
                         <BookOpen size={24} strokeWidth={2} className="text-[#1A1814]" />
@@ -211,7 +210,9 @@ export default function CourseLibraryClient({
                         <div className="mt-1 text-[12px] font-bold uppercase tracking-[0.08em] text-[#F6EFDC]/40">
                           {course.code}{course.weeks > 0 ? ` · ${course.weeks} weeks` : ""}
                         </div>
-                        {info ? (
+                        {course.comingSoon ? (
+                          <div className="mt-2 text-[13px] font-semibold text-[#F6EFDC]/50">Coming soon</div>
+                        ) : info ? (
                           <div className="mt-2 text-[13px] font-semibold text-[#F6EFDC] truncate">
                             {info.resumeLesson}
                           </div>
@@ -219,10 +220,24 @@ export default function CourseLibraryClient({
                       </div>
 
                       {/* Arrow button */}
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#8F6500] transition group-hover:brightness-110">
-                        <ArrowRight size={18} strokeWidth={2.5} className="text-[#F6EFDC]" />
+                      {course.comingSoon ? null : (
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#8F6500] transition group-hover:brightness-110">
+                          <ArrowRight size={18} strokeWidth={2.5} className="text-[#F6EFDC]" />
+                        </div>
+                      )}
+                  </>
+                );
+                return (
+                  <AnimatedItem key={course.id} index={i} delay={0.08} direction="up" distance={18}>
+                    {course.comingSoon ? (
+                      <div aria-disabled="true" className={`${cardClass} cursor-not-allowed opacity-60 grayscale`}>
+                        {card}
                       </div>
-                    </Link>
+                    ) : (
+                      <Link href={`/courses/${course.id}`} className={`${cardClass} transition hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(0,0,0,0.32)]`}>
+                        {card}
+                      </Link>
+                    )}
                   </AnimatedItem>
                 );
               })}

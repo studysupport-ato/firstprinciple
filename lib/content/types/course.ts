@@ -11,6 +11,8 @@ export interface Course {
   chapterIds: string[];
   weekIds: string[];
   status?: ContentStatus;
+  /** Shown greyed out and not clickable while true. */
+  comingSoon?: boolean;
 }
 
 export interface Chapter {

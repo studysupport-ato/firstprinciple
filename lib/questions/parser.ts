@@ -31,6 +31,8 @@ const DIFFICULTY_ALIASES: Record<string, Difficulty> = {
   hard: "hard",
 };
 
+const PARAGRAPH_BREAK = "\u0000PARAGRAPH\u0000";
+
 function normalizeOptionId(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "") || "a";
 }
@@ -42,26 +44,13 @@ function asLines(block: string) {
     .map((line) => line.trimEnd());
 }
 
-// Header fields recognised at the top of a question block, e.g. "**Topic:** Isomerism".
-// The key must be followed by a colon, and only these known keys are accepted, so a
-// stray "Note: ..." line inside an explanation can never overwrite a real field.
-const FIELD_KEYS = new Set(["type", "topic", "subtopic", "chapter", "status", "difficulty", "marks"]);
-
 function parseFieldValue(line: string) {
-  const match = line.match(/^[*#_\-\s]*([A-Za-z][A-Za-z ]{0,30}?)\s*\**\s*:\s*\**\s*(.+)$/);
-  if (!match) return null;
-  const key = match[1].trim().toLowerCase();
-  if (!FIELD_KEYS.has(key)) return null;
-  return { key, value: match[2].replace(/\*+\s*$/, "").trim() };
-}
-
-function slugify(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
-
-function parseStatus(raw?: string): "draft" | "published" | "archived" {
-  const normalized = raw?.trim().toLowerCase();
-  return normalized === "published" || normalized === "archived" ? normalized : "draft";
+  // "**Topic:** Algebra", "**Topic**: Algebra" or "Topic: Algebra".
+  const match = line.match(/^\**\s*([A-Za-z][A-Za-z ]{0,30}?)\s*\**\s*:\s*\**\s*(.+)$/);
+  if (match) {
+    return { key: match[1].trim().toLowerCase(), value: match[2].trim() };
+  }
+  return null;
 }
 
 function parseQuestionType(raw?: string): QuestionType | null {
@@ -118,10 +107,16 @@ function parseOptionsFromBlock(lines: string[]) {
 function parseQuestionPrompt(lines: string[]) {
   const promptSection = lines.findIndex((line) => /^###\s*question\s*$/i.test(line.trim()));
   if (promptSection >= 0) {
+    // Paragraphs are kept apart with a blank line so a reading passage
+    // placed before the question stays readable; lines inside one paragraph
+    // are joined with spaces as before.
     const chunks: string[] = [];
     for (let index = promptSection + 1; index < lines.length; index += 1) {
       const line = lines[index].trim();
-      if (!line) continue;
+      if (!line) {
+        if (chunks.length && chunks[chunks.length - 1] !== PARAGRAPH_BREAK) chunks.push(PARAGRAPH_BREAK);
+        continue;
+      }
       if (/^(###|\*\*|\-\s*[A-Za-z0-9]\.?|\*\s*[A-Za-z0-9]\.?)/.test(line)) {
         if (/^###\s*(options?|answer|explanation|hint)/i.test(line)) {
           break;
@@ -129,7 +124,14 @@ function parseQuestionPrompt(lines: string[]) {
       }
       chunks.push(line);
     }
-    const value = chunks.join(" ").trim();
+    while (chunks.length && chunks[chunks.length - 1] === PARAGRAPH_BREAK) chunks.pop();
+    const value = chunks
+      .join(" ")
+      .split(` ${PARAGRAPH_BREAK} `)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
     if (value) return value;
   }
 
@@ -143,14 +145,15 @@ function parseAnswer(lines: string[], type: QuestionType, options: { id: string;
     const trimmed = line.trim();
     const answerHeader = trimmed.match(/^\*\*?\s*(answer|correct answer)\s*\*?\s*[:\-]\s*(.+)$/i);
     if (answerHeader) {
-      const raw = answerHeader[2].trim();
+      // "**Answer:** B" leaves the closing "**" in front of the value.
+      const raw = answerHeader[2].replace(/^\*+\s*/, "").trim();
       if (type === "true-false") {
         const lower = raw.toLowerCase();
         if (lower.includes("true")) return true;
         if (lower.includes("false")) return false;
       }
       if (type === "multiple-choice") {
-        const optionId = normalizeOptionId(raw.replace(/^[A-Za-z]\.?\s*$/i, "$1"));
+        const optionId = normalizeOptionId(raw.replace(/^([A-Za-z])\.?\s*$/i, "$1"));
         const matched = options.find((option) => option.id === optionId || option.label.toLowerCase() === optionId.toLowerCase());
         return matched?.id ?? optionId;
       }
@@ -186,9 +189,12 @@ function parseExplanation(lines: string[]) {
   const explanationIndex = lines.findIndex((line) => /^###\s*explanation\s*$/i.test(line.trim()));
   if (explanationIndex >= 0) {
     const next = lines.slice(explanationIndex + 1);
+    // Keep line breaks so worked steps stay on their own lines.
     const text = next
       .filter((line) => !/^###\s*(options?|answer|hint|question)\s*$/i.test(line.trim()))
-      .join(" ")
+      .map((line) => line.trim())
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
       .trim();
     if (text) return text;
   }
@@ -216,11 +222,44 @@ function parseHint(lines: string[]) {
   return undefined;
 }
 
+function readHeaderFields(lines: string[]) {
+  const fields: { status?: string; chapter?: string } = {};
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^###\s*question\s*$/i.test(trimmed)) break;
+    const match = trimmed.match(/^\*\*\s*(status|chapter)\s*:?\s*\*\*\s*:?\s*(.+)$/i);
+    if (!match) continue;
+    const key = match[1].toLowerCase() as "status" | "chapter";
+    fields[key] = key === "status" ? match[2].trim().toLowerCase() : match[2].trim();
+  }
+  return fields;
+}
+
+// Optional header fields that become tags: "**Media:** <key>" links a figure
+// and video solution (see lib/questions/videoSolutions.ts) and
+// "**Tolerance:** 0.02" accepts numerical answers within ±2 %, and
+// "**Figure:** <folder/name>" attaches a redrawn diagram (see below).
+function buildTags(courseId: string, data: Record<string, string>) {
+  const tags = ["imported", courseId];
+  const media = data.media?.trim();
+  if (media && /^[a-z0-9-]+$/i.test(media)) tags.push(`media:${media}`);
+  // "**Figure:** ee-151/e2003-f1" shows /questions/ee-151/e2003-f1.svg with the question.
+  const figure = data.figure?.trim();
+  if (figure && /^[a-z0-9][a-z0-9/-]*$/i.test(figure) && !figure.includes("..")) tags.push(`figure:${figure}`);
+  const tolerance = Number(data.tolerance);
+  if (Number.isFinite(tolerance) && tolerance > 0 && tolerance < 1) tags.push(`tolerance:${tolerance}`);
+  return tags;
+}
+
 function parseQuestionBlock(block: string, courseId: string, fallbackChapterId: string, fallbackLessonId: string, index: number) {
   const lines = asLines(block);
   const data: Record<string, string> = {};
 
-  for (const line of lines) {
+  // Metadata fields sit above "### Question"; when that heading is present,
+  // the question, options and explanation text are never read as fields.
+  const questionHeading = lines.findIndex((line) => /^###\s*question\s*$/i.test(line.trim()));
+  const fieldLines = questionHeading >= 0 ? lines.slice(0, questionHeading) : lines;
+  for (const line of fieldLines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     const parsed = parseFieldValue(trimmed);
@@ -237,7 +276,11 @@ function parseQuestionBlock(block: string, courseId: string, fallbackChapterId: 
   const answer = parseAnswer(lines, inferredType, options);
   const explanation = parseExplanation(lines) || "No explanation was included in the source markdown.";
   const hint = parseHint(lines);
-  const chapterId = (data.chapter && slugify(data.chapter)) || fallbackChapterId;
+  // Status and Chapter are read only from the header lines above
+  // "### Question" so passage or explanation text can never set them.
+  const header = readHeaderFields(lines);
+  const chapterId = header.chapter || fallbackChapterId;
+  const status = header.status === "published" ? "published" : "draft";
   const lessonId = fallbackLessonId;
 
   const question: Question = {
@@ -255,10 +298,10 @@ function parseQuestionBlock(block: string, courseId: string, fallbackChapterId: 
     hint,
     difficulty: parseDifficulty(data.difficulty),
     marks: parseMarks(data.marks),
-    tags: ["imported", courseId],
+    tags: buildTags(courseId, data),
     metadata: {
       source: "imported",
-      status: parseStatus(data.status),
+      status,
       author: "Admin import",
     },
   };

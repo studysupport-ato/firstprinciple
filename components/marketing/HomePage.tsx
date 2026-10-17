@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { COLLABORATE } from "@/lib/site/collaborate";
 
@@ -31,7 +32,7 @@ export function HomePage({ firstLessonHref }: { firstLessonHref: string | null }
   const lessonHref = firstLessonHref ?? "/courses";
 
   return (
-    <div className="min-h-screen text-[#1A1814]" style={{ fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif" }}>
+    <div className="min-h-screen font-sans text-[#1A1814]">
       <main>
         {/* Opening */}
         <section className="relative overflow-hidden" style={goldGround}>
@@ -111,12 +112,12 @@ export function HomePage({ firstLessonHref }: { firstLessonHref: string | null }
         </section>
 
         {/* Collaborate */}
-        <section id="collaborate" className="scroll-mt-20" style={goldGround}>
+        <section id="collaborate" className="scroll-mt-20 text-[#F6EFDC]" style={darkGrid}>
           <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-10 px-5 py-16 md:px-6 md:py-20">
             <div className="flex min-w-0 flex-[1_1_520px] flex-col gap-4">
-              <p className={`${eyebrow} text-[#8F6500]`}>Build it with us</p>
-              <h2 className={sectionTitle}>We haven&apos;t had everything figured out, we need you.</h2>
-              <p className="max-w-[580px] text-[17px] leading-relaxed text-[#26231C]">
+              <p className={`${eyebrow} text-[#E9BC3A]`}>Build it with us</p>
+              <TypedHeading className={`${sectionTitle} text-white`} text="We haven't had everything figured out. We need you" />
+              <p className="max-w-[580px] text-[17px] leading-relaxed text-[#F6EFDC]/80">
                 Back2Basics benefits all of us, so we need everyone on board to execute it. If you are willing to collaborate, send us a DM on any of our socials or fill in our collaboration form.
               </p>
             </div>
@@ -124,18 +125,18 @@ export function HomePage({ firstLessonHref }: { firstLessonHref: string | null }
               {COLLABORATE.socials.length ? (
                 <div className="flex flex-wrap gap-2">
                   {COLLABORATE.socials.map((social) => (
-                    <a key={social.href} href={social.href} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl bg-[#1A1814] px-4 text-[15px] font-bold text-[#F6EFDC] hover:bg-black">
+                    <a key={social.href} href={social.href} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-2xl border border-[#F6EFDC]/30 px-4 text-[15px] font-bold text-[#F6EFDC] hover:border-[#E9BC3A]">
                       {social.name} <span className="font-semibold text-[#F6EFDC]/70">{social.handle}</span>
                     </a>
                   ))}
                 </div>
               ) : null}
               {COLLABORATE.formUrl ? (
-                <a href={COLLABORATE.formUrl} target="_blank" rel="noreferrer" className="flex min-h-[44px] items-center justify-center rounded-2xl bg-[#1A1814] px-5 py-4 text-[17px] font-extrabold text-[#F6EFDC] hover:bg-black">
+                <a href={COLLABORATE.formUrl} target="_blank" rel="noreferrer" className="b2b-blink-outline flex min-h-[44px] items-center justify-center rounded-2xl bg-[#E9BC3A] px-5 py-4 text-[17px] font-extrabold text-[#1A1814] hover:bg-[#F2CC5C]">
                   Fill the collaboration form
                 </a>
               ) : (
-                <span aria-disabled="true" className="flex min-h-[44px] items-center justify-center rounded-2xl border-2 border-dashed border-[#1A1814]/50 px-5 py-4 text-[16px] font-bold text-[#1A1814]/75">
+                <span aria-disabled="true" className="flex min-h-[44px] items-center justify-center rounded-2xl border-2 border-dashed border-[#E9BC3A]/60 px-5 py-4 text-[16px] font-bold text-[#F6EFDC]/75">
                   Collaboration form · link coming soon
                 </span>
               )}
@@ -144,5 +145,55 @@ export function HomePage({ firstLessonHref }: { firstLessonHref: string | null }
         </section>
       </main>
     </div>
+  );
+}
+
+/**
+ * Types `text` out once the heading scrolls into view, then a full stop blinks
+ * at the end. The full sentence is reserved underneath so nothing shifts while
+ * it types, and screen readers get the whole sentence at once.
+ */
+function TypedHeading({ text, className }: { text: string; className: string }) {
+  const ref = useRef<HTMLHeadingElement>(null);
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setCount(text.length);
+      return;
+    }
+    let timer: number | undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        observer.disconnect();
+        let typed = 0;
+        timer = window.setInterval(() => {
+          typed += 1;
+          setCount(typed);
+          if (typed >= text.length) window.clearInterval(timer);
+        }, 55);
+      },
+      { threshold: 0.4 },
+    );
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+      if (timer) window.clearInterval(timer);
+    };
+  }, [text]);
+
+  return (
+    <h2 ref={ref} className={`${className} grid`} aria-label={`${text}.`}>
+      <span aria-hidden="true" className="invisible col-start-1 row-start-1">
+        {text}.
+      </span>
+      <span aria-hidden="true" className="col-start-1 row-start-1">
+        {text.slice(0, count)}
+        <span className="b2b-blink text-[#E9BC3A]">.</span>
+      </span>
+    </h2>
   );
 }

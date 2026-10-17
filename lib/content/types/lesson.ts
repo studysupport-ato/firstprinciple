@@ -156,4 +156,6 @@ export interface Lesson {
   objectives: string[];
   blocks: ContentBlock[];
   status?: ContentStatus;
+  /** Shown greyed out and not openable while true. */
+  comingSoon?: boolean;
 }

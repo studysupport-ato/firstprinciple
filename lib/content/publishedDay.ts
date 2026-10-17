@@ -2,7 +2,7 @@ import { createCourseStructureServerRepository, type ContentClientFactory } from
 import type { Lesson } from "./types/lesson";
 import { withServerTimingSpan, type ServerTimingContext } from "../performance/timingSpans";
 
-export type PublishedDayResult = { kind: "not-found" } | { kind: "success"; lesson: Lesson };
+export type PublishedDayResult = { kind: "not-found" } | { kind: "success"; lesson: Lesson; unavailable?: boolean };
 
 /**
  * Task 40G.5C: an explicit `clientFactory` makes this read request-scoped and
@@ -39,5 +39,8 @@ export async function getPublishedDay(
   });
 
   if (!validation || !day) return { kind: "not-found" };
-  return { kind: "success", lesson: day };
+  const week = weeks.find((candidate) => candidate.id === day.weekId);
+  // Greyed out ("coming soon") at course, topic or lesson level: the page sends visitors back.
+  const unavailable = Boolean(course?.comingSoon || week?.comingSoon || day.comingSoon);
+  return { kind: "success", lesson: day, unavailable };
 }

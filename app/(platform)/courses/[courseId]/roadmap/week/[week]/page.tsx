@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import WeekClient from "./WeekClient";
 import { getPublishedWeek } from "@/lib/content/publishedStructure";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -12,6 +12,7 @@ export default async function WeekPage({ params, searchParams }: { params: Promi
     const supabase = await createSupabaseServerClient(timing);
     const result = await getPublishedWeek(route.courseId, route.week, () => supabase);
     if (result.kind === "not-found") notFound();
+    if ((result.value.course.comingSoon || result.value.week.comingSoon) && query.preview !== "1") redirect(`/courses/${encodeURIComponent(route.courseId)}`);
     return <WeekClient course={result.value.course} week={result.value.week} days={result.value.days} preview={query.preview === "1"} />;
   });
 }

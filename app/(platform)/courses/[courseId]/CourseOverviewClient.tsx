@@ -141,7 +141,8 @@ export default function CourseOverviewClient({ course, weeks, days }: { course: 
   const dayStates = days.map((day) => dayProgress[day.id]);
   const completed = dayStates.filter((day) => day?.status === "completed").length;
   const percent = days.length ? Math.round((completed / days.length) * 100) : 0;
-  const nextLesson = days.find((day) => dayProgress[day.id]?.status !== "completed") ?? days[0];
+  const openDays = days.filter((day) => !day.comingSoon && !weeks.find((week) => week.id === day.weekId)?.comingSoon);
+  const nextLesson = openDays.find((day) => dayProgress[day.id]?.status !== "completed") ?? openDays[0];
   const nextWeek = nextLesson ? weeks.find((week) => week.id === nextLesson.weekId) : undefined;
   const nextHref = nextLesson
     ? `/courses/${course.id}/chapter/${nextLesson.chapterId}/lesson/${nextLesson.id}?week=${nextWeek?.weekNumber ?? ""}`
@@ -221,12 +222,10 @@ export default function CourseOverviewClient({ course, weeks, days }: { course: 
                 ? `/courses/${course.id}/chapter/${chapterId}/lesson/${weekDays[0]?.id}?week=${week.weekNumber}`
                 : `/courses/${course.id}/roadmap`;
 
-              return (
-                <AnimatedItem key={week.id} index={i} delay={0.07} direction="up" distance={20}>
-                  <Link
-                    href={href}
-                    className="group relative flex min-h-[180px] flex-col overflow-hidden rounded-[18px] bg-[#1A1814] p-6 shadow-[0_2px_14px_rgba(0,0,0,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(0,0,0,0.28)]"
-                  >
+              const comingSoon = week.comingSoon ?? false;
+              const cardClass = "group relative flex min-h-[180px] flex-col overflow-hidden rounded-[18px] bg-[#1A1814] p-6 shadow-[0_2px_14px_rgba(0,0,0,0.22)]";
+              const card = (
+                  <>
                     {/* Faint grid-paper texture */}
                     <div
                       className="pointer-events-none absolute inset-0 opacity-[0.06]"
@@ -255,13 +254,32 @@ export default function CourseOverviewClient({ course, weeks, days }: { course: 
                       )}
 
                       <div className="mt-auto pt-4">
-                        <span className="inline-flex items-center gap-2 rounded-full bg-[#8F6500] px-5 py-2.5 text-[13px] font-bold text-[#F6EFDC] transition group-hover:brightness-110">
-                          View lessons
-                          <ArrowRight size={14} strokeWidth={2.5} />
-                        </span>
+                        {comingSoon ? (
+                          <span className="inline-flex items-center gap-2 rounded-full border border-[#3A3428] px-5 py-2.5 text-[13px] font-bold text-[#F6EFDC]/45">
+                            Coming soon
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-2 rounded-full bg-[#8F6500] px-5 py-2.5 text-[13px] font-bold text-[#F6EFDC] transition group-hover:brightness-110">
+                            View lessons
+                            <ArrowRight size={14} strokeWidth={2.5} />
+                          </span>
+                        )}
                       </div>
                     </div>
-                  </Link>
+                  </>
+              );
+
+              return (
+                <AnimatedItem key={week.id} index={i} delay={0.07} direction="up" distance={20}>
+                  {comingSoon ? (
+                    <div aria-disabled="true" className={`${cardClass} cursor-not-allowed opacity-55 grayscale`}>
+                      {card}
+                    </div>
+                  ) : (
+                    <Link href={href} className={`${cardClass} transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(0,0,0,0.28)]`}>
+                      {card}
+                    </Link>
+                  )}
                 </AnimatedItem>
               );
             })}
