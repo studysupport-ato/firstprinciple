@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
-import { Inter, Newsreader } from "next/font/google";
+import { DM_Sans, Newsreader } from "next/font/google";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 
-const inter = Inter({
+const inter = DM_Sans({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
