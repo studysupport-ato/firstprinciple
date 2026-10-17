@@ -19,9 +19,9 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: "B2BwKwamina | University Mathematics",
+  title: "B2BwKwamina",
   applicationName: "B2BwKwamina",
-  description: "A premium interactive university learning platform.",
+  description: "The premium interactive university learning platform for the college of engineering.",
   appleWebApp: { title: "B2BwKwamina" },
   icons: {
     icon: [
