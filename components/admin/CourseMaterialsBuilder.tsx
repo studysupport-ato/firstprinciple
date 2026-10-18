@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { AvailabilityToggle } from "@/components/admin/AvailabilityToggle";
+import { CreditEditor } from "@/components/admin/CreditEditor";
 import { PlaylistEditor, type PlaylistEdit } from "@/components/admin/PlaylistEditor";
 import { TopicSelect, TopicsEditor, type Topic } from "@/components/admin/TopicsEditor";
 import { PlaylistImporter, type PlaylistImport } from "@/components/admin/PlaylistImporter";
@@ -13,7 +14,7 @@ import {
 } from "@/lib/adminContentActions";
 import type { CourseMaterialEntry } from "@/lib/content/adminContract";
 import type { CourseMaterialSemester, CourseMaterialType, CourseMaterialYear } from "@/lib/courseMaterials";
-import { linkHost } from "@/lib/courseMaterialsTree";
+import { buildSemesters, linkHost } from "@/lib/courseMaterialsTree";
 import { parseYouTubeVideoId } from "@/lib/youtube";
 import { parseYouTubePlaylistId } from "@/lib/youtubePlaylist";
 
@@ -74,12 +75,15 @@ export function CourseMaterialsBuilder({
 
   const inDepartment = useMemo(() => entries.filter((entry) => entry.departmentId === departmentId), [entries, departmentId]);
   const courses = useMemo(() => inDepartment.filter((entry) => typeOf(entry) === "course"), [inDepartment]);
-  const legacy = useMemo(() => inDepartment.filter((entry) => typeOf(entry) === "material" && !entry.parentId), [inDepartment]);
+  // Older loose materials with no year: the student page shows them under "Unassigned".
+  const legacy = useMemo(() => inDepartment.filter((entry) => typeOf(entry) === "material" && !entry.parentId && entry.studyYear == null), [inDepartment]);
 
   const semesterCourses = courses.filter((course) => course.studyYear === year && course.semester === semester).sort((a, b) => a.order - b.order);
   const semesterLinks = inDepartment
     .filter((entry) => typeOf(entry) === "semester_link" && entry.studyYear === year && entry.semester === semester)
     .sort((a, b) => a.order - b.order);
+  // Older loose materials that students see as a course card in this semester (same grouping as the student page).
+  const semesterLegacy = buildSemesters(inDepartment, departmentId, year)[semester - 1].courses.filter((course) => course.legacy);
   const openCourse = openCourseId ? courses.find((course) => course.id === openCourseId) ?? null : null;
   const openMaterials = openCourse ? inDepartment.filter((entry) => typeOf(entry) === "material" && entry.parentId === openCourse.id) : [];
   const semesterTitle = `${YEARS[year - 1].label} · Semester ${semester}`;
@@ -235,6 +239,34 @@ export function CourseMaterialsBuilder({
     );
   }
 
+  async function makeCourse(group: { courseCode: string; courseTitle: string; credit?: string; materials: CourseMaterialEntry[] }) {
+    setBusy(true);
+    try {
+      const created = await createCourseMaterialAction({
+        departmentId,
+        entryType: "course",
+        courseCode: group.courseCode || undefined,
+        courseTitle: group.courseTitle,
+        studyYear: year,
+        semester,
+        url: "",
+        status: "published",
+        ...(group.credit ? { credit: group.credit } : {}),
+      });
+      if (!created.ok) throw new Error(created.error);
+      for (const material of group.materials) {
+        const moved = await updateCourseMaterialAction(material.id, { parentId: created.data.id, studyYear: year, semester, entryType: "material" });
+        if (!moved.ok) throw new Error(moved.error);
+      }
+      onNotice(`"${group.courseTitle}" is now a course in ${semesterTitle}. Students see it exactly as before.`);
+      await onChanged();
+    } catch (caught) {
+      onError(caught instanceof Error ? caught.message : "That could not be saved.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const currentType = MATERIAL_TYPES.find((item) => item.value === materialType) ?? MATERIAL_TYPES[0];
 
   return (
@@ -247,7 +279,7 @@ export function CourseMaterialsBuilder({
             <div className="text-lg font-bold">{item.label}</div>
             {([1, 2] as const).map((sem) => {
               const selected = year === item.value && semester === sem;
-              const count = courses.filter((course) => course.studyYear === item.value && course.semester === sem).length;
+              const count = courses.filter((course) => course.studyYear === item.value && course.semester === sem).length + buildSemesters(inDepartment, departmentId, item.value)[sem - 1].courses.filter((course) => course.legacy).length;
               return (
                 <button
                   key={sem}
@@ -276,12 +308,20 @@ export function CourseMaterialsBuilder({
             <div>
               <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#E9BC3A]">{semesterTitle}</div>
               <h2 className="mt-1 font-sans text-[28px] font-extrabold">Courses</h2>
+              {legacy.length > 0 ? (
+                <a href="#older-materials" className="mt-1 inline-block text-[14px] font-semibold text-[#E9BC3A] underline-offset-4 hover:underline">
+                  {legacy.length} older {legacy.length === 1 ? "material has" : "materials have"} no year yet · see below
+                </a>
+              ) : null}
             </div>
-            {semesterCourses.length === 0 ? <p className="text-base text-[#C9BFA6]">No courses yet. Add the first one below.</p> : null}
+            {semesterCourses.length === 0 && semesterLegacy.length === 0 ? <p className="text-base text-[#C9BFA6]">No courses yet. Add the first one below.</p> : null}
             {semesterCourses.map((course) => (
               <div key={course.id} className="flex flex-wrap items-center gap-3 border-t border-[#3A3428] py-3.5">
                 {course.courseCode ? <span className="rounded-md bg-[#E9BC3A] px-2 py-0.5 text-xs font-extrabold text-[#1A1814]">{course.courseCode}</span> : null}
-                <span className="min-w-[160px] flex-1 text-[19px] font-semibold">{course.courseTitle}</span>
+                <span className="min-w-[160px] flex-1">
+                  <span className="block text-[19px] font-semibold">{course.courseTitle}</span>
+                  {course.credit ? <span className="block text-[13px] font-semibold text-[#E9BC3A]">Credit · {course.credit}</span> : null}
+                </span>
                 <span className="text-sm text-[#C9BFA6]">{materialCountFor(course.id)} materials</span>
                 <AvailabilityToggle available={course.available !== false} disabled={busy} onChange={(next) => setAvailable(course, next)} label={course.courseTitle} />
                 <button type="button" onClick={() => setOpenCourseId(course.id)} className="min-h-[44px] rounded-full bg-[#8F6500] px-[18px] text-[15px] font-bold text-[#F6EFDC] hover:brightness-110">
@@ -290,6 +330,30 @@ export function CourseMaterialsBuilder({
                 <button type="button" disabled={busy} onClick={() => remove(course, "Course")} className={removeButton} aria-label={`Remove ${course.courseTitle}`}>
                   Remove
                 </button>
+              </div>
+            ))}
+            {semesterLegacy.map((group) => (
+              <div key={group.key} className="flex flex-col gap-2 border-t border-[#3A3428] py-3.5">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="rounded-md border border-[#E9BC3A]/60 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#E9BC3A]">Older material</span>
+                  {group.courseCode ? <span className="rounded-md bg-[#E9BC3A] px-2 py-0.5 text-xs font-extrabold text-[#1A1814]">{group.courseCode}</span> : null}
+                  <span className="min-w-[160px] flex-1 text-[19px] font-semibold">{group.courseTitle}</span>
+                  <span className="text-sm text-[#C9BFA6]">{group.materials.length} materials</span>
+                  <button type="button" disabled={busy} onClick={() => void makeCourse(group)} className="min-h-[44px] rounded-full bg-[#8F6500] px-[18px] text-[15px] font-bold text-[#F6EFDC] hover:brightness-110 disabled:opacity-50">
+                    Make it a course
+                  </button>
+                </div>
+                {group.materials.map((material) => (
+                  <div key={material.id} className="flex flex-wrap items-center gap-3 pl-1 text-[15px] text-[#C9BFA6]">
+                    <a href={material.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate underline-offset-4 hover:text-[#F6EFDC] hover:underline">
+                      {material.courseTitle} · {linkHost(material.url)}
+                    </a>
+                    <button type="button" disabled={busy} onClick={() => remove(material, "Material")} className={removeButton} aria-label={`Remove ${material.courseTitle}`}>
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <p className="text-[13px] text-[#8F8671]">Added before courses existed. Students already see this as a course card here; make it a course to add more materials, topics or a credit.</p>
               </div>
             ))}
             <div className="flex flex-col gap-2.5 border-t border-[#3A3428] pt-4">
@@ -343,6 +407,7 @@ export function CourseMaterialsBuilder({
               </h2>
               <div className="mt-1 text-[15px] text-[#C9BFA6]">{openMaterials.length} materials</div>
             </div>
+            <CreditEditor value={openCourse.credit} busy={busy} onSave={(credit) => void run(() => updateCourseMaterialAction(openCourse.id, { credit }), credit ? "Credit saved." : "Credit removed.")} />
             <TopicsEditor course={openCourse} materials={openMaterials} busy={busy} onSave={(topics, notice) => saveTopics(openCourse, topics, notice)} />
             {openMaterials.length === 0 ? <p className="text-base text-[#C9BFA6]">No materials yet. Add the first one below.</p> : null}
             {openMaterials.map((material) => {
@@ -390,10 +455,10 @@ export function CourseMaterialsBuilder({
 
       {/* OLDER LOOSE MATERIALS */}
       {legacy.length > 0 ? (
-        <section className="basis-full rounded-[22px] bg-[#1A1814] p-6 text-[#F6EFDC]">
-          <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#E9BC3A]">Added before courses existed</div>
+        <section id="older-materials" className="basis-full rounded-[22px] bg-[#1A1814] p-6 text-[#F6EFDC]">
+          <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#E9BC3A]">Added before courses existed · no year set</div>
           <h2 className="mt-1 font-sans text-[24px] font-extrabold">Older materials ({legacy.length})</h2>
-          <p className="mt-1 text-[15px] text-[#C9BFA6]">Students still see these. Move each into a course above when you are ready, or remove it.</p>
+          <p className="mt-1 text-[15px] text-[#C9BFA6]">Students see these under the &quot;Unassigned&quot; tab. Move each into a course when you are ready, or remove it.</p>
           {legacy.map((entry) => (
             <div key={entry.id} className="mt-1 flex flex-wrap items-center gap-3 border-t border-[#3A3428] py-3">
               <span className="min-w-[200px] flex-1 text-base font-semibold">

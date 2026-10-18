@@ -80,7 +80,7 @@ export default function GeneralCoursesPage() {
     return (
       <CourseMaterialsChrome>
         <CourseDetail
-          course={{ courseCode: active.course.courseCode, courseTitle: active.course.courseTitle, topics: active.course.topics, outline: active.course.outline }}
+          course={{ courseCode: active.course.courseCode, courseTitle: active.course.courseTitle, credit: active.course.credit, topics: active.course.topics, outline: active.course.outline }}
           materials={active.materials}
           backLabel="General courses"
           onBack={() => setSelectedId(null)}
@@ -135,7 +135,10 @@ export default function GeneralCoursesPage() {
                     {course.courseCode ? (
                       <span className={`shrink-0 rounded-[6px] px-2 py-0.5 text-[12px] font-black ${off ? "bg-[#3B372E] text-[#9A917B]" : "bg-[#E9BC3A] text-[#1A1814]"}`}>{course.courseCode}</span>
                     ) : null}
-                    <span className="min-w-0 flex-1 basis-[220px] text-[18px] font-bold">{course.courseTitle}</span>
+                    <span className="min-w-0 flex-1 basis-[220px]">
+                      <span className="block text-[18px] font-bold">{course.courseTitle}</span>
+                      {course.credit ? <span className="mt-0.5 block text-[12.5px] font-semibold text-[#E9BC3A]/90">Credit · {course.credit}</span> : null}
+                    </span>
                     {off ? (
                       <span className="shrink-0 rounded-full border border-dashed border-[#6F6753] px-3 py-1.5 text-[13px] font-bold text-[#B8AE95]">Not available at the moment</span>
                     ) : (

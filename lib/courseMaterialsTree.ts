@@ -18,6 +18,8 @@ export interface CourseNode<T extends CourseMaterialEntry = CourseMaterialEntry>
   topics: Array<{ id: string; name: string }>;
   /** The course's outline, shown as its course structure (none for a legacy group). */
   outline: CourseOutlineChapter[];
+  /** Who wrote or compiled the course's materials, shown on its tile. */
+  credit?: string;
 }
 
 export interface SemesterNode<T extends CourseMaterialEntry = CourseMaterialEntry> {
@@ -71,6 +73,7 @@ export function buildSemesters<T extends CourseMaterialEntry>(entries: T[], depa
           available: course.available !== false,
           topics: course.topics ?? [],
           outline: course.outline ?? [],
+          credit: course.credit,
           isNew: Date.now() - new Date(course.createdAt).getTime() < FORTNIGHT,
         };
       });
@@ -82,6 +85,7 @@ export function buildSemesters<T extends CourseMaterialEntry>(entries: T[], depa
       const key = `legacy:${code}-${entry.courseTitle}`;
       const group = legacyGroups.get(key) ?? { key, courseCode: code, courseTitle: entry.courseTitle, semester, materials: [], legacy: true, isNew: false, available: true, topics: [], outline: [] };
       group.materials.push(entry);
+      if (!group.credit && entry.credit) group.credit = entry.credit;
       if (Date.now() - new Date(entry.createdAt).getTime() < FORTNIGHT) group.isNew = true;
       legacyGroups.set(key, group);
     }

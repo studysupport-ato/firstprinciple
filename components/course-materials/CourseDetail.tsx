@@ -12,7 +12,7 @@ import { buildYouTubeEmbedUrl, getCourseMaterialVideoId } from "@/lib/youtube";
 import { buildYouTubePlaylistUrl, parseYouTubePlaylistId, type PlaylistDetails } from "@/lib/youtubePlaylist";
 
 interface CourseDetailProps {
-  course: { courseCode?: string; courseTitle: string; topics?: Array<{ id: string; name: string }>; outline?: CourseOutlineChapter[] };
+  course: { courseCode?: string; courseTitle: string; credit?: string; topics?: Array<{ id: string; name: string }>; outline?: CourseOutlineChapter[] };
   materials: MaterialRow[];
   backLabel: string;
   onBack: () => void;
@@ -126,6 +126,12 @@ export function CourseDetail({ course, materials, backLabel, onBack, bookmarks, 
         </div>
       ) : null}
       <h1 className="font-sans text-[clamp(2rem,5vw,3.25rem)] font-black leading-[1.0] tracking-[-0.02em] text-[#1A1814]">{course.courseTitle}</h1>
+      {course.credit ? (
+        <p className="mt-3 inline-flex max-w-full items-center gap-2 rounded-full bg-[#1A1814] px-3.5 py-1.5 text-[13px] font-semibold text-[#F6EFDC]">
+          <span className="text-[#E9BC3A]">Credit</span>
+          <span className="min-w-0 truncate">{course.credit}</span>
+        </p>
+      ) : null}
 
       <CourseStructure outline={course.outline ?? []} />
 

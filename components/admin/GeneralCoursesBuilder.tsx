@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { AvailabilityToggle } from "@/components/admin/AvailabilityToggle";
+import { CreditEditor } from "@/components/admin/CreditEditor";
 import { PlaylistEditor, type PlaylistEdit } from "@/components/admin/PlaylistEditor";
 import { TopicSelect, TopicsEditor, type Topic } from "@/components/admin/TopicsEditor";
 import { PlaylistImporter, type PlaylistImport } from "@/components/admin/PlaylistImporter";
@@ -184,7 +185,8 @@ export function GeneralCoursesBuilder({
             <AvailabilityToggle available={open.available !== false} disabled={busy} onChange={(next) => setAvailable(open, next)} label={open.courseTitle} />
           </div>
         </div>
-        <TopicsEditor course={open} materials={materials} busy={busy} onSave={(topics, notice) => saveTopics(open, topics, notice)} />
+        <CreditEditor value={open.credit} busy={busy} onSave={(credit) => void run(() => updateCourseMaterialAction(open.id, { credit }), credit ? "Credit saved." : "Credit removed.")} />
+            <TopicsEditor course={open} materials={materials} busy={busy} onSave={(topics, notice) => saveTopics(open, topics, notice)} />
             {materials.length === 0 ? <p className="text-base text-[#C9BFA6]">No materials yet. Add the first one below.</p> : null}
         {materials.map((material) => {
           const type = MATERIAL_TYPES.find((item) => item.value === material.materialType);

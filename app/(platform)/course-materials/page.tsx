@@ -259,6 +259,7 @@ export default function CourseMaterialsPage() {
               <span className="rounded-[4px] bg-[#4A4538] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.05em] text-[#9A917B]">{course.courseCode}</span>
             )}
             <h3 className="mt-4 font-sans text-[22px] font-black leading-tight text-[#9A917B] line-clamp-2">{course.courseTitle}</h3>
+            {course.credit ? <p className="mt-2 line-clamp-2 text-[12.5px] font-semibold text-[#9A917B]">Credit · {course.credit}</p> : null}
             <div className="mt-10 rounded-full border border-dashed border-[#6F6753] px-4 py-2 text-[13px] font-bold text-[#B8AE95]">Not available at the moment</div>
           </div>
         );
@@ -282,6 +283,12 @@ export default function CourseMaterialsPage() {
           </div>
 
           <h3 className="mt-4 font-sans text-[22px] font-black leading-tight text-[#F6EFDC] line-clamp-2">{course.courseTitle}</h3>
+          {course.credit ? (
+            <p className="mt-2 line-clamp-2 text-[12.5px] font-semibold leading-snug text-[#E9BC3A]">
+              <span className="font-medium text-[#F6EFDC]/60">Credit · </span>
+              {course.credit}
+            </p>
+          ) : null}
 
           <div className="mt-10 flex w-full flex-row items-end justify-between">
             <div>

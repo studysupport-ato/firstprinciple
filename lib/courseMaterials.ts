@@ -79,6 +79,8 @@ export interface CourseMaterialEntry {
   status: CourseMaterialsStatus;
   /** false = shown to students greyed out as "not available at the moment". Missing means available. */
   available?: boolean;
+  /** Who wrote or compiled it, e.g. "Compiled by Ama Mensah (EE 2027)". Shown on the course tile. */
+  credit?: string;
   createdAt: string;
   updatedAt: string;
 }
