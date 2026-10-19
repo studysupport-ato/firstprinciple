@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, ChevronLeft, ListOrdered, Moon, Sun, X } from "lucide-react";
 import Link from "next/link";
 import { completeDay, startDay } from "@/lib/progress";
@@ -18,8 +18,10 @@ import type { Question } from "@/lib/content/types/question";
 
 type LessonExperienceProps = {
   lesson: Lesson;
+  steps?: Array<{ step: number; title: string }>;
   courseId: string;
   preview: boolean;
+  testingMode?: boolean;
   week?: string;
   supplementaryResources: LearningResource[];
   assetsById?: Record<string, Asset>;
@@ -27,6 +29,30 @@ type LessonExperienceProps = {
   /** A visitor without an account is reading this topic's free first lesson. */
   freePreview?: boolean;
 };
+
+type StepResponse = {
+  blocks: ContentBlock[];
+  assetsById: Record<string, Asset>;
+  questionsById: Record<string, Question>;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function parseStepResponse(value: unknown): StepResponse {
+  if (!isRecord(value) || !Array.isArray(value.blocks) || !isRecord(value.assetsById) || !isRecord(value.questionsById)) {
+    throw new Error("The lesson step response was invalid.");
+  }
+  if (!value.blocks.every((block) => isRecord(block) && typeof block.id === "string" && typeof block.type === "string")) {
+    throw new Error("The lesson step content was invalid.");
+  }
+  return {
+    blocks: value.blocks as ContentBlock[],
+    assetsById: value.assetsById as Record<string, Asset>,
+    questionsById: value.questionsById as Record<string, Question>,
+  };
+}
 
 function formatSectionLabel(chapterId: string) {
   return chapterId
@@ -124,17 +150,68 @@ function plainHeading(text: string) {
 
 export function LessonExperience({
   lesson,
+  steps: providedSteps,
   courseId,
   preview,
+  testingMode = false,
   week,
   supplementaryResources,
   assetsById,
   questionsById,
   freePreview = false,
 }: LessonExperienceProps) {
+  // If steps are not provided (e.g. anonymous free preview with full lesson blocks), compute from lesson.blocks
+  const fallbackSteps = useMemo(() => {
+    const unique = Array.from(new Set(lesson.blocks.map((block) => block.step ?? 1))).sort((a, b) => a - b);
+    return unique.map((step, index) => {
+      const heading = lesson.blocks.find((block) => (block.step ?? 1) === step && block.type === "heading");
+      const title = heading && heading.type === "heading" ? plainHeading(heading.text) : `Step ${index + 1}`;
+      return { step, title };
+    });
+  }, [lesson.blocks]);
+
+  const effectiveSteps = providedSteps ?? (fallbackSteps.length > 0 ? fallbackSteps : [{ step: 1, title: "Step 1" }]);
+  const initialStepNumber = effectiveSteps[0]?.step ?? 1;
+
   const [currentStep, setCurrentStep] = useState(0);
+  const currentStepRef = useRef(0);
+  useEffect(() => {
+    currentStepRef.current = currentStep;
+  }, [currentStep]);
+
+  // Initial step cache
+  const [blocksByStep, setBlocksByStep] = useState<Record<number, ContentBlock[]>>(() => {
+    if (providedSteps) {
+      return { [initialStepNumber]: lesson.blocks };
+    }
+    // Anonymous free preview: all steps are present in lesson.blocks
+    const byStep: Record<number, ContentBlock[]> = {};
+    for (const block of lesson.blocks) {
+      const s = block.step ?? 1;
+      byStep[s] = byStep[s] ?? [];
+      byStep[s].push(block);
+    }
+    return byStep;
+  });
+
+  const blocksByStepRef = useRef<Map<number, ContentBlock[]>>(
+    new Map(
+      providedSteps
+        ? [[initialStepNumber, lesson.blocks]]
+        : Object.entries(blocksByStep).map(([s, blocks]) => [Number(s), blocks]),
+    ),
+  );
+
+  const pendingStepRequests = useRef(new Map<number, Promise<StepResponse>>());
+  const [stepAssetsById, setStepAssetsById] = useState(assetsById ?? {});
+  const [stepQuestionsById, setStepQuestionsById] = useState(questionsById ?? {});
+  const [loadingStep, setLoadingStep] = useState<number | null>(null);
+  const [failedStepIndex, setFailedStepIndex] = useState<number | null>(null);
+  const [stepLoadError, setStepLoadError] = useState<string | null>(null);
+
   const [boardFullscreen, setBoardFullscreen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+
   useEffect(() => {
     try {
       if (window.localStorage.getItem("b2b-lesson-dark") === "1") setDarkMode(true);
@@ -142,6 +219,7 @@ export function LessonExperience({
       /* storage unavailable: stay on the light page */
     }
   }, []);
+
   const toggleDarkMode = () => {
     setDarkMode((value) => {
       const next = !value;
@@ -153,30 +231,33 @@ export function LessonExperience({
       return next;
     });
   };
+
   useEffect(() => { window.performance.mark("b2b-lesson-hydrated"); }, []);
 
   const geoResource = useMemo(
     () => supplementaryResources.find((resource) => resource.type === "geogebra"),
     [supplementaryResources],
   );
-  useEffect(() => {
-    if (!preview) startDay(lesson.courseId, lesson.weekId, lesson.id);
-  }, [lesson, preview]);
 
-  const uniqueSteps = useMemo(
-    () => Array.from(new Set(lesson.blocks.map((block) => block.step ?? 1))).sort((a, b) => a - b),
-    [lesson.blocks],
-  );
-  const totalSteps = uniqueSteps.length;
+  useEffect(() => {
+    if (!preview && !testingMode && !freePreview) {
+      startDay(lesson.courseId, lesson.weekId, lesson.id);
+    }
+  }, [lesson, preview, testingMode, freePreview]);
+
+  const uniqueSteps = useMemo(() => effectiveSteps.map(({ step }) => step), [effectiveSteps]);
+  const totalSteps = effectiveSteps.length;
   const isComplete = currentStep >= totalSteps - 1;
-  const activeStep = uniqueSteps[currentStep] ?? 1;
+  const activeStep = uniqueSteps[currentStep] ?? initialStepNumber;
   const roadmapHref = week ? `/courses/${courseId}/roadmap/week/${week}` : `/courses/${courseId}/roadmap`;
   const weekLabel = week ? `Week ${week.replace("w", "")}` : "Week";
   const sectionLabel = formatSectionLabel(lesson.chapterId);
+
   const activeBlocks = useMemo(
-    () => lesson.blocks.filter((block) => (block.step ?? 1) === activeStep),
-    [lesson.blocks, activeStep],
+    () => blocksByStep[activeStep] ?? [],
+    [blocksByStep, activeStep],
   );
+  const activeLesson = useMemo(() => ({ ...lesson, blocks: activeBlocks }), [lesson, activeBlocks]);
 
   const blueprint = BLUEPRINT_WEEKS.includes(lesson.weekId);
   const baseTheme = themeForStep(activeBlocks, darkMode, blueprint);
@@ -200,13 +281,65 @@ export function LessonExperience({
   const theme: LessonTheme = pageColor && isLightColor(pageColor) ? "paper" : baseTheme;
   const pageBackground = pageColor ? { ...THEME_BACKGROUNDS[theme], backgroundColor: pageColor, transition: "background-color 0.6s ease" } : THEME_BACKGROUNDS[theme];
   const stepTitles = useMemo(
-    () =>
-      uniqueSteps.map((step, index) => {
-        const heading = lesson.blocks.find((block) => (block.step ?? 1) === step && block.type === "heading");
-        return heading && heading.type === "heading" ? plainHeading(heading.text) : `Step ${index + 1}`;
-      }),
-    [lesson.blocks, uniqueSteps],
+    () => effectiveSteps.map(({ title }, index) => plainHeading(title) || `Step ${index + 1}`),
+    [effectiveSteps],
   );
+
+  const navigateToStep = useCallback(async (index: number) => {
+    if (index < 0 || index >= effectiveSteps.length || loadingStep !== null) return;
+    const stepNumber = effectiveSteps[index].step;
+    setStepLoadError(null);
+    setFailedStepIndex(null);
+
+    if (!blocksByStepRef.current.has(stepNumber)) {
+      setLoadingStep(stepNumber);
+      try {
+        let pending = pendingStepRequests.current.get(stepNumber);
+        if (!pending) {
+          if (typeof window !== "undefined" && window.performance) {
+            window.performance.mark(`b2b-lesson-step-${stepNumber}-request-start`);
+          }
+          pending = (async () => {
+            const response = await fetch(
+              `/api/lesson-steps/${encodeURIComponent(lesson.courseId)}/${encodeURIComponent(lesson.weekId)}/${encodeURIComponent(lesson.id)}/${stepNumber}${preview ? "?preview=1" : ""}`,
+              { cache: "no-store" },
+            );
+            const responseText = await response.text();
+            let payload: unknown;
+            try {
+              payload = JSON.parse(responseText);
+            } catch {
+              payload = undefined;
+            }
+            if (!response.ok) {
+              const message = isRecord(payload) && typeof payload.error === "string" ? payload.error : "Unable to load this lesson step.";
+              throw new Error(message);
+            }
+            return parseStepResponse(payload);
+          })();
+          pendingStepRequests.current.set(stepNumber, pending);
+        }
+
+        const loaded = await pending;
+        if (typeof window !== "undefined" && window.performance) {
+          window.performance.mark(`b2b-lesson-step-${stepNumber}-content-ready`);
+        }
+        blocksByStepRef.current.set(stepNumber, loaded.blocks);
+        setBlocksByStep((existing) => ({ ...existing, [stepNumber]: loaded.blocks }));
+        setStepAssetsById((existing) => ({ ...existing, ...loaded.assetsById }));
+        setStepQuestionsById((existing) => ({ ...existing, ...loaded.questionsById }));
+      } catch (error) {
+        setStepLoadError(error instanceof Error ? error.message : "Unable to load this lesson step.");
+        setFailedStepIndex(index);
+        return;
+      } finally {
+        pendingStepRequests.current.delete(stepNumber);
+        setLoadingStep(null);
+      }
+    }
+
+    setCurrentStep(index);
+  }, [effectiveSteps, lesson.courseId, lesson.id, lesson.weekId, loadingStep, preview]);
 
   const hasBlocks = activeBlocks.length > 0;
   const hasTextContent = activeBlocks.some((block) => !["image", "video", "interactive"].includes(block.type));
@@ -247,8 +380,8 @@ export function LessonExperience({
     >
       <button
         type="button"
-        onClick={() => setCurrentStep((step) => Math.max(0, step - 1))}
-        disabled={currentStep === 0}
+        onClick={() => void navigateToStep(Math.max(0, currentStep - 1))}
+        disabled={currentStep === 0 || loadingStep !== null}
         className="lesson-nav-prev flex min-h-12 items-center gap-1.5 rounded-xl border px-4 font-sans text-sm font-semibold transition-colors disabled:opacity-35"
       >
         <ChevronLeft size={16} /> Previous
@@ -256,8 +389,8 @@ export function LessonExperience({
       {!isComplete ? (
         <button
           type="button"
-          disabled={quizPending}
-          onClick={() => setCurrentStep((step) => Math.min(totalSteps - 1, step + 1))}
+          disabled={quizPending || loadingStep !== null}
+          onClick={() => void navigateToStep(Math.min(totalSteps - 1, currentStep + 1))}
           className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#E9BC3A] px-7 font-sans text-sm font-bold text-[#1A1814] transition-colors hover:bg-[#F0BC21] disabled:opacity-40 md:max-w-[220px] md:flex-none"
         >
           {quizPending ? "Finish the questions" : "Continue"} <span aria-hidden>›</span>
@@ -269,7 +402,11 @@ export function LessonExperience({
       ) : (
         <Link
           href={roadmapHref}
-          onClick={() => { if (!preview) completeDay(lesson.courseId, lesson.weekId, lesson.id); }}
+          onClick={() => {
+            if (!preview && !testingMode && !freePreview) {
+              completeDay(lesson.courseId, lesson.weekId, lesson.id);
+            }
+          }}
         >
           <span className="flex min-h-11 items-center gap-2 rounded-full bg-[#059669] px-6 font-sans text-sm font-semibold text-white transition-opacity hover:opacity-90">
             Complete Day <CheckCircle2 size={16} />
@@ -301,8 +438,8 @@ export function LessonExperience({
               <li key={step}>
                 <button
                   type="button"
-                  disabled={index > maxStep}
-                  onClick={() => setCurrentStep(index)}
+                  disabled={index > maxStep || loadingStep !== null}
+                  onClick={() => void navigateToStep(index)}
                   aria-current={index === currentStep ? "step" : undefined}
                   className="lesson-steps-item flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left font-sans text-[14px] disabled:opacity-45"
                 >
@@ -414,14 +551,33 @@ export function LessonExperience({
                 }`}
               >
                 <div className={`lesson-guided-content mr-auto ${hasVisualizerFit || hasSideVisualizer || blueprint ? "max-w-none w-full" : "max-w-[680px]"}`}>
+                  {loadingStep !== null ? (
+                    <p role="status" className="mb-4 rounded-xl border border-[#D9D4C7] bg-white/80 px-4 py-3 text-sm">
+                      Loading step {effectiveSteps.findIndex(({ step }) => step === loadingStep) + 1}…
+                    </p>
+                  ) : null}
+                  {stepLoadError ? (
+                    <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#B45309]/30 bg-white px-4 py-3 text-sm">
+                      <span>{stepLoadError}</span>
+                      {failedStepIndex !== null ? (
+                        <button
+                          type="button"
+                          onClick={() => void navigateToStep(failedStepIndex)}
+                          className="rounded-full border border-[#B45309]/40 px-4 py-2 font-semibold"
+                        >
+                          Retry
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <LessonRenderer
-                    lesson={lesson}
+                    lesson={activeLesson}
                     step={activeStep}
                     pane={hasSidePane ? "main" : undefined}
                     hideProgress
                     blueprint={blueprint}
-                    assetsById={assetsById}
-                    questionsById={questionsById}
+                    assetsById={stepAssetsById}
+                    questionsById={stepQuestionsById}
                     deferGeoGebra
                     onFullscreenChange={setBoardFullscreen}
                   />
@@ -442,13 +598,13 @@ export function LessonExperience({
                 >
                   <div ref={setSideSlot} className="flex flex-col gap-3" />
                   <LessonRenderer
-                    lesson={lesson}
+                    lesson={activeLesson}
                     step={activeStep}
                     pane="side"
                     hideProgress
                     blueprint={blueprint}
-                    assetsById={assetsById}
-                    questionsById={questionsById}
+                    assetsById={stepAssetsById}
+                    questionsById={stepQuestionsById}
                     deferGeoGebra
                   />
                 </aside>

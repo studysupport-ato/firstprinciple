@@ -75,7 +75,7 @@ export interface CourseStructureRepository {
    * Implementations must rewrite positions deterministically (1..N, no duplicates)
    * without issuing N+1 reads or touching unrelated Weeks.
    */
-  reorderDays(courseId: string, weekId: string, orderedIds: string[]): Promise<Lesson[]>;
+  reorderDays(courseId: string, weekId: string, orderedIds: string[]): Promise<void>;
   /**
    * Move an existing Day to another Week of the SAME Course (Task 40H.2),
    * appending it to the destination Week's end. Both Weeks are renumbered
@@ -188,11 +188,10 @@ const localCourseStructureRepository: CourseStructureRepository = {
       throw new Error("Day reorder must include exactly the Days of this Week.");
     }
     const byId = new Map(days.map((day) => [day.id, day]));
-    return orderedIds.map((id, index) => {
+    orderedIds.forEach((id, index) => {
       const current = byId.get(id)!;
       const updated: Lesson = { ...current, order: index + 1 };
       saveLessonRecord(updated);
-      return updated;
     });
   },
   async moveDay(courseId, dayId, destinationWeekId) {
@@ -256,6 +255,31 @@ type SupabaseDayRow = {
   status: string;
   coming_soon?: boolean | null;
 };
+
+const DAY_STRUCTURE_COLUMNS =
+  "id,course_id,week_id,chapter_id,title,description,order_index,estimated_minutes,status,coming_soon";
+
+type SupabaseDayStructureRow = Pick<
+  SupabaseDayRow,
+  "id" | "course_id" | "week_id" | "chapter_id" | "title" | "description" | "order_index" | "estimated_minutes" | "status" | "coming_soon"
+>;
+
+function mapDayStructureRow(row: SupabaseDayStructureRow): Lesson {
+  return {
+    id: row.id,
+    courseId: row.course_id,
+    chapterId: row.chapter_id ?? "",
+    weekId: row.week_id,
+    title: row.title,
+    description: row.description,
+    order: row.order_index,
+    estimatedMinutes: row.estimated_minutes,
+    objectives: [],
+    blocks: [],
+    status: row.status as Lesson["status"],
+    comingSoon: Boolean(row.coming_soon),
+  };
+}
 
 function mapCourseRow(row: SupabaseCourseRow): Course {
   return {
@@ -462,23 +486,14 @@ export function createCourseStructureSupabaseRepository(
   },
   async listDaysForWeek(courseId: string, weekId: string) {
     const client = clientFactory();
-    const { data, error } = await client.from("days").select("*").eq("course_id", courseId).eq("week_id", weekId).order("order_index", { ascending: true });
+    const { data, error } = await client
+      .from("days")
+      .select(DAY_STRUCTURE_COLUMNS)
+      .eq("course_id", courseId)
+      .eq("week_id", weekId)
+      .order("order_index", { ascending: true });
     if (error) throw error;
-    const rows = (data ?? []) as SupabaseDayRow[];
-    return rows.map((row) => ({
-      id: row.id,
-      courseId: row.course_id,
-      chapterId: row.chapter_id ?? "",
-      weekId: row.week_id,
-      title: row.title,
-      description: row.description,
-      order: row.order_index,
-      estimatedMinutes: row.estimated_minutes,
-      objectives: Array.isArray(row.objectives) ? (row.objectives as string[]) : [],
-      blocks: Array.isArray(row.content_blocks) ? (row.content_blocks as Lesson["blocks"]) : [],
-      status: row.status as Lesson["status"],
-      comingSoon: Boolean(row.coming_soon),
-    }));
+    return ((data ?? []) as SupabaseDayStructureRow[]).map(mapDayStructureRow);
   },
   async getDay(courseId: string, weekId: string, dayId: string, options: { validateContent?: boolean } = {}) {
     return getDayInScope(courseId, dayId, weekId, options.validateContent);
@@ -494,9 +509,14 @@ export function createCourseStructureSupabaseRepository(
   },
   async listAllDays() {
     const client = clientFactory();
-    const { data, error } = await client.from("days").select("*").order("course_id", { ascending: true }).order("week_id", { ascending: true }).order("order_index", { ascending: true });
+    const { data, error } = await client
+      .from("days")
+      .select(DAY_STRUCTURE_COLUMNS)
+      .order("course_id", { ascending: true })
+      .order("week_id", { ascending: true })
+      .order("order_index", { ascending: true });
     if (error) throw error;
-    return ((data ?? []) as SupabaseDayRow[]).map((row) => mapDayRow(row));
+    return ((data ?? []) as SupabaseDayStructureRow[]).map(mapDayStructureRow);
   },
   async listDayCourseIds() {
     const client = clientFactory();
@@ -695,11 +715,11 @@ export function createCourseStructureSupabaseRepository(
     // Single scoped read for the affected Week (no N+1, no unrelated Weeks).
     const { data: existing, error: existingError } = await client
       .from("days")
-      .select("*")
+      .select("id,order_index")
       .eq("course_id", courseId)
       .eq("week_id", weekId);
     if (existingError) throw existingError;
-    const rows = ((existing ?? []) as SupabaseDayRow[]).slice().sort((a, b) => a.order_index - b.order_index);
+    const rows = ((existing ?? []) as Array<{ id: string; order_index: number }>).slice().sort((a, b) => a.order_index - b.order_index);
     const ids = new Set(rows.map((row) => row.id));
     if (orderedIds.length !== rows.length || new Set(orderedIds).size !== rows.length || orderedIds.some((id) => !ids.has(id))) {
       throw new Error("Day reorder must include exactly the Days of this Week.");
@@ -714,14 +734,6 @@ export function createCourseStructureSupabaseRepository(
       const { error } = await client.from("days").update({ order_index: index + 1 } as never).eq("id", entry.id).eq("course_id", courseId).eq("week_id", weekId);
       if (error) throw error;
     }
-    const { data: refreshed, error: refreshError } = await client
-      .from("days")
-      .select("*")
-      .eq("course_id", courseId)
-      .eq("week_id", weekId)
-      .order("order_index", { ascending: true });
-    if (refreshError) throw refreshError;
-    return ((refreshed ?? []) as SupabaseDayRow[]).map((row) => mapDayRow(row));
   },
   async moveDay(courseId: string, dayId: string, destinationWeekId: string) {
     const client = clientFactory();
@@ -804,7 +816,7 @@ function validateContentBlocks(content: ContentBlock[]) {
   }
 }
 
-function parseContentBlocks(value: unknown, timing?: RepositoryTiming): ContentBlock[] {
+export function parseContentBlocks(value: unknown, timing?: RepositoryTiming): ContentBlock[] {
   if (!Array.isArray(value)) {
     throw new Error("Supabase day content is not a content block array.");
   }
