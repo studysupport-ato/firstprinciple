@@ -28,6 +28,7 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.b2bwithkwamina.com"),
   title: "B2BwKwamina",
   applicationName: "B2BwKwamina",
   description: "The premium interactive university learning platform for the college of engineering.",

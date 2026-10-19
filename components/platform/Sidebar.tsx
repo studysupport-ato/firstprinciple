@@ -165,7 +165,15 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, onSign
         ) : null}
         {!compact && (
           <p className="mt-4 px-[14px] text-[10px] font-medium tracking-wide text-[#F6EFDC]/25">
-            Built by <span className="font-semibold text-[#F6EFDC]/40">Kxy</span>
+            Built by{" "}
+            <a
+              href="https://www.linkedin.com/in/kwartengkwame"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-[#F6EFDC]/40 hover:text-[#E9BC3A] transition-colors underline underline-offset-2 decoration-dotted"
+            >
+              Kxy
+            </a>
           </p>
         )}
       </div>

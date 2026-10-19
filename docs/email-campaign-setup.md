@@ -16,6 +16,24 @@ Configure these values only in the server environment:
 | `FIRST_PRINCIPLES_EMAIL_LOGO_URL` | Absolute public HTTPS URL to the website's actual `public/brand-logo.png` asset, for example `https://<production-host>/brand-logo.png`. |
 | `FIRST_PRINCIPLES_PLATFORM_URL` | Optional public HTTPS platform URL included in the email footer. |
 
+## Password recovery email
+
+Password recovery requests use Supabase Admin `generateLink` on the server and
+send a branded email through Resend. Supabase still verifies the one-time
+recovery token and issues the recovery session; the service-role key and
+recovery token are never sent to client code. This avoids requiring Supabase's
+custom SMTP/template feature.
+
+For production, set `FIRST_PRINCIPLES_PLATFORM_URL` to
+`https://www.b2bwithkwamina.com` and add
+`https://www.b2bwithkwamina.com/auth/confirm` to Supabase Authentication →
+URL Configuration → Redirect URLs. The recovery flow also requires the
+server-only Resend variables and a verified sender described above.
+
+The reset request endpoint returns a generic response that does not confirm
+whether an account exists. Verify that the Resend domain and sender are
+configured before enabling the flow in production.
+
 The project did not have a configured production host, public logo URL,
 verified sender, or Resend credential during implementation. The admin preview
 uses the branded text fallback until the HTTPS logo URL is configured. Verify

@@ -12,33 +12,62 @@ function ResetPasswordContent() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingRecovery, setIsCheckingRecovery] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRecoveryReady, setIsRecoveryReady] = useState(false);
 
   useEffect(() => {
     const code = searchParams.get("code");
-    if (!code) {
+    const recovery = searchParams.get("recovery") === "1";
+    const linkError = searchParams.get("error");
+
+    if (linkError) {
       setIsRecoveryReady(false);
+      setIsCheckingRecovery(false);
+      setError("This password reset link is invalid or has expired. Please request a new one.");
       return;
     }
 
+    if (!code && !recovery) {
+      setIsRecoveryReady(false);
+      setIsCheckingRecovery(false);
+      return;
+    }
+
+    let active = true;
+    setError(null);
+    setIsCheckingRecovery(true);
     const finalizeRecovery = async () => {
       try {
         const supabase = createSupabaseBrowserClient();
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-        if (exchangeError) {
-          throw exchangeError;
+        if (code) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) throw exchangeError;
+        } else {
+          const { data, error: sessionError } = await supabase.auth.getSession();
+          if (sessionError) throw sessionError;
+          if (!data.session) {
+            throw new Error("The verified recovery session is missing. Please request a new reset link.");
+          }
         }
 
-        setIsRecoveryReady(true);
+        if (active) setIsRecoveryReady(true);
       } catch (caughtError) {
         const message = caughtError instanceof Error ? caughtError.message : "Unable to verify reset link.";
-        setError(message);
+        if (active) {
+          setIsRecoveryReady(false);
+          setError(message);
+        }
+      } finally {
+        if (active) setIsCheckingRecovery(false);
       }
     };
 
     void finalizeRecovery();
+    return () => {
+      active = false;
+    };
   }, [searchParams]);
 
   const handleEmailSubmit = async (event: React.FormEvent) => {
@@ -54,18 +83,19 @@ function ResetPasswordContent() {
 
     setIsSubmitting(true);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const response = await fetch("/api/auth/password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalizedEmail }),
       });
-
-      if (resetError) {
-        throw resetError;
+      const result: { message?: string } = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message ?? "Password reset is temporarily unavailable. Please try again later.");
       }
 
-      setStatus("A password reset email has been sent. Please check your inbox and follow the instructions.");
+      setStatus(result.message ?? "If an account matches that email, a password reset link will be sent shortly.");
     } catch (caughtError) {
-      const message = caughtError instanceof Error ? caughtError.message : "Failed to send reset email.";
+      const message = caughtError instanceof Error ? caughtError.message : "Password reset is temporarily unavailable. Please try again later.";
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -129,7 +159,9 @@ function ResetPasswordContent() {
           </div>
         ) : null}
 
-        {isRecoveryReady ? (
+        {isCheckingRecovery ? (
+          <p role="status" className="text-sm text-[#666666]">Verifying your password reset link...</p>
+        ) : isRecoveryReady ? (
           <form className="space-y-4" onSubmit={handlePasswordSubmit}>
             <div className="space-y-2">
               <label htmlFor="new-password" className="text-[11px] font-sans font-bold uppercase tracking-[0.18em] text-[#666666]">

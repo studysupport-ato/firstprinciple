@@ -5,6 +5,17 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const socials = [
   {
+    name: "LinkedIn",
+    handle: "Kwarteng Kwame",
+    href: "https://www.linkedin.com/in/kwartengkwame",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.45a1.63 1.63 0 0 0-1.63 1.63c0 .9.73 1.63 1.63 1.63.9 0 1.63-.73 1.63-1.63 0-.9-.73-1.63-1.63-1.63z" />
+      </svg>
+    ),
+    color: "hover:text-[#0A66C2]",
+  },
+  {
     name: "TikTok",
     handle: "@kxystaysup",
     href: "https://tiktok.com/@kxystaysup",
@@ -48,13 +59,19 @@ export function BuiltByKxy() {
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      {/* Trigger Text */}
-      <button className="font-sans text-xs font-semibold text-[#666666] hover:text-[#111111] transition-colors tracking-wide cursor-default select-none">
+      {/* Trigger Link */}
+      <a
+        href="https://www.linkedin.com/in/kwartengkwame"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Built by Kxy - LinkedIn profile"
+        className="font-sans text-xs font-semibold text-[#666666] hover:text-[#111111] transition-colors tracking-wide select-none"
+      >
         Built by{" "}
         <span className="text-[#111111] underline underline-offset-4 decoration-dotted">
           Kxy
         </span>
-      </button>
+      </a>
 
       {/* Hover Card */}
       <AnimatePresence>

@@ -1,0 +1,32 @@
+/* TEAM */
+
+Founder: Kwamina Ato
+Site: https://www.b2bwithkwamina.com
+Location: Ghana
+
+Developer: Kwarteng Kwame Acheampong
+LinkedIn: https://www.linkedin.com/in/kwartengkwame
+Location: Ghana
+
+
+/* THANKS */
+
+Next.js       — https://nextjs.org
+Supabase      — https://supabase.com
+Vercel        — https://vercel.com
+Tailwind CSS  — https://tailwindcss.com
+Framer Motion — https://www.framer.com/motion
+Lucide Icons  — https://lucide.dev
+KaTeX         — https://katex.org
+React         — https://react.dev
+
+
+/* SITE */
+
+Last update:  2026-10-19
+Language:     English
+Doctype:      HTML5
+Standards:    HTML5, CSS3, ES2024
+Components:   React 19, Next.js 16, TypeScript 5
+Database:     Supabase (PostgreSQL)
+Hosting:      Vercel

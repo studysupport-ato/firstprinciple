@@ -8,6 +8,7 @@
     "start": "next start",
     "test:mobile": "playwright test tests/mobile-experience.spec.ts",
     "test:notifications": "node --import tsx --test tests/notifications.test.ts",
+    "test:password-recovery": "node --import tsx --test tests/password-recovery.test.ts",
     "test:admin-students": "node --import tsx --test tests/student-directory.test.ts",
     "test:email-campaigns": "node --import tsx --test tests/email-campaigns.test.ts",
     "test:sms-campaigns": "node --import tsx --test tests/sms-campaigns.test.ts",
