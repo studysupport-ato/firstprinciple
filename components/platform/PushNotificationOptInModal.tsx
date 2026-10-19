@@ -210,7 +210,7 @@ export function PushNotificationOptInModal() {
                   id="push-optin-desc"
                   className="mt-2 text-sm leading-relaxed text-[#5C5649]"
                 >
-                  Get important MATH 151 announcements and study updates, even when you&apos;re away from First Principles.
+                  Get important announcements and study updates, even when you&apos;re away from First Principles.
                 </p>
               </div>
 
