@@ -11,7 +11,6 @@ import { PreviewToolbar } from "@/components/platform/PreviewToolbar";
 import { OnboardingTour } from "@/components/platform/OnboardingTour";
 import { ProfileCompletionModal } from "@/components/platform/ProfileCompletionModal";
 import { NotificationBell } from "@/components/platform/NotificationBell";
-import { PushNotificationOptInModal } from "@/components/platform/PushNotificationOptInModal";
 import "../notifications.css";
 
 function AuthRedirectHandler({ onRequireAuth }: { onRequireAuth: (destination: string) => void }) {
@@ -144,9 +143,7 @@ export default function PlatformLayout({
           </div>
         </header>
 
-        <div className="sticky top-0 z-30 hidden min-h-16 items-center justify-end border-b border-[#E7E1D2] bg-[#FFFEFA]/95 px-6 shadow-[0_2px_12px_rgba(32,27,17,0.04)] backdrop-blur-sm md:flex">
-          <NotificationBell />
-        </div>
+        {/* On a computer the notification bell lives in the sidebar, so it takes no room above the page. */}
 
         <PreviewToolbar />
         {children}
@@ -163,7 +160,6 @@ export default function PlatformLayout({
       </main>
       <OnboardingTour />
       <ProfileCompletionModal />
-      <PushNotificationOptInModal />
       <AuthModal
         open={authOpen}
         onClose={() => setAuthOpen(false)}

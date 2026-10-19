@@ -28,6 +28,8 @@ interface SidebarProps {
   onSignIn?: () => void;
 }
 
+import { NotificationBell } from "@/components/platform/NotificationBell";
+
 export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, onSignIn }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -123,6 +125,11 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, onSign
       </div>
 
       <div className={`mt-auto border-t border-[#3A3428] pt-4 ${compact ? "flex flex-col items-center" : ""}`}>
+        {!pathname.includes("/lesson/") ? (
+          <div className="mb-0.5 hidden w-full md:block">
+            <NotificationBell variant="sidebar" compact={compact} />
+          </div>
+        ) : null}
         <Link href="/settings" onClick={onMobileClose} data-tour="settings" className={navItemClass("/settings")} title="Settings">
           <Settings size={19} strokeWidth={2.5} />
           {!compact && <span>Settings</span>}

@@ -15,7 +15,6 @@ import {
 import { AnnouncementEventTracker, mergeAnnouncementSnapshot, notificationIdentityKey, removeAnnouncementFromSnapshot, shouldSubscribeToStudentNotifications, unreadBadgeLabel } from "@/lib/notifications/liveState";
 import { restoreAnnouncementReadState, setAnnouncementsRead } from "@/lib/notifications/readTransitions";
 import type { AnnouncementReadState, StudentAnnouncement } from "@/lib/notifications/types";
-import { PushNotificationToggle } from "./PushNotificationToggle";
 
 function formatAnnouncementTime(timestamp: string) {
   const date = new Date(timestamp);
@@ -34,7 +33,8 @@ function formatAnnouncementTime(timestamp: string) {
   return relative.format(Math.round(elapsedSeconds / range[1]), range[0]);
 }
 
-export function NotificationBell() {
+export function NotificationBell({ variant = "button", compact = false }: { variant?: "button" | "sidebar"; compact?: boolean } = {}) {
+  const inSidebar = variant === "sidebar";
   const { authenticated, student, studentLoading, user } = useAuthSession();
   const authUserId = user?.id ?? null;
   const studentId = student?.id ?? null;
@@ -346,11 +346,17 @@ export function NotificationBell() {
         aria-expanded={panelOpen}
         aria-controls={panelOpen ? "student-notification-panel" : undefined}
         onClick={() => setPanelOpen((open) => !open)}
-        className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#E9D99D] bg-[#FFF9E5] text-[#302713] shadow-sm transition hover:bg-[#F0C84A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C84A] focus-visible:ring-offset-2"
+        title="Notifications"
+        className={
+          inSidebar
+            ? `relative flex min-h-11 w-full items-center rounded-xl py-2.5 font-sans text-[14px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C84A] ${compact ? "justify-center px-0" : "gap-3.5 px-[14px]"} ${panelOpen ? "bg-[#3A3428] text-[#F6EFDC]" : "text-[#F6EFDC]/70 hover:bg-[#3A3428] hover:text-[#F6EFDC]"}`
+            : "relative flex h-9 w-9 items-center justify-center rounded-full border border-[#E9D99D] bg-[#FFF9E5] text-[#302713] shadow-sm transition hover:bg-[#F0C84A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F0C84A] focus-visible:ring-offset-2"
+        }
       >
-        <Bell size={19} aria-hidden="true" className={ringing ? "notification-bell-ring" : ""} />
+        <Bell size={inSidebar ? 19 : 17} strokeWidth={inSidebar ? 2.5 : 2} aria-hidden="true" className={ringing ? "notification-bell-ring" : ""} />
+        {inSidebar && !compact ? <span>Notifications</span> : null}
         {badge ? (
-          <span aria-hidden="true" className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-[#F0C84A] px-1 text-[10px] font-extrabold leading-none text-[#211B0D]">
+          <span aria-hidden="true" className={`${inSidebar && !compact ? "ml-auto" : "absolute -right-1 -top-1"} flex min-h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-[#F0C84A] px-1 text-[10px] font-extrabold leading-none text-[#211B0D]`}>
             {badge}
           </span>
         ) : null}
@@ -361,7 +367,7 @@ export function NotificationBell() {
         <section
           id="student-notification-panel"
           aria-label="Notifications"
-          className="absolute right-0 top-[calc(100%+0.75rem)] z-[60] w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-[#E7E1D2] bg-[#FFFEFA] text-[#211F1A] shadow-[0_18px_50px_rgba(32,27,17,0.18)]"
+          className={`absolute z-[60] w-[min(24rem,calc(100vw-1.5rem))] ${inSidebar ? "bottom-0 left-[calc(100%+0.75rem)]" : "right-0 top-[calc(100%+0.75rem)]"} overflow-hidden rounded-2xl border border-[#E7E1D2] bg-[#FFFEFA] text-[#211F1A] shadow-[0_18px_50px_rgba(32,27,17,0.18)]`}
         >
           <div className="flex items-start justify-between border-b border-[#ECE7DC] px-4 py-4">
             <div>
@@ -455,7 +461,6 @@ export function NotificationBell() {
               </ul>
             )}
           </div>
-          <PushNotificationToggle />
           {mutationError ? (
             <button
               type="button"
