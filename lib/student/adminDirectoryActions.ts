@@ -46,13 +46,15 @@ export async function getAdminStudentDirectoryAction(
     const filter = buildStudentDirectorySearchFilter(search);
     const client = createSupabaseAdminClient();
 
-    const readPage = async (targetPage: number) => {
+    const readPage = async (targetPage: number, knownTotalCount?: number) => {
       let query = client
         .from("students")
         .select(DIRECTORY_COLUMNS, { count: "exact" });
       if (filter) query = query.or(filter);
 
-      const bounds = studentDirectoryPageBounds(targetPage, pageSize, 0);
+      const bounds = knownTotalCount !== undefined
+        ? studentDirectoryPageBounds(targetPage, pageSize, knownTotalCount)
+        : studentDirectoryPageBounds(targetPage, pageSize);
       return query
         .abortSignal(AbortSignal.timeout(DIRECTORY_PAGE_TIMEOUT_MS))
         .order("created_at", { ascending: false })
@@ -67,7 +69,7 @@ export async function getAdminStudentDirectoryAction(
     const bounds = studentDirectoryPageBounds(page, pageSize, firstRead.count);
     let rows = firstRead.data ?? [];
     if (bounds.page !== page) {
-      const correctedRead = await readPage(bounds.page);
+      const correctedRead = await readPage(bounds.page, firstRead.count);
       if (correctedRead.error) throw correctedRead.error;
       rows = correctedRead.data ?? [];
     }

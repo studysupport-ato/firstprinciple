@@ -83,9 +83,19 @@ export function mapStudentDirectoryRow(row: StudentDirectoryRow): StudentDirecto
   };
 }
 
-export function studentDirectoryPageBounds(page: number, pageSize: number, totalCount: number) {
+export function studentDirectoryPageBounds(page: number, pageSize: number, totalCount?: number) {
+  if (totalCount === undefined) {
+    const currentPage = Math.max(1, page);
+    return {
+      page: currentPage,
+      totalPages: 0,
+      from: (currentPage - 1) * pageSize,
+      to: currentPage * pageSize - 1,
+    };
+  }
+
   const totalPages = Math.ceil(totalCount / pageSize);
-  const currentPage = totalPages === 0 ? 1 : Math.min(page, totalPages);
+  const currentPage = totalPages === 0 ? 1 : Math.max(1, Math.min(page, totalPages));
   return {
     page: currentPage,
     totalPages,

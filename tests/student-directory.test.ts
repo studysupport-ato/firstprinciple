@@ -44,6 +44,18 @@ describe("admin student directory query parameters", () => {
       from: 0,
       to: 24,
     });
+    assert.deepEqual(studentDirectoryPageBounds(2, 25), {
+      page: 2,
+      totalPages: 0,
+      from: 25,
+      to: 49,
+    });
+    assert.deepEqual(studentDirectoryPageBounds(3, 25, 55), {
+      page: 3,
+      totalPages: 3,
+      from: 50,
+      to: 74,
+    });
   });
 });
 
