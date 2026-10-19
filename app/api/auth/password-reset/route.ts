@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getSupabaseAdminConfig } from "@/lib/supabase/config";
+import { consumePasswordRecoveryRateLimit } from "@/lib/auth/passwordRecoveryRateLimit";
 import { getEmailPublicConfiguration, getResendConfiguration } from "@/lib/emailCampaigns/config";
 import { submitBrandedEmail } from "@/lib/emailCampaigns/resendProvider";
 import { createPasswordRecoveryUrl, renderPasswordRecoveryEmail } from "@/lib/auth/passwordRecoveryEmail";
@@ -40,13 +41,11 @@ export async function POST(request: NextRequest) {
     const ipAddress = request.headers.get("x-real-ip")?.trim() || forwardedFor || "unknown";
     const hmac = (value: string) =>
       createHmac("sha256", adminConfig.secretKey).update(value).digest("hex");
-    const { data: allowed, error: rateLimitError } = await createSupabaseAdminClient().rpc(
-      "consume_password_recovery_rate_limit",
-      {
-        p_email_key: hmac(`email:${email}`),
-        p_ip_key: hmac(`ip:${ipAddress}`),
-      },
-    );
+    const admin = createSupabaseAdminClient();
+    const { data: allowed, error: rateLimitError } = await consumePasswordRecoveryRateLimit(admin, {
+      p_email_key: hmac(`email:${email}`),
+      p_ip_key: hmac(`ip:${ipAddress}`),
+    });
     if (rateLimitError) {
       console.error("[password recovery] Rate limit check failed:", rateLimitError);
       return response("Password reset is temporarily unavailable. Please try again later.", 503);
@@ -62,14 +61,6 @@ export async function POST(request: NextRequest) {
     }
     const confirmationUrl = new URL("/auth/confirm", emailConfiguration.platformUrl).toString();
 
-    const admin = createSupabaseAdminClient();
-    const { data: userResult, error: userError } = await admin.auth.admin.getUserByEmail(email);
-    if (userError) {
-      console.error("[password recovery] Supabase could not look up the account.");
-      return response("Password reset is temporarily unavailable. Please try again later.", 503);
-    }
-    if (!userResult.user) return response(acceptedMessage, 202);
-
     const { data, error } = await admin.auth.admin.generateLink({
       type: "recovery",
       email,
@@ -78,13 +69,13 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("[password recovery] Supabase could not generate a recovery link.");
-      return response("Password reset is temporarily unavailable. Please try again later.", 503);
+      return response(acceptedMessage, 202);
     }
 
     const tokenHash = data.properties?.hashed_token;
     if (!tokenHash) {
       console.error("[password recovery] Supabase returned no recovery token.");
-      return response("Password reset is temporarily unavailable. Please try again later.", 503);
+      return response(acceptedMessage, 202);
     }
 
     const recoveryUrl = createPasswordRecoveryUrl(emailConfiguration.platformUrl, tokenHash);
@@ -102,12 +93,12 @@ export async function POST(request: NextRequest) {
 
     if (result.status !== "provider_accepted") {
       console.error("[password recovery] Email provider did not accept the recovery email:", result.error);
-      return response("Password reset is temporarily unavailable. Please try again later.", 503);
+      return response(acceptedMessage, 202);
     }
 
     return response(acceptedMessage, 202);
   } catch (error) {
     console.error("[password recovery] Recovery email could not be sent:", error);
-    return response("Password reset is temporarily unavailable. Please try again later.", 503);
+    return response(acceptedMessage, 202);
   }
 }

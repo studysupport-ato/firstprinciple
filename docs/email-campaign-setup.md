@@ -28,11 +28,16 @@ For production, set `FIRST_PRINCIPLES_PLATFORM_URL` to
 `https://www.b2bwithkwamina.com` and add
 `https://www.b2bwithkwamina.com/auth/confirm` to Supabase Authentication →
 URL Configuration → Redirect URLs. The recovery flow also requires the
-server-only Resend variables and a verified sender described above.
+server-only Resend variables and a verified sender described above. Apply
+`supabase/migrations/20261019120000_add_password_recovery_rate_limit.sql`
+before enabling the endpoint; it enforces a per-email and per-IP request limit
+and grants access to the limiter only to the server's `service_role` client.
 
 The reset request endpoint returns a generic response that does not confirm
-whether an account exists. Verify that the Resend domain and sender are
-configured before enabling the flow in production.
+whether an account exists. Infrastructure/provider failures are logged
+server-side but use the same response to avoid disclosing whether an account
+exists. Verify that the Resend domain and sender are configured before
+enabling the flow in production.
 
 The project did not have a configured production host, public logo URL,
 verified sender, or Resend credential during implementation. The admin preview
