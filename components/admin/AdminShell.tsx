@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BookOpen,
   BriefcaseBusiness,
   BellRing,
   FileText,
+  Flag,
   Grid2x2,
   ImageIcon,
   LayoutDashboard,
@@ -27,6 +28,7 @@ import {
 import { BrandLogo } from "@/components/branding/BrandLogo";
 import { setAdminAuthenticated } from "@/lib/adminAuth";
 import { adminLogoutAction } from "@/lib/adminContentActions";
+import { countOpenFlagsAction } from "@/lib/flags/actions";
 
 const navigation = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -34,6 +36,7 @@ const navigation = [
   { label: "Lessons", href: "/admin/lessons", icon: BookOpen },
   { label: "Questions", href: "/admin/questions", icon: FileText },
   { label: "Assessments", href: "/admin/assessments", icon: ShieldCheck },
+  { label: "Flags", href: "/admin/flags", icon: Flag },
   { label: "Students", href: "/admin/students", icon: Users },
   { label: "Notifications", href: "/admin/notifications", icon: BellRing },
   { label: "Email", href: "/admin/email", icon: Mail },
@@ -56,6 +59,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openFlags, setOpenFlags] = useState(0);
+  useEffect(() => {
+    let live = true;
+    void countOpenFlagsAction().then((result) => {
+      if (live && result.ok) setOpenFlags(result.data);
+    });
+    return () => {
+      live = false;
+    };
+  }, [pathname]);
 
   async function handleLogout() {
     try {
@@ -112,6 +125,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 >
                   <Icon size={16} />
                   <span>{label}</span>
+                  {href === "/admin/flags" && openFlags > 0 ? (
+                    <span className="ml-auto inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#E9BC3A] px-2 text-[12px] font-extrabold text-[#1A1814]" aria-label={`${openFlags} open`}>
+                      {openFlags}
+                    </span>
+                  ) : null}
                 </Link>
                 {href === "/admin/course-materials" && active ? (
                   <div className="my-1 ml-6 space-y-0.5 border-l-2 border-[#E5E5E5] pl-3">

@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft, ArrowUpRight, Bookmark, FileQuestion, FileText, LayoutGrid, Link2, ListVideo, Play, Presentation, SkipForward } from "lucide-react";
+import { FlagButton } from "@/components/flags/FlagButton";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import type { CourseOutlineChapter } from "@/lib/courseMaterials";
@@ -73,6 +74,11 @@ function ListTopicHeading({ group, show }: { group: TopicGroup<unknown>; show: b
   );
 }
 
+/** The admin page where a material is edited. */
+function adminMaterialsLink(departmentId: string) {
+  return `/admin/course-materials/${encodeURIComponent(departmentId)}`;
+}
+
 function thumb(videoId: string) {
   return `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/mqdefault.jpg`;
 }
@@ -82,6 +88,8 @@ function thumb(videoId: string) {
  * Videos and Playlists: a player with a list beside it. Everything else: a grid of tiles.
  */
 export function CourseDetail({ course, materials, backLabel, onBack, bookmarks, toggleBookmark }: CourseDetailProps) {
+  // Where a flagged video or playlist sits, for the admin inbox.
+  const flagWhere = [course.courseCode, course.courseTitle].filter(Boolean).join(" · ") || "Course materials";
   const byTab = useMemo(() => {
     const map = new Map<TabKey, MaterialRow[]>();
     for (const tab of TABS) map.set(tab.key, materials.filter((m) => m.type === tab.type));
@@ -196,9 +204,9 @@ export function CourseDetail({ course, materials, backLabel, onBack, bookmarks, 
             Nothing here yet for this course.
           </div>
         ) : tab === "videos" ? (
-          <VideosPanel key={`videos-${topicFilter}`} videos={items} topics={topics} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />
+          <VideosPanel key={`videos-${topicFilter}`} videos={items} topics={topics} bookmarks={bookmarks} toggleBookmark={toggleBookmark} where={flagWhere} />
         ) : tab === "playlists" ? (
-          <PlaylistsPanel key={`playlists-${topicFilter}`} playlists={items} topics={topics} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />
+          <PlaylistsPanel key={`playlists-${topicFilter}`} playlists={items} topics={topics} bookmarks={bookmarks} toggleBookmark={toggleBookmark} where={flagWhere} />
         ) : (
           <TileGrid key={tab} items={items} topics={topics} bookmarks={bookmarks} toggleBookmark={toggleBookmark} />
         )}
@@ -312,7 +320,7 @@ function ListRow({
   );
 }
 
-function VideosPanel({ videos: given, topics, bookmarks, toggleBookmark }: { videos: MaterialRow[]; topics: TopicView[]; bookmarks: string[]; toggleBookmark: (id: string) => void }) {
+function VideosPanel({ videos: given, topics, bookmarks, toggleBookmark, where }: { videos: MaterialRow[]; topics: TopicView[]; bookmarks: string[]; toggleBookmark: (id: string) => void; where: string }) {
   // Play in the same order the list shows: grouped by topic.
   const groups = groupByTopic(given, topics);
   const videos = groups.flatMap((group) => group.items);
@@ -353,6 +361,18 @@ function VideosPanel({ videos: given, topics, bookmarks, toggleBookmark }: { vid
                 </button>
               ) : null}
               {current ? <SaveButton saved={bookmarks.includes(current.id)} onClick={() => toggleBookmark(current.id)} label={current.courseTitle} /> : null}
+              {current ? (
+                <FlagButton
+                  tone="dark"
+                  target={{
+                    type: "video",
+                    key: `video:${current.id}`,
+                    title: current.courseTitle,
+                    location: `${where} · Videos · ${position + 1} of ${playable.length}`,
+                    link: adminMaterialsLink(current.departmentId),
+                  }}
+                />
+              ) : null}
             </div>
           </div>
         </>
@@ -468,7 +488,7 @@ function KindTag({ kind, long }: { kind?: "lesson" | "worked"; long?: boolean })
   );
 }
 
-function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }: { playlists: MaterialRow[]; topics: TopicView[]; bookmarks: string[]; toggleBookmark: (id: string) => void }) {
+function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark, where }: { playlists: MaterialRow[]; topics: TopicView[]; bookmarks: string[]; toggleBookmark: (id: string) => void; where: string }) {
   const ordered = groupByTopic(given, topics).flatMap((group) => group.items);
   const handBuilt = ordered.filter((playlist) => !parseYouTubePlaylistId(playlist.url));
   const fromYouTube = ordered.filter((playlist) => Boolean(parseYouTubePlaylistId(playlist.url)));
@@ -716,6 +736,33 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark }:
                 Next video <SkipForward className="h-4 w-4" />
               </button>
               <SaveButton saved={bookmarks.includes(open.id)} onClick={() => toggleBookmark(open.id)} label={open.courseTitle} />
+              <FlagButton
+                tone="dark"
+                scopes={[
+                  ...(current
+                    ? [{
+                        label: "This video",
+                        target: {
+                          type: "video" as const,
+                          key: `video:${open.id}:${current.videoId}`,
+                          title: current.title,
+                          location: `${where} · ${open.courseTitle} · video ${index + 1} of ${videos.length}`,
+                          link: adminMaterialsLink(open.departmentId),
+                        },
+                      }]
+                    : []),
+                  {
+                    label: "Whole playlist",
+                    target: {
+                      type: "playlist" as const,
+                      key: `playlist:${open.id}`,
+                      title: open.courseTitle,
+                      location: `${where} · ${videos.length} videos`,
+                      link: adminMaterialsLink(open.departmentId),
+                    },
+                  },
+                ]}
+              />
               <a href={youtubeLink} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold text-[#E9BC3A] hover:underline">
                 On YouTube <ArrowUpRight className="h-4 w-4" />
               </a>
