@@ -1,5 +1,7 @@
+import { createHmac } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { getSupabaseAdminConfig } from "@/lib/supabase/config";
 import { getEmailPublicConfiguration, getResendConfiguration } from "@/lib/emailCampaigns/config";
 import { submitBrandedEmail } from "@/lib/emailCampaigns/resendProvider";
 import { createPasswordRecoveryUrl, renderPasswordRecoveryEmail } from "@/lib/auth/passwordRecoveryEmail";
@@ -33,6 +35,26 @@ export async function POST(request: NextRequest) {
   const email = body.email.trim().toLowerCase();
 
   try {
+    const adminConfig = getSupabaseAdminConfig();
+    const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+    const ipAddress = request.headers.get("x-real-ip")?.trim() || forwardedFor || "unknown";
+    const hmac = (value: string) =>
+      createHmac("sha256", adminConfig.secretKey).update(value).digest("hex");
+    const { data: allowed, error: rateLimitError } = await createSupabaseAdminClient().rpc(
+      "consume_password_recovery_rate_limit",
+      {
+        p_email_key: hmac(`email:${email}`),
+        p_ip_key: hmac(`ip:${ipAddress}`),
+      },
+    );
+    if (rateLimitError) {
+      console.error("[password recovery] Rate limit check failed:", rateLimitError);
+      return response("Password reset is temporarily unavailable. Please try again later.", 503);
+    }
+    if (!allowed) {
+      return response("Too many password reset requests. Please try again later.", 429);
+    }
+
     const emailConfiguration = getEmailPublicConfiguration();
     const resendConfiguration = getResendConfiguration();
     if (!emailConfiguration.platformUrl) {
@@ -40,7 +62,15 @@ export async function POST(request: NextRequest) {
     }
     const confirmationUrl = new URL("/auth/confirm", emailConfiguration.platformUrl).toString();
 
-    const { data, error } = await createSupabaseAdminClient().auth.admin.generateLink({
+    const admin = createSupabaseAdminClient();
+    const { data: userResult, error: userError } = await admin.auth.admin.getUserByEmail(email);
+    if (userError) {
+      console.error("[password recovery] Supabase could not look up the account.");
+      return response("Password reset is temporarily unavailable. Please try again later.", 503);
+    }
+    if (!userResult.user) return response(acceptedMessage, 202);
+
+    const { data, error } = await admin.auth.admin.generateLink({
       type: "recovery",
       email,
       options: { redirectTo: confirmationUrl },

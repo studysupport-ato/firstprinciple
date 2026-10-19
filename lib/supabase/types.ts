@@ -216,6 +216,10 @@ export type Database = {
       admin_reorder_days: { Args: { p_course_id: string; p_week_id: string; p_ordered_ids: string[] }; Returns: undefined };
       admin_reorder_course_materials: { Args: { p_department_id: string; p_ordered_ids: string[] }; Returns: undefined };
       admin_reorder_departments: { Args: { p_ordered_ids: string[] }; Returns: undefined };
+      consume_password_recovery_rate_limit: {
+        Args: { p_email_key: string; p_ip_key: string };
+        Returns: boolean;
+      };
     };
   };
 };
