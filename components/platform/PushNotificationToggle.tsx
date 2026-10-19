@@ -114,13 +114,38 @@ export function PushNotificationToggle() {
     );
   }
 
+  const clientConfig = getClientPushConfig();
+
+  // If push notifications are not supported by the browser (and not pending check)
   if (supported === false) {
-    return null; // Gracefully invisible on unsupported browsers
+    return (
+      <div className="border-t border-[#ECE7DC] bg-[#FAF8F3] px-4 py-2.5 text-xs text-[#787265]">
+        <div className="flex items-center gap-2">
+          <BellOff size={14} className="shrink-0 text-[#8B8579]" aria-hidden="true" />
+          <span>Browser notifications are not supported on this device.</span>
+        </div>
+      </div>
+    );
   }
 
-  const clientConfig = getClientPushConfig();
+  // If push notifications are not yet configured on the server
   if (!clientConfig.configured) {
-    return null; // Gracefully hidden if VAPID keys aren't configured yet
+    return (
+      <div className="border-t border-[#ECE7DC] bg-[#FAF8F3] px-4 py-3 text-xs">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Bell size={15} className="text-[#787265]" aria-hidden="true" />
+            <span className="font-semibold text-[#302B20]">Device notifications</span>
+          </div>
+          <span className="rounded-md bg-[#ECE7DC] px-2 py-0.5 text-[11px] font-medium text-[#625D52]">
+            Unavailable
+          </span>
+        </div>
+        <p className="mt-1 text-[11px] text-[#787265]">
+          Web push alerts are currently being configured for this domain.
+        </p>
+      </div>
+    );
   }
 
   return (

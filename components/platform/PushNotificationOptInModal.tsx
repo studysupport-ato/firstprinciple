@@ -67,23 +67,25 @@ export function PushNotificationOptInModal() {
     if (getNotificationPermission() === "denied") return;
 
     let cancelled = false;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
 
     // 6. Check if the device is already actively subscribed
     void checkDevicePushSubscriptionActive().then((isActive) => {
       if (cancelled || isActive) return;
 
       // Small delay (1.2s) after student area is ready so it doesn't jarringly fight initial render
-      const timer = setTimeout(() => {
+      timerId = setTimeout(() => {
         if (!cancelled) {
           setIsOpen(true);
         }
       }, 1200);
-
-      return () => clearTimeout(timer);
     });
 
     return () => {
       cancelled = true;
+      if (timerId !== null) {
+        clearTimeout(timerId);
+      }
     };
   }, [authenticated, studentLoading, pathname]);
 

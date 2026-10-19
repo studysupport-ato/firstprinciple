@@ -444,6 +444,23 @@ describe("PushNotificationOptInModal component and client subscription flow", ()
     assert.match(toggleCode, /push-subscription-changed/);
     assert.match(clientSubCode, /push-subscription-changed/);
   });
+
+  it("PushNotificationToggle visibly renders unavailable and unsupported states instead of returning null", () => {
+    const toggleCode = readFileSync(
+      new URL("../components/platform/PushNotificationToggle.tsx", import.meta.url),
+      "utf8",
+    );
+    // Unsupported state
+    assert.match(toggleCode, /Browser notifications are not supported on this device/);
+    // Unconfigured state
+    assert.match(toggleCode, /Web push alerts are currently being configured for this domain/);
+    assert.match(toggleCode, /Unavailable/);
+  });
+
+  it("PushNotificationOptInModal cleans up scheduled timer on unmount", () => {
+    assert.match(modalCode, /let timerId:\s*ReturnType<typeof setTimeout>\s*\|\s*null/);
+    assert.match(modalCode, /clearTimeout\(timerId\)/);
+  });
 });
 
 
