@@ -10,6 +10,8 @@ import { Sidebar } from "@/components/platform/Sidebar";
 import { PreviewToolbar } from "@/components/platform/PreviewToolbar";
 import { OnboardingTour } from "@/components/platform/OnboardingTour";
 import { ProfileCompletionModal } from "@/components/platform/ProfileCompletionModal";
+import { NotificationBell } from "@/components/platform/NotificationBell";
+import "../notifications.css";
 
 function AuthRedirectHandler({ onRequireAuth }: { onRequireAuth: (destination: string) => void }) {
   const pathname = usePathname();
@@ -136,8 +138,14 @@ export default function PlatformLayout({
             <BrandLogo className={inLesson ? "h-5 w-24" : "h-12 w-40"} priority />
           </Link>
 
-          <div className={`shrink-0 ${inLesson ? "w-8" : "w-11"}`} /> {/* Spacer for centering */}
+          <div className={`shrink-0 ${inLesson ? "w-8" : "w-11"}`}>
+            {!inLesson ? <NotificationBell /> : null}
+          </div>
         </header>
+
+        <div className="sticky top-0 z-30 hidden min-h-16 items-center justify-end border-b border-[#E7E1D2] bg-[#FFFEFA]/95 px-6 shadow-[0_2px_12px_rgba(32,27,17,0.04)] backdrop-blur-sm md:flex">
+          <NotificationBell />
+        </div>
 
         <PreviewToolbar />
         {children}

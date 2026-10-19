@@ -1,0 +1,16 @@
+.notification-bell-ring {
+  transform-origin: 50% 12%;
+  animation: notification-bell-ring 0.8s ease-in-out;
+}
+
+@keyframes notification-bell-ring {
+  0%, 100% { transform: rotate(0); }
+  12%, 36%, 60%, 84% { transform: rotate(9deg); }
+  24%, 48%, 72% { transform: rotate(-9deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notification-bell-ring {
+    animation: none;
+  }
+}
