@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, UserRound, Phone, Mail, Clock, CalendarDays, CheckCircle2, AlertCircle } from "lucide-react";
-import { getStudentProfileById, StudentProfile } from "@/lib/student/profileRepository";
+import type { StudentProfile } from "@/lib/student/profileRepository";
+import { getAdminStudentProfileAction } from "@/lib/student/adminDirectoryActions";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 
 export default function AdminStudentDetailPage() {
@@ -13,12 +14,43 @@ export default function AdminStudentDetailPage() {
   const studentId = typeof params.studentId === "string" ? params.studentId : "";
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!studentId) return;
-    const data = getStudentProfileById(studentId);
-    setProfile(data);
-    setMounted(true);
+    let active = true;
+    void getAdminStudentProfileAction(studentId)
+      .then((result) => {
+        if (!active) return;
+        if (!result.ok) {
+          setLoadError(result.error);
+          setProfile(null);
+          return;
+        }
+        if (!result.data) {
+          setProfile(null);
+          return;
+        }
+        setProfile({
+          studentId: result.data.studentId,
+          fullName: result.data.fullName,
+          phoneNumber: result.data.phoneNumber ?? "",
+          email: result.data.email,
+          profileCompleted: result.data.profileCompleted,
+          createdAt: result.data.createdAt,
+          updatedAt: result.data.updatedAt,
+        });
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        setLoadError(error instanceof Error ? error.message : "The student profile could not be loaded.");
+      })
+      .finally(() => {
+        if (active) setMounted(true);
+      });
+    return () => {
+      active = false;
+    };
   }, [studentId]);
 
   if (!mounted) return null;
@@ -30,9 +62,9 @@ export default function AdminStudentDetailPage() {
           <ArrowLeft size={16} /> Back to students
         </Link>
         <div className="rounded-[24px] border border-[#E5E5E5] bg-white p-8 text-center shadow-[0_8px_24px_rgba(17,17,17,0.02)]">
-          <h3 className="font-serif text-3xl text-[#111111]">Student not found</h3>
+          <h3 className="font-serif text-3xl text-[#111111]">{loadError ? "Student profile unavailable" : "Student not found"}</h3>
           <p className="mt-3 text-sm text-[#666666]">
-            The requested student profile could not be found or does not exist.
+            {loadError ?? "The requested student profile could not be found or does not exist."}
           </p>
         </div>
       </div>

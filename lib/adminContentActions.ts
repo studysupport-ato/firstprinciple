@@ -304,8 +304,11 @@ export async function deleteDayAction(courseId: string, weekId: string, dayId: s
   });
 }
 
-export async function reorderDaysAction(courseId: string, weekId: string, orderedIds: string[]): Promise<AdminActionResult<Lesson[]>> {
-  return run(() => reorderAdminDays(courseId, weekId, orderedIds));
+export async function reorderDaysAction(courseId: string, weekId: string, orderedIds: string[]): Promise<AdminActionResult<null>> {
+  return run(async () => {
+    await reorderAdminDays(courseId, weekId, orderedIds);
+    return null;
+  });
 }
 
 /**
@@ -462,4 +465,3 @@ export async function deleteResourceAction(resourceId: string): Promise<AdminAct
     return null;
   });
 }
-

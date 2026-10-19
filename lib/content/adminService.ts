@@ -358,7 +358,7 @@ export async function deleteAdminDay(courseId: string, weekId: string, dayId: st
   return createCourseStructureAdminRepository().deleteDay(courseId, weekId, dayId);
 }
 
-export async function reorderAdminDays(courseId: string, weekId: string, orderedIds: string[]): Promise<Lesson[]> {
+export async function reorderAdminDays(courseId: string, weekId: string, orderedIds: string[]): Promise<void> {
   assertNonEmpty(courseId, "Course ID");
   assertNonEmpty(weekId, "Week ID");
   if (!Array.isArray(orderedIds) || orderedIds.length === 0) throw new Error("Day order must include the Days of this Week.");
