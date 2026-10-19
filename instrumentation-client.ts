@@ -18,6 +18,15 @@ if (key && typeof window !== "undefined") {
       // Only people who sign in get a profile; anonymous visitors stay anonymous.
       person_profiles: "identified_only",
       capture_exceptions: true,
+      before_send: (event) => {
+        if (
+          event?.event === "$exception" &&
+          event.properties?.$exception_list?.[0]?.value === "Script error."
+        ) {
+          return null;
+        }
+        return event;
+      },
     });
   } catch (error) {
     console.warn("[PostHog] init failed", error);

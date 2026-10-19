@@ -52,6 +52,7 @@ function loadGeoGebraScript() {
       reject(new Error("GeoGebra script failed to load."));
     };
 
+    script.crossOrigin = "anonymous";
     script.addEventListener("load", () => (window.GGBApplet ? resolve() : fail()), { once: true });
     script.addEventListener("error", fail, { once: true });
     if (!existing) {

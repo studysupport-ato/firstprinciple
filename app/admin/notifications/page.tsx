@@ -91,7 +91,16 @@ export default function AdminNotificationsPage() {
       setAnnouncements((current) => [result.data, ...current].slice(0, 25));
       setTitle("");
       setMessage("");
-      setNotice("Announcement sent to eligible students.");
+
+      if (result.data.pushQueued) {
+        setNotice("Announcement sent. Push notifications queued for subscribed students.");
+      } else if (result.data.pushEnqueueError) {
+        setNotice(
+          `Announcement sent, but push delivery could not be queued: ${result.data.pushEnqueueError} — students with the bell will still see it.`,
+        );
+      } else {
+        setNotice("Announcement sent to eligible students.");
+      }
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : "The announcement could not be sent.");
     } finally {

@@ -11,6 +11,7 @@ import { PreviewToolbar } from "@/components/platform/PreviewToolbar";
 import { OnboardingTour } from "@/components/platform/OnboardingTour";
 import { ProfileCompletionModal } from "@/components/platform/ProfileCompletionModal";
 import { NotificationBell } from "@/components/platform/NotificationBell";
+import { PushNotificationOptInModal } from "@/components/platform/PushNotificationOptInModal";
 import "../notifications.css";
 
 function AuthRedirectHandler({ onRequireAuth }: { onRequireAuth: (destination: string) => void }) {
@@ -162,6 +163,7 @@ export default function PlatformLayout({
       </main>
       <OnboardingTour />
       <ProfileCompletionModal />
+      <PushNotificationOptInModal />
       <AuthModal
         open={authOpen}
         onClose={() => setAuthOpen(false)}

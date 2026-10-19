@@ -15,6 +15,7 @@ import {
 import { AnnouncementEventTracker, mergeAnnouncementSnapshot, notificationIdentityKey, removeAnnouncementFromSnapshot, shouldSubscribeToStudentNotifications, unreadBadgeLabel } from "@/lib/notifications/liveState";
 import { restoreAnnouncementReadState, setAnnouncementsRead } from "@/lib/notifications/readTransitions";
 import type { AnnouncementReadState, StudentAnnouncement } from "@/lib/notifications/types";
+import { PushNotificationToggle } from "./PushNotificationToggle";
 
 function formatAnnouncementTime(timestamp: string) {
   const date = new Date(timestamp);
@@ -454,6 +455,7 @@ export function NotificationBell() {
               </ul>
             )}
           </div>
+          <PushNotificationToggle />
           {mutationError ? (
             <button
               type="button"

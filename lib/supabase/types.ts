@@ -103,6 +103,44 @@ export type Database = {
           },
         ];
       };
+      student_push_subscriptions: {
+        Row: {
+          id: string;
+          student_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent: string | null;
+          status: "active" | "revoked" | "expired";
+          failed_attempts: number;
+          last_notified_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          student_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent?: string | null;
+          status?: "active" | "revoked" | "expired";
+          failed_attempts?: number;
+          last_notified_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["student_push_subscriptions"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "student_push_subscriptions_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       email_campaigns: {
         Row: { [key: string]: unknown; id: string; idempotency_key: string; sender_id: string; subject: string; message: string; status: string; created_at: string; updated_at: string };
         Insert: { [key: string]: unknown; id?: string; idempotency_key: string; sender_id: string; subject: string; message: string; status?: string; created_at?: string; updated_at?: string };
@@ -192,9 +230,63 @@ export type Database = {
         Insert: { id: string; unlock_all_lessons_enabled?: boolean; maintenance_mode_enabled?: boolean; updated_at?: string };
         Update: Partial<Database["public"]["Tables"]["platform_settings"]["Insert"]>;
       };
+      push_delivery_jobs: {
+        Row: {
+          id: string;
+          announcement_id: string;
+          status: "pending" | "processing" | "completed" | "failed";
+          attempted_count: number;
+          succeeded_count: number;
+          failed_count: number;
+          expired_count: number;
+          claimed_at: string | null;
+          lease_expires_at: string | null;
+          attempt_number: number;
+          next_attempt_at: string;
+          last_error: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          announcement_id: string;
+          status?: "pending" | "processing" | "completed" | "failed";
+          attempted_count?: number;
+          succeeded_count?: number;
+          failed_count?: number;
+          expired_count?: number;
+          claimed_at?: string | null;
+          lease_expires_at?: string | null;
+          attempt_number?: number;
+          next_attempt_at?: string;
+          last_error?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["push_delivery_jobs"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "push_delivery_jobs_announcement_id_fkey";
+            columns: ["announcement_id"];
+            isOneToOne: false;
+            referencedRelation: "announcements";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
+      create_announcement_with_push_job: {
+        Args: { p_title: string; p_message: string; p_sender_id: string; p_enqueue_push?: boolean };
+        Returns: Array<{ id: string; title: string; message: string; sender_id: string; created_at: string }>;
+      };
+      increment_push_failed_attempts: {
+        Args: { p_subscription_id: string };
+        Returns: undefined;
+      };
       get_published_day_step: {
         Args: { p_course_id: string; p_week_reference: string; p_day_id: string; p_step: number | null };
         Returns: Array<{

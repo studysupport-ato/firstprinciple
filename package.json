@@ -9,6 +9,8 @@
     "test:mobile": "playwright test tests/mobile-experience.spec.ts",
     "test:notifications": "node --import tsx --test tests/notifications.test.ts",
     "test:password-recovery": "node --import tsx --test tests/password-recovery.test.ts",
+    "test:push-notifications": "node --import tsx --test tests/push-notifications.test.ts",
+    "test:push-delivery": "node --import tsx --test tests/push-delivery.test.ts",
     "test:admin-students": "node --import tsx --test tests/student-directory.test.ts",
     "test:email-campaigns": "node --import tsx --test tests/email-campaigns.test.ts",
     "test:sms-campaigns": "node --import tsx --test tests/sms-campaigns.test.ts",
@@ -52,7 +54,8 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "tailwind-merge": "^3.6.0",
-    "three": "^0.186.0"
+    "three": "^0.186.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",
@@ -60,6 +63,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "dotenv": "^17",
     "tailwindcss": "^4",
     "tsx": "^4",
