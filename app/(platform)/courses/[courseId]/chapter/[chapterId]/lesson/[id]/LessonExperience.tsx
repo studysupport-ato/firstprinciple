@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, ChevronLeft, ListOrdered, Moon, Sun, X } from "lucide-react";
+import { FlagButton } from "@/components/flags/FlagButton";
+import { courseCodeLabel } from "@/lib/flags/shared";
 import Link from "next/link";
 import { completeDay, startDay } from "@/lib/progress";
 import { LessonRenderer } from "@/components/learning/LessonRenderer";
@@ -507,6 +509,21 @@ export function LessonExperience({
             />
           ))}
         </div>
+        {!preview ? (
+          <div className="mr-2 shrink-0">
+            <FlagButton
+              compact
+              target={{
+                type: "lesson",
+                key: `lesson:${lesson.id}:${activeStep}`,
+                title: stepTitles[currentStep] ?? `Step ${currentStep + 1}`,
+                location: `${courseCodeLabel(courseId)} · ${weekLabel} · ${plainHeading(lesson.title) || "Lesson"} · Step ${currentStep + 1} of ${totalSteps}`,
+                link: `/admin/lessons/${lesson.id}`,
+                courseId,
+              }}
+            />
+          </div>
+        ) : null}
         <div className="lesson-steps-host text-[#25231F]">{stepsButton}</div>
       </header>
 

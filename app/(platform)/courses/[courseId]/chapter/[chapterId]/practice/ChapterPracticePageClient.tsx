@@ -10,6 +10,20 @@ import { createPracticeSession, evaluateQuestionAnswer, getPracticeSummary, type
 import { listMyPracticeAttempts, recordPracticeAttempt, recordPracticeStarted } from "@/lib/progress";
 import { getVideoSolution, type VideoSolution } from "@/lib/questions/videoSolutions";
 import { buildYouTubeEmbedUrl, buildYouTubeWatchUrl } from "@/lib/youtube";
+import { FlagButton } from "@/components/flags/FlagButton";
+import { courseCodeLabel } from "@/lib/flags/shared";
+
+/** A short plain-text title for a flagged question (maths and markup stripped). */
+function questionFlagTitle(prompt: string) {
+  const plain = (prompt ?? "").replace(/\$([^$]*)\$/g, (_, maths: string) => maths.replace(/\\[a-zA-Z]+/g, " ").replace(/[{}^_]/g, "")).replace(/[*_`#>]/g, "").replace(/\s+/g, " ").trim();
+  return plain.length > 110 ? `${plain.slice(0, 107)}…` : plain || "Question";
+}
+
+/** " · from KNUST EE 151 exam, December 2006" when the explanation names its source. */
+function questionSourceLabel(explanation?: string) {
+  const match = /Source:\s*([^\n]+?)\.?\s*$/.exec(explanation ?? "");
+  return match ? ` · from ${match[1].slice(0, 80)}` : "";
+}
 
 /**
  * "Watch the solution": the worked video for a question that has one. It
@@ -146,11 +160,25 @@ function QuestionRenderer({
               Question {number}
             </span>
             <span className="whitespace-nowrap font-sans text-[12px] font-medium text-[#666666]">of {total}</span>
-            {solution ? (
-              <span className="ml-auto inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#1A1814] px-3 py-1 font-sans text-[11px] font-semibold text-[#F6EFDC]">
-                <Play size={12} className="text-[#E9BC3A]" aria-hidden /> Video solution
-              </span>
-            ) : null}
+            <span className="ml-auto flex items-center gap-2">
+              {solution ? (
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#1A1814] px-3 py-1 font-sans text-[11px] font-semibold text-[#F6EFDC]">
+                  <Play size={12} className="text-[#E9BC3A]" aria-hidden /> Video solution
+                </span>
+              ) : null}
+              <FlagButton
+                compact
+                label="Flag question"
+                target={{
+                  type: "question",
+                  key: `question:${question.id}`,
+                  title: questionFlagTitle(question.prompt),
+                  location: [courseCodeLabel(question.courseId), question.topic, question.subtopic].filter(Boolean).join(" · ") + questionSourceLabel(question.explanation),
+                  link: `/admin/questions/${question.id}`,
+                  courseId: question.courseId,
+                }}
+              />
+            </span>
           </div>
           {promptParts.instruction ? (
             <p className="mt-3 font-sans text-sm leading-relaxed text-[#555555]">
