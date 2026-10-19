@@ -448,23 +448,14 @@ export function createCourseStructureSupabaseRepository(
   },
   async listDaysForCourse(courseId: string) {
     const client = clientFactory();
-    const { data, error } = await client.from("days").select("*").eq("course_id", courseId).order("week_id", { ascending: true }).order("order_index", { ascending: true });
+    const { data, error } = await client
+      .from("days")
+      .select(DAY_STRUCTURE_COLUMNS)
+      .eq("course_id", courseId)
+      .order("week_id", { ascending: true })
+      .order("order_index", { ascending: true });
     if (error) throw error;
-    const rows = (data ?? []) as SupabaseDayRow[];
-    return rows.map((row) => ({
-      id: row.id,
-      courseId: row.course_id,
-      chapterId: row.chapter_id ?? "",
-      weekId: row.week_id,
-      title: row.title,
-      description: row.description,
-      order: row.order_index,
-      estimatedMinutes: row.estimated_minutes,
-      objectives: Array.isArray(row.objectives) ? (row.objectives as string[]) : [],
-      blocks: Array.isArray(row.content_blocks) ? (row.content_blocks as Lesson["blocks"]) : [],
-      status: row.status as Lesson["status"],
-      comingSoon: Boolean(row.coming_soon),
-    }));
+    return ((data ?? []) as SupabaseDayStructureRow[]).map(mapDayStructureRow);
   },
   async getWeek(courseId: string, weekId: string) {
     const client = clientFactory();

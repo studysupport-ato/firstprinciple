@@ -194,12 +194,30 @@ export async function listAdminQuestions(courseId?: string): Promise<Question[]>
   return createQuestionAdminRepository().listQuestions(courseId ? { courseId } : {});
 }
 
+export async function listAdminQuestionDirectory(
+  courseId?: string,
+  pagination?: { page?: number; pageSize?: number }
+) {
+  return createQuestionAdminRepository().listQuestionDirectory({
+    ...(courseId ? { courseId } : {}),
+    ...pagination,
+  });
+}
+
+export async function countAdminQuestions(courseId?: string): Promise<number> {
+  return createQuestionAdminRepository().countQuestions(courseId ? { courseId } : {});
+}
+
 export async function getAdminQuestion(questionId: string): Promise<Question | undefined> {
   return createQuestionAdminRepository().getQuestion(questionId);
 }
 
 export async function listAdminAssessments(courseId?: string): Promise<Assessment[]> {
   return createAssessmentAdminRepository().listAssessments(courseId ? { courseId } : {});
+}
+
+export async function countAdminAssessments(courseId?: string): Promise<number> {
+  return createAssessmentAdminRepository().countAssessments(courseId ? { courseId } : {});
 }
 
 export async function getAdminAssessment(assessmentId: string): Promise<Assessment | undefined> {

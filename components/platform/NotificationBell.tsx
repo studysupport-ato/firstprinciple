@@ -12,7 +12,7 @@ import {
   markCurrentStudentAnnouncementReadAction,
   markCurrentStudentAnnouncementsReadAction,
 } from "@/lib/notifications/studentActions";
-import { AnnouncementEventTracker, mergeAnnouncementSnapshot, notificationIdentityKey, shouldSubscribeToStudentNotifications, unreadBadgeLabel } from "@/lib/notifications/liveState";
+import { AnnouncementEventTracker, mergeAnnouncementSnapshot, notificationIdentityKey, removeAnnouncementFromSnapshot, shouldSubscribeToStudentNotifications, unreadBadgeLabel } from "@/lib/notifications/liveState";
 import { restoreAnnouncementReadState, setAnnouncementsRead } from "@/lib/notifications/readTransitions";
 import type { AnnouncementReadState, StudentAnnouncement } from "@/lib/notifications/types";
 
@@ -212,6 +212,10 @@ export function NotificationBell() {
 
         removeSubscription = subscribeToStudentNotifications(client, studentId, {
           onAnnouncement: handleAnnouncementInsert,
+          onAnnouncementDeleted: (announcementId) => {
+            if (!active || !announcementId) return;
+            setAnnouncements((current) => removeAnnouncementFromSnapshot(current, announcementId));
+          },
           onReadStateChange: () => void refreshReadState(),
           onStatusChange: (status) => {
             if (!active) return;

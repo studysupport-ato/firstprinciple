@@ -64,3 +64,24 @@ export async function sendAnnouncementAction(input: unknown): Promise<AdminActio
     return data;
   });
 }
+
+export async function deleteAnnouncementAction(input: unknown): Promise<AdminActionResult<{ id: string }>> {
+  return runAdminAction(async () => {
+    if (typeof input !== "string" || !input.trim() || input.trim().length > 200) {
+      throw new Error("Select a valid announcement to delete.");
+    }
+
+    const id = input.trim();
+    const { count, error } = await createSupabaseAdminClient()
+      .from("announcements")
+      .delete({ count: "exact" })
+      .eq("id", id)
+      .abortSignal(announcementRequestSignal());
+
+    if (error) throw error;
+    if (count !== 1) throw new Error("This announcement no longer exists. Refresh the list.");
+
+    revalidatePath("/admin/notifications");
+    return { id };
+  });
+}

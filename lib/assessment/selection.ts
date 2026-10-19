@@ -125,7 +125,7 @@ export async function selectAssessmentQuestionsFromSupabase(
   const repository = createQuestionRepository("supabase", clientFactory);
   const selectedIds = new Set<string>();
   const uniqueIds = new Set<string>();
-  const selected: Question[] = [];
+  const orderedSelectedIds: string[] = [];
 
   for (const rule of assessment.blueprint.rules) {
     if (!Number.isFinite(rule.count) || rule.count <= 0) {
@@ -136,11 +136,11 @@ export async function selectAssessmentQuestionsFromSupabase(
     }
 
     const pool = shuffleArray(
-      (await repository.listQuestions({
+      (await repository.listQuestionCandidates({
         ...buildBlueprintFilters(assessment, rule),
         visibility: "student",
         includeDraft: options.includeDraft,
-      })).filter((question) => !selectedIds.has(question.id)),
+      })).filter((candidate) => !selectedIds.has(candidate.id)),
     );
 
     if (pool.length < rule.count) {
@@ -154,11 +154,11 @@ export async function selectAssessmentQuestionsFromSupabase(
 
     let ruleSelected = 0;
 
-    for (const question of pool) {
-      if (uniqueIds.has(question.id)) continue;
-      uniqueIds.add(question.id);
-      selectedIds.add(question.id);
-      selected.push(question);
+    for (const candidate of pool) {
+      if (uniqueIds.has(candidate.id)) continue;
+      uniqueIds.add(candidate.id);
+      selectedIds.add(candidate.id);
+      orderedSelectedIds.push(candidate.id);
       ruleSelected += 1;
 
       if (ruleSelected === rule.count) {
@@ -167,14 +167,36 @@ export async function selectAssessmentQuestionsFromSupabase(
     }
   }
 
-  if (selected.length < assessment.questionCount) {
+  if (orderedSelectedIds.length < assessment.questionCount) {
     throw new AssessmentSelectionError("INSUFFICIENT_QUESTION_POOL", "Unable to select a unique set of questions for this assessment.", {
       required: assessment.questionCount,
-      available: selected.length,
+      available: orderedSelectedIds.length,
       assessmentId: assessment.id,
       blueprint: assessment.blueprint,
     });
   }
 
-  return selected;
+  // Stage B: Fetch full question bodies for only the selected IDs in a single batch
+  const fullQuestions = await repository.listQuestions({
+    ids: orderedSelectedIds,
+    visibility: "student",
+    includeDraft: options.includeDraft,
+  });
+
+  const questionMap = new Map<string, Question>(fullQuestions.map((q) => [q.id, q]));
+  const orderedQuestions: Question[] = [];
+
+  for (const id of orderedSelectedIds) {
+    const question = questionMap.get(id);
+    if (!question) {
+      throw new AssessmentSelectionError("INSUFFICIENT_QUESTION_POOL", "One or more selected questions could not be retrieved from the repository.", {
+        missingQuestionId: id,
+        assessmentId: assessment.id,
+      });
+    }
+    orderedQuestions.push(question);
+  }
+
+  return orderedQuestions;
 }
+

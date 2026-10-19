@@ -41,6 +41,13 @@ export function mergeAnnouncementSnapshot(
   ].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
 }
 
+export function removeAnnouncementFromSnapshot(
+  announcements: StudentAnnouncement[],
+  announcementId: string,
+): StudentAnnouncement[] {
+  return announcements.filter(({ id }) => id !== announcementId);
+}
+
 export function shouldSubscribeToStudentNotifications(
   authenticated: boolean | null,
   studentId: string | null | undefined,

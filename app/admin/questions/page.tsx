@@ -9,9 +9,11 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { getAdminCoursesAction, getAdminQuestionsAction, deleteQuestionAction } from "@/lib/adminContentActions";
-import type { Question } from "@/lib/content/adminContract";
+import { getAdminCoursesAction, getAdminQuestionDirectoryAction, deleteQuestionAction } from "@/lib/adminContentActions";
+import type { AdminQuestionDirectoryRow, AdminQuestionDirectoryPage } from "@/lib/content/adminContract";
 import type { AdminCourseListRow } from "@/lib/content/adminContract";
+
+const PAGE_SIZE = 25;
 
 export default function AdminQuestionsPage() {
   const router = useRouter();
@@ -19,7 +21,9 @@ export default function AdminQuestionsPage() {
   const courseIdParam = searchParams.get("courseId");
   
   const [courses, setCourses] = useState<AdminCourseListRow[]>([]);
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [directoryPage, setDirectoryPage] = useState<AdminQuestionDirectoryPage | null>(null);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [selectedCourseId, setSelectedCourseId] = useState(courseIdParam ?? "");
   const [refreshKey, setRefreshKey] = useState(0);
   const [deleteQuestionId, setDeleteQuestionId] = useState<string | null>(null);
@@ -40,13 +44,19 @@ export default function AdminQuestionsPage() {
   useEffect(() => {
     async function fetchQuestions() {
       if (!selectedCourseId) return;
-      const result = await getAdminQuestionsAction(selectedCourseId);
-      if (result.ok && result.data) {
-        setQuestions(result.data);
+      setLoading(true);
+      try {
+        const result = await getAdminQuestionDirectoryAction(selectedCourseId, page, PAGE_SIZE);
+        if (result.ok && result.data) {
+          setDirectoryPage(result.data);
+          setPage(result.data.page);
+        }
+      } finally {
+        setLoading(false);
       }
     }
     fetchQuestions();
-  }, [selectedCourseId, refreshKey]);
+  }, [selectedCourseId, page, refreshKey]);
 
   const selectedCourse = useMemo(() => courses.find((row) => row.course.id === selectedCourseId) ?? courses[0], [courses, selectedCourseId]);
 
@@ -63,6 +73,10 @@ export default function AdminQuestionsPage() {
     router.refresh();
   }
 
+  const questions = directoryPage?.questions ?? [];
+  const totalCount = directoryPage?.totalCount ?? 0;
+  const totalPages = directoryPage?.totalPages ?? 0;
+
   const rows = useMemo(
     () =>
       questions.map((question) => ({
@@ -71,7 +85,7 @@ export default function AdminQuestionsPage() {
         topic: question.topic,
         difficulty: question.difficulty,
         type: question.type,
-        status: question.metadata?.status ?? "published",
+        status: question.status ?? "published",
         hasOverride: false,
       })),
     [questions],
@@ -90,7 +104,10 @@ export default function AdminQuestionsPage() {
             <span className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">Course</span>
             <select
               value={selectedCourseId}
-              onChange={(event) => setSelectedCourseId(event.target.value)}
+              onChange={(event) => {
+                setSelectedCourseId(event.target.value);
+                setPage(1);
+              }}
               className="w-full rounded-xl border border-[#E5E5E5] bg-[#F7F7F8] px-3 py-2.5 text-sm text-[#111111] outline-none"
             >
               {courses.map((row) => (
@@ -125,7 +142,9 @@ export default function AdminQuestionsPage() {
           <div className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">Question bank</div>
           <div className="mt-2 font-serif text-3xl text-[#111111]">{selectedCourse ? `${selectedCourse.course.code} · ${selectedCourse.course.title}` : "Course not found"}</div>
         </div>
-        <div className="rounded-full bg-[#F7F7F8] px-3 py-1.5 text-sm font-medium text-[#111111]">{rows.length} questions</div>
+        <div className="rounded-full bg-[#F7F7F8] px-3 py-1.5 text-sm font-medium text-[#111111]">
+          {loading ? "Loading..." : `${totalCount} questions`}
+        </div>
       </div>
 
       <ConfirmDialog open={!!deleteQuestionId} title="Delete question" description="Delete this question from the local course bank?" confirmLabel="Delete" onConfirm={confirmDeleteQuestion} onCancel={() => setDeleteQuestionId(null)} />
@@ -168,6 +187,30 @@ export default function AdminQuestionsPage() {
         emptyMessage="No questions yet for this course"
         emptyDescription="Create a single question or import a Markdown batch for this course."
       />
+
+      {totalPages > 1 ? (
+        <nav aria-label="Question directory pages" className="mt-6 flex items-center justify-between gap-4">
+          <button
+            type="button"
+            disabled={loading || page <= 1}
+            onClick={() => setPage((current) => Math.max(1, current - 1))}
+            className="min-h-10 rounded-xl border border-[#E5E5E5] bg-white px-4 text-sm font-semibold text-[#111111] hover:bg-[#F7F7F8] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-[#666666]">
+            Page {page} of {totalPages} ({totalCount} total)
+          </span>
+          <button
+            type="button"
+            disabled={loading || page >= totalPages}
+            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            className="min-h-10 rounded-xl border border-[#E5E5E5] bg-white px-4 text-sm font-semibold text-[#111111] hover:bg-[#F7F7F8] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Next
+          </button>
+        </nav>
+      ) : null}
     </div>
   );
 }

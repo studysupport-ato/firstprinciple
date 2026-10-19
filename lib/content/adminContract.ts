@@ -16,6 +16,26 @@ import type { CourseMaterialEntry, CourseMaterialEntryType, CourseMaterialSemest
 
 export type AdminActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
+export type AdminQuestionDirectoryRow = {
+  id: string;
+  prompt: string;
+  topic: string;
+  difficulty: Question["difficulty"];
+  type: Question["type"];
+  status: ContentStatus;
+  courseId: string;
+  chapterId: string;
+  lessonId: string;
+};
+
+export type AdminQuestionDirectoryPage = {
+  questions: AdminQuestionDirectoryRow[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
 export type AdminCourseListRow = { course: Course; weekCount: number; dayCount: number };
 
 export type AdminWeekView = { week: Week; days: Lesson[] };

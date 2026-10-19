@@ -2,6 +2,8 @@
 
 import {
   archiveAdminCourseMaterial,
+  countAdminAssessments,
+  countAdminQuestions,
   createAdminAssessment,
   createAdminCourse,
   createAdminCourseMaterial,
@@ -28,6 +30,7 @@ import {
   listAdminCourses,
   listAdminDays,
   listAdminDepartments,
+  listAdminQuestionDirectory,
   listAdminQuestions,
   listAdminResourcePlacements,
   listAdminResources,
@@ -74,6 +77,8 @@ import type {
   AdminDepartmentInput,
   AdminDepartmentListRow,
   AdminPlacementTarget,
+  AdminQuestionDirectoryPage,
+  AdminQuestionDirectoryRow,
   AdminResourceInput,
   AdminResourceListRow,
   AdminWeekInput,
@@ -205,12 +210,28 @@ export async function getAdminQuestionsAction(courseId?: string): Promise<AdminA
   return run(() => listAdminQuestions(courseId));
 }
 
+export async function getAdminQuestionDirectoryAction(
+  courseId?: string,
+  page?: number,
+  pageSize?: number
+): Promise<AdminActionResult<AdminQuestionDirectoryPage>> {
+  return run(() => listAdminQuestionDirectory(courseId, { page, pageSize }));
+}
+
+export async function countAdminQuestionsAction(courseId?: string): Promise<AdminActionResult<number>> {
+  return run(() => countAdminQuestions(courseId));
+}
+
 export async function getAdminQuestionAction(questionId: string): Promise<AdminActionResult<Question | null>> {
   return run(async () => (await getAdminQuestion(questionId)) ?? null);
 }
 
 export async function getAdminAssessmentsAction(courseId?: string): Promise<AdminActionResult<Assessment[]>> {
   return run(() => listAdminAssessments(courseId));
+}
+
+export async function countAdminAssessmentsAction(courseId?: string): Promise<AdminActionResult<number>> {
+  return run(() => countAdminAssessments(courseId));
 }
 
 export async function getAdminAssessmentAction(assessmentId: string): Promise<AdminActionResult<Assessment | null>> {

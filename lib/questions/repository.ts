@@ -20,8 +20,49 @@ export type QuestionRepositoryListOptions = Omit<QuestionFilters, "limit" | "sta
   ids?: string[];
 };
 
+export type QuestionCandidate = {
+  id: string;
+  courseId: string;
+  chapterId: string;
+  lessonId: string;
+  topic: string;
+  subtopic: string;
+  difficulty: Question["difficulty"];
+  type: Question["type"];
+  tags: string[];
+};
+
+export const QUESTION_CANDIDATE_COLUMNS =
+  "id,course_id,chapter_id,lesson_id,topic,subtopic,difficulty,type,tags";
+
+export type QuestionDirectoryRow = {
+  id: string;
+  prompt: string;
+  topic: string;
+  difficulty: Question["difficulty"];
+  type: Question["type"];
+  status: QuestionStatus;
+  courseId: string;
+  chapterId: string;
+  lessonId: string;
+};
+
+export const QUESTION_DIRECTORY_COLUMNS =
+  "id,prompt,topic,difficulty,type,status,course_id,chapter_id,lesson_id";
+
+export type QuestionDirectoryPage = {
+  questions: QuestionDirectoryRow[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
 export interface QuestionRepository {
   listQuestions(options?: QuestionRepositoryListOptions): Promise<Question[]>;
+  listQuestionCandidates(options?: QuestionRepositoryListOptions): Promise<QuestionCandidate[]>;
+  listQuestionDirectory(options?: QuestionRepositoryListOptions & { page?: number; pageSize?: number }): Promise<QuestionDirectoryPage>;
+  countQuestions(options?: Pick<QuestionRepositoryListOptions, "courseId" | "status" | "visibility" | "includeDraft">): Promise<number>;
   getQuestion(questionId: string, options?: Pick<QuestionRepositoryListOptions, "visibility" | "includeDraft">): Promise<Question | undefined>;
   createQuestion(question: Question): Promise<Question>;
   updateQuestion(question: Question): Promise<Question>;
@@ -40,6 +81,51 @@ export const questionLocalRepository: QuestionRepository = {
     const { limit, ...filters } = options;
     const questions = applyStudentVisibility(getQuestions(filters), options);
     return limit && limit > 0 ? questions.slice(0, limit) : questions;
+  },
+  async listQuestionCandidates(options = {}) {
+    const questions = await this.listQuestions(options);
+    return questions.map((q) => ({
+      id: q.id,
+      courseId: q.courseId,
+      chapterId: q.chapterId,
+      lessonId: q.lessonId,
+      topic: q.topic,
+      subtopic: q.subtopic,
+      difficulty: q.difficulty,
+      type: q.type,
+      tags: q.tags,
+    }));
+  },
+  async listQuestionDirectory(options = {}) {
+    const questions = await this.listQuestions(options);
+    const totalCount = questions.length;
+    const page = options.page && options.page > 0 ? Math.floor(options.page) : 1;
+    const pageSize = options.pageSize && options.pageSize > 0 ? Math.floor(options.pageSize) : 25;
+    const totalPages = Math.ceil(totalCount / pageSize) || 1;
+    const currentPage = Math.min(page, totalPages);
+    const from = (currentPage - 1) * pageSize;
+    const sliced = questions.slice(from, from + pageSize);
+    return {
+      questions: sliced.map((q): QuestionDirectoryRow => ({
+        id: q.id,
+        prompt: q.prompt,
+        topic: q.topic,
+        difficulty: q.difficulty,
+        type: q.type,
+        status: (q.metadata?.status ?? "draft") as QuestionStatus,
+        courseId: q.courseId,
+        chapterId: q.chapterId,
+        lessonId: q.lessonId,
+      })),
+      totalCount,
+      page: currentPage,
+      pageSize,
+      totalPages,
+    };
+  },
+  async countQuestions(options = {}) {
+    const questions = await this.listQuestions(options);
+    return questions.length;
   },
   async getQuestion(questionId, options = {}) {
     const question = getQuestion(questionId);
@@ -208,6 +294,95 @@ export function createQuestionSupabaseRepository(clientFactory: QuestionSupabase
     const { data, error } = await limitedQuery;
     if (error) throw error;
     return ((data ?? []) as SupabaseQuestionRow[]).map(mapQuestion);
+  },
+  async listQuestionCandidates(options = {}) {
+    const client = clientFactory();
+    const query = applyQuestionFilters(client.from("questions").select(QUESTION_CANDIDATE_COLUMNS), options).order("id", { ascending: true });
+    const limitedQuery = options.limit && options.limit > 0 ? query.limit(options.limit) : query;
+    const { data, error } = await limitedQuery;
+    if (error) throw error;
+    type CandidateRow = Pick<
+      SupabaseQuestionRow,
+      "id" | "course_id" | "chapter_id" | "lesson_id" | "topic" | "subtopic" | "difficulty" | "type" | "tags"
+    >;
+    return ((data ?? []) as CandidateRow[]).map((row): QuestionCandidate => ({
+      id: row.id,
+      courseId: row.course_id,
+      chapterId: row.chapter_id ?? "",
+      lessonId: row.lesson_id ?? "",
+      topic: row.topic,
+      subtopic: row.subtopic,
+      difficulty: row.difficulty as QuestionCandidate["difficulty"],
+      type: row.type as QuestionCandidate["type"],
+      tags: row.tags ?? [],
+    }));
+  },
+  async listQuestionDirectory(options = {}) {
+    const client = clientFactory();
+    const page = options.page && options.page > 0 ? Math.floor(options.page) : 1;
+    const pageSize = options.pageSize && options.pageSize > 0 ? Math.floor(options.pageSize) : 25;
+
+    const baseQuery = applyQuestionFilters(
+      client.from("questions").select(QUESTION_DIRECTORY_COLUMNS, { count: "exact" }),
+      options
+    ).order("id", { ascending: true });
+
+    // Initial query to fetch rows for target page and obtain exact count
+    const from = (page - 1) * pageSize;
+    const to = page * pageSize - 1;
+    const { data, count, error } = await baseQuery.range(from, to);
+    if (error) throw error;
+
+    const totalCount = count ?? (data?.length ?? 0);
+    const totalPages = Math.ceil(totalCount / pageSize) || 1;
+    let rows = data ?? [];
+
+    // If requested page exceeds totalPages (e.g. after deletion), fetch the clamped page
+    const clampedPage = Math.min(page, totalPages);
+    if (clampedPage !== page && totalCount > 0) {
+      const clampedFrom = (clampedPage - 1) * pageSize;
+      const clampedTo = clampedPage * pageSize - 1;
+      const correctedQuery = applyQuestionFilters(
+        client.from("questions").select(QUESTION_DIRECTORY_COLUMNS),
+        options
+      ).order("id", { ascending: true }).range(clampedFrom, clampedTo);
+      const corrected = await correctedQuery;
+      if (corrected.error) throw corrected.error;
+      rows = corrected.data ?? [];
+    }
+
+    type DirectoryRow = Pick<
+      SupabaseQuestionRow,
+      "id" | "prompt" | "topic" | "difficulty" | "type" | "status" | "course_id" | "chapter_id" | "lesson_id"
+    >;
+
+    return {
+      questions: ((rows ?? []) as DirectoryRow[]).map((row): QuestionDirectoryRow => ({
+        id: row.id,
+        prompt: row.prompt,
+        topic: row.topic,
+        difficulty: row.difficulty as QuestionDirectoryRow["difficulty"],
+        type: row.type as QuestionDirectoryRow["type"],
+        status: (row.status ?? "draft") as QuestionStatus,
+        courseId: row.course_id,
+        chapterId: row.chapter_id ?? "",
+        lessonId: row.lesson_id ?? "",
+      })),
+      totalCount,
+      page: clampedPage,
+      pageSize,
+      totalPages,
+    };
+  },
+  async countQuestions(options = {}) {
+    const client = clientFactory();
+    const query = applyQuestionFilters(
+      client.from("questions").select("id", { count: "exact", head: true }),
+      options
+    );
+    const { count, error } = await query;
+    if (error) throw error;
+    return count ?? 0;
   },
   async getQuestion(questionId, options = {}) {
     const client = clientFactory();

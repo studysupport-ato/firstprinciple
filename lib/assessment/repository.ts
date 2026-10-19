@@ -17,6 +17,7 @@ export type AssessmentRepositoryListOptions = {
 
 export interface AssessmentRepository {
   listAssessments(options?: AssessmentRepositoryListOptions): Promise<Assessment[]>;
+  countAssessments(options?: Pick<AssessmentRepositoryListOptions, "courseId" | "status" | "visibility" | "includeDraft">): Promise<number>;
   getAssessment(assessmentId: string, options?: Pick<AssessmentRepositoryListOptions, "visibility" | "includeDraft">): Promise<Assessment | undefined>;
   createAssessment(assessment: Assessment): Promise<Assessment>;
   updateAssessment(assessment: Assessment): Promise<Assessment>;
@@ -33,6 +34,11 @@ export const assessmentLocalRepository: AssessmentRepository = {
     let assessments = getAssessments(options.courseId);
     if (options.status) assessments = assessments.filter((assessment) => legacyStatus(assessment.status) === options.status);
     return applyStudentVisibility(assessments, options).slice(0, options.limit && options.limit > 0 ? options.limit : undefined);
+  },
+  async countAssessments(options = {}) {
+    let assessments = getAssessments(options.courseId);
+    if (options.status) assessments = assessments.filter((assessment) => legacyStatus(assessment.status) === options.status);
+    return applyStudentVisibility(assessments, options).length;
   },
   async getAssessment(assessmentId, options = {}) {
     const assessment = getAssessment(assessmentId);
@@ -110,6 +116,16 @@ export function createAssessmentSupabaseRepository(clientFactory: () => Supabase
     const { data, error } = await limitedQuery;
     if (error) throw error;
     return ((data ?? []) as SupabaseAssessmentRow[]).map(mapAssessment);
+  },
+  async countAssessments(options = {}) {
+    const client = clientFactory();
+    const query = applyAssessmentFilters(
+      client.from("assessments").select("id", { count: "exact", head: true }),
+      options
+    );
+    const { count, error } = await query;
+    if (error) throw error;
+    return count ?? 0;
   },
   async getAssessment(assessmentId, options = {}) {
     const client = clientFactory();

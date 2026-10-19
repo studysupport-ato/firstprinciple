@@ -4,7 +4,7 @@ import { after, describe, it } from "node:test";
 
 import { createAdminSessionToken, verifyAdminSessionToken } from "../lib/adminSession";
 import { attachAnnouncementReadState, countUnreadAnnouncements } from "../lib/notifications/readState";
-import { AnnouncementEventTracker, mergeAnnouncementSnapshot, notificationIdentityKey, shouldSubscribeToStudentNotifications, unreadBadgeLabel } from "../lib/notifications/liveState";
+import { AnnouncementEventTracker, mergeAnnouncementSnapshot, notificationIdentityKey, removeAnnouncementFromSnapshot, shouldSubscribeToStudentNotifications, unreadBadgeLabel } from "../lib/notifications/liveState";
 import { restoreAnnouncementReadState, setAnnouncementsRead } from "../lib/notifications/readTransitions";
 import { subscribeToStudentNotifications } from "../lib/notifications/realtime";
 import { validateAnnouncementContent } from "../lib/notifications/validation";
@@ -108,6 +108,14 @@ describe("announcement read state", () => {
     const merged = mergeAnnouncementSnapshot(optimistic, staleSnapshot);
     assert.equal(merged.find(({ id }) => id === "a1")?.readAt, "2026-10-18T12:00:00Z");
   });
+
+  it("removes a deleted announcement from the current student's snapshot", () => {
+    const announcements = attachAnnouncementReadState(sampleAnnouncements, []);
+    assert.deepEqual(
+      removeAnnouncementFromSnapshot(announcements, "a1").map(({ id }) => id),
+      ["a2"],
+    );
+  });
 });
 
 describe("live announcement events", () => {
@@ -143,17 +151,17 @@ describe("live announcement events", () => {
   });
 
   it("filters read-state changes by student and removes the same channel on cleanup", () => {
-    const registrations: Array<{ filter: unknown; callback: (payload: { new: Record<string, unknown> }) => void }> = [];
+    const registrations: Array<{ filter: unknown; callback: (payload: { new: Record<string, unknown>; old: Record<string, unknown> }) => void }> = [];
     const statuses: Array<(status: string) => void> = [];
     const receivedStatuses: string[] = [];
     const channelNames: string[] = [];
     const channels: Array<{
-      on(_type: string, filter: unknown, callback: (payload: { new: Record<string, unknown> }) => void): unknown;
+      on(_type: string, filter: unknown, callback: (payload: { new: Record<string, unknown>; old: Record<string, unknown> }) => void): unknown;
       subscribe(callback: (status: string) => void): unknown;
     }> = [];
     const makeChannel = () => {
       const channel = {
-      on(_type: string, filter: unknown, callback: (payload: { new: Record<string, unknown> }) => void) {
+      on(_type: string, filter: unknown, callback: (payload: { new: Record<string, unknown>; old: Record<string, unknown> }) => void) {
         registrations.push({ filter, callback });
         return this;
       },
@@ -177,31 +185,41 @@ describe("live announcement events", () => {
       },
     } as unknown as SupabaseClient<Database>;
     const received: string[] = [];
+    const deleted: string[] = [];
     const readChanges: number[] = [];
     const cleanup = subscribeToStudentNotifications(client, "student-1", {
       onAnnouncement: (id) => received.push(id),
+      onAnnouncementDeleted: (id) => deleted.push(id),
       onReadStateChange: () => readChanges.push(1),
       onStatusChange: (status) => receivedStatuses.push(status),
     });
     const secondCleanup = subscribeToStudentNotifications(client, "student-2", {
       onAnnouncement: () => undefined,
+      onAnnouncementDeleted: () => undefined,
       onReadStateChange: () => undefined,
       onStatusChange: () => undefined,
     });
 
-    assert.equal(registrations.length, 4);
+    assert.equal(registrations.length, 6);
     assert.equal(channelNames.length, 2);
     assert.match(channelNames[0], /^student-notifications:student-1:/);
     assert.match(channelNames[1], /^student-notifications:student-2:/);
     assert.deepEqual(registrations[1].filter, {
+      event: "DELETE",
+      schema: "public",
+      table: "announcements",
+    });
+    assert.deepEqual(registrations[2].filter, {
       event: "*",
       schema: "public",
       table: "student_announcement_reads",
       filter: "student_id=eq.student-1",
     });
-    registrations[0].callback({ new: { id: "a3" } });
-    registrations[1].callback({ new: { student_id: "student-1" } });
+    registrations[0].callback({ new: { id: "a3" }, old: {} });
+    registrations[1].callback({ new: {}, old: { id: "a1" } });
+    registrations[2].callback({ new: { student_id: "student-1" }, old: {} });
     assert.deepEqual(received, ["a3"]);
+    assert.deepEqual(deleted, ["a1"]);
     assert.equal(readChanges.length, 1);
     statuses[0]("SUBSCRIBED");
     assert.deepEqual(receivedStatuses, ["SUBSCRIBED"]);

@@ -4,6 +4,7 @@ import type { Database } from "@/lib/supabase/types";
 
 export type NotificationRealtimeHandlers = {
   onAnnouncement: (announcementId: string) => void;
+  onAnnouncementDeleted: (announcementId: string) => void;
   onReadStateChange: () => void;
   onStatusChange: (status: string) => void;
 };
@@ -25,6 +26,14 @@ export function subscribeToStudentNotifications(
       (payload) => {
         const id = typeof payload.new.id === "string" ? payload.new.id : "";
         if (id) handlers.onAnnouncement(id);
+      },
+    )
+    .on(
+      "postgres_changes",
+      { event: "DELETE", schema: "public", table: "announcements" },
+      (payload) => {
+        const id = typeof payload.old.id === "string" ? payload.old.id : "";
+        if (id) handlers.onAnnouncementDeleted(id);
       },
     )
     .on(
