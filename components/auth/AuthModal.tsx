@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, Layers, Sparkles, TrendingUp, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { BrandLogo } from "@/components/branding/BrandLogo";
 import { resolveAuthenticatedReadStudentId } from "@/lib/student/readIdentity";
@@ -80,6 +80,7 @@ export function AuthModal({
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const submissionInProgress = useRef(false);
 
   useEffect(() => {
     if (!open) return;
@@ -88,6 +89,7 @@ export function AuthModal({
     setError(null);
     setStatusMessage(null);
     setIsSubmitting(false);
+    submissionInProgress.current = false;
     setTermsAccepted(false);
   }, [open]);
 
@@ -106,6 +108,7 @@ export function AuthModal({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (submissionInProgress.current) return;
     setError(null);
     setStatusMessage(null);
 
@@ -145,7 +148,9 @@ export function AuthModal({
       }
     }
 
+    submissionInProgress.current = true;
     setIsSubmitting(true);
+    let redirectPending = false;
 
     try {
       const supabase = createSupabaseBrowserClient();
@@ -163,6 +168,7 @@ export function AuthModal({
           : false;
         const destination = signupPending ? "/courses?onboarding=true" : redirectTo ?? "/courses";
         setStatusMessage("Signing you in...");
+        redirectPending = true;
         setTimeout(() => finishLoginFlow(destination), 350);
         return;
       }
@@ -183,8 +189,8 @@ export function AuthModal({
       }
 
       if (data.session) {
-        // Email confirmation is disabled in this project, so signUp returns a
-        // live session. Persist the signup name to the canonical students row
+        // When email confirmation is disabled, signUp returns a live session.
+        // Persist the signup name to the canonical students row
         // through the RLS-owned write boundary (auth.uid() -> auth_user_id).
         // Non-blocking: if the profile write fails the account is still valid
         // and the name can be corrected later in Settings.
@@ -204,18 +210,53 @@ export function AuthModal({
 
         const destination = "/courses?onboarding=true";
         setStatusMessage("Account created. Redirecting...");
+        redirectPending = true;
         setTimeout(() => finishLoginFlow(destination), 350);
         return;
       }
 
-      // Email confirmation is still enabled on the project: the user must
-      // verify before a session exists.
+      // When email confirmation is enabled, the user must verify before a
+      // session exists.
       setStatusMessage("Check your email to confirm your account before logging in.");
       setMode("login");
       setForm({ ...defaultAuthState, email });
     } catch (caughtError) {
       setError(parseFriendlyAuthError(caughtError));
     } finally {
+      if (!redirectPending) {
+        submissionInProgress.current = false;
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    if (submissionInProgress.current) return;
+    setError(null);
+    setStatusMessage(null);
+
+    if (mode === "signup" && !termsAccepted) {
+      setError("Please agree to the Terms and Conditions before creating an account.");
+      return;
+    }
+
+    submissionInProgress.current = true;
+    setIsSubmitting(true);
+    try {
+      const destination = mode === "signup" ? "/courses?onboarding=true" : redirectTo ?? "/courses";
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      callbackUrl.searchParams.set("next", destination);
+
+      const { data, error: oauthError } = await createSupabaseBrowserClient().auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: callbackUrl.toString() },
+      });
+      if (oauthError) throw oauthError;
+      if (!data.url) throw new Error("Google sign-in did not return an authorization URL.");
+      setStatusMessage("Redirecting to Google...");
+    } catch {
+      setError("We could not start Google sign-in. Please try again, or use your existing email and password.");
+      submissionInProgress.current = false;
       setIsSubmitting(false);
     }
   };
@@ -226,6 +267,7 @@ export function AuthModal({
     setStatusMessage(null);
     setError(null);
     setIsSubmitting(false);
+    submissionInProgress.current = false;
   };
 
   return (
@@ -518,6 +560,30 @@ export function AuthModal({
                                 : "Create account"}
                           </button>
                         </form>
+
+                        <div className="relative py-1">
+                          <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                            <div className="w-full border-t border-[#E5E5E5]" />
+                          </div>
+                          <div className="relative flex justify-center">
+                            <span className="bg-[#FBFAF9] px-3 text-xs text-[#777777]">or</span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => void handleGoogleAuth()}
+                          disabled={isSubmitting}
+                          className="flex w-full items-center justify-center gap-3 rounded-full border border-[#D9D9D9] bg-white px-4 py-3 text-sm font-semibold text-[#111111] transition hover:border-[#111111] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z" />
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.65l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.15v2.84A11 11 0 0 0 12 23Z" />
+                            <path fill="#FBBC05" d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.15a11 11 0 0 0 0 9.9l3.69-2.84Z" />
+                            <path fill="#EA4335" d="M12 5.36c1.62 0 3.07.56 4.21 1.64l3.15-3.15C17.45 2.02 14.97 1 12 1a11 11 0 0 0-9.85 6.05l3.69 2.84C6.71 7.29 9.14 5.36 12 5.36Z" />
+                          </svg>
+                          Continue with Google
+                        </button>
 
                         <div className="flex items-center justify-between gap-3 text-xs text-[#666666]">
                           <button

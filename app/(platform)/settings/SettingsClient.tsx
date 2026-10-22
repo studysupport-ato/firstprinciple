@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { User, Bell, Shield, Monitor, LogOut, Check, Save, ChevronDown, Sparkles, Pencil, X } from "lucide-react";
+import { User, Bell, Shield, Monitor, LogOut, Check, Save, ChevronDown, Sparkles, Pencil, X, Link2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { resetStudentProgress } from "@/lib/progress";
 import { getStudentProfile, StudentProfile } from "@/lib/student/profileRepository";
@@ -41,7 +41,36 @@ export default function SettingsPage() {
   const [editPhone, setEditPhone] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [googleLinked, setGoogleLinked] = useState(false);
+  const [linkingGoogle, setLinkingGoogle] = useState(false);
+  const [googleIdentityError, setGoogleIdentityError] = useState<string | null>(null);
   const allStudents = listMockStudents();
+
+  useEffect(() => {
+    if (authenticated !== true) {
+      setGoogleLinked(false);
+      setGoogleIdentityError(null);
+      return;
+    }
+
+    let active = true;
+    void createSupabaseBrowserClient().auth.getUserIdentities().then(({ data, error }) => {
+      if (!active) return;
+      if (error) {
+        setGoogleIdentityError("Google account status could not be checked. Reload Settings to try again.");
+        return;
+      }
+      setGoogleLinked(data.identities.some((identity) => identity.provider === "google"));
+    }).catch(() => {
+      if (active) {
+        setGoogleIdentityError("Google account status could not be checked. Reload Settings to try again.");
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [authenticated]);
 
   // Task 40C-4 — authoritative profile read.
   //
@@ -166,6 +195,35 @@ export default function SettingsPage() {
   const showNotice = (message: string) => {
     setNotice(message);
     window.setTimeout(() => setNotice(""), 2400);
+  };
+
+  const linkGoogleAccount = async () => {
+    if (linkingGoogle) return;
+    setLinkingGoogle(true);
+    setGoogleIdentityError(null);
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError || !authData.user) {
+        throw new Error("Please sign in to your existing account before linking Google.");
+      }
+
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      callbackUrl.searchParams.set("next", "/settings");
+      callbackUrl.searchParams.set("link", "google");
+      const { data, error } = await supabase.auth.linkIdentity({
+        provider: "google",
+        options: { redirectTo: callbackUrl.toString() },
+      });
+      if (error) throw error;
+      if (!data.url) throw new Error("Google did not return an authorization URL.");
+    } catch {
+      setGoogleIdentityError(
+        "Google could not be linked. Sign in to the existing student account and try again. If this continues, contact support.",
+      );
+      setLinkingGoogle(false);
+    }
   };
 
   return (
@@ -505,6 +563,32 @@ export default function SettingsPage() {
                   <h2 className="font-serif text-3xl tracking-tight text-[#111111]">Account actions</h2>
                 </div>
                 <div className="space-y-4">
+                  {authenticated === true ? (
+                    <div className="flex items-center justify-between gap-4 rounded-2xl border border-[#E5E5E5] p-5">
+                      <div>
+                        <div className="font-sans text-sm font-semibold">Google account</div>
+                        <div className="mt-1 font-sans text-xs text-[#777777]">
+                          {googleLinked
+                            ? "Google is linked to this student account."
+                            : "Sign in with this account first, then link Google to keep your student records together."}
+                        </div>
+                        {googleIdentityError ? (
+                          <p role="alert" className="mt-2 text-xs text-[#B91C1C]">{googleIdentityError}</p>
+                        ) : null}
+                      </div>
+                      {!googleLinked ? (
+                        <button
+                          type="button"
+                          onClick={() => void linkGoogleAccount()}
+                          disabled={linkingGoogle}
+                          className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#D9D9D9] px-4 py-2 font-sans text-xs font-semibold text-[#111111] transition hover:border-[#111111] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Link2 size={13} />
+                          {linkingGoogle ? "Connecting..." : "Link Google"}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="flex items-center justify-between rounded-2xl border border-[#E5E5E5] p-5">
                     <div>
                       <div className="font-sans text-sm font-semibold">Sign out</div>
