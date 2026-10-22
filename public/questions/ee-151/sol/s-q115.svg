@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 240" width="560" height="240" font-family="'Helvetica Neue',Arial,sans-serif" role="img" aria-label="j4 ohms in series with j6 and -j8 ohms in parallel">
+<title>j4 ohms in series with j6 and -j8 ohms in parallel</title>
+<rect width="560" height="240" fill="#ffffff"/>
+<circle cx="40.0" cy="60.0" r="4.2" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<circle cx="40.0" cy="200.0" r="4.2" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<line x1="44.0" y1="60.0" x2="119.0" y2="60.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="165.0" y1="60.0" x2="240.0" y2="60.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-23.0" y="-9.0" width="46" height="18" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(142.0,60.0) rotate(0.0)"/>
+<text x="142.0" y="39.0" font-size="15" text-anchor="middle" dominant-baseline="middle" fill="#111111"><tspan font-style="italic">j</tspan>4</text>
+<polyline points="240.0,60.0 460.0,60.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="44.0,200.0 460.0,200.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="320.0" y1="60.0" x2="320.0" y2="107.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="320.0" y1="153.0" x2="320.0" y2="200.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-23.0" y="-9.0" width="46" height="18" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(320.0,130.0) rotate(90.0)"/>
+<text x="337.0" y="130.0" font-size="15" text-anchor="start" dominant-baseline="middle" fill="#111111"><tspan font-style="italic">j</tspan>6</text>
+<line x1="460.0" y1="60.0" x2="460.0" y2="107.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="460.0" y1="153.0" x2="460.0" y2="200.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-23.0" y="-9.0" width="46" height="18" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(460.0,130.0) rotate(90.0)"/>
+<text x="477.0" y="130.0" font-size="15" text-anchor="start" dominant-baseline="middle" fill="#111111">−<tspan font-style="italic">j</tspan>8</text>
+<circle cx="320.0" cy="60.0" r="3.6" fill="#111111"/>
+<circle cx="320.0" cy="200.0" r="3.6" fill="#111111"/>
+<text x="130.0" y="130.0" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#666">impedances in ohms</text>
+</svg>

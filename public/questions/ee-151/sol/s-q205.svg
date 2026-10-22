@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 290" width="640" height="290" font-family="'Helvetica Neue',Arial,sans-serif" role="img" aria-label="Magnetic circuit of 0.4 cm2 section: 3 cm part (mu_r 1200) and 2 cm part (mu_r 750), 100 turns at 2 A">
+<title>Magnetic circuit of 0.4 cm2 section: 3 cm part (mu_r 1200) and 2 cm part (mu_r 750), 100 turns at 2 A</title>
+<rect width="640" height="290" fill="#ffffff"/>
+<path d="M70,50 H330 V250 H70 Z M110,90 V210 H290 V90 Z" fill="#E7E5E0" fill-rule="evenodd" stroke="#111" stroke-width="2"/>
+<path d="M231.2,50 H330 V250 H231.2 V210 H290 V90 H231.2 Z" fill="#C9D7E8" stroke="#111" stroke-width="2"/>
+<ellipse cx="90.0" cy="105" rx="30" ry="6" fill="none" stroke="#B45309" stroke-width="2.2"/>
+<ellipse cx="90.0" cy="123" rx="30" ry="6" fill="none" stroke="#B45309" stroke-width="2.2"/>
+<ellipse cx="90.0" cy="141" rx="30" ry="6" fill="none" stroke="#B45309" stroke-width="2.2"/>
+<ellipse cx="90.0" cy="159" rx="30" ry="6" fill="none" stroke="#B45309" stroke-width="2.2"/>
+<ellipse cx="90.0" cy="177" rx="30" ry="6" fill="none" stroke="#B45309" stroke-width="2.2"/>
+<ellipse cx="90.0" cy="195" rx="30" ry="6" fill="none" stroke="#B45309" stroke-width="2.2"/>
+<text x="90.0" y="270.0" font-size="14" text-anchor="middle" dominant-baseline="middle" fill="#B45309">100 turns, 2 A</text>
+<text x="360.0" y="90.0" font-size="14" text-anchor="start" dominant-baseline="middle" fill="#111111">Part 1: 3 cm, μ<tspan baseline-shift="sub" font-size="72%">r</tspan> = 1200</text>
+<text x="360.0" y="120.0" font-size="14" text-anchor="start" dominant-baseline="middle" fill="#2F5C8F">Part 2: 2 cm, μ<tspan baseline-shift="sub" font-size="72%">r</tspan> = 750</text>
+<text x="360.0" y="160.0" font-size="14" text-anchor="start" dominant-baseline="middle" fill="#111111">cross-section 0.4 cm²</text>
+</svg>

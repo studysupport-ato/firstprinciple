@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 250" width="520" height="250" font-family="'Helvetica Neue',Arial,sans-serif" role="img" aria-label="20, 20 and 30 ohm resistors in parallel, in series with an unknown resistance">
+<title>20, 20 and 30 ohm resistors in parallel, in series with an unknown resistance</title>
+<rect width="520" height="250" fill="#ffffff"/>
+<circle cx="40.0" cy="60.0" r="4.2" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<text x="26.0" y="60.0" font-size="16" text-anchor="end" dominant-baseline="middle" fill="#111111" font-style="italic">A</text>
+<line x1="40.0" y1="60.0" x2="100.0" y2="60.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="140.0" y1="60.0" x2="200.0" y2="60.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-20.0" y="-7.5" width="40" height="15" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(120.0,60.0) rotate(0.0)"/>
+<text x="120.0" y="39.0" font-size="15" text-anchor="middle" dominant-baseline="middle" fill="#111111"><tspan font-style="italic">R</tspan> = ?</text>
+<polyline points="200.0,60.0 420.0,60.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="40.0" cy="210.0" r="4.2" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<text x="26.0" y="210.0" font-size="16" text-anchor="end" dominant-baseline="middle" fill="#111111" font-style="italic">B</text>
+<polyline points="40.0,210.0 420.0,210.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="240.0" y1="60.0" x2="240.0" y2="115.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="240.0" y1="155.0" x2="240.0" y2="210.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-20.0" y="-7.5" width="40" height="15" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(240.0,135.0) rotate(90.0)"/>
+<text x="257.0" y="135.0" font-size="15" text-anchor="start" dominant-baseline="middle" fill="#111111">20 Ω</text>
+<line x1="330.0" y1="60.0" x2="330.0" y2="115.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="330.0" y1="155.0" x2="330.0" y2="210.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-20.0" y="-7.5" width="40" height="15" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(330.0,135.0) rotate(90.0)"/>
+<text x="347.0" y="135.0" font-size="15" text-anchor="start" dominant-baseline="middle" fill="#111111">20 Ω</text>
+<line x1="420.0" y1="60.0" x2="420.0" y2="115.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="420.0" y1="155.0" x2="420.0" y2="210.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-20.0" y="-7.5" width="40" height="15" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(420.0,135.0) rotate(90.0)"/>
+<text x="437.0" y="135.0" font-size="15" text-anchor="start" dominant-baseline="middle" fill="#111111">30 Ω</text>
+<circle cx="240.0" cy="60.0" r="3.6" fill="#111111"/>
+<circle cx="330.0" cy="60.0" r="3.6" fill="#111111"/>
+<circle cx="240.0" cy="210.0" r="3.6" fill="#111111"/>
+<circle cx="330.0" cy="210.0" r="3.6" fill="#111111"/>
+<text x="260.0" y="236.0" font-size="13" text-anchor="middle" dominant-baseline="middle" fill="#555">Total resistance between A and B = 10 Ω</text>
+</svg>

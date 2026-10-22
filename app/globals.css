@@ -342,3 +342,32 @@ span.lesson-math-box { margin: 0.3rem auto; }
 @media (prefers-reduced-motion: reduce) {
   .b2b-blink, .b2b-blink-outline { animation: none; }
 }
+
+/* Label-first cards: the label sits on top, then the maths, then the words, all on one tint. */
+.markdown-content .lesson-card { margin: 0.75rem 0; padding: 0.75rem 1.1rem 0.85rem; border-radius: 14px; }
+.markdown-content .lesson-card > .markdown-content > :first-child { margin-top: 0.25rem; }
+.markdown-content .lesson-card > .markdown-content > :last-child { margin-bottom: 0; }
+.markdown-content .lesson-card .lesson-card-label { margin: 0; font-family: var(--font-sans, Inter, system-ui, sans-serif); font-size: 0.95rem; font-weight: 800; line-height: 1.35; }
+.markdown-content .lesson-card-blue { background: #E3ECF8; } .markdown-content .lesson-card-blue .lesson-card-label { color: #1E4C8F; }
+.markdown-content .lesson-card-green { background: #E2F2E7; } .markdown-content .lesson-card-green .lesson-card-label { color: #1F6B3E; }
+.markdown-content .lesson-card-rose { background: #FBE5DD; } .markdown-content .lesson-card-rose .lesson-card-label { color: #9A3412; }
+.markdown-content .lesson-card-violet { background: #EDE6F7; } .markdown-content .lesson-card-violet .lesson-card-label { color: #5B3A99; }
+.markdown-content .lesson-card-amber { background: #F6EBCF; } .markdown-content .lesson-card-amber .lesson-card-label { color: #7A5600; }
+.markdown-content .lesson-card .lesson-card-label :is(strong, b, span) { color: inherit; }
+:is([data-lesson-theme="dark"], [data-lesson-theme="blue"], [data-lesson-theme="wine"], [data-lesson-theme="purple"], [data-lesson-theme="green"], .lesson-quiz) .markdown-content .lesson-card-blue { background: rgba(120, 170, 255, 0.16) !important; }
+:is([data-lesson-theme="dark"], [data-lesson-theme="blue"], [data-lesson-theme="wine"], [data-lesson-theme="purple"], [data-lesson-theme="green"], .lesson-quiz) .markdown-content .lesson-card-green { background: rgba(111, 213, 155, 0.16) !important; }
+:is([data-lesson-theme="dark"], [data-lesson-theme="blue"], [data-lesson-theme="wine"], [data-lesson-theme="purple"], [data-lesson-theme="green"], .lesson-quiz) .markdown-content .lesson-card-rose { background: rgba(255, 150, 130, 0.16) !important; }
+:is([data-lesson-theme="dark"], [data-lesson-theme="blue"], [data-lesson-theme="wine"], [data-lesson-theme="purple"], [data-lesson-theme="green"], .lesson-quiz) .markdown-content .lesson-card-violet { background: rgba(190, 160, 255, 0.18) !important; }
+:is([data-lesson-theme="dark"], [data-lesson-theme="blue"], [data-lesson-theme="wine"], [data-lesson-theme="purple"], [data-lesson-theme="green"], .lesson-quiz) .markdown-content .lesson-card-amber { background: rgba(242, 201, 76, 0.15) !important; }
+:is([data-lesson-theme="dark"], [data-lesson-theme="blue"], [data-lesson-theme="wine"], [data-lesson-theme="purple"], [data-lesson-theme="green"], .lesson-quiz) .markdown-content .lesson-card-blue .lesson-card-label { color: #B9D3FF !important; }
+:is([data-lesson-theme="dark"], [data-lesson-theme="blue"], [data-lesson-theme="wine"], [data-lesson-theme="purple"], [data-lesson-theme="green"], .lesson-quiz) .markdown-content .lesson-card-green .lesson-card-label { color: #A8F0C6 !important; }
+:is([data-lesson-theme="dark"], [data-lesson-theme="blue"], [data-lesson-theme="wine"], [data-lesson-theme="purple"], [data-lesson-theme="green"], .lesson-quiz) .markdown-content .lesson-card-rose .lesson-card-label { color: #FFC2B3 !important; }
+:is([data-lesson-theme="dark"], [data-lesson-theme="blue"], [data-lesson-theme="wine"], [data-lesson-theme="purple"], [data-lesson-theme="green"], .lesson-quiz) .markdown-content .lesson-card-violet .lesson-card-label { color: #D9C8FF !important; }
+:is([data-lesson-theme="dark"], [data-lesson-theme="blue"], [data-lesson-theme="wine"], [data-lesson-theme="purple"], [data-lesson-theme="green"], .lesson-quiz) .markdown-content .lesson-card-amber .lesson-card-label { color: #FFE08A !important; }
+
+/* Worked solutions inside test feedback cards */
+.lesson-quiz-solution .markdown-content p { margin: 0.35rem 0; font-size: 1rem; line-height: 1.55; text-align: left; }
+.lesson-quiz-solution .markdown-content .lesson-card { margin: 0.5rem 0; padding: 0.6rem 0.9rem 0.7rem; }
+.lesson-quiz-solution .markdown-content .lesson-card .lesson-card-label { font-size: 0.85rem; }
+.lesson-quiz-solution .markdown-content .lesson-math-box { margin: 0.35rem 0; }
+:is([data-lesson-theme="dark"], [data-lesson-theme="blue"], [data-lesson-theme="wine"], [data-lesson-theme="purple"], [data-lesson-theme="green"], .lesson-quiz) .markdown-content .lesson-card .lesson-card-label * { color: inherit !important; }

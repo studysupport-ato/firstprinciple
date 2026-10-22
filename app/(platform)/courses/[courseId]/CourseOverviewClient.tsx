@@ -217,10 +217,8 @@ export default function CourseOverviewClient({ course, weeks, days }: { course: 
             {weeks.map((week, i) => {
               const weekDays = days.filter((day) => day.weekId === week.id);
               const weekCompleted = weekDays.filter((day) => dayProgress[day.id]?.status === "completed").length;
-              const chapterId = weekDays[0]?.chapterId;
-              const href = chapterId
-                ? `/courses/${course.id}/chapter/${chapterId}/lesson/${weekDays[0]?.id}?week=${week.weekNumber}`
-                : `/courses/${course.id}/roadmap`;
+              // Opening a topic shows its list of lessons so students pick where to start.
+              const href = `/courses/${course.id}/roadmap/week/${week.weekNumber}`;
 
               const comingSoon = week.comingSoon ?? false;
               const cardClass = "group relative flex min-h-[180px] flex-col overflow-hidden rounded-[18px] bg-[#1A1814] p-6 shadow-[0_2px_14px_rgba(0,0,0,0.22)]";

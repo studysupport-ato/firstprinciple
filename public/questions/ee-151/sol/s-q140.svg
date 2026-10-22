@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 300" width="680" height="300" font-family="'Helvetica Neue',Arial,sans-serif" role="img" aria-label="Fluorescent, motor and filament loads on a 240 V, 50 Hz supply">
+<title>Fluorescent, motor and filament loads on a 240 V, 50 Hz supply</title>
+<rect width="680" height="300" fill="#ffffff"/>
+<g transform="translate(80,0)">
+<line x1="60.0" y1="50.0" x2="60.0" y2="137.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="60.0" y1="173.0" x2="60.0" y2="260.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<circle cx="60.0" cy="155.0" r="18" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<path d="M 49.2 155.0 C 54.6 143.1, 54.6 143.1, 60.0 155.0 S 65.4 166.9, 70.8 155.0" fill="none" stroke="#111111" stroke-width="1.8"/>
+<text x="30.0" y="145.5" font-size="15" text-anchor="end" dominant-baseline="middle" fill="#111111">240 V</text>
+<text x="30.0" y="164.5" font-size="15" text-anchor="end" dominant-baseline="middle" fill="#111111">50 Hz</text>
+<polyline points="60.0,50.0 490.0,50.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="60.0,260.0 490.0,260.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="210.0" y1="50.0" x2="210.0" y2="116.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="210.0" y1="194.0" x2="210.0" y2="260.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="151.0" y="116.0" width="118" height="78" rx="6" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<text x="210.0" y="138.0" font-size="13" text-anchor="middle" dominant-baseline="middle" fill="#111111" font-weight="600">Fluorescent</text>
+<text x="210.0" y="155.0" font-size="13" text-anchor="middle" dominant-baseline="middle" fill="#111111">900 W</text>
+<text x="210.0" y="172.0" font-size="13" text-anchor="middle" dominant-baseline="middle" fill="#111111">0.9 p.f. lag</text>
+<line x1="350.0" y1="50.0" x2="350.0" y2="116.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="350.0" y1="194.0" x2="350.0" y2="260.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="291.0" y="116.0" width="118" height="78" rx="6" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<text x="350.0" y="138.0" font-size="13" text-anchor="middle" dominant-baseline="middle" fill="#111111" font-weight="600">Motor</text>
+<text x="350.0" y="155.0" font-size="13" text-anchor="middle" dominant-baseline="middle" fill="#111111">3 kVA</text>
+<text x="350.0" y="172.0" font-size="13" text-anchor="middle" dominant-baseline="middle" fill="#111111">0.6 p.f. lag</text>
+<line x1="490.0" y1="50.0" x2="490.0" y2="116.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="490.0" y1="194.0" x2="490.0" y2="260.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="431.0" y="116.0" width="118" height="78" rx="6" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<text x="490.0" y="138.0" font-size="13" text-anchor="middle" dominant-baseline="middle" fill="#111111" font-weight="600">Filament</text>
+<text x="490.0" y="155.0" font-size="13" text-anchor="middle" dominant-baseline="middle" fill="#111111">750 W</text>
+<text x="490.0" y="172.0" font-size="13" text-anchor="middle" dominant-baseline="middle" fill="#111111">unity p.f.</text>
+<circle cx="210.0" cy="50.0" r="3.6" fill="#111111"/>
+<circle cx="210.0" cy="260.0" r="3.6" fill="#111111"/>
+<circle cx="350.0" cy="50.0" r="3.6" fill="#111111"/>
+<circle cx="350.0" cy="260.0" r="3.6" fill="#111111"/>
+</g>
+</svg>

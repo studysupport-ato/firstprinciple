@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 280" width="540" height="280" font-family="'Helvetica Neue',Arial,sans-serif" role="img" aria-label="Series R and L across 240 V, 50 Hz taking 4 A and 400 W">
+<title>Series R and L across 240 V, 50 Hz taking 4 A and 400 W</title>
+<rect width="540" height="280" fill="#ffffff"/>
+<g transform="translate(80,0)">
+<line x1="60.0" y1="80.0" x2="60.0" y2="137.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="60.0" y1="173.0" x2="60.0" y2="230.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<circle cx="60.0" cy="155.0" r="18" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<path d="M 49.2 155.0 C 54.6 143.1, 54.6 143.1, 60.0 155.0 S 65.4 166.9, 70.8 155.0" fill="none" stroke="#111111" stroke-width="1.8"/>
+<text x="30.0" y="145.5" font-size="15" text-anchor="end" dominant-baseline="middle" fill="#111111">240 V</text>
+<text x="30.0" y="164.5" font-size="15" text-anchor="end" dominant-baseline="middle" fill="#111111">50 Hz</text>
+<polyline points="60.0,80.0 120.0,80.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="120.0" y1="80.0" x2="160.0" y2="80.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="200.0" y1="80.0" x2="240.0" y2="80.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-20.0" y="-7.5" width="40" height="15" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(180.0,80.0) rotate(0.0)"/>
+<text x="180.0" y="59.0" font-size="15" text-anchor="middle" dominant-baseline="middle" fill="#111111"><tspan font-style="italic">R</tspan></text>
+<line x1="240.0" y1="80.0" x2="276.0" y2="80.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="324.0" y1="80.0" x2="360.0" y2="80.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<path d="M 276.0 80.0 A 6.0 6.0 0 0 1 288.0 80.0 A 6.0 6.0 0 0 1 300.0 80.0 A 6.0 6.0 0 0 1 312.0 80.0 A 6.0 6.0 0 0 1 324.0 80.0" fill="none" stroke="#111111" stroke-width="2.0"/>
+<text x="300.0" y="56.0" font-size="15" text-anchor="middle" dominant-baseline="middle" fill="#111111"><tspan font-style="italic">L</tspan></text>
+<polyline points="360.0,80.0 390.0,80.0 390.0,230.0 60.0,230.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="95.0,80.0 86.2,84.7 86.2,75.3" fill="#111111"/>
+<text x="90.0" y="60.0" font-size="15" text-anchor="middle" dominant-baseline="middle" fill="#111111">4 A</text>
+</g>
+</svg>

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 290" width="580" height="290" font-family="'Helvetica Neue',Arial,sans-serif" role="img" aria-label="250 ohms in series with 4 microfarads, in parallel with 200 ohms, on 64 V at 1250 rad/s">
+<title>250 ohms in series with 4 microfarads, in parallel with 200 ohms, on 64 V at 1250 rad/s</title>
+<rect width="580" height="290" fill="#ffffff"/>
+<g transform="translate(80,0)">
+<line x1="60.0" y1="60.0" x2="60.0" y2="137.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="60.0" y1="173.0" x2="60.0" y2="250.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<circle cx="60.0" cy="155.0" r="18" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<path d="M 49.2 155.0 C 54.6 143.1, 54.6 143.1, 60.0 155.0 S 65.4 166.9, 70.8 155.0" fill="none" stroke="#111111" stroke-width="1.8"/>
+<text x="30.0" y="145.5" font-size="15" text-anchor="end" dominant-baseline="middle" fill="#111111">64 V</text>
+<text x="30.0" y="164.5" font-size="15" text-anchor="end" dominant-baseline="middle" fill="#111111">ω = 1250 rad/s</text>
+<polyline points="60.0,60.0 350.0,60.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="60.0,250.0 350.0,250.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="200.0" y1="60.0" x2="200.0" y2="87.5" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="200.0" y1="127.5" x2="200.0" y2="155.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-20.0" y="-7.5" width="40" height="15" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(200.0,107.5) rotate(90.0)"/>
+<text x="217.0" y="107.5" font-size="15" text-anchor="start" dominant-baseline="middle" fill="#111111">250 Ω</text>
+<line x1="200.0" y1="155.0" x2="200.0" y2="198.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="200.0" y1="207.0" x2="200.0" y2="250.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="214.0" y1="198.0" x2="186.0" y2="198.0" stroke="#111111" stroke-width="2.6" stroke-linecap="round"/>
+<line x1="214.0" y1="207.0" x2="186.0" y2="207.0" stroke="#111111" stroke-width="2.6" stroke-linecap="round"/>
+<text x="222.0" y="202.5" font-size="15" text-anchor="start" dominant-baseline="middle" fill="#111111">4 μF</text>
+<line x1="350.0" y1="60.0" x2="350.0" y2="135.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="350.0" y1="175.0" x2="350.0" y2="250.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-20.0" y="-7.5" width="40" height="15" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(350.0,155.0) rotate(90.0)"/>
+<text x="367.0" y="155.0" font-size="15" text-anchor="start" dominant-baseline="middle" fill="#111111">200 Ω</text>
+<circle cx="200.0" cy="60.0" r="3.6" fill="#111111"/>
+<circle cx="200.0" cy="250.0" r="3.6" fill="#111111"/>
+</g>
+</svg>
