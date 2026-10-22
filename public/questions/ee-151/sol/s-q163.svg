@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 270" width="560" height="270" font-family="'Helvetica Neue',Arial,sans-serif" role="img" aria-label="Balanced delta load absorbing 1200 W at 0.94 p.f. lagging from 208 V">
+<title>Balanced delta load absorbing 1200 W at 0.94 p.f. lagging from 208 V</title>
+<rect width="560" height="270" fill="#ffffff"/>
+<circle cx="40.0" cy="50.0" r="4.2" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<text x="26.0" y="50.0" font-size="16" text-anchor="end" dominant-baseline="middle" fill="#111111" font-style="italic">R</text>
+<polyline points="40.0,50.0 300.0,50.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="40.0" cy="170.0" r="4.2" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<text x="26.0" y="170.0" font-size="16" text-anchor="end" dominant-baseline="middle" fill="#111111" font-style="italic">Y</text>
+<polyline points="40.0,170.0 180.0,170.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="40.0" cy="230.0" r="4.2" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<text x="26.0" y="230.0" font-size="16" text-anchor="end" dominant-baseline="middle" fill="#111111" font-style="italic">B</text>
+<polyline points="40.0,230.0 420.0,230.0 420.0,170.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="300.0" y1="50.0" x2="254.1" y2="95.9" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="225.9" y1="124.1" x2="180.0" y2="170.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-20.0" y="-7.5" width="40" height="15" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(240.0,110.0) rotate(135.0)"/>
+<text x="222.0" y="92.0" font-size="13" text-anchor="end" dominant-baseline="middle" fill="#111111"><tspan font-style="italic">Z</tspan></text>
+<line x1="300.0" y1="50.0" x2="345.9" y2="95.9" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="374.1" y1="124.1" x2="420.0" y2="170.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-20.0" y="-7.5" width="40" height="15" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(360.0,110.0) rotate(45.0)"/>
+<text x="378.0" y="92.0" font-size="13" text-anchor="start" dominant-baseline="middle" fill="#111111"><tspan font-style="italic">Z</tspan></text>
+<line x1="180.0" y1="170.0" x2="280.0" y2="170.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="320.0" y1="170.0" x2="420.0" y2="170.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-20.0" y="-7.5" width="40" height="15" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(300.0,170.0) rotate(0.0)"/>
+<text x="300.0" y="196.0" font-size="13" text-anchor="middle" dominant-baseline="middle" fill="#111111"><tspan font-style="italic">Z</tspan></text>
+<circle cx="300.0" cy="50.0" r="3.6" fill="#111111"/>
+<circle cx="180.0" cy="170.0" r="3.6" fill="#111111"/>
+<circle cx="420.0" cy="170.0" r="3.6" fill="#111111"/>
+<text x="540.0" y="22.0" font-size="14" text-anchor="end" dominant-baseline="middle" fill="#333">208 V · 1200 W, 0.94 p.f. lag</text>
+</svg>

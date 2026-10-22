@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 300" width="560" height="300" font-family="'Helvetica Neue',Arial,sans-serif" role="img" aria-label="Star load of three coils, 159.2 mH and 50 ohms, line current 3 A at 50 Hz">
+<title>Star load of three coils, 159.2 mH and 50 ohms, line current 3 A at 50 Hz</title>
+<rect width="560" height="300" fill="#ffffff"/>
+<circle cx="40.0" cy="40.0" r="4.2" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<text x="26.0" y="40.0" font-size="16" text-anchor="end" dominant-baseline="middle" fill="#111111" font-style="italic">R</text>
+<polyline points="40.0,40.0 310.0,40.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="310.0" y1="40.0" x2="310.0" y2="50.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="310.0" y1="90.0" x2="310.0" y2="100.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-20.0" y="-7.5" width="40" height="15" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(310.0,70.0) rotate(90.0)"/>
+<line x1="310.0" y1="100.0" x2="310.0" y2="106.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="310.0" y1="154.0" x2="310.0" y2="160.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<path d="M 310.0 106.0 A 6.0 6.0 0 0 1 310.0 118.0 A 6.0 6.0 0 0 1 310.0 130.0 A 6.0 6.0 0 0 1 310.0 142.0 A 6.0 6.0 0 0 1 310.0 154.0" fill="none" stroke="#111111" stroke-width="2.0"/>
+<text x="332.0" y="100.0" font-size="13" text-anchor="start" dominant-baseline="middle" fill="#111111">50 Ω, 159.2 mH</text>
+<circle cx="40.0" cy="200.0" r="4.2" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<text x="26.0" y="200.0" font-size="16" text-anchor="end" dominant-baseline="middle" fill="#111111" font-style="italic">Y</text>
+<polyline points="40.0,200.0 200.0,200.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="200.0" y1="200.0" x2="208.7" y2="196.8" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="246.3" y1="183.2" x2="255.0" y2="180.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-20.0" y="-7.5" width="40" height="15" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(227.5,190.0) rotate(-20.0)"/>
+<line x1="255.0" y1="180.0" x2="259.9" y2="178.2" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="305.1" y1="161.8" x2="310.0" y2="160.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<path d="M 259.9 178.2 A 6.0 6.0 0 0 1 271.2 174.1 A 6.0 6.0 0 0 1 282.5 170.0 A 6.0 6.0 0 0 1 293.8 165.9 A 6.0 6.0 0 0 1 305.1 161.8" fill="none" stroke="#111111" stroke-width="2.0"/>
+<text x="243.0" y="154.0" font-size="13" text-anchor="end" dominant-baseline="middle" fill="#111111">50 Ω, 159.2 mH</text>
+<circle cx="40.0" cy="260.0" r="4.2" fill="#fff" stroke="#111111" stroke-width="2.0"/>
+<text x="26.0" y="260.0" font-size="16" text-anchor="end" dominant-baseline="middle" fill="#111111" font-style="italic">B</text>
+<polyline points="40.0,260.0 430.0,260.0 430.0,220.0" fill="none" stroke="#111111" stroke-width="2.0" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="430.0" y1="220.0" x2="417.9" y2="213.9" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="382.1" y1="196.1" x2="370.0" y2="190.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<rect x="-20.0" y="-7.5" width="40" height="15" fill="#fff" stroke="#111111" stroke-width="2.0" transform="translate(400.0,205.0) rotate(-153.4)"/>
+<line x1="370.0" y1="190.0" x2="361.5" y2="185.7" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="318.5" y1="164.3" x2="310.0" y2="160.0" stroke="#111111" stroke-width="2.0" stroke-linecap="round"/>
+<path d="M 361.5 185.7 A 6.0 6.0 0 0 1 350.7 180.4 A 6.0 6.0 0 0 1 340.0 175.0 A 6.0 6.0 0 0 1 329.3 169.6 A 6.0 6.0 0 0 1 318.5 164.3" fill="none" stroke="#111111" stroke-width="2.0"/>
+<text x="382.0" y="164.0" font-size="13" text-anchor="start" dominant-baseline="middle" fill="#111111">50 Ω, 159.2 mH</text>
+<circle cx="310.0" cy="160.0" r="3.6" fill="#111111"/>
+<text x="540.0" y="22.0" font-size="14" text-anchor="end" dominant-baseline="middle" fill="#333">50 Hz · line current 3 A</text>
+</svg>

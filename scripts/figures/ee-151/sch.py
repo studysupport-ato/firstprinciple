@@ -38,6 +38,7 @@ def rich(s):
 class Sch:
     def __init__(self, w, h, sw=2.0):
         self.w, self.h, self.sw, self.el = w, h, sw, []
+        self.pad = 0
 
     # ---------- primitives ----------
     def line(self, x1, y1, x2, y2, dash=None, sw=None, color=INK):
@@ -171,11 +172,79 @@ class Sch:
         for i, s in enumerate(lines):
             self.text(x + w / 2, y + h / 2 + (i - (n - 1) / 2) * 20, s, 16)
 
+    # ---------- more components ----------
+    def cap(self, x1, y1, x2, y2, label=None, side=None, off=None, gap=9, plate=28):
+        mx, my, ux, uy, deg = self._seg(x1, y1, x2, y2, gap)
+        nx, ny = -uy, ux
+        for s in (-1, 1):
+            cx, cy = mx + ux * gap / 2 * s, my + uy * gap / 2 * s
+            self.line(cx - nx * plate / 2, cy - ny * plate / 2, cx + nx * plate / 2, cy + ny * plate / 2, sw=2.6)
+        if side is None:
+            side = "above" if abs(uy) < 0.3 else "right"
+        if off is None:
+            off = 24 if side in ("above", "below") else 22
+        self._label(mx, my, ux, uy, label, side, off)
+
+    def ind(self, x1, y1, x2, y2, label=None, side=None, off=None, humps=4, body=48):
+        mx, my, ux, uy, deg = self._seg(x1, y1, x2, y2, body)
+        r = body / humps / 2
+        sx, sy = mx - ux * body / 2, my - uy * body / 2
+        d = f"M {sx:.1f} {sy:.1f}"
+        for i in range(humps):
+            ex, ey = sx + ux * 2 * r * (i + 1), sy + uy * 2 * r * (i + 1)
+            d += f" A {r:.1f} {r:.1f} 0 0 1 {ex:.1f} {ey:.1f}"
+        self.el.append(f'<path d="{d}" fill="none" stroke="{INK}" stroke-width="{self.sw}"/>')
+        if side is None:
+            side = "above" if abs(uy) < 0.3 else "right"
+        if off is None:
+            off = 24 if side in ("above", "below") else 18
+        self._label(mx, my, ux, uy, label, side, off)
+
+    def acsrc(self, x1, y1, x2, y2, label=None, side="left", off=30, r=18):
+        mx, my, ux, uy, deg = self._seg(x1, y1, x2, y2, 2 * r)
+        self.el.append(f'<circle cx="{mx:.1f}" cy="{my:.1f}" r="{r}" fill="#fff" stroke="{INK}" stroke-width="{self.sw}"/>')
+        w = r * 0.6
+        self.el.append(f'<path d="M {mx-w:.1f} {my:.1f} C {mx-w/2:.1f} {my-w*1.1:.1f}, {mx-w/2:.1f} {my-w*1.1:.1f}, {mx:.1f} {my:.1f} S {mx+w/2:.1f} {my+w*1.1:.1f}, {mx+w:.1f} {my:.1f}" fill="none" stroke="{INK}" stroke-width="1.8"/>')
+        if label:
+            lines = label if isinstance(label, (list, tuple)) else [label]
+            ax = {"left": -1, "right": 1}.get(side, 0)
+            for i, t in enumerate(lines):
+                self.text(mx + ax * off, my + (i - (len(lines) - 1) / 2) * 19, t, 15, "end" if ax < 0 else "start" if ax > 0 else "middle")
+
+    def meter(self, x1, y1, x2, y2, letter, label=None, side="right", off=26, r=13):
+        mx, my, ux, uy, deg = self._seg(x1, y1, x2, y2, 2 * r)
+        self.el.append(f'<circle cx="{mx:.1f}" cy="{my:.1f}" r="{r}" fill="#fff" stroke="{INK}" stroke-width="{self.sw}"/>')
+        self.text(mx, my + 1, letter, 14, weight="700")
+        self._label(mx, my, ux, uy, label, side, off)
+
+    def lamp(self, x1, y1, x2, y2, label=None, side="above", off=30, r=14):
+        mx, my, ux, uy, deg = self._seg(x1, y1, x2, y2, 2 * r)
+        self.el.append(f'<circle cx="{mx:.1f}" cy="{my:.1f}" r="{r}" fill="#fff" stroke="{INK}" stroke-width="{self.sw}"/>')
+        k = r * 0.7
+        self.line(mx - k, my - k, mx + k, my + k, sw=1.6); self.line(mx - k, my + k, mx + k, my - k, sw=1.6)
+        self._label(mx, my, ux, uy, label, side, off)
+
+    def loadbox(self, x, y1, y2, w, h, lines, size=13):
+        """Vertical branch from rail y1 to rail y2 through a labelled box centred on x."""
+        cy = (y1 + y2) / 2
+        self.line(x, y1, x, cy - h / 2); self.line(x, cy + h / 2, x, y2)
+        self.el.append(f'<rect x="{x-w/2:.1f}" y="{cy-h/2:.1f}" width="{w}" height="{h}" rx="6" fill="#fff" stroke="{INK}" stroke-width="{self.sw}"/>')
+        n = len(lines)
+        for i, t in enumerate(lines):
+            self.text(x, cy + (i - (n - 1) / 2) * (size + 4), t, size, weight="600" if i == 0 else None)
+
+    def group(self, x, y, w, h, label, lx=None, ly=None):
+        self.el.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" fill="none" stroke="#777" stroke-width="1.3" stroke-dasharray="5 4"/>')
+        self.text(lx if lx is not None else x + w / 2, ly if ly is not None else y - 10, label, 13, color="#555")
+
     def svg(self, title):
         body = "\n".join(self.el)
-        return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {self.w} {self.h}" width="{self.w}" height="{self.h}" '
+        if self.pad:
+            body = f'<g transform="translate({self.pad},0)">\n{body}\n</g>'
+        W = self.w + self.pad
+        return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {self.h}" width="{W}" height="{self.h}" '
                 f'font-family="{FONT}" role="img" aria-label="{esc(title)}">\n<title>{esc(title)}</title>\n'
-                f'<rect width="{self.w}" height="{self.h}" fill="#ffffff"/>\n{body}\n</svg>\n')
+                f'<rect width="{W}" height="{self.h}" fill="#ffffff"/>\n{body}\n</svg>\n')
 
 
 class Plot:

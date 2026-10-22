@@ -137,6 +137,11 @@ function QuestionRenderer({
     : figureKey
       ? { src: `/questions/${figureKey}.svg`, alt: "Diagram for this question" }
       : null;
+  // A diagram for a word problem, revealed with the worked solution only.
+  const solutionFigureKey = question.tags?.find((tag) => tag.startsWith("solution-figure:"))?.slice("solution-figure:".length);
+  const solutionFigure = solutionFigureKey && /^[a-z0-9][a-z0-9/-]*$/i.test(solutionFigureKey) && !solutionFigureKey.includes("..")
+    ? `/questions/${solutionFigureKey}.svg`
+    : null;
   const hasExplanation =
     Boolean(explanationText) &&
     !/^no explanation was included/i.test(explanationText) &&
@@ -305,6 +310,15 @@ function QuestionRenderer({
             <p className="mt-2 whitespace-pre-line font-sans text-sm leading-relaxed text-[#111111]">
               <EducationalText text={explanationText} />
             </p>
+          ) : null}
+          {solutionFigure ? (
+            <figure className="mt-4 rounded-xl border border-[#E5E5E5] bg-white p-3">
+              <a href={solutionFigure} target="_blank" rel="noreferrer" title="Open the diagram full size">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={solutionFigure} alt="Circuit diagram for this question" className="mx-auto h-auto w-full max-w-[560px]" />
+              </a>
+              <figcaption className="mt-1 text-center font-sans text-[11px] text-[#888888]">The circuit described in the question</figcaption>
+            </figure>
           ) : null}
         </motion.div>
       ) : null}
