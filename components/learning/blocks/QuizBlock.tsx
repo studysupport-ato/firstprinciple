@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { QuizBlock as QuizBlockData } from "@/lib/content/types/lesson";
 import { useLessonSide } from "../LessonContext";
-import { InlineMathText } from "./MarkdownBlock";
+import { InlineMathText, MarkdownBlock } from "./MarkdownBlock";
 
 type EndState = "idle" | "wrong1" | "right" | "revealed";
 
@@ -78,6 +78,7 @@ export function QuizBlock({ id, variant, questions }: QuizBlockData) {
     if (pick < 0 || locked) return;
     if (!isEnd) {
       setChecked(true);
+      setExplain(true); // the worked solution opens straight away
       if (pick === question.answerIndex) {
         setCorrect((value) => value + 1);
         setFirstTry((value) => value + 1);
@@ -146,10 +147,10 @@ export function QuizBlock({ id, variant, questions }: QuizBlockData) {
           ) : null}
           {explain && checked ? (
             <div className="lesson-quiz-card lesson-quiz-explain">
-              <p className="font-sans text-sm font-semibold text-[#E9BC3A]">Explanation</p>
-              <p className="mt-1 font-sans text-[1.0625rem] leading-relaxed">
-                <InlineMathText text={question.explanation} />
-              </p>
+              <p className="font-sans text-xs font-extrabold uppercase tracking-[0.08em] text-[#E9BC3A]">Worked solution</p>
+              <div className="lesson-quiz-solution mt-1">
+                <MarkdownBlock markdown={question.explanation} />
+              </div>
             </div>
           ) : null}
         </>
@@ -168,9 +169,13 @@ export function QuizBlock({ id, variant, questions }: QuizBlockData) {
           <p className="font-sans text-base font-bold">
             <InlineMathText text={title} />
           </p>
-          <p className="mt-1 font-sans text-[1.0625rem] leading-relaxed">
-            {endState === "wrong1" ? "You have one more try. Pick another option." : <InlineMathText text={question.explanation} />}
-          </p>
+          {endState === "wrong1" ? (
+            <p className="mt-1 font-sans text-[1.0625rem] leading-relaxed">You have one more try. Pick another option.</p>
+          ) : (
+            <div className="lesson-quiz-solution mt-1">
+              <MarkdownBlock markdown={question.explanation} />
+            </div>
+          )}
         </div>
       );
     }
@@ -234,7 +239,7 @@ export function QuizBlock({ id, variant, questions }: QuizBlockData) {
         ) : null}
         {!isEnd && checked ? (
           <button type="button" onClick={() => setExplain((value) => !value)} className="min-h-12 rounded-xl border border-white/40 px-5 font-sans text-sm font-semibold">
-            {explain ? "Hide explanation" : "Show explanation"}
+            {explain ? "Hide solution" : "Show solution"}
           </button>
         ) : null}
         {locked && !lastQuestion ? (

@@ -53,11 +53,14 @@ function renderTable(lines: string[], key: string) {
   return <div key={key} className="my-5 overflow-x-auto"><table className="min-w-full border-collapse text-left text-sm"><thead><tr>{headers.map((header, index) => <th key={`${key}-h-${index}`} className="border border-[#D9D9D9] bg-[#F7F7F8] px-3 py-2 font-semibold text-[#111111]">{inlineContent(header, `${key}-header-${index}`)}</th>)}</tr></thead><tbody>{rows.map((row, rowIndex) => <tr key={`${key}-r-${rowIndex}`}>{headers.map((_, columnIndex) => <td key={`${key}-c-${rowIndex}-${columnIndex}`} className="border border-[#E5E5E5] px-3 py-2 text-[#444444]">{inlineContent(row[columnIndex] ?? "", `${key}-cell-${rowIndex}-${columnIndex}`)}</td>)}</tr>)}</tbody></table></div>;
 }
 
+const CARD_TINTS = ["blue", "green", "rose", "violet", "amber"] as const;
+
 export function MarkdownBlock({ markdown, size }: { markdown: string; size?: "sm" }) {
   const small = size === "sm";
   const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
   const output: ReactNode[] = [];
   let index = 0;
+  let cardCount = 0;
 
   while (index < lines.length) {
     const line = lines[index];
@@ -91,6 +94,24 @@ export function MarkdownBlock({ markdown, size }: { markdown: string; size?: "sm
       output.push(
         <div key={`display-math-${index}`} className="lesson-math-box">
           <MathText math={mathLines.join("\n")} block />
+        </div>,
+      );
+      continue;
+    }
+
+    // Cards: ":::card Label" opens a tinted card whose label sits on top of its content; ":::" closes it.
+    const card = line.trim().match(/^:::card\s*(.*)$/);
+    if (card) {
+      const inner: string[] = [];
+      index += 1;
+      while (index < lines.length && lines[index].trim() !== ":::") { inner.push(lines[index]); index += 1; }
+      if (index < lines.length) index += 1;
+      const tint = CARD_TINTS[cardCount % CARD_TINTS.length];
+      cardCount += 1;
+      output.push(
+        <div key={`card-${index}`} className={`lesson-card lesson-card-${tint}`}>
+          {card[1].trim() ? <p className="lesson-card-label">{inlineContent(card[1].trim(), `card-label-${index}`)}</p> : null}
+          {inner.some((text) => text.trim()) ? <MarkdownBlock markdown={inner.join("\n")} /> : null}
         </div>,
       );
       continue;
@@ -158,7 +179,7 @@ export function MarkdownBlock({ markdown, size }: { markdown: string; size?: "sm
 
     const paragraph: string[] = [line];
     index += 1;
-    while (index < lines.length && lines[index].trim() && !/^(#{1,6})\s+/.test(lines[index]) && !/^\s*[-*+]\s+/.test(lines[index]) && !/^\s*\d+[.)]\s+/.test(lines[index]) && !lines[index].trim().startsWith(">") && !lines[index].trim().startsWith("->") && !lines[index].trim().startsWith("```") && !/^(\*{3,}|-{3,}|_{3,})\s*$/.test(lines[index].trim())) { paragraph.push(lines[index]); index += 1; }
+    while (index < lines.length && lines[index].trim() && !/^(#{1,6})\s+/.test(lines[index]) && !/^\s*[-*+]\s+/.test(lines[index]) && !/^\s*\d+[.)]\s+/.test(lines[index]) && !lines[index].trim().startsWith(">") && !lines[index].trim().startsWith("->") && !lines[index].trim().startsWith(":::") && !lines[index].trim().startsWith("```") && !/^(\*{3,}|-{3,}|_{3,})\s*$/.test(lines[index].trim())) { paragraph.push(lines[index]); index += 1; }
     output.push(<p key={`paragraph-${index}`} className="my-4 text-base leading-8 text-[#333333]">{inlineContent(paragraph.join(" "), `paragraph-${index}`)}</p>);
   }
 
