@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { FlagPreviewCard } from "@/components/admin/FlagPreviewCard";
 import { listFlagsAction, updateFlagGroupAction } from "@/lib/flags/actions";
 import { FLAG_KIND_LABEL, type FlagRecord, type FlagStatus, type FlagTargetType } from "@/lib/flags/shared";
 
@@ -255,7 +256,7 @@ export default function AdminFlagsPage() {
           </section>
 
           {selected ? (
-            <aside aria-label="Selected flag" className="flex min-w-0 max-w-[480px] flex-[1_1_360px] flex-col gap-4 rounded-[20px] bg-[#1A1814] p-5 text-[#F6EFDC]">
+            <aside aria-label="Selected flag" className="flex min-w-0 max-w-[580px] flex-[1_1_420px] flex-col gap-4 rounded-[20px] bg-[#1A1814] p-5 text-[#F6EFDC]">
               <div className="flex flex-col gap-1.5">
                 <span className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-[#E9BC3A]">
                   {FLAG_KIND_LABEL[selected.type]} · {selected.location}
@@ -267,6 +268,8 @@ export default function AdminFlagsPage() {
                   </Link>
                 ) : null}
               </div>
+
+              <FlagPreviewCard targetKey={selected.key} />
 
               <div className="flex flex-col gap-2.5">
                 <div className="text-[14px] font-bold">
