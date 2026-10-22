@@ -370,3 +370,4 @@ span.lesson-math-box { margin: 0.3rem auto; }
 .lesson-quiz-solution .markdown-content .lesson-card { margin: 0.5rem 0; padding: 0.6rem 0.9rem 0.7rem; }
 .lesson-quiz-solution .markdown-content .lesson-card .lesson-card-label { font-size: 0.85rem; }
 .lesson-quiz-solution .markdown-content .lesson-math-box { margin: 0.35rem 0; }
+:is([data-lesson-theme="dark"], [data-lesson-theme="blue"], [data-lesson-theme="wine"], [data-lesson-theme="purple"], [data-lesson-theme="green"], .lesson-quiz) .markdown-content .lesson-card .lesson-card-label * { color: inherit !important; }
