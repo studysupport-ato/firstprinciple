@@ -48,15 +48,17 @@ export function QuizBlock({ id, variant, questions }: QuizBlockData) {
     reportQuiz(id, false);
     reported.current = true;
   }, [id, reportQuiz]);
-  useEffect(() => {
-    if (reported.current) reportQuiz(id, finished);
-  }, [finished, id, reportQuiz]);
-
-  if (!question) return null;
-
   const midLocked = !isEnd && checked;
   const endLocked = isEnd && (endState === "right" || endState === "revealed");
   const locked = midLocked || endLocked;
+  // Answering the last question completes the test, so the lesson's own Continue button opens straight away.
+  const done = finished || (lastQuestion && locked);
+
+  useEffect(() => {
+    if (reported.current) reportQuiz(id, done);
+  }, [done, id, reportQuiz]);
+
+  if (!question) return null;
   const midRight = pick === question.answerIndex;
 
   const kindFor = (optionIndex: number): "plain" | "picked" | "right" | "wrong" => {
@@ -235,9 +237,14 @@ export function QuizBlock({ id, variant, questions }: QuizBlockData) {
             {explain ? "Hide explanation" : "Show explanation"}
           </button>
         ) : null}
-        {locked ? (
+        {locked && !lastQuestion ? (
           <button type="button" onClick={onNext} className="min-h-12 rounded-xl bg-[#E9BC3A] px-6 font-sans text-sm font-bold text-[#1A1814]">
-            {lastQuestion ? "See results" : "Next question"}
+            Next question
+          </button>
+        ) : null}
+        {locked && lastQuestion && isEnd ? (
+          <button type="button" onClick={onNext} className="min-h-12 rounded-xl border border-white/40 px-5 font-sans text-sm font-semibold">
+            See your score
           </button>
         ) : null}
       </div>
