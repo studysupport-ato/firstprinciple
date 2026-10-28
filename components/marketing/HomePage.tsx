@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { COLLABORATE } from "@/lib/site/collaborate";
+import { SkillsTraining } from "@/components/marketing/SkillsTraining";
 
 const goldGround = {
   backgroundColor: "#E9BC3A",
@@ -28,12 +29,35 @@ const PILLARS = [
 const eyebrow = "text-[12px] font-extrabold uppercase tracking-[0.16em]";
 const sectionTitle = "font-sans text-[32px] font-extrabold leading-[1.05] tracking-[-0.02em] md:text-[44px]";
 
-export function HomePage({ firstLessonHref }: { firstLessonHref: string | null }) {
+export function HomePage({
+  firstLessonHref,
+  showSkillsTraining = false,
+  adminPreview = false,
+}: {
+  firstLessonHref: string | null;
+  /** The new front page: Arduino Skills Training first, skills pillar open. */
+  showSkillsTraining?: boolean;
+  /** True while only the admin can see the new front page. */
+  adminPreview?: boolean;
+}) {
   const lessonHref = firstLessonHref ?? "/courses";
+  const pillars = showSkillsTraining
+    ? PILLARS.map((pillar) =>
+        pillar.title === "Real-world skills"
+          ? { ...pillar, text: "Teach the practical skills industry looks for, starting with Arduino.", status: "Open now", ready: true }
+          : pillar,
+      )
+    : PILLARS;
 
   return (
     <div className="min-h-screen font-sans text-[#1A1814]">
+      {adminPreview ? (
+        <p className="m-0 bg-[#1A1814] px-5 py-2 text-center text-[13px] font-bold text-[#E9BC3A]">
+          Admin preview: only you can see this front page. Students still see the old one.
+        </p>
+      ) : null}
       <main>
+        {showSkillsTraining ? <SkillsTraining /> : null}
         {/* Opening */}
         <section className="relative overflow-hidden" style={goldGround}>
           <div
@@ -91,8 +115,8 @@ export function HomePage({ firstLessonHref }: { firstLessonHref: string | null }
               <h2 className={sectionTitle}>Three pillars.</h2>
             </div>
             <ol className="m-0 flex min-w-0 flex-[2_1_520px] list-none flex-col p-0">
-              {PILLARS.map((pillar, index) => (
-                <li key={pillar.title} className={`flex items-baseline gap-[18px] border-t border-[#1A1814]/15 py-[18px] ${index === PILLARS.length - 1 ? "border-b" : ""}`}>
+              {pillars.map((pillar, index) => (
+                <li key={pillar.title} className={`flex items-baseline gap-[18px] border-t border-[#1A1814]/15 py-[18px] ${index === pillars.length - 1 ? "border-b" : ""}`}>
                   <span className="w-7 flex-none font-sans text-[18px] font-black tabular-nums text-[#8F6500]">0{index + 1}</span>
                   <div className="min-w-0 flex-1">
                     <h3 className="font-sans text-[21px] font-extrabold">{pillar.title}</h3>
