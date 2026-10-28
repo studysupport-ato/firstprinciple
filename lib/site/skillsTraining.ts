@@ -10,6 +10,13 @@
 export const SKILLS_TRAINING = {
   live: false,
   registerUrl: null as string | null,
+  /** Number of free Arduino places. */
+  slots: 50,
+  /**
+   * College of Engineering logo, faded into the section background.
+   * Save it as public/home/coe-logo.png and set this to "/home/coe-logo.png".
+   */
+  backgroundLogo: null as string | null,
   courses: [
     "Virtual Reality Essentials",
     "Computer Aided Design",
