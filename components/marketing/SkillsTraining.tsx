@@ -38,24 +38,32 @@ export function SkillsTraining() {
       <div className="relative mx-auto flex max-w-[1200px] flex-col gap-10 px-5 pb-12 pt-8 md:px-6 md:pb-20 md:pt-14">
         {/* The collaboration comes first */}
         <div className="flex flex-col items-center gap-4 text-center">
-          <div className="flex items-center justify-center gap-4">
+          <div className="flex items-center justify-center gap-3 md:gap-5">
             <img
               src="/logobg.png"
               alt="Back2Basics with Kwamina"
               width={64}
               height={64}
-              className="h-16 w-16 rounded-2xl shadow-[0_4px_14px_rgba(26,24,20,.25)] md:h-20 md:w-20"
+              className="h-14 w-14 shrink-0 rounded-2xl shadow-[0_4px_14px_rgba(26,24,20,.25)] md:h-20 md:w-20"
             />
-            <span aria-hidden="true" className="text-[22px] font-black text-[#1A1814]/60">
+            <span aria-hidden="true" className="text-[20px] font-black text-[#1A1814]/60 md:text-[24px]">
               ×
             </span>
-            <img
-              src="/home/innovation-centre-logo.png"
-              alt="Innovation Centre, College of Engineering"
-              width={61}
-              height={64}
-              className="h-16 w-auto rounded-2xl shadow-[0_4px_14px_rgba(26,24,20,.25)] md:h-20"
-            />
+            {/* Innovation Centre lockup: logo | name */}
+            <div className="flex items-center gap-2.5 md:gap-4">
+              <img
+                src="/home/innovation-centre-logo.png"
+                alt=""
+                width={61}
+                height={64}
+                className="h-14 w-auto shrink-0 rounded-2xl shadow-[0_4px_14px_rgba(26,24,20,.25)] md:h-20"
+              />
+              <span aria-hidden="true" className="h-12 w-[2px] shrink-0 bg-[#1A1814]/45 md:h-16" />
+              <span className="flex flex-col text-left leading-[1.1] text-[#1A1814]">
+                <span className="text-[15px] font-black md:text-[22px]">Innovation Centre</span>
+                <span className="text-[13px] font-medium md:text-[19px]">College of Engineering</span>
+              </span>
+            </div>
           </div>
           <p className={`${eyebrow} text-[#1A1814]/70`}>Back2Basics in collaboration with the</p>
           <p className="max-w-[760px] text-[24px] font-black uppercase leading-[1.1] tracking-[0.01em] text-[#1A1814] md:text-[36px]" style={futura}>
