@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ArrowRight, BookOpen, Briefcase, Check, Wrench } from "lucide-react";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { COLLABORATE } from "@/lib/site/collaborate";
+import { SkillsTraining } from "@/components/marketing/SkillsTraining";
 
 type AuthView = "login" | "signup";
 
@@ -25,13 +26,29 @@ const darkGrid = {
 const eyebrow = "text-[12px] font-extrabold uppercase tracking-[0.16em]";
 const sectionTitle = "font-sans text-[32px] font-extrabold leading-[1.05] tracking-[-0.02em] md:text-[44px]";
 
-export function HomePage({ firstLessonHref }: { firstLessonHref: string | null }) {
+export function HomePage({
+  firstLessonHref,
+  showSkillsTraining = false,
+  adminPreview = false,
+}: {
+  firstLessonHref: string | null;
+  /** The new front page: Arduino Skills Training first, skills pillar open. */
+  showSkillsTraining?: boolean;
+  /** True while only the admin can see the new front page. */
+  adminPreview?: boolean;
+}) {
   const [auth, setAuth] = useState<AuthView | null>(null);
   const lessonHref = firstLessonHref ?? "/courses";
 
   return (
     <div className="min-h-screen text-[#1A1814]" style={{ fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif" }}>
+      {adminPreview ? (
+        <p className="m-0 bg-[#1A1814] px-5 py-2 text-center text-[13px] font-bold text-[#E9BC3A]">
+          Admin preview: only you can see this front page. Students still see the old one.
+        </p>
+      ) : null}
       <main>
+        {showSkillsTraining ? <SkillsTraining /> : null}
         {/* Opening */}
         <section className="relative overflow-hidden" style={goldGround}>
           <div
@@ -98,14 +115,26 @@ export function HomePage({ firstLessonHref }: { firstLessonHref: string | null }
                 text="Self-paced courses that show every step, self tests with answers, and course materials in one place. Open now, with more added as we build."
                 link={{ label: "Start learning", href: "/courses" }}
               />
-              <Pillar
-                number={2}
-                title="Real-world skills for industry"
-                badge="Coming soon"
-                icon={<Wrench size={24} strokeWidth={2.2} />}
-                text="Practical skills that employers look for, taught the same step-by-step way. This phase is coming soon."
-                onNotify={() => setAuth("signup")}
-              />
+              {showSkillsTraining ? (
+                <Pillar
+                  number={2}
+                  title="Real-world skills for industry"
+                  badge="Open now"
+                  ready
+                  icon={<Wrench size={24} strokeWidth={2.2} />}
+                  text="Teach the practical skills industry looks for, starting with Arduino."
+                  link={{ label: "See Arduino training", href: "#arduino-training" }}
+                />
+              ) : (
+                <Pillar
+                  number={2}
+                  title="Real-world skills for industry"
+                  badge="Coming soon"
+                  icon={<Wrench size={24} strokeWidth={2.2} />}
+                  text="Practical skills that employers look for, taught the same step-by-step way. This phase is coming soon."
+                  onNotify={() => setAuth("signup")}
+                />
+              )}
               <Pillar
                 number={3}
                 title="Real-life opportunities"
