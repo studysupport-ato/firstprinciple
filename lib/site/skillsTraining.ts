@@ -8,7 +8,7 @@
  *   then the Register button reads "Registration link coming soon".
  */
 export const SKILLS_TRAINING = {
-  live: false,
+  live: true,
   registerUrl: null as string | null,
   /** Number of free Arduino places. */
   slots: 50,
