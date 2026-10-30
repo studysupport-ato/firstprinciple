@@ -9,7 +9,7 @@
  */
 export const SKILLS_TRAINING = {
   live: true,
-  registerUrl: null as string | null,
+  registerUrl: "https://docs.google.com/forms/d/e/1FAIpQLSfWTBydWaHh6rWEY46QLsWSURhLMAOczQ9rOxMdp_kPFYtFVQ/viewform?usp=send_form" as string | null,
   /** Number of free Arduino places. */
   slots: 50,
   /** College of Engineering crest, faded into the section background (null hides it). */
