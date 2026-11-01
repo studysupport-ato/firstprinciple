@@ -90,7 +90,7 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
       ),
     );
 
-    const [assets, supplementaryResources, questions, completedBefore] = await Promise.all([
+    const [assets, supplementaryResources, questions, savedProgress] = await Promise.all([
       withServerTimingSpan(timing, "asset_lookup_consume_ms", () =>
         createAssetSupabaseRepository(() => supabase).getAssetsByIds(assetIds),
       ),
@@ -112,20 +112,28 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
             })
           : Promise.resolve([]),
       ),
-      // A student who already completed this lesson can open any of its steps straight away.
-      // RLS limits the read to the signed-in student's own rows.
-      withServerTimingSpan(timing, "completed_lesson_lookup_ms", async () => {
-        if (!authUser || preview) return false;
+      // Where the signed-in student is in this lesson (saved on their account), and whether they
+      // completed it before. RLS limits the read to the student's own rows.
+      withServerTimingSpan(timing, "lesson_position_lookup_ms", async () => {
+        if (!authUser || preview) return null;
         try {
           const { data, error } = await supabase
             .from("student_day_progress")
-            .select("day_id")
+            .select("status, completed_at, last_step, max_step, step_saved_at")
             .eq("day_id", lesson.id)
-            .eq("status", "completed")
             .limit(1);
-          return !error && Array.isArray(data) && data.length > 0;
+          const row = !error && Array.isArray(data) ? (data[0] as {
+            status: string; completed_at: string | null; last_step: number | null; max_step: number | null; step_saved_at: string | null;
+          } | undefined) : undefined;
+          if (!row) return null;
+          return {
+            completed: row.status === "completed" || Boolean(row.completed_at),
+            last: typeof row.last_step === "number" ? row.last_step : 0,
+            max: typeof row.max_step === "number" ? row.max_step : 0,
+            at: row.step_saved_at ? Date.parse(row.step_saved_at) || 0 : 0,
+          };
         } catch {
-          return false;
+          return null;
         }
       }),
     ]);
@@ -170,7 +178,8 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
         assetsById={assetsById}
         questionsById={questionsById}
         freePreview={freePreview}
-        completedBefore={completedBefore}
+        completedBefore={savedProgress?.completed ?? false}
+        savedPosition={savedProgress ? { last: savedProgress.last, max: savedProgress.max, at: savedProgress.at } : null}
       />
     );
   });

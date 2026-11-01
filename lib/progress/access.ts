@@ -182,6 +182,28 @@ export async function startDay(courseId: string, weekId: string, dayId: string) 
   });
 }
 
+/**
+ * Remember the step a student is on in a lesson (and the furthest step reached) on their
+ * account, so reopening the lesson on any device goes straight back to it. Best effort:
+ * a failed save leaves the copy kept on the device.
+ */
+export async function saveLessonPosition(courseId: string, weekId: string, dayId: string, step: number, maxStep: number) {
+  if (isPreviewMode()) return;
+  try {
+    const identity = await resolveProgressIdentity();
+    if (identity.kind !== "authenticated") return;
+    const now = new Date().toISOString();
+    await createSupabaseBrowserClient()
+      .from("student_day_progress")
+      .upsert(
+        { student_id: identity.studentId, day_id: dayId, course_id: courseId, week_id: weekId, last_step: Math.max(0, step), max_step: Math.max(0, maxStep, step), step_saved_at: now, last_visited_at: now } as never,
+        { onConflict: "student_id,day_id" },
+      );
+  } catch {
+    /* offline or signed out: the device keeps its own copy */
+  }
+}
+
 /** Complete a Day. Auto-completes the week when all its days are done. */
 export async function completeDay(courseId: string, weekId: string, dayId: string) {
   if (isPreviewMode()) return;

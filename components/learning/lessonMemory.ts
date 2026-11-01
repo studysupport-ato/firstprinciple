@@ -19,9 +19,11 @@ export type LessonMemory = {
   last: number;
   /** Ids of the lesson tests (quiz blocks) finished at least once. */
   quizzes: string[];
+  /** When `last` was saved (ms since 1970), to pick the newer of this and the account's copy. */
+  at: number;
 };
 
-const EMPTY: LessonMemory = { max: 0, last: 0, quizzes: [] };
+const EMPTY: LessonMemory = { max: 0, last: 0, quizzes: [], at: 0 };
 
 function read(key: string): unknown {
   try {
@@ -53,6 +55,7 @@ export function readLessonMemory(lessonId: string): LessonMemory {
     max: wholeNumber(record.max),
     last: wholeNumber(record.last),
     quizzes: Array.isArray(record.quizzes) ? record.quizzes.filter((id): id is string => typeof id === "string") : [],
+    at: wholeNumber(record.at),
   };
 }
 
@@ -63,6 +66,7 @@ export function saveLessonMemory(lessonId: string, patch: Partial<LessonMemory>)
     max: Math.max(current.max, patch.max ?? 0),
     last: patch.last ?? current.last,
     quizzes: patch.quizzes ? Array.from(new Set([...current.quizzes, ...patch.quizzes])) : current.quizzes,
+    at: patch.last !== undefined ? Date.now() : current.at,
   };
   write(LESSON_PREFIX + lessonId, next);
 }

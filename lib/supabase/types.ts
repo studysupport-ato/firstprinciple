@@ -201,8 +201,8 @@ export type Database = {
         Relationships: [];
       };
       student_day_progress: {
-        Row: { student_id: string; day_id: string; course_id: string; week_id: string; status: string; started_at: string | null; completed_at: string | null; last_visited_at: string | null; time_spent_seconds: number; created_at: string; updated_at: string };
-        Insert: { student_id: string; day_id: string; course_id: string; week_id: string; status?: string; started_at?: string | null; completed_at?: string | null; last_visited_at?: string | null; time_spent_seconds?: number; created_at?: string; updated_at?: string };
+        Row: { student_id: string; day_id: string; course_id: string; week_id: string; status: string; started_at: string | null; completed_at: string | null; last_visited_at: string | null; time_spent_seconds: number; last_step: number | null; max_step: number | null; step_saved_at: string | null; created_at: string; updated_at: string };
+        Insert: { student_id: string; day_id: string; course_id: string; week_id: string; status?: string; started_at?: string | null; completed_at?: string | null; last_visited_at?: string | null; time_spent_seconds?: number; last_step?: number | null; max_step?: number | null; step_saved_at?: string | null; created_at?: string; updated_at?: string };
         Update: Partial<Database["public"]["Tables"]["student_day_progress"]["Insert"]>;
       };
       practice_attempts: {

@@ -5,7 +5,7 @@ import { CheckCircle2, ChevronLeft, ListOrdered, Moon, Sun, X } from "lucide-rea
 import { FlagButton } from "@/components/flags/FlagButton";
 import { courseCodeLabel } from "@/lib/flags/shared";
 import Link from "next/link";
-import { completeDay, startDay } from "@/lib/progress";
+import { completeDay, saveLessonPosition, startDay } from "@/lib/progress";
 import { LessonRenderer } from "@/components/learning/LessonRenderer";
 import { isBoardSource, isCanvasSource } from "@/components/learning/blocks/VisualizerBlock";
 import { LessonSideContext } from "@/components/learning/LessonContext";
@@ -33,6 +33,8 @@ type LessonExperienceProps = {
   freePreview?: boolean;
   /** The signed-in student completed this lesson before: every step is open from the start. */
   completedBefore?: boolean;
+  /** Where the signed-in student was in this lesson, saved on their account (step indexes). */
+  savedPosition?: { last: number; max: number; at: number } | null;
 };
 
 type StepResponse = {
@@ -165,6 +167,7 @@ export function LessonExperience({
   questionsById,
   freePreview = false,
   completedBefore = false,
+  savedPosition = null,
 }: LessonExperienceProps) {
   // If steps are not provided (e.g. anonymous free preview with full lesson blocks), compute from lesson.blocks
   const fallbackSteps = useMemo(() => {
@@ -381,30 +384,69 @@ export function LessonExperience({
   const [maxStep, setMaxStep] = useState(0);
   const [resumedAt, setResumedAt] = useState<number | null>(null);
   const memoryLoaded = useRef(false);
+  // True once the lesson is on the step it should open on; until then nothing is saved, so
+  // opening a lesson never overwrites the saved step with step 1.
+  const positionReady = useRef(false);
+  const maxStepRef = useRef(0);
 
-  // Coming back to a lesson: every step reached before is open, and a lesson left half way
-  // opens again on the step the student was last on.
+  // Coming back to a lesson: it opens on the step the student was last on (saved on this device
+  // and on their account, whichever is newer), and every step reached before is open in Steps.
   useEffect(() => {
     if (memoryLoaded.current) return;
     memoryLoaded.current = true;
-    const memory = readLessonMemory(lesson.id);
+    const local = readLessonMemory(lesson.id);
     const lastIndex = Math.max(0, totalSteps - 1);
-    const finished = completedBefore || memory.max >= lastIndex;
-    setMaxStep(finished ? lastIndex : Math.min(memory.max, lastIndex));
-    if (memory.quizzes.length) setAnsweredQuizzes(new Set(memory.quizzes));
-    if (!preview && !finished && memory.last > 0 && memory.last <= lastIndex) {
-      setResumedAt(memory.last);
-      void navigateToStep(memory.last);
+    const account = savedPosition ?? null;
+    const last = account && account.at > local.at ? account.last : local.last;
+    const reached = Math.max(local.max, account?.max ?? 0, last);
+    const furthest = completedBefore ? lastIndex : Math.min(reached, lastIndex);
+    maxStepRef.current = furthest;
+    setMaxStep(furthest);
+    if (local.quizzes.length) setAnsweredQuizzes(new Set(local.quizzes));
+    if (!preview && last > 0 && last <= lastIndex) {
+      setResumedAt(last);
+      void navigateToStep(last).finally(() => { positionReady.current = true; });
+    } else {
+      positionReady.current = true;
     }
     // Runs once, when the lesson first opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Save the step on the device straight away and on the account shortly after (once per pause,
+  // and at once when the student leaves the lesson or the app).
+  const accountSave = useRef<{ timer: number | undefined; pending: (() => void) | null }>({ timer: undefined, pending: null });
+  const flushAccountSave = useCallback(() => {
+    const save = accountSave.current;
+    if (save.timer !== undefined) window.clearTimeout(save.timer);
+    save.timer = undefined;
+    const run = save.pending;
+    save.pending = null;
+    run?.();
+  }, []);
+  useEffect(() => {
+    const onHide = () => { if (document.visibilityState === "hidden") flushAccountSave(); };
+    window.addEventListener("pagehide", flushAccountSave);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      window.removeEventListener("pagehide", flushAccountSave);
+      document.removeEventListener("visibilitychange", onHide);
+      flushAccountSave();
+    };
+  }, [flushAccountSave]);
+
   useEffect(() => {
     setMaxStep((value) => Math.max(value, currentStep));
     setStepsOpen(false);
-    if (memoryLoaded.current) saveLessonMemory(lesson.id, { max: currentStep, last: currentStep });
-  }, [currentStep, lesson.id]);
+    if (!memoryLoaded.current || !positionReady.current) return;
+    maxStepRef.current = Math.max(maxStepRef.current, currentStep);
+    saveLessonMemory(lesson.id, { max: currentStep, last: currentStep });
+    if (preview || freePreview) return;
+    const step = currentStep, furthest = maxStepRef.current;
+    accountSave.current.pending = () => void saveLessonPosition(lesson.courseId, lesson.weekId, lesson.id, step, furthest);
+    if (accountSave.current.timer !== undefined) window.clearTimeout(accountSave.current.timer);
+    accountSave.current.timer = window.setTimeout(flushAccountSave, 600);
+  }, [currentStep, lesson.id, lesson.courseId, lesson.weekId, preview, freePreview, flushAccountSave]);
 
   const sideContextValue = useMemo(() => ({ sideSlot, reportQuiz, answeredQuizzes }), [sideSlot, reportQuiz, answeredQuizzes]);
 
@@ -438,7 +480,10 @@ export function LessonExperience({
         <Link
           href={roadmapHref}
           onClick={() => {
+            // A finished lesson opens on step 1 next time.
             saveLessonMemory(lesson.id, { max: totalSteps - 1, last: 0 });
+            accountSave.current.pending = null;
+            if (!preview && !freePreview) void saveLessonPosition(lesson.courseId, lesson.weekId, lesson.id, 0, totalSteps - 1);
             if (!preview && !testingMode && !freePreview) {
               completeDay(lesson.courseId, lesson.weekId, lesson.id);
             }
