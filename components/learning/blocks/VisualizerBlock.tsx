@@ -7,6 +7,7 @@ import type { VisualizerBlock as VisualizerBlockData } from "@/lib/content/types
 import { BOARD_FONT_STYLE } from "./boardFonts";
 import { VISUALIZER_FONT_STYLE, applyVisualizerFont } from "./visualizerFont";
 import { boardMemoryKey, readBoardAnswers, saveBoardAnswer } from "../lessonMemory";
+import { LABEL_LAYOUT_SCRIPT } from "./labelLayout";
 
 const DEFAULT_HEIGHT = 420;
 const BOARD_MIN_HEIGHT = 480;
@@ -733,6 +734,7 @@ ${pictureOnly && isBoardSource(source) ? PICTURE_ONLY_STYLE : ""}
 ${blueprint && !isCanvasSource(source) ? (source.includes("data-b2b-check") ? CHECK_GREEN_STYLE : BLUEPRINT_STYLE) : ""}
 ${isCustomBoard(source) ? CUSTOM_BOARD_FIT : ""}
 ${isCanvasSource(source) ? "" : COLOR_REPORTER}
+${isCanvasSource(source) ? "" : LABEL_LAYOUT_SCRIPT}
 </body>
 </html>`;
 }
