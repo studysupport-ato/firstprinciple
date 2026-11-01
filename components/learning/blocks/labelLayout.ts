@@ -7,7 +7,7 @@
  * (except canvas visuals) after each picture frame is drawn and:
  *
  *  1. moves a label that touches a line, curve, dot or another label to the nearest clear spot
- *     (at most 36 px away, never outside the picture); labels that were drawn past the edge of the picture are brought back inside, and the pieces of one label or the lines of a list move together;
+ *     (at most 36 px away, or 66 px when nothing closer is clear; never outside the picture); labels that were drawn past the edge of the picture are brought back inside, and the pieces of one label or the lines of a list move together;
  *  2. on a crowded number line, hides tick numbers that would print on top of each other, keeping
  *     an even spread (0 and the ends are kept first);
  *  3. gives a label that has nowhere clear to go an outline in the picture's background colour,
@@ -52,7 +52,10 @@ export const LABEL_LAYOUT_SCRIPT = String.raw`<script>
       var s = els[i];
       if (s.closest('text') || s.closest('[data-b2b-keep]') || !shown(s)) continue;
       var cs = getComputedStyle(s);
-      var stroked = cs.stroke && cs.stroke !== 'none' && parseFloat(cs.strokeWidth) > 0 && parseFloat(cs.strokeOpacity || '1') > 0.15;
+      // Faint lines (a grid drawn inside the picture) are background, not something a label can clash with.
+      var alpha = /rgba\([^)]*,\s*([\d.]+)\)/.exec(cs.stroke || '');
+      var strength = (alpha ? parseFloat(alpha[1]) : 1) * parseFloat(cs.strokeOpacity || '1');
+      var stroked = cs.stroke && cs.stroke !== 'none' && parseFloat(cs.strokeWidth) > 0 && strength > 0.2;
       var filled = cs.fill && cs.fill !== 'none' && parseFloat(cs.fillOpacity || '1') > 0.15;
       var r = s.getBoundingClientRect();
       if (filled && s.tagName !== 'rect' && s.isPointInFill && r.width * r.height < area * 0.25) {
@@ -112,13 +115,16 @@ export const LABEL_LAYOUT_SCRIPT = String.raw`<script>
     return false;
   }
 
-  var OFFSETS = (function () {
+  function ring(from, to) {
     var list = [];
-    for (var d = 3; d <= MAX; d += 3) {
+    for (var d = from; d <= to; d += 3) {
       list.push([0, -d], [0, d], [d, 0], [-d, 0], [d, -d], [-d, -d], [d, d], [-d, d]);
     }
     return list;
-  })();
+  }
+  var OFFSETS = ring(3, MAX);
+  // Further out, tried only when nothing close is clear: still near enough to read as the same label.
+  var FAR = ring(MAX + 3, 66);
 
   function layout(svg) {
     var texts = Array.prototype.filter.call(svg.querySelectorAll('text'), function (t) {
@@ -129,6 +135,7 @@ export const LABEL_LAYOUT_SCRIPT = String.raw`<script>
     texts.forEach(function (t) {
       t.style.translate = '';
       if (t.dataset.b2bTick) { t.style.visibility = ''; delete t.dataset.b2bTick; }
+      delete t.dataset.b2bOwnHalo;
       if (t.dataset.b2bHalo) { t.style.stroke = ''; t.style.strokeWidth = ''; t.style.paintOrder = ''; t.style.strokeLinejoin = ''; delete t.dataset.b2bHalo; }
     });
     texts = texts.filter(shown);
@@ -216,6 +223,10 @@ export const LABEL_LAYOUT_SCRIPT = String.raw`<script>
         var nb = shift(g.b, dx, dy);
         if (!boxHits(nb, obs, placed, frame)) { move(g.items, dx, dy); g.items.forEach(function (x) { placed.push(shift(x.b, dx, dy)); }); return; }
       }
+      for (var f = 0; f < FAR.length; f++) {
+        var fx = base[0] + FAR[f][0], fy = base[1] + FAR[f][1];
+        if (!boxHits(shift(g.b, fx, fy), obs, placed, frame)) { move(g.items, fx, fy); g.items.forEach(function (x) { placed.push(shift(x.b, fx, fy)); }); return; }
+      }
       // A list, a legend or a long title has nothing to point at, so it may go to the nearest
       // clear part of the picture instead. A short label stays by the thing it names.
       var w = g.b.x1 - g.b.x0, h = g.b.y1 - g.b.y0;
@@ -230,12 +241,29 @@ export const LABEL_LAYOUT_SCRIPT = String.raw`<script>
         }
         if (best) { move(g.items, best[0], best[1]); g.items.forEach(function (x) { placed.push(shift(x.b, best[0], best[1])); }); return; }
       }
-      // Nowhere clear: keep it in the picture, readable, with lines passing behind it.
-      move(g.items, base[0], base[1]);
+      // No spot clear of lines (a caption across the whole picture always crosses an axis): find the
+      // nearest spot clear of the other words and the dots, and let the lines pass behind it.
+      var wordsOnly = { grid: {}, dots: obs.dots, fills: [] };
+      var spot = [base[0], base[1]], found = false;
+      var tries = [[0, 0]].concat(OFFSETS, FAR);
+      for (var q = 0; q < tries.length && !found; q++) {
+        var qx = base[0] + tries[q][0], qy = base[1] + tries[q][1];
+        if (!boxHits(shift(g.b, qx, qy), wordsOnly, placed, frame)) { spot = [qx, qy]; found = true; }
+      }
+      if (!found && (g.items.length > 1 || w > 60)) {
+        var bd = Infinity;
+        for (var yy = frame.top + 2; yy + h <= frame.bottom - 2; yy += 6) {
+          for (var xx = frame.left + 2; xx + w <= frame.right - 2; xx += 6) {
+            var ex = xx - g.b.x0, ey = yy - g.b.y0, dd = ex * ex + ey * ey;
+            if (dd < bd && !boxHits(shift(g.b, ex, ey), wordsOnly, placed, frame)) { spot = [ex, ey]; bd = dd; }
+          }
+        }
+      }
+      move(g.items, spot[0], spot[1]);
       g.items.forEach(function (x) {
         var m = x.t.getScreenCTM(), scale = m ? (Math.hypot(m.a, m.b) || 1) : 1;
         halo(x.t, scale, svg);
-        placed.push(shift(x.b, base[0], base[1]));
+        placed.push(shift(x.b, spot[0], spot[1]));
       });
     });
 
@@ -249,7 +277,7 @@ export const LABEL_LAYOUT_SCRIPT = String.raw`<script>
       var onText = placed.some(function (q) { return Math.min(x.b.x1, q.x1) - Math.max(x.b.x0, q.x0) > -4 && Math.min(x.b.y1, q.y1) - Math.max(x.b.y0, q.y0) > -2; });
       if (onText && many && !ends[x.n]) { hide(x); return; }
       if (!boxHits(x.b, obs, placed, frame)) { placed.push(x.b); return; }
-      for (var k = 0; k < 16; k++) { // a scale number moves only a little, so it stays by its mark
+      for (var k = 0; k < 32; k++) { // a scale number moves only a little (12 px at most), so it stays by its mark
         var dx = OFFSETS[k][0], dy = OFFSETS[k][1];
         var nb = shift(x.b, dx, dy);
         if (!boxHits(nb, obs, placed, frame)) { x.t.style.translate = (dx / scale) + 'px ' + (dy / scale) + 'px'; placed.push(nb); return; }
@@ -264,7 +292,7 @@ export const LABEL_LAYOUT_SCRIPT = String.raw`<script>
 
   function halo(t, scale, svg) {
     var cs = getComputedStyle(t);
-    if (cs.stroke && cs.stroke !== 'none' && !t.dataset.b2bHalo) return; // the board already outlines it
+    if (cs.stroke && cs.stroke !== 'none' && !t.dataset.b2bHalo) { t.dataset.b2bOwnHalo = '1'; return; } // the board already outlines it
     t.style.stroke = background(svg);
     t.style.strokeWidth = (4 / scale) + 'px';
     t.style.strokeLinejoin = 'round';
@@ -292,7 +320,7 @@ export const LABEL_LAYOUT_SCRIPT = String.raw`<script>
         var r = records[i];
         // Our own style changes on labels do not count.
         if (r.type === 'attributes' && r.attributeName === 'style' && r.target.tagName === 'text') continue;
-        if (r.type === 'attributes' && /^data-b2b-(tick|halo)$/.test(r.attributeName || '')) continue;
+        if (r.type === 'attributes' && /^data-b2b-(tick|halo|own-halo)$/.test(r.attributeName || '')) continue;
         soon();
         return;
       }
