@@ -90,7 +90,7 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
       ),
     );
 
-    const [assets, supplementaryResources, questions] = await Promise.all([
+    const [assets, supplementaryResources, questions, completedBefore] = await Promise.all([
       withServerTimingSpan(timing, "asset_lookup_consume_ms", () =>
         createAssetSupabaseRepository(() => supabase).getAssetsByIds(assetIds),
       ),
@@ -112,6 +112,22 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
             })
           : Promise.resolve([]),
       ),
+      // A student who already completed this lesson can open any of its steps straight away.
+      // RLS limits the read to the signed-in student's own rows.
+      withServerTimingSpan(timing, "completed_lesson_lookup_ms", async () => {
+        if (!authUser || preview) return false;
+        try {
+          const { data, error } = await supabase
+            .from("student_day_progress")
+            .select("day_id")
+            .eq("day_id", lesson.id)
+            .eq("status", "completed")
+            .limit(1);
+          return !error && Array.isArray(data) && data.length > 0;
+        } catch {
+          return false;
+        }
+      }),
     ]);
 
     const { assetsById, questionsById } = await withServerTimingSpan(timing, "lesson_reference_mapping_ms", () =>
@@ -154,6 +170,7 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
         assetsById={assetsById}
         questionsById={questionsById}
         freePreview={freePreview}
+        completedBefore={completedBefore}
       />
     );
   });

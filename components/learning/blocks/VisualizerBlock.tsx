@@ -6,6 +6,7 @@ import { ArrowRight, LayoutGrid, Maximize2, X, ZoomIn, ZoomOut } from "lucide-re
 import type { VisualizerBlock as VisualizerBlockData } from "@/lib/content/types/lesson";
 import { BOARD_FONT_STYLE } from "./boardFonts";
 import { VISUALIZER_FONT_STYLE, applyVisualizerFont } from "./visualizerFont";
+import { boardMemoryKey, readBoardAnswers, saveBoardAnswer } from "../lessonMemory";
 
 const DEFAULT_HEIGHT = 420;
 const BOARD_MIN_HEIGHT = 480;
@@ -129,6 +130,67 @@ const BOARD_TIMING_PATCHES: Array<[string, string]> = [
 function patchBoardTiming(source: string) {
   return BOARD_TIMING_PATCHES.reduce((text, [from, to]) => text.split(from).join(to), source);
 }
+
+// Boards remember the "Your turn" questions a student already answered correctly. The board keeps
+// them in `answered`; it now starts from the answers the lesson page saved (window.__b2bAnswered) and
+// tells the page about each new correct answer, so going back to a board never asks again.
+// A board without these snippets is left as it is.
+const BOARD_MEMORY_PATCHES: Array<[string, string]> = [
+  ["answered = {}, shown = -1", "answered = (window.__b2bAnswered || {}), shown = -1"],
+  [
+    "answered[pi + ':' + si] = true;",
+    "answered[pi + ':' + si] = true; try { window.parent.postMessage({ source: 'b2b-board-answered', key: pi + ':' + si }, '*'); } catch (e) {}",
+  ],
+];
+
+function patchBoardMemory(source: string) {
+  return BOARD_MEMORY_PATCHES.reduce((text, [from, to]) => text.split(from).join(to), source);
+}
+
+function boardAnswersScript(answers: string[]) {
+  if (!answers.length) return "";
+  // Keys are only digits and a colon (checked when saved), so they are safe inside the script.
+  const map = Object.fromEntries(answers.filter((key) => /^\d{1,3}:\d{1,3}$/.test(key)).map((key) => [key, true]));
+  return `<script>window.__b2bAnswered = ${JSON.stringify(map)};</script>`;
+}
+
+// The Next button of a picture sequence was a small pill beside the counter, easy to miss, and the
+// zoom button next to it used the same yellow. Next is now a large yellow button at the end of the
+// row with an arrow, zoom is a quiet outline, and Next pulses gently while the picture is paused
+// and waiting for it.
+const PICTURE_NEXT_STYLE = `<style>
+#lb .lb-pbar { gap: 8px !important; align-items: center !important; }
+#lb .lb-pbar .lb-pb { min-height: 40px !important; padding: 8px 16px !important; font-size: 14.5px !important; }
+#lb .lb-pbar .lb-pb.lb-pz { background: transparent !important; border-color: rgba(234,242,255,.45) !important; color: #EAF2FF !important; margin-left: 0 !important; }
+#lb .lb-pbar .lb-pb.lb-pgo {
+  order: 10; margin-left: auto !important; min-height: 44px !important; padding: 10px 22px !important;
+  font-size: 16px !important; font-weight: 800 !important; letter-spacing: .01em;
+  background: #FFC700 !important; border: 2px solid #FFC700 !important; color: #12335A !important;
+  box-shadow: 0 6px 18px rgba(0,0,0,.28) !important;
+}
+#lb .lb-pbar .lb-pb.lb-pgo::after { content: " \\2192"; }
+#lb .lb-pbar .lb-pb.lb-pgo:disabled { box-shadow: none !important; }
+#lb .lb-pbar.b2b-wait .lb-pb.lb-pgo:not(:disabled) { animation: b2b-next-pulse 1.6s ease-in-out infinite; }
+@keyframes b2b-next-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,199,0,.55), 0 6px 18px rgba(0,0,0,.28); } 50% { box-shadow: 0 0 0 9px rgba(255,199,0,0), 0 6px 18px rgba(0,0,0,.28); } }
+@media (prefers-reduced-motion: reduce) { #lb .lb-pbar.b2b-wait .lb-pb.lb-pgo:not(:disabled) { animation: none; } }
+</style>
+<script>
+(function () {
+  function sync() {
+    Array.prototype.forEach.call(document.querySelectorAll('#lb .lb-pbar'), function (bar) {
+      var play = Array.prototype.filter.call(bar.querySelectorAll('.lb-pb'), function (b) { return /play|pause/i.test(b.textContent || ''); })[0];
+      var paused = !play || !/pause/i.test(play.textContent || '');
+      bar.classList.toggle('b2b-wait', paused);
+    });
+  }
+  window.addEventListener('load', function () {
+    var root = document.getElementById('lb');
+    if (!root) return;
+    new MutationObserver(sync).observe(root, { subtree: true, childList: true, characterData: true });
+    sync();
+  });
+})();
+</script>`;
 
 // Picture-only boards (a board in the right-hand card): the lesson text carries the words, so the
 // card shows the picture, a title line and one control bar (Back, Play, progress, Next) that always
@@ -328,7 +390,7 @@ function plainPlayLabels(source: string) {
     .replace(/(?:\\u25b6|▶)\s*Play/g, "Play");
 }
 
-function buildSourceDocument(rawSource: string, blueprint = false, pictureOnly = false) {
+function buildSourceDocument(rawSource: string, blueprint = false, pictureOnly = false, savedAnswers: string[] = []) {
   const source = applyVisualizerFont(plainPlayLabels(rawSource));
   const mobileBoardStyles = isBoardSource(source)
     ? `<style>
@@ -661,8 +723,10 @@ window.addEventListener('error', function () {
 <body>
 ${VISUALIZER_FONT_STYLE}
 <div id="first-principles-visualizer-error">This visualizer could not render. Please ask an administrator to check its code.</div>
-${isBoardSource(source) ? patchBoardTiming(source) : source}
+${isBoardSource(source) ? boardAnswersScript(savedAnswers) : ""}
+${isBoardSource(source) ? patchBoardMemory(patchBoardTiming(source)) : source}
 ${isBoardSource(source) ? BOARD_FONT_STYLE : ""}
+${isBoardSource(source) && !pictureOnly ? PICTURE_NEXT_STYLE : ""}
 ${mobileBoardStyles}
 ${isCanvasSource(source) ? CANVAS_SCRIPT : ""}
 ${pictureOnly && isBoardSource(source) ? PICTURE_ONLY_STYLE : ""}
@@ -674,6 +738,7 @@ ${isCanvasSource(source) ? "" : COLOR_REPORTER}
 }
 
 export function VisualizerBlock({
+  id,
   source,
   title = "Custom visualizer",
   height,
@@ -699,7 +764,14 @@ export function VisualizerBlock({
   // attaches onLoad, which left the first step stuck on "Loading visualizer...".
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
-  const iframeSource = useMemo(() => buildSourceDocument(source, fit, pictureOnly), [source, fit, pictureOnly]);
+  // Questions on this board the student already answered: read once when the board opens, so a new
+  // answer is saved without reloading the board.
+  const memoryKey = boardMemoryKey(id, source);
+  const [savedAnswers] = useState(() => readBoardAnswers(memoryKey));
+  const iframeSource = useMemo(
+    () => buildSourceDocument(source, fit, pictureOnly, savedAnswers),
+    [source, fit, pictureOnly, savedAnswers],
+  );
   const requestedHeight = visualizerHeight(height);
   const [viewportHeight, setViewportHeight] = useState(800);
   useEffect(() => {
@@ -727,6 +799,10 @@ export function VisualizerBlock({
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.source !== iframeRef.current?.contentWindow) return;
+        if (event.data?.source === "b2b-board-answered") {
+          saveBoardAnswer(memoryKey, event.data.key);
+          return;
+        }
         if (event.data?.source === "b2b-board-color") {
           if (typeof event.data.color === "string" && /^rgba?\([\d.,\s]+\)$/.test(event.data.color)) {
             window.dispatchEvent(new CustomEvent("b2b-visualizer-color", { detail: event.data.color }));
@@ -775,7 +851,7 @@ export function VisualizerBlock({
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [canvas, fill, frameHeight, source, title]);
+  }, [canvas, fill, frameHeight, memoryKey, source, title]);
 
   // A canvas follows the lesson page's theme: tell it whether the page is dark, now and whenever it changes.
   useEffect(() => {

@@ -9,6 +9,7 @@ import { completeDay, startDay } from "@/lib/progress";
 import { LessonRenderer } from "@/components/learning/LessonRenderer";
 import { isBoardSource, isCanvasSource } from "@/components/learning/blocks/VisualizerBlock";
 import { LessonSideContext } from "@/components/learning/LessonContext";
+import { readLessonMemory, saveLessonMemory } from "@/components/learning/lessonMemory";
 import { GeoGebraProvider } from "@/components/learning/GeoGebraProvider";
 import { LessonVideo, SupplementaryResources } from "@/components/learning/SupplementaryResources";
 import { getGeoGebraEmbedConfig } from "@/lib/content/resourcePresentation";
@@ -30,6 +31,8 @@ type LessonExperienceProps = {
   questionsById?: Record<string, Question>;
   /** A visitor without an account is reading this topic's free first lesson. */
   freePreview?: boolean;
+  /** The signed-in student completed this lesson before: every step is open from the start. */
+  completedBefore?: boolean;
 };
 
 type StepResponse = {
@@ -161,6 +164,7 @@ export function LessonExperience({
   assetsById,
   questionsById,
   freePreview = false,
+  completedBefore = false,
 }: LessonExperienceProps) {
   // If steps are not provided (e.g. anonymous free preview with full lesson blocks), compute from lesson.blocks
   const fallbackSteps = useMemo(() => {
@@ -360,20 +364,49 @@ export function LessonExperience({
 
   const [sideSlot, setSideSlot] = useState<HTMLElement | null>(null);
   const [quizDone, setQuizDone] = useState<Record<string, boolean>>({});
+  // Tests finished on this device before (or earlier in this visit): going back to them never
+  // holds up Continue again.
+  const [answeredQuizzes, setAnsweredQuizzes] = useState<ReadonlySet<string>>(() => new Set());
   const reportQuiz = useCallback((blockId: string, done: boolean) => {
     setQuizDone((prev) => (prev[blockId] === done ? prev : { ...prev, [blockId]: done }));
-  }, []);
+    if (done) {
+      saveLessonMemory(lesson.id, { quizzes: [blockId] });
+      setAnsweredQuizzes((prev) => (prev.has(blockId) ? prev : new Set([...prev, blockId])));
+    }
+  }, [lesson.id]);
   const quizIds = activeBlocks.filter((block) => block.type === "quiz").map((block) => block.id);
-  const quizPending = !preview && quizIds.some((id) => !quizDone[id]);
+  const quizPending = !preview && quizIds.some((id) => !quizDone[id] && !answeredQuizzes.has(id));
 
   const [stepsOpen, setStepsOpen] = useState(false);
   const [maxStep, setMaxStep] = useState(0);
+  const [resumedAt, setResumedAt] = useState<number | null>(null);
+  const memoryLoaded = useRef(false);
+
+  // Coming back to a lesson: every step reached before is open, and a lesson left half way
+  // opens again on the step the student was last on.
+  useEffect(() => {
+    if (memoryLoaded.current) return;
+    memoryLoaded.current = true;
+    const memory = readLessonMemory(lesson.id);
+    const lastIndex = Math.max(0, totalSteps - 1);
+    const finished = completedBefore || memory.max >= lastIndex;
+    setMaxStep(finished ? lastIndex : Math.min(memory.max, lastIndex));
+    if (memory.quizzes.length) setAnsweredQuizzes(new Set(memory.quizzes));
+    if (!preview && !finished && memory.last > 0 && memory.last <= lastIndex) {
+      setResumedAt(memory.last);
+      void navigateToStep(memory.last);
+    }
+    // Runs once, when the lesson first opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     setMaxStep((value) => Math.max(value, currentStep));
     setStepsOpen(false);
-  }, [currentStep]);
+    if (memoryLoaded.current) saveLessonMemory(lesson.id, { max: currentStep, last: currentStep });
+  }, [currentStep, lesson.id]);
 
-  const sideContextValue = useMemo(() => ({ sideSlot, reportQuiz }), [sideSlot, reportQuiz]);
+  const sideContextValue = useMemo(() => ({ sideSlot, reportQuiz, answeredQuizzes }), [sideSlot, reportQuiz, answeredQuizzes]);
 
   const renderNavigation = () => (
     <nav
@@ -405,6 +438,7 @@ export function LessonExperience({
         <Link
           href={roadmapHref}
           onClick={() => {
+            saveLessonMemory(lesson.id, { max: totalSteps - 1, last: 0 });
             if (!preview && !testingMode && !freePreview) {
               completeDay(lesson.courseId, lesson.weekId, lesson.id);
             }
@@ -538,6 +572,21 @@ export function LessonExperience({
           >
             Sign up free
           </Link>
+        </div>
+      ) : null}
+
+      {resumedAt !== null && currentStep === resumedAt ? (
+        <div role="status" className="flex flex-shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-[#E3DED3] bg-[#FFF6D6] px-4 py-2 font-sans text-[13px] text-[#25231F] md:px-6">
+          <span className="min-w-0 flex-1">
+            <b>Welcome back.</b> You are on step {resumedAt + 1}, where you left off. Every step you have seen is open in <b>Steps</b>.
+          </span>
+          <button
+            type="button"
+            onClick={() => { setResumedAt(null); void navigateToStep(0); }}
+            className="inline-flex min-h-[36px] shrink-0 items-center rounded-full border border-[#25231F]/40 px-4 text-[13px] font-bold hover:border-[#25231F]"
+          >
+            Start from step 1
+          </button>
         </div>
       ) : null}
 

@@ -27,7 +27,8 @@ function badgeClass(kind: "plain" | "picked" | "right" | "wrong") {
 }
 
 export function QuizBlock({ id, variant, questions }: QuizBlockData) {
-  const { sideSlot, reportQuiz } = useLessonSide();
+  const { sideSlot, reportQuiz, answeredQuizzes } = useLessonSide();
+  const answeredBefore = answeredQuizzes.has(id);
   const isEnd = variant === "end";
   const [index, setIndex] = useState(0);
   const [pick, setPick] = useState(-1);
@@ -209,6 +210,11 @@ export function QuizBlock({ id, variant, questions }: QuizBlockData) {
       <p className="font-sans text-sm font-semibold text-[#E9BC3A]">
         {isEnd ? "End-of-lesson test" : "Mid-lesson test"} · Question {index + 1} of {questions.length}
       </p>
+      {answeredBefore && index === 0 && !locked ? (
+        <p className="lesson-quiz-card rounded-xl border border-white/25 bg-white/10 px-4 py-3 font-sans text-[0.95rem] leading-relaxed">
+          <b className="text-[#E9BC3A]">You have already answered this test.</b> You can continue straight on, or answer again to practise.
+        </p>
+      ) : null}
       <p className="font-serif text-[1.6rem] leading-snug md:text-[2rem]">
         <InlineMathText text={question.prompt} />
       </p>
