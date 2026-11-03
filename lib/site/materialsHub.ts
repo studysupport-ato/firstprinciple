@@ -99,7 +99,10 @@ function placeOf(entry: CourseMaterialEntry): { year: CourseMaterialYear; semest
   return null;
 }
 
-/** Courses (and semester-level links) a student in this programme, year and semester sees. */
+/** "All First Year Slides", "All 2nd year materials": a whole-semester bundle, not a course. */
+const SEMESTER_BUNDLE = /^\s*all\b.*\b(slides|materials|courses|notes)\b/i;
+
+/** Courses a student in this programme, year and semester sees. */
 export function coursesFor(entries: CourseMaterialEntry[], choice: HubChoice): HubCourse[] {
   const out: HubCourse[] = [];
   const ordered = [...entries].sort((a, b) => a.order - b.order);
@@ -111,8 +114,8 @@ export function coursesFor(entries: CourseMaterialEntry[], choice: HubChoice): H
     const place = placeOf(entry);
     if (!place || place.year !== choice.year || place.semester !== choice.semester) continue;
     const type = getEntryType(entry);
-    // Only real courses are listed; semester-wide links (e.g. "All first year slides") are left out.
-    if (type === "course") {
+    // Only real courses are listed; semester-wide bundles (e.g. "All First Year Slides") are left out.
+    if (type === "course" && !SEMESTER_BUNDLE.test(entry.courseTitle)) {
       out.push({ id: entry.id, code: entry.courseCode, title: entry.courseTitle, kind: "course", general });
     }
   }
