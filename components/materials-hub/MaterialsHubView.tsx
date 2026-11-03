@@ -25,7 +25,7 @@ import {
   type DriveItem,
 } from "@/lib/site/materialsHub";
 import { getEntryType, type CourseMaterialEntry } from "@/lib/courseMaterials";
-import { BROWN, CREAM, Eyebrow, GOLD, HubStyles, INK, MUTED, Panel, Pill, RoundChevron, Sheet, SOFT, YT_RED, goldGround, hubFont, panelShadow } from "./ui";
+import { BROWN, CREAM, Eyebrow, GOLD, HubStyles, INK, MUTED, Panel, Pill, RoundChevron, Sheet, SOFT, YT_RED, backButtonStyle, backLabelStyle, goldGround, hubFont, panelShadow } from "./ui";
 import { useHubChoice, useHubData } from "./useHub";
 
 type View = "course" | "slides" | "videos" | "books";
@@ -78,9 +78,9 @@ function hubHref(courseId: string, view?: View, folder?: string) {
 
 function BackLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} style={{ display: "inline-flex", alignItems: "center", gap: 6, minHeight: 36, fontSize: 13, fontWeight: 700, color: "rgba(26,24,20,.65)", textDecoration: "none" }}>
-      <ArrowLeft size={16} strokeWidth={2.5} aria-hidden />
-      {children}
+    <Link href={href} className="hub-tap" style={backButtonStyle}>
+      <ArrowLeft size={22} strokeWidth={2.8} aria-hidden style={{ flexShrink: 0 }} />
+      <span style={backLabelStyle}>{children}</span>
     </Link>
   );
 }
@@ -225,7 +225,7 @@ function DriveFolder({ course, folderId, isRoot }: { course: CourseMaterialEntry
 
   return (
     <>
-      {isRoot ? <BackLink href={hubHref(course.id)}>{courseLabel(course)}</BackLink> : <button type="button" onClick={() => router.back()} style={{ display: "inline-flex", alignItems: "center", gap: 6, minHeight: 36, border: 0, background: "none", padding: 0, fontFamily: "inherit", fontSize: 13, fontWeight: 700, color: "rgba(26,24,20,.65)", cursor: "pointer" }}><ArrowLeft size={16} strokeWidth={2.5} aria-hidden />Back</button>}
+      {isRoot ? <BackLink href={hubHref(course.id)}>{courseLabel(course)}</BackLink> : <button type="button" onClick={() => router.back()} className="hub-tap" style={backButtonStyle}><ArrowLeft size={22} strokeWidth={2.8} aria-hidden style={{ flexShrink: 0 }} />Back</button>}
       <h1 style={{ margin: "4px 0 0", fontSize: 36, fontWeight: 900, letterSpacing: "-.035em", lineHeight: 0.98 }}>Slides</h1>
       {state.status === "ready" ? <p style={{ margin: "6px 0 0", fontSize: 13, fontWeight: 700, color: "rgba(26,24,20,.65)" }}>{fileCount} {fileCount === 1 ? "file" : "files"}{totalBytes ? ` · ${formatBytes(totalBytes)}` : ""}</p> : null}
 

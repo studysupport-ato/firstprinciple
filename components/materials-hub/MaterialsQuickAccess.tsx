@@ -16,7 +16,7 @@ import {
   type HubChoice,
 } from "@/lib/site/materialsHub";
 import type { CourseMaterialSemester, CourseMaterialYear, CourseMaterialsDepartment, CourseMaterialEntry } from "@/lib/courseMaterials";
-import { BROWN, CREAM, GOLD, HubStyles, INK, MUTED, Panel, Pill, RoundChevron, Sheet, SOFT, goldGround, hubFont } from "./ui";
+import { BROWN, CREAM, GOLD, HubStyles, INK, MUTED, Panel, Pill, RoundChevron, Sheet, SOFT, backButtonStyle, backLabelStyle, goldGround, hubFont } from "./ui";
 import { useHubChoice, useHubData } from "./useHub";
 
 export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: boolean }) {
@@ -280,9 +280,9 @@ function ChoiceStep({
 }) {
   return (
     <div className="hub-row" style={{ padding: "12px 22px 20px", overflowY: "auto" }}>
-      <button type="button" onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 32, padding: "0 12px 0 8px", border: 0, borderRadius: 999, background: SOFT, fontFamily: "inherit", fontSize: 12, fontWeight: 800, color: INK, cursor: "pointer" }}>
-        <ArrowLeft size={14} strokeWidth={2.6} aria-hidden />
-        {chip}
+      <button type="button" onClick={onBack} className="hub-tap" style={backButtonStyle}>
+        <ArrowLeft size={22} strokeWidth={2.8} aria-hidden style={{ flexShrink: 0 }} />
+        <span style={backLabelStyle}>{chip}</span>
       </button>
       <h2 style={{ margin: "14px 0 0", fontSize: 28, fontWeight: 900, letterSpacing: "-.03em" }}>{title}</h2>
       <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

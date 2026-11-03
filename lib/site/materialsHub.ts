@@ -111,10 +111,9 @@ export function coursesFor(entries: CourseMaterialEntry[], choice: HubChoice): H
     const place = placeOf(entry);
     if (!place || place.year !== choice.year || place.semester !== choice.semester) continue;
     const type = getEntryType(entry);
+    // Only real courses are listed; semester-wide links (e.g. "All first year slides") are left out.
     if (type === "course") {
       out.push({ id: entry.id, code: entry.courseCode, title: entry.courseTitle, kind: "course", general });
-    } else if (inProgramme && (type === "semester_link" || (type === "material" && !entry.parentId)) && entry.url) {
-      out.push({ id: entry.id, code: entry.courseCode, title: entry.courseTitle, kind: "link", url: entry.url, general: false });
     }
   }
   // Programme courses first, then the general ones every programme shares.

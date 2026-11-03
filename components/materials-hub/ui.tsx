@@ -16,6 +16,27 @@ export const YT_RED = "#FF0033";
 
 export const hubFont: CSSProperties = { fontFamily: HUB_FONT };
 
+/** Back buttons: big, dark and easy to hit with a thumb. */
+export const backButtonStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 10,
+  minHeight: 50,
+  maxWidth: "100%",
+  padding: "0 20px 0 14px",
+  border: 0,
+  borderRadius: 999,
+  background: INK,
+  color: GOLD,
+  fontFamily: "inherit",
+  fontSize: 16,
+  fontWeight: 800,
+  textDecoration: "none",
+  cursor: "pointer",
+  boxShadow: "0 10px 22px -12px rgba(26,24,20,.6)",
+};
+export const backLabelStyle: CSSProperties = { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
+
 export const goldGround: CSSProperties = {
   backgroundColor: GOLD,
   backgroundImage:
