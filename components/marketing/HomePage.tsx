@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { MaterialsQuickAccess } from "@/components/materials-hub/MaterialsQuickAccess";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { COLLABORATE } from "@/lib/site/collaborate";
@@ -33,12 +34,17 @@ export function HomePage({
   firstLessonHref,
   showSkillsTraining = false,
   adminPreview = false,
+  showMaterialsHub = false,
+  materialsHubPreview = false,
 }: {
   firstLessonHref: string | null;
   /** The new front page: Arduino Skills Training first, skills pillar open. */
   showSkillsTraining?: boolean;
   /** True while only the admin can see the new front page. */
   adminPreview?: boolean;
+  /** Programme > year > semester picker and "Your courses" (admin-only while testing). */
+  showMaterialsHub?: boolean;
+  materialsHubPreview?: boolean;
 }) {
   const lessonHref = firstLessonHref ?? "/courses";
   const pillars = showSkillsTraining
@@ -57,6 +63,7 @@ export function HomePage({
         </p>
       ) : null}
       <main>
+        {showMaterialsHub ? <MaterialsQuickAccess adminPreview={materialsHubPreview} /> : null}
         {showSkillsTraining ? <SkillsTraining /> : null}
         {/* Opening */}
         <section className="relative overflow-hidden" style={goldGround}>
