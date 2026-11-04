@@ -81,8 +81,8 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                   Change
                 </button>
               </BlueprintCard>
+              <RecentUploadsCard departmentId={choice.departmentId} year={choice.year} style={{ marginTop: 22 }} />
               <div className="qa-desktop-only" style={{ display: "flex", flexDirection: "column" }}>
-                <RecentUploadsCard departmentId={choice.departmentId} year={choice.year} style={{ marginTop: 22 }} />
                 <ResourceCard />
                 <CourseRepCard />
               </div>
@@ -131,7 +131,6 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                 </div>
               )}
               <div className="qa-phone-only" style={{ flexDirection: "column" }}>
-                <RecentUploadsCard departmentId={choice.departmentId} year={choice.year} style={{ marginTop: 24 }} />
                 <ResourceCard />
                 <CourseRepCard />
               </div>
@@ -191,7 +190,8 @@ function JustUploaded({ uploads }: { uploads: RepUpload[] }) {
             <span style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 14, ...goldPlate, display: "flex", alignItems: "center", justifyContent: "center" }}><FileText size={21} strokeWidth={2.3} aria-hidden /></span>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: "block", fontSize: 17, fontWeight: 900, lineHeight: 1.2 }}>{u.entry.courseTitle}</span>
-              <span style={{ display: "block", marginTop: 3, fontSize: 13, fontWeight: 700, color: "#5C564B" }}>{[u.course.title, timeAgo(u.entry.createdAt)].join(" · ")}</span>
+              <span style={{ display: "block", marginTop: 3, fontSize: 13, fontWeight: 700, color: "#5C564B" }}>{u.course.title}</span>
+              <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#5C564B" }}>{timeAgo(u.entry.createdAt)}</span>
               {u.entry.uploadedBy ? <span style={{ display: "block", marginTop: 2, fontSize: 12, fontWeight: 700, color: NEW_GREEN }}>Uploaded by {u.entry.uploadedBy}</span> : null}
             </span>
             <span style={{ flexShrink: 0, height: 38, padding: "0 16px", borderRadius: 999, background: INK, color: GOLD, display: "inline-flex", alignItems: "center", fontSize: 14, fontWeight: 900 }}>Open</span>
@@ -290,7 +290,9 @@ function RepUploadAlert({ uploads }: { uploads: RepUpload[] }) {
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 17, fontWeight: 900, lineHeight: 1.2 }}>{u.entry.courseTitle}</span>
-                  <span style={{ display: "block", marginTop: 3, fontSize: 13, fontWeight: 700, color: "#5C564B" }}>{u.course.title} · {timeAgo(u.entry.createdAt)}</span>
+                  <span style={{ display: "block", marginTop: 3, fontSize: 13, fontWeight: 700, color: "#5C564B" }}>{u.course.title}</span>
+                  <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#5C564B" }}>{timeAgo(u.entry.createdAt)}</span>
+                  {u.entry.uploadedBy ? <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: NEW_GREEN }}>Uploaded by {u.entry.uploadedBy}</span> : null}
                 </span>
                 <span style={{ flexShrink: 0, height: 36, padding: "0 14px", borderRadius: 999, background: INK, color: GOLD, display: "inline-flex", alignItems: "center", fontSize: 13, fontWeight: 800 }}>Open</span>
               </Link>
@@ -377,7 +379,7 @@ function Hero({ onStart }: { onStart: () => void }) {
     <div className="hub-row">
       <div className="qa-hero">
         <div>
-          <Eyebrow style={{ color: "rgba(26,24,20,.65)" }}>New · Course materials</Eyebrow>
+          <Eyebrow style={{ color: "rgba(26,24,20,.65)" }}>New: course materials</Eyebrow>
           <h2 className="qa-title">Tired of scrolling through endless WhatsApp messages to find your course materials?</h2>
           <p className="qa-sub">
             Find all your materials here, <span style={{ background: "linear-gradient(transparent 58%, rgba(26,24,20,.15) 58%)" }}>uploaded by your course reps</span>.
@@ -416,7 +418,7 @@ function Hero({ onStart }: { onStart: () => void }) {
 const BUBBLES: Array<{ name?: string; color?: string; text: string; time: string; me?: boolean }> = [
   { name: "Kojo", color: "#c2185b", text: "Pls who has the algebra slides 🙏", time: "9:41" },
   { name: "Abena", color: "#1565c0", text: "Scroll up, it was sent last week", time: "9:43" },
-  { name: "Yaw", color: "#2e7d32", text: "📄 lecture3.pdf · media expired", time: "9:50" },
+  { name: "Yaw", color: "#2e7d32", text: "📄 lecture3.pdf (media expired)", time: "9:50" },
   { text: "Pls resend 😩", time: "9:52", me: true },
   { name: "Esi", color: "#6a1b9a", text: "Which one? There are 4 versions", time: "9:55" },
 ];
@@ -449,7 +451,7 @@ function NeatList() {
   return (
     <div style={{ width: 262, borderRadius: 22, background: INK, border: "1px solid rgba(233,188,58,.28)", boxShadow: panelShadow, overflow: "hidden", color: CREAM }}>
       <div style={{ padding: "14px 16px", borderBottom: `1px solid ${ROW_LINE}` }}>
-        <Eyebrow style={{ color: GOLD, fontSize: 10 }}>Your programme · Year 1</Eyebrow>
+        <Eyebrow style={{ color: GOLD, fontSize: 10 }}>Your programme, Year 1</Eyebrow>
         <div style={{ fontSize: 18, fontWeight: 800, marginTop: 4 }}>All your materials</div>
       </div>
       {["Algebra", "Technical Drawing", "Applied Electricity"].map((t, i) => (
@@ -459,7 +461,7 @@ function NeatList() {
           </span>
           <span>
             <span style={{ display: "block", fontSize: 14, fontWeight: 700 }}>{t}</span>
-            <span style={{ display: "block", fontSize: 11, color: "rgba(246,239,220,.55)" }}>Slides · Videos · Books</span>
+            <span style={{ display: "block", fontSize: 11, color: "rgba(246,239,220,.55)" }}>Lecturer and departmental slides</span>
           </span>
         </div>
       ))}
@@ -571,7 +573,7 @@ function PickerPopup({
             {step > 0 && department ? (
               <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "rgba(246,239,220,.6)" }}>
                 {department.name}
-                {step === 2 && year ? ` · Year ${year}` : ""}
+                {step === 2 && year ? <><br />Year {year}</> : null}
               </p>
             ) : null}
             <h2 style={{ margin: step > 0 ? "4px 0 0" : 0, fontSize: 30, fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1.05, color: CREAM }}>{titles[step]}</h2>

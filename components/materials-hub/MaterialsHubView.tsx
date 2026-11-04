@@ -15,6 +15,7 @@ import {
   groupCourseMaterials,
   isDownloadable,
   isNewRepUpload,
+  departmentalCredit,
   timeAgo,
   listDriveFolder,
   parseDriveFileId,
@@ -110,7 +111,7 @@ function useProgrammeName() {
 }
 
 function courseLabel(course: CourseMaterialEntry) {
-  return course.courseCode ? `${course.courseCode} · ${course.courseTitle}` : course.courseTitle;
+  return course.courseTitle;
 }
 
 /* ─── Course ────────────────────────────────────────────────────────── */
@@ -122,7 +123,7 @@ function CourseView({ course, groups }: { course: CourseMaterialEntry; groups: R
   const slidesCount = groups.slides.length;
   const repCount = [...groups.slides, ...groups.books, ...groups.videos].filter((m) => isNewRepUpload(m)).length;
   const rows: Array<{ view: View; title: string; sub: string; tile: React.ReactNode }> = [
-    { view: "slides", title: "Slides", sub: slidesCount ? "Lecturer slides · Department slides" : "Coming soon", tile: <Tile plate><FileText size={22} color={INK} strokeWidth={2.2} /></Tile> },
+    { view: "slides", title: "Slides", sub: slidesCount ? "Lecturer and departmental slides" : "Coming soon", tile: <Tile plate><FileText size={22} color={INK} strokeWidth={2.2} /></Tile> },
     { view: "videos", title: "YouTube playlist", sub: groups.videos.length ? (groups.videos.every((v) => /^\s*chapter\s*\d/i.test(v.courseTitle)) ? `${groups.videos.length} ${groups.videos.length === 1 ? "chapter" : "chapters"}` : `${groups.videos.length} ${groups.videos.length === 1 ? "playlist" : "playlists"}`) : "Coming soon", tile: <Tile bg={YT_RED}><Play size={20} color="#fff" fill="#fff" /></Tile> },
     { view: "books", title: "Books", sub: groups.books.length ? `${groups.books.length} ${groups.books.length === 1 ? "book" : "books"}` : "Coming soon", tile: <Tile bg={CREAM}><BookOpen size={20} color={INK} strokeWidth={2.2} /></Tile> },
   ];
@@ -178,7 +179,7 @@ function ListHeader({ course, title, sub, children, back }: { course: CourseMate
     <>
       {back ?? <BackLink href={hubHref(course.id)}>{courseLabel(course)}</BackLink>}
       <BlueprintCard department={programme} compact style={{ marginTop: 10 }}>
-        <p style={{ margin: 0, fontSize: 11, fontWeight: 800, letterSpacing: ".16em", textTransform: "uppercase", color: GOLD }}>{course.courseCode ? `${course.courseCode} · ` : ""}{title}</p>
+        <p style={{ margin: 0, fontSize: 11, fontWeight: 800, letterSpacing: ".16em", textTransform: "uppercase", color: GOLD }}>{title}</p>
         <h1 style={{ margin: "6px 0 0", maxWidth: "60%", fontSize: 30, fontWeight: 800, letterSpacing: "-.035em", lineHeight: 1, color: CREAM }}>{sub ?? title}</h1>
         {children}
       </BlueprintCard>
@@ -202,6 +203,8 @@ const KIND_TITLE: Record<DriveKind, string> = { slides: "Slides", books: "Books"
 function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; course: CourseMaterialEntry; slides: CourseMaterialEntry[]; folderId: string | null }) {
   const [viewing, setViewing] = useState<DriveItem | null>(null);
   useEffect(() => preloadSlides(), []);
+  const hub = useHubData();
+  const credit = useMemo(() => departmentalCredit(hub.entries, course), [hub.entries, course]);
   const fromRep = useMemo(() => slides.filter((m) => m.fromRep).sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [slides]);
   const bank = useMemo(() => slides.filter((m) => !m.fromRep), [slides]);
   const noun = kind === "books" ? "books" : "slides";
@@ -214,7 +217,7 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
     return (
       <div className="hub-row">
         <ListHeader course={course} title={`Lecturer ${noun}`} sub={`Lecturer ${noun}`} back={<BackLink href={hubHref(course.id, kind)}>{course.courseTitle}</BackLink>}>
-          <p style={{ margin: "8px 0 0", fontSize: 12, fontWeight: 700, color: "rgba(246,239,220,.6)" }}>Uploaded by your course rep · {fromRep.length} {fromRep.length === 1 ? "file" : "files"}</p>
+          <p style={{ margin: "8px 0 0", fontSize: 12, fontWeight: 700, color: "rgba(246,239,220,.6)" }}>Uploaded by your course rep<br />{fromRep.length} {fromRep.length === 1 ? "file" : "files"}</p>
         </ListHeader>
         {fromRep.length ? <EntryRows list={fromRep} course={course} kind={kind} rep onOpen={open} /> : <Empty text={`Your course rep hasn’t uploaded ${noun} yet.`} />}
         {viewer}
@@ -227,13 +230,15 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
     if (single) {
       return (
         <div className="hub-row">
-          <DriveFolder kind={kind} course={course} folderId={single} isRoot={false} hidden={bank[0].hiddenFiles ?? []} />
+          <DriveFolder kind={kind} course={course} folderId={single} isRoot={false} hidden={bank[0].hiddenFiles ?? []} credit={credit} />
         </div>
       );
     }
     return (
       <div className="hub-row">
-        <ListHeader course={course} title={`Departmental ${noun}`} sub={`Departmental ${noun}`} back={<BackLink href={hubHref(course.id, kind)}>{course.courseTitle}</BackLink>} />
+        <ListHeader course={course} title={`Departmental ${noun}`} sub={`Departmental ${noun}`} back={<BackLink href={hubHref(course.id, kind)}>{course.courseTitle}</BackLink>}>
+          {credit ? <p style={{ margin: "8px 0 0", fontSize: 13, fontWeight: 800, color: GOLD }}>{credit}</p> : null}
+        </ListHeader>
         {bank.length ? <EntryRows list={bank} course={course} kind={kind} onOpen={open} /> : <Empty text={`No departmental ${noun} yet.`} />}
         {viewer}
       </div>
@@ -262,7 +267,8 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
               <span style={{ width: 58, height: 58, flexShrink: 0, borderRadius: 17, ...goldPlate, display: "flex", alignItems: "center", justifyContent: "center" }}><Folder size={28} color={INK} strokeWidth={2.2} /></span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: "block", fontSize: 22, fontWeight: 900, lineHeight: 1.1 }}>Lecturer {noun}</span>
-                <span style={{ display: "block", marginTop: 3, fontSize: 13, fontWeight: 700, opacity: 0.85 }}>Uploaded by your course rep · {fromRep.length} {fromRep.length === 1 ? "file" : "files"}</span>
+                <span style={{ display: "block", marginTop: 3, fontSize: 13, fontWeight: 700, opacity: 0.85 }}>Uploaded by your course rep</span>
+                <span style={{ display: "block", marginTop: 1, fontSize: 13, fontWeight: 700, opacity: 0.85 }}>{fromRep.length} {fromRep.length === 1 ? "file" : "files"}</span>
               </span>
             </span>
             {fresh ? <span style={{ position: "relative", display: "inline-flex", marginTop: 12, height: 26, alignItems: "center", padding: "0 10px", borderRadius: 999, background: GOLD, color: INK, fontSize: 11, fontWeight: 900, letterSpacing: ".05em" }}>{fresh} NEW THIS WEEK</span> : null}
@@ -282,8 +288,9 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
                         <span style={{ fontSize: 15.5, fontWeight: 800 }}>{m.courseTitle}</span>
                         <span style={{ fontSize: 12, opacity: 0.8 }}>
                           {isNew ? <b style={{ background: GOLD, color: INK, padding: "1px 6px", borderRadius: 999, fontSize: 10, marginRight: 6 }}>NEW</b> : null}
-                          {[m.uploadedBy ? `Uploaded by ${m.uploadedBy}` : "Course rep", timeAgo(m.createdAt)].join(" · ")}
+                          {m.uploadedBy ? `Uploaded by ${m.uploadedBy}` : "Uploaded by your course rep"}
                         </span>
+                        <span style={{ fontSize: 12, opacity: 0.8 }}>{timeAgo(m.createdAt)}</span>
                         <span style={{ fontSize: 12, opacity: 0.8, display: m.credit ? "block" : "none" }}>
                           Lecturer: {m.credit}
                         </span>
@@ -298,7 +305,7 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
                     <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer" className="hub-tap" style={rowStyle}>{body}</a>
                   );
                 })}
-                <Link href={hubHref(course.id, kind, REP_FOLDER)} className="hub-tap" style={{ display: "block", padding: "13px 20px", borderTop: "1px solid rgba(255,255,255,.12)", color: "#fff", fontSize: 14, fontWeight: 900, textDecoration: "none" }}>Open folder · {fromRep.length} {fromRep.length === 1 ? "file" : "files"} →</Link>
+                <Link href={hubHref(course.id, kind, REP_FOLDER)} className="hub-tap" style={{ display: "block", padding: "13px 20px", borderTop: "1px solid rgba(255,255,255,.12)", color: "#fff", fontSize: 14, fontWeight: 900, textDecoration: "none" }}>Open folder ({fromRep.length} {fromRep.length === 1 ? "file" : "files"}) →</Link>
               </>
             )}
           </div>
@@ -310,6 +317,7 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
           <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
             <span style={{ fontSize: 18, fontWeight: 800 }}>Departmental {noun}</span>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: "rgba(246,239,220,.55)" }}>{bank.length ? "From the department’s folder" : "Nothing here yet"}</span>
+            {credit ? <span style={{ fontSize: 12.5, fontWeight: 800, color: GOLD }}>{credit}</span> : null}
           </span>
           <RoundChevron />
         </Link>
@@ -337,10 +345,10 @@ function EntryRows({ list, course, kind, rep = false, onOpen }: { list: CourseMa
             <Tile bg={rep ? REP_GREEN : "#2A251C"} size={40}>{folder ? <Folder size={18} color={rep ? "#fff" : GOLD} /> : <FileText size={18} color={rep ? "#fff" : GOLD} />}</Tile>
             <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
               <span style={{ fontSize: 15, fontWeight: 800, color: CREAM }}>{s.courseTitle}</span>
-              <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>
-                {fresh ? <span style={{ height: 18, padding: "0 7px", borderRadius: 999, background: REP_GREEN, color: "#fff", fontSize: 10, fontWeight: 900, letterSpacing: ".06em", display: "inline-flex", alignItems: "center" }}>NEW</span> : null}
-                {rep ? [s.uploadedBy ? `Uploaded by ${s.uploadedBy}` : "Course rep", s.credit ? `Lecturer: ${s.credit}` : null, timeAgo(s.createdAt)].filter(Boolean).join(" · ") : folder ? "Folder" : fileId ? "PDF" : "Opens a link"}
-              </span>
+              {fresh ? <span style={{ alignSelf: "flex-start", height: 18, padding: "0 7px", borderRadius: 999, background: REP_GREEN, color: "#fff", fontSize: 10, fontWeight: 900, letterSpacing: ".06em", display: "inline-flex", alignItems: "center" }}>NEW</span> : null}
+              {(rep ? [s.uploadedBy ? `Uploaded by ${s.uploadedBy}` : "Uploaded by your course rep", s.credit ? `Lecturer: ${s.credit}` : null, timeAgo(s.createdAt)] : [folder ? "Folder" : fileId ? "PDF" : "Opens a link", s.credit ? `Credit: ${s.credit}` : null])
+                .filter(Boolean)
+                .map((line) => <span key={line} style={{ fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>{line}</span>)}
             </span>
             {folder || fileId ? <RoundChevron /> : <ExternalLink size={16} color="rgba(246,239,220,.55)" />}
           </>
@@ -364,7 +372,7 @@ function SectionLabel({ children, color }: { children: React.ReactNode; color?: 
 
 type FolderState = { status: "loading" } | { status: "ready"; items: DriveItem[] } | { status: "error"; reason: string };
 
-function DriveFolder({ kind, course, folderId, isRoot, hidden = [] }: { kind: DriveKind; course: CourseMaterialEntry; folderId: string; isRoot: boolean; hidden?: string[] }) {
+function DriveFolder({ kind, course, folderId, isRoot, hidden = [], credit }: { kind: DriveKind; course: CourseMaterialEntry; folderId: string; isRoot: boolean; hidden?: string[]; credit?: string | null }) {
   const [state, setState] = useState<FolderState>({ status: "loading" });
   const [viewing, setViewing] = useState<DriveItem | null>(null);
   useEffect(() => preloadSlides(), []);
@@ -392,10 +400,11 @@ function DriveFolder({ kind, course, folderId, isRoot, hidden = [] }: { kind: Dr
     <>
       <ListHeader
         course={course}
-        title={KIND_TITLE[kind]}
+        title={credit ? `Departmental ${kind === "books" ? "books" : "slides"}` : KIND_TITLE[kind]}
         sub={state.status === "ready" ? `${fileCount} ${fileCount === 1 ? (kind === "books" ? "book" : "file") : kind === "books" ? "books" : "files"}` : KIND_TITLE[kind]}
         back={isRoot ? undefined : <button type="button" onClick={() => router.back()} className="hub-tap" style={backButtonStyle}><ArrowLeft size={22} strokeWidth={2.8} aria-hidden style={{ flexShrink: 0 }} />Back</button>}
       >
+        {credit ? <p style={{ margin: "6px 0 0", fontSize: 13, fontWeight: 800, color: GOLD }}>{credit}</p> : null}
         {state.status === "ready" && totalBytes ? <p style={{ margin: "4px 0 0", fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.6)" }}>{formatBytes(totalBytes)} in total</p> : null}
         {state.status === "ready" && files.length > 1 ? (
           <button type="button" onClick={() => setDownloadOpen(true)} className="hub-tap hub-plate" style={{ marginTop: 14, width: "100%", height: 50, border: 0, borderRadius: 999, ...goldPlate, fontFamily: "inherit", fontSize: 15, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer" }}>
@@ -493,7 +502,8 @@ function PdfViewer({ item, courseCode, onClose }: { item: DriveItem; courseCode?
         </button>
         <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
           <span style={{ fontSize: 16, fontWeight: 900, color: CREAM, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tidyFileName(item.name)}</span>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>{[courseCode, formatBytes(item.size)].filter(Boolean).join(" · ")}</span>
+          {courseCode ? <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>{courseCode}</span> : null}
+          {item.size ? <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>{formatBytes(item.size)}</span> : null}
         </span>
         {counter ? <span style={{ flexShrink: 0, fontSize: 14, fontWeight: 800, color: CREAM, whiteSpace: "nowrap" }}>{counter}</span> : null}
         {isDownloadable(item) ? (
@@ -575,13 +585,13 @@ function DownloadAllSheet({ open, onClose, files, totalBytes, zipName, folderId,
           <span style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <span style={{ fontSize: 22, fontWeight: 900, letterSpacing: "-.025em" }}>{done ? "Downloaded" : state.phase === "error" ? "Couldn’t download" : "Downloading slides"}</span>
             <span style={{ fontSize: 13, fontWeight: 600, color: MUTED }} aria-live="polite">
-              {done ? `${files.length} files · ${formatBytes(totalBytes)} saved` : state.phase === "working" ? `${state.done} of ${files.length} files · ${formatBytes(state.bytes) || "0 KB"} of ${formatBytes(totalBytes)}` : state.phase === "error" ? "Google Drive can download the whole folder instead." : `${label} · ${files.length} files`}
+              {done ? <>{files.length} files<br />{formatBytes(totalBytes)} saved</> : state.phase === "working" ? <>{state.done} of {files.length} files<br />{formatBytes(state.bytes) || "0 KB"} of {formatBytes(totalBytes)}</> : state.phase === "error" ? "Google Drive can download the whole folder instead." : <>{label}<br />{files.length} files</>}
             </span>
           </span>
         </div>
         <div style={{ marginTop: 18, borderRadius: 16, background: SOFT, padding: "13px 14px", display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 700, color: "#4A453C" }}>
           <FileText size={18} color={BROWN} aria-hidden />
-          {zipName} · saves to your device
+          <span>{zipName}<br />Saves to your device</span>
         </div>
         {state.phase === "error" ? (
           <a href={driveFolderUrl(folderId)} target="_blank" rel="noopener noreferrer" style={{ marginTop: 16, height: 52, borderRadius: 999, background: INK, color: GOLD, fontSize: 15, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, textDecoration: "none" }}>Open folder in Google Drive <ExternalLink size={16} /></a>

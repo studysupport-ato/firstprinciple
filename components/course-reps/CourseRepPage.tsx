@@ -226,7 +226,9 @@ function RepPanel() {
                   </span>
                   <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
                     <span style={{ fontSize: 14, fontWeight: 700, color: CREAM, overflowWrap: "anywhere" }}>{m.courseTitle}</span>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(246,239,220,.5)" }}>{yt ? "YouTube" : book ? "Book" : "Slides"} · {linkKind(m.url)}{m.hiddenFiles?.length ? ` · ${m.hiddenFiles.length} hidden` : ""}</span>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(246,239,220,.5)" }}>{yt ? "YouTube" : book ? "Book" : "Slides"}</span>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(246,239,220,.5)" }}>{linkKind(m.url)}</span>
+                    {m.hiddenFiles?.length ? <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(246,239,220,.5)" }}>{m.hiddenFiles.length} hidden</span> : null}
                   </span>
                   {parseDriveFolderId(m.url) ? <button type="button" onClick={() => setManaging(m)} aria-label={`Show or hide files in ${m.courseTitle}`} style={iconButton}><Folder size={15} color={GOLD} /></button> : null}
                   <button type="button" onClick={() => setEditing(m)} aria-label={`Edit ${m.courseTitle}`} style={iconButton}><Pencil size={15} color={GOLD} /></button>
@@ -343,7 +345,6 @@ function AddCourseSheet({ open, semester, onClose, onSaved }: { open: boolean; s
 const TYPES: Array<{ value: RepMaterialType; label: string }> = [
   { value: "slides", label: "Slides" },
   { value: "books", label: "Books" },
-  { value: "youtube", label: "YouTube" },
 ];
 
 /** PUTs the file straight to Google Drive (never through our server), reporting progress. */
@@ -426,7 +427,7 @@ function AddMaterialSheet({ course, onClose, onSaved }: { course: Course | null;
     <Sheet open={Boolean(course)} onClose={busy ? undefined : onClose} label="Add material">
       <form onSubmit={save} style={{ padding: "16px 22px 24px", overflowY: "auto" }}>
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>Add material</h2>
-        <p style={{ margin: "2px 0 0", fontSize: 13, fontWeight: 600, color: MUTED }}>{course?.courseCode ? `${course.courseCode} · ` : ""}{course?.courseTitle}</p>
+        <p style={{ margin: "2px 0 0", fontSize: 13, fontWeight: 600, color: MUTED }}>{course?.courseTitle}</p>
         <span style={{ ...fieldLabel, marginTop: 14 }}>Type</span>
         <div role="radiogroup" aria-label="Type" style={{ display: "flex", gap: 6 }}>
           {TYPES.map((t) => (
@@ -437,7 +438,7 @@ function AddMaterialSheet({ course, onClose, onSaved }: { course: Course | null;
           <>
             <span style={{ ...fieldLabel, marginTop: 12 }}>How</span>
             <div style={{ display: "flex", gap: 8 }}>
-              <button type="button" onClick={() => setHow("upload")} style={choice(how === "upload")}><Upload size={18} /><b style={{ fontSize: 14 }}>Upload a file</b><span style={{ fontSize: 11, fontWeight: 600, color: MUTED }}>PDF, PowerPoint or Word · up to 100 MB</span></button>
+              <button type="button" onClick={() => setHow("upload")} style={choice(how === "upload")}><Upload size={18} /><b style={{ fontSize: 14 }}>Upload a file</b><span style={{ fontSize: 11, fontWeight: 600, color: MUTED }}>PDF, PowerPoint or Word<br />Up to 100 MB</span></button>
               <button type="button" onClick={() => setHow("link")} style={choice(how === "link")}><Link2 size={18} /><b style={{ fontSize: 14 }}>Paste a link</b><span style={{ fontSize: 11, fontWeight: 600, color: MUTED }}>Google Drive file or folder</span></button>
             </div>
           </>
@@ -460,7 +461,7 @@ function AddMaterialSheet({ course, onClose, onSaved }: { course: Course | null;
           </>
         ) : null}
         <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="m-title">Title</label>
-        <input id="m-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={type === "youtube" ? "e.g. Chapter 1: Number systems" : type === "books" ? "e.g. Engineering Mathematics, K. A. Stroud" : "e.g. Lecture 3 · Logic gates"} style={inputStyle} required={!uploading} />
+        <input id="m-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={type === "youtube" ? "e.g. Chapter 1: Number systems" : type === "books" ? "e.g. Engineering Mathematics, K. A. Stroud" : "e.g. Lecture 3: Logic gates"} style={inputStyle} required={!uploading} />
         {type !== "youtube" ? (
           <>
             <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="m-lecturer">Lecturer (optional)</label>

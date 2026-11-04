@@ -298,11 +298,11 @@ export function driveMediaUrl(fileId: string) {
   return `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&supportsAllDrives=true&key=${DRIVE_API_KEY}`;
 }
 
-/** "ME_161_-3 Moments.pdf" -> "3 · Moments". */
+/** "ME_161_-3 Moments.pdf" -> "3. Moments". */
 export function tidyFileName(name: string) {
   const base = name.replace(/\.(pdf|pptx?|docx?)$/i, "").replace(/_/g, " ").trim();
   const numbered = base.match(/^[A-Z]{2,5}\s?\d{3}\s*-?\s*(\d{1,2})\s+(.+)$/i);
-  if (numbered) return `${numbered[1]} · ${numbered[2]}`;
+  if (numbered) return `${numbered[1]}. ${numbered[2]}`;
   return base.replace(/\s{2,}/g, " ");
 }
 
@@ -419,4 +419,20 @@ export function uploadTimeLabel(iso: string) {
   if (group === "Today" || group === "Yesterday") return d.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true });
   if (group === "This week") return d.toLocaleDateString("en-GB", { weekday: "short" });
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+/** Who compiled a course's departmental slides, e.g. "Compiled by CESA Academic Board". */
+export function departmentalCredit(entries: CourseMaterialEntry[], course: CourseMaterialEntry): string | null {
+  const tidy = (text: string) => {
+    const clean = text.replace(/\s+/g, " ").replace(/^compiled\s+by\s*:?\s*/i, "").trim();
+    return clean && !/^unknown$/i.test(clean) ? `Compiled by ${clean}` : null;
+  };
+  if (course.credit) return tidy(course.credit);
+  const year = course.studyYear ?? null;
+  const sameDept = entries.filter((e) => e.departmentId === course.departmentId && getEntryType(e) === "course" && e.credit && isLive(e));
+  const pick =
+    sameDept.find((e) => (e.studyYear ?? null) === year && (!e.semester || !course.semester || e.semester === course.semester)) ??
+    sameDept.find((e) => (e.studyYear ?? null) === year) ??
+    sameDept[0];
+  return pick?.credit ? tidy(pick.credit) : null;
 }

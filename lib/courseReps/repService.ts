@@ -242,6 +242,7 @@ function materialFields(type: RepMaterialType, url: string) {
 export async function repAddMaterial(input: { courseId: string; type: RepMaterialType; title: string; url: string; lecturer?: string }) {
   const rep = await requireApprovedRep();
   const course = await requireOwnCourse(rep, input.courseId);
+  if (input.type === "youtube") throw new RepAccessError("Playlists can’t be added here.");
   const title = input.title.trim();
   if (title.length < 2) throw new RepAccessError("Give it a title.");
   const fields = materialFields(input.type, input.url);

@@ -24,9 +24,8 @@ function Row({ u, last, compact }: { u: LoggedUpload; last: boolean; compact?: b
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: compact ? 14 : 15, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.entry.courseTitle}</span>
-        <span style={{ display: "block", marginTop: 2, fontSize: 12, color: "rgba(246,239,220,.55)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {[u.course.courseTitle, u.year ? `Year ${u.year}` : null, u.entry.uploadedBy ? `by ${u.entry.uploadedBy}` : null].filter(Boolean).join(" · ")}
-        </span>
+        <span style={{ display: "block", marginTop: 2, fontSize: 12, color: "rgba(246,239,220,.55)" }}>{u.course.courseTitle}</span>
+        {u.entry.uploadedBy ? <span style={{ display: "block", fontSize: 12, color: "rgba(246,239,220,.55)" }}>Uploaded by {u.entry.uploadedBy}</span> : null}
       </span>
       <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: "rgba(246,239,220,.55)", whiteSpace: "nowrap" }}>{compact && uploadDayGroup(u.entry.createdAt) !== "Today" ? uploadDayGroup(u.entry.createdAt).replace("This week", uploadTimeLabel(u.entry.createdAt)).replace("Earlier", uploadTimeLabel(u.entry.createdAt)) : uploadTimeLabel(u.entry.createdAt)}</span>
     </Link>
@@ -40,7 +39,7 @@ export function RecentUploadsCard({ departmentId, year, style }: { departmentId:
   return (
     <div className="hub-row" style={{ animationDelay: "200ms", ...style }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
-        <h3 style={{ margin: 0, fontSize: 24, fontWeight: 900, letterSpacing: "-.03em" }}>Recent uploads · Year {year}</h3>
+        <h3 style={{ margin: 0, fontSize: 24, fontWeight: 900, letterSpacing: "-.03em" }}>Recent uploads<span style={{ display: "block", fontSize: 14, fontWeight: 800, letterSpacing: 0, color: "rgba(26,24,20,.65)" }}>Year {year}</span></h3>
         {uploads.length ? <Link href="/materials-hub?view=recent" style={{ fontSize: 13, fontWeight: 800, color: INK, textDecoration: "underline", textUnderlineOffset: 3 }}>See all</Link> : null}
       </div>
       {uploads.length ? (

@@ -10,16 +10,17 @@ import type { PDFDocumentProxy } from "pdfjs-dist";
 import { driveMediaUrl, drivePreviewUrl, type DriveItem } from "@/lib/site/materialsHub";
 import { CREAM, GOLD, INK, goldPlate } from "./ui";
 
-const WORKER_SRC = "/pdfjs/pdf.worker-6.3.289.min.mjs";
+// The "legacy" build also runs on older phones (older iPhone Safari can’t run the modern build).
+const WORKER_SRC = "/pdfjs/pdf.worker-legacy-6.3.289.min.mjs";
 
 export function isPdfItem(item: DriveItem) {
   return item.mimeType === "application/pdf" || /\.pdf$/i.test(item.name);
 }
 
-type PdfJs = typeof import("pdfjs-dist");
+type PdfJs = typeof import("pdfjs-dist/legacy/build/pdf.mjs");
 let libPromise: Promise<PdfJs> | null = null;
 function loadLib() {
-  libPromise ??= import("pdfjs-dist").then((pdfjs) => {
+  libPromise ??= import("pdfjs-dist/legacy/build/pdf.mjs").then((pdfjs) => {
     pdfjs.GlobalWorkerOptions.workerSrc = WORKER_SRC;
     return pdfjs;
   });
@@ -34,13 +35,17 @@ function openDoc(id: string) {
     const listeners = new Set<(p: number) => void>();
     const created: { promise: Promise<PDFDocumentProxy>; progress: number; listeners: Set<(p: number) => void> } = { promise: Promise.resolve(null as unknown as PDFDocumentProxy), progress: 0, listeners };
     created.promise = loadLib().then((pdfjs) => {
-      const task = pdfjs.getDocument({ url: driveMediaUrl(id), disableAutoFetch: true, rangeChunkSize: 262144 });
-      task.onProgress = ({ loaded, total }: { loaded: number; total: number }) => {
-        if (!total) return;
-        created.progress = Math.min(99, Math.round((loaded / total) * 100));
-        listeners.forEach((fn) => fn(created.progress));
+      const load = (simple: boolean) => {
+        // Second try: one plain download (no partial requests), which some phones need.
+        const task = pdfjs.getDocument(simple ? { url: driveMediaUrl(id), disableRange: true, disableStream: true } : { url: driveMediaUrl(id), disableAutoFetch: true, rangeChunkSize: 262144 });
+        task.onProgress = ({ loaded, total }: { loaded: number; total: number }) => {
+          if (!total) return;
+          created.progress = Math.min(99, Math.round((loaded / total) * 100));
+          listeners.forEach((fn) => fn(created.progress));
+        };
+        return task.promise;
       };
-      return task.promise;
+      return load(false).catch(() => load(true));
     });
     created.promise.catch(() => docs.delete(id));
     entry = created;
@@ -140,7 +145,14 @@ export function SlideDeck({ item, title, onPage }: { item: DriveItem; title: str
   }, [page]);
 
   if (failed) {
-    return <iframe title={title} src={drivePreviewUrl(item.id)} allow="autoplay" style={{ flex: 1, minHeight: 0, width: "100%", border: 0, background: "#211D17", display: "block" }} />;
+    return (
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        <iframe title={title} src={drivePreviewUrl(item.id)} allow="autoplay" style={{ flex: 1, minHeight: 0, width: "100%", border: 0, background: "#211D17", display: "block" }} />
+        <a href={`https://drive.google.com/file/d/${item.id}/view`} target="_blank" rel="noopener noreferrer" style={{ flexShrink: 0, height: 52, background: INK, color: GOLD, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, textDecoration: "none", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+          Page not loading? Open in Google Drive
+        </a>
+      </div>
+    );
   }
 
   if (!doc) {
