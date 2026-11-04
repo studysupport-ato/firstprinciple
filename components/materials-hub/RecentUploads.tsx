@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowLeft, BookOpen, FileText, Play } from "lucide-react";
 import { programmeUploads, uploadDayGroup, uploadTimeLabel, type LoggedUpload } from "@/lib/site/materialsHub";
-import { CREAM, GOLD, INK, Panel, ROW_LINE, backButtonStyle } from "./ui";
+import { CREAM, GOLD, GoldLabel, INK, Panel, ROW_LINE, backButtonStyle } from "./ui";
 import { useHubChoice, useHubData } from "./useHub";
 
 const GREEN = "#12804A";
@@ -25,7 +25,7 @@ function Row({ u, last, compact }: { u: LoggedUpload; last: boolean; compact?: b
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "block", fontSize: compact ? 14 : 15, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.entry.courseTitle}</span>
         <span style={{ display: "block", marginTop: 2, fontSize: 12, color: "rgba(246,239,220,.55)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {[u.course.courseTitle, u.year ? `Year ${u.year}` : null, u.entry.credit].filter(Boolean).join(" · ")}
+          {[u.course.courseTitle, u.year ? `Year ${u.year}` : null, u.entry.uploadedBy ? `by ${u.entry.uploadedBy}` : null].filter(Boolean).join(" · ")}
         </span>
       </span>
       <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: "rgba(246,239,220,.55)", whiteSpace: "nowrap" }}>{compact && uploadDayGroup(u.entry.createdAt) !== "Today" ? uploadDayGroup(u.entry.createdAt).replace("This week", uploadTimeLabel(u.entry.createdAt)).replace("Earlier", uploadTimeLabel(u.entry.createdAt)) : uploadTimeLabel(u.entry.createdAt)}</span>
@@ -34,13 +34,13 @@ function Row({ u, last, compact }: { u: LoggedUpload; last: boolean; compact?: b
 }
 
 /** The newest uploads for the student's programme, with a link to the full log. */
-export function RecentUploadsCard({ departmentId, style }: { departmentId: string; style?: React.CSSProperties }) {
+export function RecentUploadsCard({ departmentId, year, style }: { departmentId: string; year: number; style?: React.CSSProperties }) {
   const data = useHubData();
-  const uploads = useMemo(() => programmeUploads(data.entries, departmentId).slice(0, 5), [data.entries, departmentId]);
+  const uploads = useMemo(() => programmeUploads(data.entries, departmentId).filter((u) => u.year === year).slice(0, 5), [data.entries, departmentId, year]);
   return (
     <div className="hub-row" style={{ animationDelay: "200ms", ...style }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
-        <h3 style={{ margin: 0, fontSize: 24, fontWeight: 900, letterSpacing: "-.03em" }}>Recent uploads</h3>
+        <h3 style={{ margin: 0, fontSize: 24, fontWeight: 900, letterSpacing: "-.03em" }}>Recent uploads · Year {year}</h3>
         {uploads.length ? <Link href="/materials-hub?view=recent" style={{ fontSize: 13, fontWeight: 800, color: INK, textDecoration: "underline", textUnderlineOffset: 3 }}>See all</Link> : null}
       </div>
       {uploads.length ? (
@@ -58,10 +58,11 @@ export function RecentUploadsCard({ departmentId, style }: { departmentId: strin
 export function RecentUploadsView() {
   const data = useHubData();
   const { choice } = useHubChoice();
-  const [year, setYear] = useState<number | null>(null);
+  const [picked, setPicked] = useState<number | null>(null);
+  const year = picked ?? choice?.year ?? 1;
   const department = data.departments.find((d) => d.id === choice?.departmentId);
   const all = useMemo(() => (choice ? programmeUploads(data.entries, choice.departmentId, 120) : []), [data.entries, choice]);
-  const shown = year ? all.filter((u) => u.year === year) : all;
+  const shown = all.filter((u) => u.year === year);
   const groups = useMemo(() => {
     const map = new Map<string, LoggedUpload[]>();
     for (const u of shown) {
@@ -78,21 +79,21 @@ export function RecentUploadsView() {
         <p style={{ marginTop: 16, fontSize: 15, fontWeight: 700 }}>Pick your programme on the home page first.</p>
       ) : (
         <>
-          <p style={{ margin: "14px 0 0", fontSize: 11, fontWeight: 800, letterSpacing: ".16em", textTransform: "uppercase", color: "rgba(26,24,20,.65)" }}>{department.name}</p>
-          <h1 style={{ margin: "4px 0 0", fontSize: 36, fontWeight: 900, letterSpacing: "-.035em" }}>Recent uploads</h1>
-          <div style={{ marginTop: 12, display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {[null, 1, 2, 3, 4].map((y) => (
-              <button key={String(y)} type="button" onClick={() => setYear(y)} className="hub-tap" style={{ height: 32, padding: "0 13px", border: 0, borderRadius: 999, background: year === y ? INK : "rgba(26,24,20,.1)", color: year === y ? GOLD : INK, fontFamily: "inherit", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
-                {y ? `Year ${y}` : "All years"}
+          <GoldLabel style={{ margin: "14px 0 0" }}>{department.name}</GoldLabel>
+          <h1 style={{ margin: "10px 0 0", textAlign: "center", fontSize: 36, fontWeight: 900, letterSpacing: "-.035em" }}>Recent uploads</h1>
+          <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+            {[1, 2, 3, 4].map((y) => (
+              <button key={y} type="button" onClick={() => setPicked(y)} className="hub-tap" style={{ height: 40, border: 0, borderRadius: 999, background: year === y ? INK : "rgba(26,24,20,.1)", color: year === y ? GOLD : INK, fontFamily: "inherit", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
+                Year {y}
               </button>
             ))}
           </div>
           {groups.length === 0 ? (
-            <p style={{ marginTop: 18, borderRadius: 20, border: "2px dashed rgba(26,24,20,.35)", padding: "26px 16px", textAlign: "center", fontSize: 14, fontWeight: 700, color: "rgba(26,24,20,.7)" }}>Nothing uploaded {year ? `for Year ${year} ` : ""}yet.</p>
+            <p style={{ marginTop: 18, borderRadius: 20, border: "2px dashed rgba(26,24,20,.35)", padding: "26px 16px", textAlign: "center", fontSize: 14, fontWeight: 700, color: "rgba(26,24,20,.7)" }}>Nothing uploaded for Year {year} yet.</p>
           ) : (
             groups.map(([label, list]) => (
               <section key={label}>
-                <p style={{ margin: "20px 4px 8px", fontSize: 12, fontWeight: 900, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(26,24,20,.65)" }}>{label}</p>
+                <GoldLabel>{label}</GoldLabel>
                 <Panel>{list.map((u, i) => <Row key={u.entry.id} u={u} last={i === list.length - 1} />)}</Panel>
               </section>
             ))

@@ -50,6 +50,8 @@ export interface CourseMaterialEntry {
   id: string;
   /** Added by an approved course rep (not part of the existing bank). */
   fromRep?: boolean;
+  /** The course rep who uploaded it, for credit. */
+  uploadedBy?: string;
   departmentId: string;
   courseCode?: string;
   courseTitle: string;

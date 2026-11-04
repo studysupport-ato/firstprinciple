@@ -82,13 +82,14 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                 </button>
               </BlueprintCard>
               <div className="qa-desktop-only" style={{ display: "flex", flexDirection: "column" }}>
-                <RecentUploadsCard departmentId={choice.departmentId} style={{ marginTop: 22 }} />
+                <RecentUploadsCard departmentId={choice.departmentId} year={choice.year} style={{ marginTop: 22 }} />
                 <ResourceCard />
                 <CourseRepCard />
               </div>
             </div>
 
             <div className="qa-right">
+              <JustUploaded uploads={uploads} />
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
                 <h2 style={{ margin: 0, fontSize: 34, fontWeight: 900, letterSpacing: "-.035em", lineHeight: 0.98 }}>Your courses</h2>
                 {courses.length ? <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(26,24,20,.7)" }}>{courses.length} {courses.length === 1 ? "course" : "courses"}</span> : null}
@@ -110,7 +111,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                               <Sparkles size={11} strokeWidth={2.6} aria-hidden /> {fresh} NEW FROM COURSE REP
                             </span>
                           ) : (
-                            <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>{course.kind === "link" ? linkLabel(course.url) : course.general ? "General course" : "Slides · Videos · Books"}</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>{course.kind === "link" ? linkLabel(course.url) : course.general ? "General course" : "Lecturer & departmental slides"}</span>
                           )}
                         </span>
                         <RoundChevron />
@@ -130,7 +131,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                 </div>
               )}
               <div className="qa-phone-only" style={{ flexDirection: "column" }}>
-                <RecentUploadsCard departmentId={choice.departmentId} style={{ marginTop: 24 }} />
+                <RecentUploadsCard departmentId={choice.departmentId} year={choice.year} style={{ marginTop: 24 }} />
                 <ResourceCard />
                 <CourseRepCard />
               </div>
@@ -163,6 +164,43 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
 }
 
 const NEW_GREEN = "#12804A";
+const JUST_NOW_MS = 90 * 60_000;
+
+/* ─── Big glowing card for anything uploaded in the last 1½ hours ───── */
+
+function JustUploaded({ uploads }: { uploads: RepUpload[] }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const fresh = uploads.filter((u) => now - Date.parse(u.entry.createdAt) < JUST_NOW_MS).slice(0, 3);
+  if (!fresh.length) return null;
+  const href = (u: RepUpload) => `/materials-hub?course=${encodeURIComponent(u.course.id)}&view=${u.entry.materialType === "playlist" || u.entry.materialType === "video" ? "videos" : "slides&folder=rep"}`;
+  return (
+    <div className="hub-row qa-glow" style={{ marginBottom: 22, borderRadius: 26, background: "#FFFFFF", color: INK, padding: "20px 18px 16px", border: "2px solid #FFFFFF" }}>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 30, padding: "0 12px", borderRadius: 999, background: NEW_GREEN, color: "#fff", fontSize: 12, fontWeight: 900, letterSpacing: ".1em" }}>
+        <span className="qa-dot" style={{ width: 8, height: 8, borderRadius: 999, background: "#fff" }} /> JUST UPLOADED
+      </span>
+      <h3 style={{ margin: "12px 0 0", fontSize: 26, fontWeight: 900, lineHeight: 1.08, letterSpacing: "-.03em" }}>
+        Your course rep just uploaded {fresh.length === 1 ? "new slides" : `${fresh.length} new files`}
+      </h3>
+      <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+        {fresh.map((u) => (
+          <Link key={u.entry.id} href={href(u)} onClick={() => markUploadsSeen([u.entry.id])} className="hub-tap" style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 18, background: "#F6F1E4", color: INK, textDecoration: "none" }}>
+            <span style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 14, ...goldPlate, display: "flex", alignItems: "center", justifyContent: "center" }}><FileText size={21} strokeWidth={2.3} aria-hidden /></span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: "block", fontSize: 17, fontWeight: 900, lineHeight: 1.2 }}>{u.entry.courseTitle}</span>
+              <span style={{ display: "block", marginTop: 3, fontSize: 13, fontWeight: 700, color: "#5C564B" }}>{[u.course.title, timeAgo(u.entry.createdAt)].join(" · ")}</span>
+              {u.entry.uploadedBy ? <span style={{ display: "block", marginTop: 2, fontSize: 12, fontWeight: 700, color: NEW_GREEN }}>Uploaded by {u.entry.uploadedBy}</span> : null}
+            </span>
+            <span style={{ flexShrink: 0, height: 38, padding: "0 16px", borderRadius: 999, background: INK, color: GOLD, display: "inline-flex", alignItems: "center", fontSize: 14, fontWeight: 900 }}>Open</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ─── "Know the moment your course rep uploads" ─────────────────────── */
 
@@ -273,6 +311,10 @@ function RepUploadAlert({ uploads }: { uploads: RepUpload[] }) {
 function QuickStyles() {
   return (
     <style>{`
+.qa-glow{animation:qaGlow 2.4s ease-in-out infinite}
+@keyframes qaGlow{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.55),0 0 34px 8px rgba(255,255,255,.55),0 20px 40px -16px rgba(26,24,20,.5)}50%{box-shadow:0 0 0 6px rgba(255,255,255,.25),0 0 60px 18px rgba(255,255,255,.85),0 20px 40px -16px rgba(26,24,20,.5)}}
+.qa-dot{animation:qaDot 1.2s ease-in-out infinite}@keyframes qaDot{50%{opacity:.25}}
+@media (prefers-reduced-motion: reduce){.qa-glow,.qa-dot{animation:none}.qa-glow{box-shadow:0 0 40px 10px rgba(255,255,255,.7)}}
 .qa-wrap{position:relative;max-width:1180px;margin:0 auto;padding:26px 18px 32px}
 .qa-side{display:flex;flex-direction:column;gap:18px}
 .qa-left{display:flex;flex-direction:column;gap:0}

@@ -24,7 +24,7 @@ import {
   type DriveItem,
 } from "@/lib/site/materialsHub";
 import { getEntryType, type CourseMaterialEntry } from "@/lib/courseMaterials";
-import { BROWN, CREAM, Overlay, OVERLAY_Z, Eyebrow, GOLD, HubStyles, INK, MUTED, Panel, Pill, RoundChevron, Sheet, SOFT, YT_RED, BlueprintCard, goldPlate, ROW_LINE, backButtonStyle, backLabelStyle, goldGround, hubFont, panelShadow } from "./ui";
+import { BROWN, CREAM, Overlay, OVERLAY_Z, Eyebrow, GOLD, HubStyles, INK, MUTED, Panel, Pill, RoundChevron, Sheet, SOFT, YT_RED, BlueprintCard, goldPlate, GoldLabel, ROW_LINE, backButtonStyle, backLabelStyle, goldGround, hubFont, panelShadow } from "./ui";
 import { useHubChoice, useHubData } from "./useHub";
 import { SlideDeck, preloadSlides } from "./SlideDeck";
 import { RecentUploadsView } from "./RecentUploads";
@@ -74,14 +74,10 @@ export function MaterialsHubView() {
           </div>
         ) : null}
         {course && view !== "recent" ? (
-          view === "course" ? (
-            <CourseView course={course} groups={groups} />
-          ) : view === "slides" ? (
-            <DriveMaterials kind="slides" course={course} slides={groups.slides} folderId={folderId} />
-          ) : view === "videos" ? (
+          view === "videos" ? (
             <VideosView course={course} videos={groups.videos} />
           ) : (
-            <BooksView course={course} books={groups.books} folderId={folderId} />
+            <DriveMaterials kind="slides" course={course} slides={[...groups.slides, ...groups.books]} folderId={folderId} />
           )
         ) : null}
       </div>
@@ -217,7 +213,7 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
   if (folderId === REP_FOLDER) {
     return (
       <div className="hub-row">
-        <ListHeader course={course} title={`Lecturer ${noun}`} sub={`Lecturer ${noun}`} back={<BackLink href={hubHref(course.id, kind)}>{Noun}</BackLink>}>
+        <ListHeader course={course} title={`Lecturer ${noun}`} sub={`Lecturer ${noun}`} back={<BackLink href={hubHref(course.id, kind)}>{course.courseTitle}</BackLink>}>
           <p style={{ margin: "8px 0 0", fontSize: 12, fontWeight: 700, color: "rgba(246,239,220,.6)" }}>Uploaded by your course rep · {fromRep.length} {fromRep.length === 1 ? "file" : "files"}</p>
         </ListHeader>
         {fromRep.length ? <EntryRows list={fromRep} course={course} kind={kind} rep onOpen={open} /> : <Empty text={`Your course rep hasn’t uploaded ${noun} yet.`} />}
@@ -237,8 +233,8 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
     }
     return (
       <div className="hub-row">
-        <ListHeader course={course} title={`Department ${noun}`} sub={`Department ${noun}`} back={<BackLink href={hubHref(course.id, kind)}>{Noun}</BackLink>} />
-        {bank.length ? <EntryRows list={bank} course={course} kind={kind} onOpen={open} /> : <Empty text={`No department ${noun} yet.`} />}
+        <ListHeader course={course} title={`Departmental ${noun}`} sub={`Departmental ${noun}`} back={<BackLink href={hubHref(course.id, kind)}>{course.courseTitle}</BackLink>} />
+        {bank.length ? <EntryRows list={bank} course={course} kind={kind} onOpen={open} /> : <Empty text={`No departmental ${noun} yet.`} />}
         {viewer}
       </div>
     );
@@ -255,8 +251,9 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
   const fresh = fromRep.filter((m) => isNewRepUpload(m, 7)).length;
   return (
     <div className="hub-row">
-      <BackLink href={hubHref(course.id)}>{courseLabel(course)}</BackLink>
-      <h1 style={{ margin: "12px 0 0", fontSize: 36, fontWeight: 900, letterSpacing: "-.035em" }}>{Noun}</h1>
+      <BackLink href="/">Your courses</BackLink>
+      <GoldLabel style={{ margin: "14px 0 0" }}>{Noun}</GoldLabel>
+      <h1 style={{ margin: "10px 0 0", textAlign: "center", fontSize: 34, fontWeight: 900, letterSpacing: "-.035em", lineHeight: 1.05 }}>{course.courseTitle}</h1>
       <div className="mh-folders">
         {/* Main folder: the lecturer's slides, uploaded by the course rep. */}
         <div style={{ borderRadius: 26, background: REP_GREEN, color: "#fff", overflow: "hidden", border: `2px solid ${GOLD}`, boxShadow: "0 20px 40px -16px rgba(18,128,74,.7)" }}>
@@ -285,7 +282,10 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
                         <span style={{ fontSize: 15.5, fontWeight: 800 }}>{m.courseTitle}</span>
                         <span style={{ fontSize: 12, opacity: 0.8 }}>
                           {isNew ? <b style={{ background: GOLD, color: INK, padding: "1px 6px", borderRadius: 999, fontSize: 10, marginRight: 6 }}>NEW</b> : null}
-                          {[timeAgo(m.createdAt), m.credit].filter(Boolean).join(" · ")}
+                          {[m.uploadedBy ? `Uploaded by ${m.uploadedBy}` : "Course rep", timeAgo(m.createdAt)].join(" · ")}
+                        </span>
+                        <span style={{ fontSize: 12, opacity: 0.8, display: m.credit ? "block" : "none" }}>
+                          Lecturer: {m.credit}
                         </span>
                       </span>
                       <span aria-hidden style={{ fontSize: 20 }}>›</span>
@@ -308,7 +308,7 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
         <Link href={hubHref(course.id, kind, DEPT_FOLDER)} className="hub-row hub-tap hub-dark-row" style={{ display: "flex", alignItems: "center", gap: 14, minHeight: 84, padding: "14px 16px", borderRadius: 22, background: INK, border: "1px solid rgba(233,188,58,.28)", boxShadow: panelShadow, color: CREAM, textDecoration: "none", alignSelf: "start" }}>
           <Tile bg="#2A251C" size={50}><Folder size={24} color={GOLD} /></Tile>
           <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-            <span style={{ fontSize: 18, fontWeight: 800 }}>Department {noun}</span>
+            <span style={{ fontSize: 18, fontWeight: 800 }}>Departmental {noun}</span>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: "rgba(246,239,220,.55)" }}>{bank.length ? "From the department’s folder" : "Nothing here yet"}</span>
           </span>
           <RoundChevron />
@@ -339,7 +339,7 @@ function EntryRows({ list, course, kind, rep = false, onOpen }: { list: CourseMa
               <span style={{ fontSize: 15, fontWeight: 800, color: CREAM }}>{s.courseTitle}</span>
               <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>
                 {fresh ? <span style={{ height: 18, padding: "0 7px", borderRadius: 999, background: REP_GREEN, color: "#fff", fontSize: 10, fontWeight: 900, letterSpacing: ".06em", display: "inline-flex", alignItems: "center" }}>NEW</span> : null}
-                {rep ? [timeAgo(s.createdAt), s.credit].filter(Boolean).join(" · ") : folder ? "Folder" : fileId ? "PDF" : "Opens a link"}
+                {rep ? [s.uploadedBy ? `Uploaded by ${s.uploadedBy}` : "Course rep", s.credit ? `Lecturer: ${s.credit}` : null, timeAgo(s.createdAt)].filter(Boolean).join(" · ") : folder ? "Folder" : fileId ? "PDF" : "Opens a link"}
               </span>
             </span>
             {folder || fileId ? <RoundChevron /> : <ExternalLink size={16} color="rgba(246,239,220,.55)" />}

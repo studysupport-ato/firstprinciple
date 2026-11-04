@@ -156,3 +156,12 @@ export function HubStyles() {
 `}</style>
   );
 }
+
+/** Section label on the gold page: centred, bold, gold on a dark pill. */
+export function GoldLabel({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+  return (
+    <p style={{ margin: "22px 0 10px", textAlign: "center", ...style }}>
+      <span style={{ display: "inline-block", padding: "7px 16px", borderRadius: 999, background: INK, color: GOLD, fontSize: 13, fontWeight: 900, letterSpacing: ".12em", textTransform: "uppercase", boxShadow: "0 8px 18px -10px rgba(26,24,20,.7)" }}>{children}</span>
+    </p>
+  );
+}

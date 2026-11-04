@@ -17,8 +17,8 @@ const STEPS = [
   },
   {
     targetId: "course-materials",
-    heading: "Course Materials",
-    text: "Find supporting course materials and useful academic resources.",
+    heading: "YouTube Playlist",
+    text: "Video lessons for your courses, sorted by chapter. Your slides are on the Home page.",
   },
   {
     targetId: "questions",

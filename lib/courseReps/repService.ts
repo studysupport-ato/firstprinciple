@@ -197,7 +197,7 @@ function cleanLecturer(value?: string) {
 }
 
 async function markRep(id: string, rep: RepApplication) {
-  await db().from("course_materials").update({ created_by_rep: rep.id }).eq("id", id);
+  await db().from("course_materials").update({ created_by_rep: rep.id, uploaded_by: rep.fullName }).eq("id", id);
 }
 
 export async function repCreateCourse(input: { semester: number; courseCode: string; courseTitle: string }) {
