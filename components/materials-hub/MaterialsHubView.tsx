@@ -282,7 +282,11 @@ function DriveFolder({ kind, course, folderId, isRoot }: { kind: DriveKind; cour
                 return (
                   <div key={item.id} className="hub-row hub-dark-row" style={rowStyle}>
                     <button type="button" onClick={() => setViewing(item)} className="hub-tap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, border: 0, background: "none", padding: 0, textAlign: "left", fontFamily: "inherit", cursor: "pointer" }}>
-                      <Tile bg="#2A251C" size={38}><FileText size={18} color={GOLD} /></Tile>
+                      {kind === "books" ? (
+                        <span aria-hidden style={{ width: 34, height: 44, flexShrink: 0, borderRadius: "3px 7px 7px 3px", borderLeft: `4px solid ${BROWN}`, ...goldPlate }} />
+                      ) : (
+                        <Tile bg="#2A251C" size={38}><FileText size={18} color={GOLD} /></Tile>
+                      )}
                       <span style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
                         <span style={{ fontSize: 15, fontWeight: 800, color: CREAM, overflowWrap: "anywhere" }}>{tidyFileName(item.name)}</span>
                         <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>{formatBytes(item.size) || "Google file"}</span>
