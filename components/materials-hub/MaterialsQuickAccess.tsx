@@ -12,11 +12,10 @@ import {
   coursesFor,
   hasAnything,
   monogram,
-  shortProgramme,
   type HubChoice,
 } from "@/lib/site/materialsHub";
 import type { CourseMaterialSemester, CourseMaterialYear, CourseMaterialsDepartment, CourseMaterialEntry } from "@/lib/courseMaterials";
-import { BROWN, CREAM, GOLD, HubStyles, INK, MUTED, Panel, Pill, RoundChevron, Sheet, SOFT, backButtonStyle, backLabelStyle, goldGround, hubFont } from "./ui";
+import { BROWN, CREAM, GOLD, HubStyles, INK, MUTED, Panel, Pill, RoundChevron, Sheet, SOFT, backButtonStyle, backLabelStyle, goldGround, hubFont, BlueprintCard, Eyebrow, goldPlate, ROW_LINE } from "./ui";
 import { useHubChoice, useHubData } from "./useHub";
 
 export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: boolean }) {
@@ -43,16 +42,21 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
 
       {choice && department ? (
         <div style={{ maxWidth: 560, margin: "0 auto", padding: "22px 18px 30px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <Pill>{shortProgramme(department.name)}</Pill>
-            <Pill>Year {choice.year}</Pill>
-            <Pill>Sem {choice.semester}</Pill>
-            <span style={{ flex: 1 }} />
-            <button type="button" onClick={() => setPickerOpen(true)} style={{ border: 0, background: "none", padding: "8px 0", fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: INK, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}>
+          <BlueprintCard department={department.name}>
+            <Eyebrow style={{ color: GOLD }}>Your programme</Eyebrow>
+            <h2 style={{ margin: "8px 0 0", maxWidth: "56%", fontSize: 28, fontWeight: 800, letterSpacing: "-.03em", lineHeight: 1, color: CREAM }}>{department.name}</h2>
+            <div style={{ marginTop: 14, display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <Pill gold>Year {choice.year}</Pill>
+              <Pill gold>Semester {choice.semester}</Pill>
+            </div>
+            <button type="button" onClick={() => setPickerOpen(true)} style={{ marginTop: 10, minHeight: 36, border: 0, background: "none", padding: 0, fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: GOLD, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}>
               Change
             </button>
+          </BlueprintCard>
+          <div style={{ margin: "22px 0 0", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+            <h2 style={{ margin: 0, fontSize: 32, fontWeight: 800, letterSpacing: "-.035em", lineHeight: 0.98 }}>Your courses</h2>
+            {courses.length ? <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(26,24,20,.7)" }}>{courses.length} {courses.length === 1 ? "course" : "courses"}</span> : null}
           </div>
-          <h2 style={{ margin: "16px 0 0", fontSize: 36, fontWeight: 900, letterSpacing: "-.035em", lineHeight: 0.98 }}>Your courses</h2>
 
           {courses.length ? (
             <Panel style={{ marginTop: 16 }}>
@@ -60,7 +64,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                 const [prefix, number] = splitCode(course.code, course.title);
                 const inner = (
                   <>
-                    <span style={{ width: 50, height: 50, flexShrink: 0, borderRadius: 14, background: GOLD, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+                    <span style={{ width: 50, height: 50, flexShrink: 0, borderRadius: 14, ...goldPlate, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
                       <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: ".08em", color: "rgba(26,24,20,.7)" }}>{prefix}</span>
                       <span style={{ fontSize: number.length > 3 ? 13 : 17, fontWeight: 900, letterSpacing: "-.02em", marginTop: 2 }}>{number}</span>
                     </span>
@@ -71,7 +75,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                     <RoundChevron />
                   </>
                 );
-                const rowStyle = { display: "flex", alignItems: "center", gap: 14, minHeight: 72, padding: "12px 14px", borderBottom: i < courses.length - 1 ? "1px solid rgba(246,239,220,.07)" : "none", textDecoration: "none", animationDelay: `${i * 70}ms` } as const;
+                const rowStyle = { display: "flex", alignItems: "center", gap: 14, minHeight: 72, padding: "12px 14px", borderBottom: i < courses.length - 1 ? `1px solid ${ROW_LINE}` : "none", textDecoration: "none", animationDelay: `${i * 70}ms` } as const;
                 return course.kind === "link" ? (
                   <a key={course.id} href={course.url} target="_blank" rel="noopener noreferrer" className="hub-row hub-tap hub-dark-row" style={rowStyle}>{inner}</a>
                 ) : (

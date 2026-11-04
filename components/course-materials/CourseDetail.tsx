@@ -961,3 +961,42 @@ function TileGrid({ items, topics, bookmarks, toggleBookmark }: { items: Materia
     </div>
   );
 }
+
+/* ─── Reused by the homepage quick access: the course's playlists and videos ─── */
+
+const BOOKMARK_KEY = "b2b-course-material-bookmarks-v1";
+
+/** The same playlist (and video) layout as the Course Materials page, for one course. */
+export function CourseYouTube({ course, materials, where }: { course: { topics?: Array<{ id: string; name: string }> }; materials: MaterialRow[]; where: string }) {
+  const topics: TopicView[] = useMemo(
+    () => (course.topics ?? []).map((topic, index) => ({ ...topic, color: TOPIC_COLORS[index % TOPIC_COLORS.length] })),
+    [course.topics],
+  );
+  const [bookmarks, setBookmarks] = useState<string[]>([]);
+  useEffect(() => {
+    try {
+      const saved: unknown = JSON.parse(window.localStorage.getItem(BOOKMARK_KEY) ?? "[]");
+      setBookmarks(Array.isArray(saved) ? saved.filter((v): v is string => typeof v === "string") : []);
+    } catch {
+      setBookmarks([]);
+    }
+  }, []);
+  const toggleBookmark = (id: string) =>
+    setBookmarks((prev) => {
+      const next = prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id];
+      try {
+        window.localStorage.setItem(BOOKMARK_KEY, JSON.stringify(next));
+      } catch {
+        /* storage unavailable */
+      }
+      return next;
+    });
+  const playlists = materials.filter((m) => m.type === "Playlist");
+  const videos = materials.filter((m) => m.type !== "Playlist");
+  return (
+    <div className="flex flex-col gap-8">
+      {playlists.length ? <PlaylistsPanel playlists={playlists} topics={topics} bookmarks={bookmarks} toggleBookmark={toggleBookmark} where={where} /> : null}
+      {videos.length ? <VideosPanel videos={videos} topics={topics} bookmarks={bookmarks} toggleBookmark={toggleBookmark} where={where} /> : null}
+    </div>
+  );
+}
