@@ -25,7 +25,7 @@ import {
   type DriveItem,
 } from "@/lib/site/materialsHub";
 import { getEntryType, type CourseMaterialEntry } from "@/lib/courseMaterials";
-import { BROWN, CREAM, Eyebrow, GOLD, HubStyles, INK, MUTED, Panel, Pill, RoundChevron, Sheet, SOFT, YT_RED, backButtonStyle, backLabelStyle, goldGround, hubFont, panelShadow } from "./ui";
+import { BROWN, CREAM, Overlay, OVERLAY_Z, Eyebrow, GOLD, HubStyles, INK, MUTED, Panel, Pill, RoundChevron, Sheet, SOFT, YT_RED, backButtonStyle, backLabelStyle, goldGround, hubFont, panelShadow } from "./ui";
 import { useHubChoice, useHubData } from "./useHub";
 
 type View = "course" | "slides" | "videos" | "books";
@@ -305,16 +305,12 @@ function SkeletonList() {
 function PdfViewer({ item, courseCode, onClose }: { item: DriveItem; courseCode?: string; onClose: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = previous;
-      window.removeEventListener("keydown", onKey);
-    };
+    return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
   return (
-    <div role="dialog" aria-modal="true" aria-label={tidyFileName(item.name)} className="hub-sheet" style={{ position: "fixed", inset: 0, zIndex: 100, background: "#211D17", display: "flex", flexDirection: "column", ...hubFont }}>
+    <Overlay>
+    <div role="dialog" aria-modal="true" aria-label={tidyFileName(item.name)} className="hub-sheet" style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100dvh", zIndex: OVERLAY_Z, background: "#211D17", display: "flex", flexDirection: "column", ...hubFont }}>
       <div style={{ minHeight: 68, paddingTop: "env(safe-area-inset-top, 0px)", background: INK, display: "flex", alignItems: "center", gap: 12, paddingLeft: 12, paddingRight: 12, flexShrink: 0 }}>
         <button type="button" onClick={onClose} aria-label="Close" style={{ width: 44, height: 44, flexShrink: 0, border: 0, borderRadius: 999, background: "#2A251C", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
           <X size={18} color={CREAM} strokeWidth={2.5} />
@@ -329,8 +325,9 @@ function PdfViewer({ item, courseCode, onClose }: { item: DriveItem; courseCode?
           </a>
         ) : null}
       </div>
-      <iframe title={tidyFileName(item.name)} src={drivePreviewUrl(item.id)} allow="autoplay" style={{ flex: 1, width: "100%", border: 0, background: "#211D17" }} />
+      <iframe title={tidyFileName(item.name)} src={drivePreviewUrl(item.id)} allow="autoplay" style={{ flex: 1, minHeight: 0, width: "100%", border: 0, background: "#211D17", display: "block" }} />
     </div>
+    </Overlay>
   );
 }
 
@@ -463,7 +460,8 @@ function VideosView({ course, videos }: { course: CourseMaterialEntry; videos: C
 function VideoPlayer({ entry, onClose }: { entry: CourseMaterialEntry; onClose: () => void }) {
   const src = playlistEmbedUrl(entry);
   return (
-    <div role="dialog" aria-modal="true" aria-label={entry.courseTitle} className="hub-sheet" style={{ position: "fixed", inset: 0, zIndex: 100, background: "#0E0D0B", display: "flex", flexDirection: "column", ...hubFont }}>
+    <Overlay>
+    <div role="dialog" aria-modal="true" aria-label={entry.courseTitle} className="hub-sheet" style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100dvh", zIndex: OVERLAY_Z, background: "#0E0D0B", display: "flex", flexDirection: "column", ...hubFont }}>
       <div style={{ minHeight: 68, paddingTop: "env(safe-area-inset-top, 0px)", background: INK, display: "flex", alignItems: "center", gap: 12, paddingLeft: 12, paddingRight: 12 }}>
         <button type="button" onClick={onClose} aria-label="Close" style={{ width: 44, height: 44, flexShrink: 0, border: 0, borderRadius: 999, background: "#2A251C", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
           <X size={18} color={CREAM} strokeWidth={2.5} />
@@ -478,6 +476,7 @@ function VideoPlayer({ entry, onClose }: { entry: CourseMaterialEntry; onClose: 
         )}
       </div>
     </div>
+    </Overlay>
   );
 }
 

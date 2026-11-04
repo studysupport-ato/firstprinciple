@@ -1,6 +1,7 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { HUB_FONT } from "@/lib/site/materialsHub";
 
 export const INK = "#1A1814";
@@ -70,16 +71,38 @@ export function RoundChevron() {
   );
 }
 
+/**
+ * Renders on top of the whole page (attached to <body>), so a full-screen
+ * overlay is never boxed in by the page layout around it.
+ */
+export function Overlay({ children }: { children: ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
+  if (!mounted) return null;
+  return createPortal(children, document.body);
+}
+
+export const OVERLAY_Z = 2147483000;
+
 export function Sheet({ open, onClose, children, label, maxHeight }: { open: boolean; onClose?: () => void; children: ReactNode; label: string; maxHeight?: string }) {
   if (!open) return null;
   return (
-    <div role="dialog" aria-modal="true" aria-label={label} style={{ position: "fixed", inset: 0, zIndex: 90, display: "flex", alignItems: "flex-end", justifyContent: "center", ...hubFont }}>
+    <Overlay>
+    <div role="dialog" aria-modal="true" aria-label={label} style={{ position: "fixed", inset: 0, zIndex: OVERLAY_Z, display: "flex", alignItems: "flex-end", justifyContent: "center", ...hubFont }}>
       <button type="button" aria-label="Close" onClick={onClose} className="hub-fade" style={{ position: "absolute", inset: 0, border: 0, padding: 0, background: "rgba(14,13,11,.55)", cursor: onClose ? "pointer" : "default" }} />
       <div className="hub-sheet" style={{ position: "relative", width: "100%", maxWidth: 520, maxHeight: maxHeight ?? "88dvh", display: "flex", flexDirection: "column", background: SHEET, borderRadius: "30px 30px 0 0", boxShadow: "0 -20px 50px rgba(0,0,0,.25)", paddingBottom: "env(safe-area-inset-bottom, 0px)", overflow: "hidden" }}>
         <span aria-hidden style={{ width: 40, height: 5, borderRadius: 999, background: "#E4DFD3", margin: "10px auto 0", flexShrink: 0 }} />
         {children}
       </div>
     </div>
+    </Overlay>
   );
 }
 
