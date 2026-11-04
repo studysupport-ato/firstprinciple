@@ -7,6 +7,7 @@ import {
   Compass,
   Library,
   CircleHelp,
+  Cpu,
   LogIn,
   LogOut,
   MonitorPlay,
@@ -100,6 +101,10 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, onSign
           <Link href="/questions" onClick={onMobileClose} data-tour="questions" className={navItemClass("/questions")} title="Questions">
             <CircleHelp size={19} strokeWidth={2.5} />
             {!compact && <span>Questions</span>}
+          </Link>
+          <Link href="/skills-workshop" onClick={onMobileClose} className={navItemClass("/skills-workshop")} title="Skills Workshop">
+            <Cpu size={19} strokeWidth={2.5} />
+            {!compact && <span>Skills Workshop</span>}
           </Link>
         </nav>
 

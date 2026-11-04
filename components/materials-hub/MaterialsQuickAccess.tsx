@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Check, Lock, Phone, Search } from "lucide-react";
+import { ArrowLeft, Check, Lock, Phone, Search, Upload } from "lucide-react";
 import {
   HUB_SEMESTERS,
   HUB_YEARS,
@@ -90,6 +90,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
           )}
 
           <ResourceCard />
+          <CourseRepCard />
         </div>
       ) : data.status === "error" ? (
         <p style={{ margin: 0, padding: "18px 20px", textAlign: "center", fontSize: 14, fontWeight: 700 }}>Course materials could not load. Refresh to try again.</p>
@@ -140,6 +141,21 @@ function ResourceCard() {
         </a>
       ) : null}
     </div>
+  );
+}
+
+function CourseRepCard() {
+  return (
+    <Link href="/course-rep" className="hub-row hub-tap" style={{ marginTop: 12, borderRadius: 24, background: INK, border: "1px solid rgba(233,188,58,.3)", padding: 16, display: "flex", alignItems: "center", gap: 14, color: CREAM, textDecoration: "none", boxShadow: "0 14px 32px -16px rgba(26,24,20,.6)", animationDelay: "360ms" }}>
+      <span aria-hidden style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", ...goldPlate }}>
+        <Upload size={19} strokeWidth={2.4} />
+      </span>
+      <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+        <span style={{ fontSize: 15, fontWeight: 800 }}>Are you a course rep?</span>
+        <span style={{ fontSize: 12, fontWeight: 500, lineHeight: 1.4, color: "rgba(246,239,220,.6)" }}>Apply to upload materials for your programme.</span>
+      </span>
+      <span style={{ height: 34, padding: "0 14px", borderRadius: 999, border: "1px solid rgba(233,188,58,.5)", color: GOLD, fontSize: 12, fontWeight: 800, display: "inline-flex", alignItems: "center" }}>Apply</span>
+    </Link>
   );
 }
 

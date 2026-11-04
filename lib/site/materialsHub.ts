@@ -167,7 +167,7 @@ export function groupCourseMaterials(entries: CourseMaterialEntry[], courseId: s
   const children = entries.filter((e) => e.parentId === courseId && isLive(e)).sort((a, b) => a.order - b.order);
   for (const entry of children) {
     const t = entry.materialType;
-    if (BOOK_PATTERN.test(entry.courseTitle)) groups.books.push(entry);
+    if (entry.description === "book" || BOOK_PATTERN.test(entry.courseTitle)) groups.books.push(entry);
     else if (t === "slides" || t === "pdf") groups.slides.push(entry);
     else if (t === "playlist" || t === "video" || entry.kind === "youtube" || parseYouTubeVideoId(entry.url) || parseYouTubePlaylistId(entry.url)) groups.videos.push(entry);
     else if (/drive\.google\.com|onedrive|\.pdf\b/i.test(entry.url)) groups.slides.push(entry);

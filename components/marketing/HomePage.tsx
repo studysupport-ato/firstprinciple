@@ -5,7 +5,6 @@ import { MaterialsQuickAccess } from "@/components/materials-hub/MaterialsQuickA
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { COLLABORATE } from "@/lib/site/collaborate";
-import { SkillsTraining } from "@/components/marketing/SkillsTraining";
 
 const goldGround = {
   backgroundColor: "#E9BC3A",
@@ -21,7 +20,7 @@ const darkGrid = {
   backgroundSize: "32px 32px",
 } as const;
 
-const PILLARS = [
+const PILLARS: Array<{ title: string; text: string; status: string; ready: boolean; href?: string }> = [
   { title: "Academics", text: "Help you truly understand your courses, one step at a time.", status: "In progress", ready: true },
   { title: "Real-world skills", text: "Teach the practical skills industry looks for.", status: "Coming soon", ready: false },
   { title: "Real-life opportunities", text: "Connect what you learn to real openings.", status: "Coming soon", ready: false },
@@ -50,7 +49,7 @@ export function HomePage({
   const pillars = showSkillsTraining
     ? PILLARS.map((pillar) =>
         pillar.title === "Real-world skills"
-          ? { ...pillar, text: "Teach the practical skills industry looks for, starting with Arduino.", status: "Open now", ready: true }
+          ? { ...pillar, text: "Teach the practical skills industry looks for, starting with Arduino.", status: "Open now", ready: true, href: "/skills-workshop" }
           : pillar,
       )
     : PILLARS;
@@ -59,12 +58,11 @@ export function HomePage({
     <div className="min-h-screen font-sans text-[#1A1814]">
       {adminPreview ? (
         <p className="m-0 bg-[#1A1814] px-5 py-2 text-center text-[13px] font-bold text-[#E9BC3A]">
-          Admin preview: only you can see this front page. Students still see the old one.
+          Admin preview: only you can see the Skills Workshop. Students still see the old one.
         </p>
       ) : null}
       <main>
         {showMaterialsHub ? <MaterialsQuickAccess adminPreview={materialsHubPreview} /> : null}
-        {showSkillsTraining ? <SkillsTraining /> : null}
         {/* Opening */}
         <section className="relative overflow-hidden" style={goldGround}>
           <div
@@ -129,13 +127,19 @@ export function HomePage({
                     <h3 className="font-sans text-[21px] font-extrabold">{pillar.title}</h3>
                     <p className="mt-0.5 text-[15.5px] leading-normal text-[#3A352B]">{pillar.text}</p>
                   </div>
-                  <span
-                    className={`flex-none rounded-full px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] ${
-                      pillar.ready ? "bg-[#E9BC3A]" : "border border-[#1A1814]/45"
-                    }`}
-                  >
-                    {pillar.status}
-                  </span>
+                  {pillar.href ? (
+                    <Link href={pillar.href} className="flex-none rounded-full bg-[#1A1814] px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.1em] text-[#E9BC3A] hover:bg-black">
+                      {pillar.status} →
+                    </Link>
+                  ) : (
+                    <span
+                      className={`flex-none rounded-full px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.1em] ${
+                        pillar.ready ? "bg-[#E9BC3A]" : "border border-[#1A1814]/45"
+                      }`}
+                    >
+                      {pillar.status}
+                    </span>
+                  )}
                 </li>
               ))}
             </ol>
