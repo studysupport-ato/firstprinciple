@@ -24,6 +24,7 @@ import {
 import { getEntryType, type CourseMaterialEntry } from "@/lib/courseMaterials";
 import { BROWN, CREAM, Overlay, OVERLAY_Z, Eyebrow, GOLD, HubStyles, INK, MUTED, Panel, Pill, RoundChevron, Sheet, SOFT, YT_RED, BlueprintCard, goldPlate, ROW_LINE, backButtonStyle, backLabelStyle, goldGround, hubFont, panelShadow } from "./ui";
 import { useHubChoice, useHubData } from "./useHub";
+import { SlideDeck } from "./SlideDeck";
 import { CourseYouTube } from "@/components/course-materials/CourseDetail";
 import { deriveMaterialType } from "@/lib/courseMaterialsDisplay";
 
@@ -333,6 +334,8 @@ function SkeletonList() {
 /* ─── In-site PDF viewer (Google Drive preview) ──────────────────────── */
 
 function PdfViewer({ item, courseCode, onClose }: { item: DriveItem; courseCode?: string; onClose: () => void }) {
+  const [counter, setCounter] = useState<string | null>(null);
+  const onPage = useCallback((page: number, total: number) => setCounter(`${page} / ${total}`), []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -349,13 +352,14 @@ function PdfViewer({ item, courseCode, onClose }: { item: DriveItem; courseCode?
           <span style={{ fontSize: 16, fontWeight: 900, color: CREAM, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tidyFileName(item.name)}</span>
           <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>{[courseCode, formatBytes(item.size)].filter(Boolean).join(" · ")}</span>
         </span>
+        {counter ? <span style={{ flexShrink: 0, fontSize: 14, fontWeight: 800, color: CREAM, whiteSpace: "nowrap" }}>{counter}</span> : null}
         {isDownloadable(item) ? (
           <a href={driveDownloadUrl(item.id)} aria-label="Download this file" style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 999, ...goldPlate, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Download size={18} color={INK} strokeWidth={2.5} />
           </a>
         ) : null}
       </div>
-      <iframe title={tidyFileName(item.name)} src={drivePreviewUrl(item.id)} allow="autoplay" style={{ flex: 1, minHeight: 0, width: "100%", border: 0, background: "#211D17", display: "block" }} />
+      <SlideDeck item={item} title={tidyFileName(item.name)} onPage={onPage} />
     </div>
     </Overlay>
   );

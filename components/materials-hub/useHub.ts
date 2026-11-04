@@ -52,11 +52,17 @@ export function useHubChoice() {
 
   useEffect(() => {
     if (loading) return;
+    // Signed out after using an account: start over and ask again.
+    if (authenticated !== true && readChoiceOwner() === "account") {
+      writeLocalChoice(null);
+      writeChoiceOwner(null);
+    }
     const local = readLocalChoice();
     setChoiceState(accountChoice ?? local);
     if (accountChoice && !local) writeLocalChoice(accountChoice);
+    if (authenticated === true && (accountChoice ?? local)) writeChoiceOwner("account");
     setReady(true);
-  }, [loading, accountChoice]);
+  }, [loading, authenticated, accountChoice]);
 
   // Picked before signing up: carry the choice onto the new account.
   useEffect(() => {
@@ -78,10 +84,28 @@ export function useHubChoice() {
     (next: HubChoice | null) => {
       setChoiceState(next);
       writeLocalChoice(next);
+      writeChoiceOwner(authenticated ? "account" : null);
       if (authenticated) void saveToAccount(next);
     },
     [authenticated, saveToAccount],
   );
 
   return { choice, setChoice, ready, signedIn: authenticated === true, savedToAccount: accountChoice !== null, saveToAccount };
+}
+
+const OWNER_KEY = "b2b.materialsChoice.owner";
+function readChoiceOwner() {
+  try {
+    return window.localStorage.getItem(OWNER_KEY);
+  } catch {
+    return null;
+  }
+}
+function writeChoiceOwner(value: "account" | null) {
+  try {
+    if (value) window.localStorage.setItem(OWNER_KEY, value);
+    else window.localStorage.removeItem(OWNER_KEY);
+  } catch {
+    /* storage unavailable */
+  }
 }

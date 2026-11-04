@@ -52,14 +52,17 @@ export function CourseRepPage() {
   }, [authenticated, loading, refresh]);
 
   let body: React.ReactNode = <p style={{ fontWeight: 700 }}>Loading…</p>;
+  let applying = false;
   if (!loading && !authenticated) {
+    applying = true;
     body = (
-      <Intro>
-        <p style={{ margin: "12px 0 0", fontSize: 14, lineHeight: 1.5, color: "#5C564B" }}>Sign in or create an account first.</p>
+      <div style={plainCard}>
+        <p style={{ margin: 0, fontSize: 15, lineHeight: 1.5, color: "#3A352B" }}>Sign in or create an account first.</p>
         <button type="button" onClick={() => setAuthOpen(true)} style={{ ...plainButton, marginTop: 16 }}>Sign in to apply</button>
-      </Intro>
+      </div>
     );
   } else if (application === null || application?.status === "declined" || application?.status === "revoked") {
+    applying = true;
     body = <ApplyForm previous={application} onDone={setApplication} />;
   } else if (application?.status === "pending") {
     body = <Pending application={application} />;
@@ -70,21 +73,27 @@ export function CourseRepPage() {
   return (
     <div style={{ ...goldGround, ...hubFont, color: INK, minHeight: "100dvh" }}>
       <HubStyles />
-      <div style={{ maxWidth: 560, margin: "0 auto", padding: "16px 18px 110px" }}>
+      <style>{`
+.rep-apply{display:grid;grid-template-columns:1fr;gap:20px;align-items:start}
+.rep-title{margin:10px 0 0;font-size:32px;font-weight:900;line-height:1.02;letter-spacing:-.035em}
+@media (min-width:1024px){.rep-apply{grid-template-columns:1fr 480px;gap:48px}.rep-title{font-size:50px}.rep-intro{padding-top:20px}}
+`}</style>
+      <div style={{ maxWidth: applying ? 1100 : 560, margin: "0 auto", padding: "16px 18px 110px" }}>
         <Link href="/" className="hub-tap" style={backButtonStyle}><ArrowLeft size={22} strokeWidth={2.8} aria-hidden />Home</Link>
-        <div style={{ marginTop: 12 }}>{body}</div>
+        {applying ? (
+          <div className="rep-apply" style={{ marginTop: 14 }}>
+            <div className="rep-intro">
+              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".16em", textTransform: "uppercase", color: "rgba(26,24,20,.65)" }}>Course reps</span>
+              <h1 className="rep-title">Apply as a course rep to upload lecture materials</h1>
+              <p style={{ margin: "14px 0 0", maxWidth: 520, fontSize: 17, fontWeight: 600, lineHeight: 1.45, color: "#3A352B" }}>Upload once, and your whole class finds it here. We confirm every course rep first.</p>
+            </div>
+            {body}
+          </div>
+        ) : (
+          <div style={{ marginTop: 12 }}>{body}</div>
+        )}
       </div>
       <AuthModal open={authOpen} initialView="signup" onClose={() => setAuthOpen(false)} />
-    </div>
-  );
-}
-
-function Intro({ children }: { children?: React.ReactNode }) {
-  return (
-    <div style={plainCard}>
-      <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Apply to be a course rep</h1>
-      <p style={{ margin: "6px 0 0", fontSize: 14, lineHeight: 1.5, color: "#5C564B" }}>Course reps upload slides and other materials for their class. We check every application before giving access.</p>
-      {children}
     </div>
   );
 }
@@ -114,10 +123,11 @@ function ApplyForm({ previous, onDone }: { previous: RepApplication | null | und
 
   return (
     <form onSubmit={submit} style={plainCard}>
-      <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Apply to be a course rep</h1>
-      <p style={{ margin: "6px 0 18px", fontSize: 14, lineHeight: 1.5, color: "#5C564B" }}>
-        {previous?.status === "declined" ? "Your last application wasn’t approved. You can apply again." : previous?.status === "revoked" ? "Your course rep access was removed. You can apply again." : "We check every application before giving access."}
-      </p>
+      {previous?.status === "declined" || previous?.status === "revoked" ? (
+        <p style={{ margin: "0 0 16px", fontSize: 14, lineHeight: 1.5, color: "#5C564B" }}>
+          {previous.status === "declined" ? "Your last application wasn’t approved. You can apply again." : "Your course rep access was removed. You can apply again."}
+        </p>
+      ) : null}
 
       <label style={fieldLabel} htmlFor="rep-name">Full name</label>
       <input id="rep-name" value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" style={plainInput} required />
