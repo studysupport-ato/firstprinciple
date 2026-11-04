@@ -374,6 +374,7 @@ function AddMaterialSheet({ course, onClose, onSaved }: { course: Course | null;
   const [how, setHow] = useState<"upload" | "link">("upload");
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
+  const [lecturer, setLecturer] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -384,6 +385,7 @@ function AddMaterialSheet({ course, onClose, onSaved }: { course: Course | null;
       setHow("upload");
       setTitle("");
       setUrl("");
+      setLecturer("");
       setFile(null);
       setProgress(null);
       setError(null);
@@ -403,10 +405,10 @@ function AddMaterialSheet({ course, onClose, onSaved }: { course: Course | null;
         if (!started.ok) throw new Error(started.error);
         setProgress(0);
         const fileId = await uploadToDrive(started.data.uploadUrl, file, setProgress);
-        const finished = await repFinishUploadAction({ courseId: course.id, kind: type === "books" ? "books" : "slides", fileId, title });
+        const finished = await repFinishUploadAction({ courseId: course.id, kind: type === "books" ? "books" : "slides", fileId, title, lecturer });
         if (!finished.ok) throw new Error(finished.error);
       } else {
-        const result = await repAddMaterialAction({ courseId: course.id, type, title, url });
+        const result = await repAddMaterialAction({ courseId: course.id, type, title, url, lecturer });
         if (!result.ok) throw new Error(result.error);
       }
       await onSaved();
@@ -459,6 +461,12 @@ function AddMaterialSheet({ course, onClose, onSaved }: { course: Course | null;
         ) : null}
         <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="m-title">Title</label>
         <input id="m-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={type === "youtube" ? "e.g. Chapter 1: Number systems" : type === "books" ? "e.g. Engineering Mathematics, K. A. Stroud" : "e.g. Lecture 3 · Logic gates"} style={inputStyle} required={!uploading} />
+        {type !== "youtube" ? (
+          <>
+            <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="m-lecturer">Lecturer (optional)</label>
+            <input id="m-lecturer" value={lecturer} onChange={(e) => setLecturer(e.target.value)} placeholder="e.g. Dr. Mensah" style={inputStyle} />
+          </>
+        ) : null}
         {!uploading ? (
           <>
             <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="m-url"><Link2 size={12} style={{ verticalAlign: -1 }} /> Link</label>

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { ArrowLeft, ArrowRight, Check, FileText, Lock, Phone, Sparkles, Upload, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bell, Check, FileText, Lock, Phone, Sparkles, Upload, X } from "lucide-react";
+import { RecentUploadsCard } from "./RecentUploads";
+import { canUseUploadPush, markAsked, permission, syncUploadPush, turnOnUploadPush, wasAsked } from "@/lib/courseReps/uploadPushClient";
 import { DepartmentDrawing } from "@/components/course-materials/DepartmentDrawing";
 import {
   HUB_SEMESTERS,
@@ -27,6 +29,20 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
   const data = useHubData();
   const { choice, setChoice, ready } = useHubChoice();
   const [picking, setPicking] = useState(false);
+  const [askPush, setAskPush] = useState(false);
+
+  // Notifications already allowed on this phone: keep them pointed at the chosen programme and year.
+  useEffect(() => {
+    if (ready && choice) void syncUploadPush(choice);
+  }, [ready, choice]);
+  // Picked a programme before this existed: ask once, shortly after the page opens.
+  useEffect(() => {
+    if (!ready || !choice) return;
+    const timer = window.setTimeout(() => {
+      if (canUseUploadPush() && permission() === "default" && !wasAsked()) setAskPush(true);
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [ready, choice]);
 
   const department = data.departments.find((d) => d.id === choice?.departmentId);
   const courses = useMemo(() => (choice ? coursesFor(data.entries, choice) : []), [data.entries, choice]);
@@ -66,6 +82,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                 </button>
               </BlueprintCard>
               <div className="qa-desktop-only" style={{ display: "flex", flexDirection: "column" }}>
+                <RecentUploadsCard departmentId={choice.departmentId} style={{ marginTop: 22 }} />
                 <ResourceCard />
                 <CourseRepCard />
               </div>
@@ -103,7 +120,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                     return course.kind === "link" ? (
                       <a key={course.id} href={course.url} target="_blank" rel="noopener noreferrer" className="hub-row hub-tap hub-dark-row" style={rowStyle}>{inner}</a>
                     ) : (
-                      <Link key={course.id} href={`/materials-hub?course=${encodeURIComponent(course.id)}${fresh ? "&view=slides" : ""}`} className="hub-row hub-tap hub-dark-row" style={rowStyle}>{inner}</Link>
+                      <Link key={course.id} href={`/materials-hub?course=${encodeURIComponent(course.id)}${fresh ? "&view=slides&folder=rep" : ""}`} className="hub-row hub-tap hub-dark-row" style={rowStyle}>{inner}</Link>
                     );
                   })}
                 </div>
@@ -113,6 +130,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                 </div>
               )}
               <div className="qa-phone-only" style={{ flexDirection: "column" }}>
+                <RecentUploadsCard departmentId={choice.departmentId} style={{ marginTop: 24 }} />
                 <ResourceCard />
                 <CourseRepCard />
               </div>
@@ -134,15 +152,63 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
           onDone={(next) => {
             setChoice(next);
             setPicking(false);
+            if (canUseUploadPush() && permission() === "default" && !wasAsked()) setAskPush(true);
           }}
         />
       ) : null}
-      {ready && choice && !picking ? <RepUploadAlert uploads={uploads} /> : null}
+      {askPush && choice ? <PushAsk choice={choice} programme={department?.name ?? "your programme"} onClose={() => setAskPush(false)} /> : null}
+      {ready && choice && !picking && !askPush ? <RepUploadAlert uploads={uploads} /> : null}
     </section>
   );
 }
 
 const NEW_GREEN = "#12804A";
+
+/* ─── "Know the moment your course rep uploads" ─────────────────────── */
+
+function PushAsk({ choice, programme, onClose }: { choice: HubChoice; programme: string; onClose: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const close = () => {
+    markAsked();
+    onClose();
+  };
+  const turnOn = async () => {
+    setBusy(true);
+    setError(null);
+    const result = await turnOnUploadPush(choice);
+    setBusy(false);
+    markAsked();
+    if (result.ok) {
+      setDone(true);
+      window.setTimeout(onClose, 1400);
+    } else setError(result.error);
+  };
+  return (
+    <Overlay>
+      <div role="dialog" aria-modal="true" aria-label="Turn on notifications" style={{ position: "fixed", inset: 0, zIndex: OVERLAY_Z, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, ...hubFont }}>
+        <button type="button" aria-label="Close" onClick={close} className="hub-fade" style={{ position: "absolute", inset: 0, border: 0, padding: 0, background: "rgba(14,13,11,.65)", cursor: "pointer" }} />
+        <div className="hub-sheet" style={{ position: "relative", width: "100%", maxWidth: 440, borderRadius: 28, background: "#14120E", border: `2px solid ${GOLD}`, color: CREAM, padding: "26px 22px 18px", boxShadow: "0 30px 70px rgba(0,0,0,.5)" }}>
+          <span style={{ width: 64, height: 64, borderRadius: 20, ...goldPlate, display: "flex", alignItems: "center", justifyContent: "center" }}><Bell size={30} strokeWidth={2.3} /></span>
+          <h2 style={{ margin: "18px 0 0", fontSize: 30, fontWeight: 900, lineHeight: 1.05, letterSpacing: "-.03em" }}>{done ? "You’re all set" : "Know the moment your course rep uploads"}</h2>
+          <p style={{ margin: "10px 0 0", fontSize: 16, lineHeight: 1.45, color: "rgba(246,239,220,.7)" }}>
+            {done ? "We’ll notify this phone when new materials land." : `We’ll send a notification to this phone for ${programme}, Year ${choice.year}. Nothing else.`}
+          </p>
+          {error ? <p role="alert" style={{ margin: "12px 0 0", fontSize: 14, fontWeight: 700, color: "#F08A80" }}>{error}</p> : null}
+          {!done ? (
+            <>
+              <button type="button" onClick={turnOn} disabled={busy} className="hub-tap hub-plate" style={{ marginTop: 22, width: "100%", height: 56, border: 0, borderRadius: 999, ...goldPlate, fontFamily: "inherit", fontSize: 18, fontWeight: 900, cursor: "pointer", opacity: busy ? 0.7 : 1 }}>
+                {busy ? "Turning on…" : "Turn on notifications"}
+              </button>
+              <button type="button" onClick={close} style={{ marginTop: 6, width: "100%", height: 48, border: 0, background: "transparent", color: "rgba(246,239,220,.7)", fontFamily: "inherit", fontSize: 15, fontWeight: 800, cursor: "pointer" }}>Not now</button>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </Overlay>
+  );
+}
 
 /* ─── "Your course rep just uploaded…" ─────────────────────────────── */
 
@@ -176,7 +242,7 @@ function RepUploadAlert({ uploads }: { uploads: RepUpload[] }) {
             {fresh.slice(0, 4).map((u) => (
               <Link
                 key={u.entry.id}
-                href={`/materials-hub?course=${encodeURIComponent(u.course.id)}&view=${kind(u) === "book" ? "books" : kind(u) === "video" ? "videos" : "slides"}`}
+                href={`/materials-hub?course=${encodeURIComponent(u.course.id)}&view=${kind(u) === "book" ? "books&folder=rep" : kind(u) === "video" ? "videos" : "slides&folder=rep"}`}
                 onClick={close}
                 className="hub-tap"
                 style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 14px", borderRadius: 18, background: "#fff", color: INK, textDecoration: "none" }}

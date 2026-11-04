@@ -374,3 +374,49 @@ export function timeAgo(iso: string) {
   const days = Math.round(hours / 24);
   return `${days} ${days === 1 ? "day" : "days"} ago`;
 }
+
+/* ─── Upload log for a programme ────────────────────────────────────── */
+
+export interface LoggedUpload {
+  entry: CourseMaterialEntry;
+  course: CourseMaterialEntry;
+  year: number | null;
+  kind: "slides" | "books" | "videos";
+}
+
+/** Everything course reps have added for a programme (all years), newest first. */
+export function programmeUploads(entries: CourseMaterialEntry[], departmentId: string, days = 60): LoggedUpload[] {
+  const since = Date.now() - days * 86_400_000;
+  const byId = new Map(entries.map((e) => [e.id, e]));
+  const out: LoggedUpload[] = [];
+  for (const entry of entries) {
+    if (!entry.fromRep || entry.departmentId !== departmentId || !isLive(entry) || !entry.parentId) continue;
+    if (getEntryType(entry) === "course" || Date.parse(entry.createdAt) < since) continue;
+    const course = byId.get(entry.parentId);
+    if (!course || !isLive(course)) continue;
+    const kind = entry.description === "book" ? "books" : entry.materialType === "playlist" || entry.materialType === "video" || entry.kind === "youtube" ? "videos" : "slides";
+    out.push({ entry, course, year: course.studyYear ?? entry.studyYear ?? null, kind });
+  }
+  return out.sort((a, b) => b.entry.createdAt.localeCompare(a.entry.createdAt));
+}
+
+/** "Today", "Yesterday", "This week" or "Earlier". */
+export function uploadDayGroup(iso: string) {
+  const d = new Date(iso);
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const t = d.getTime();
+  if (t >= start.getTime()) return "Today";
+  if (t >= start.getTime() - 86_400_000) return "Yesterday";
+  if (t >= start.getTime() - 6 * 86_400_000) return "This week";
+  return "Earlier";
+}
+
+/** "2:14 pm" today, "Mon" this week, "12 Oct" before that. */
+export function uploadTimeLabel(iso: string) {
+  const d = new Date(iso);
+  const group = uploadDayGroup(iso);
+  if (group === "Today" || group === "Yesterday") return d.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true });
+  if (group === "This week") return d.toLocaleDateString("en-GB", { weekday: "short" });
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}

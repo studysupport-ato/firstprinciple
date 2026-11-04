@@ -38,6 +38,9 @@ self.addEventListener("push", function (event) {
         if (typeof payload.badge === "string" && payload.badge.trim()) {
           badge = payload.badge.trim();
         }
+        if (typeof payload.url === "string" && payload.url.trim()) {
+          url = payload.url.trim();
+        }
         if (payload.data && typeof payload.data === "object") {
           if (typeof payload.data.url === "string") {
             url = payload.data.url;

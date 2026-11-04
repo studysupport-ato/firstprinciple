@@ -50,7 +50,7 @@ export async function repScopeAction(): Promise<RepResult<RepScope>> {
 export async function repCreateCourseAction(input: { semester: number; courseCode: string; courseTitle: string }): Promise<RepResult<{ id: string }>> {
   return run(async () => ({ id: (await repCreateCourse(input)).id }));
 }
-export async function repAddMaterialAction(input: { courseId: string; type: RepMaterialType; title: string; url: string }): Promise<RepResult<{ id: string }>> {
+export async function repAddMaterialAction(input: { courseId: string; type: RepMaterialType; title: string; url: string; lecturer?: string }): Promise<RepResult<{ id: string }>> {
   return run(async () => ({ id: (await repAddMaterial(input)).id }));
 }
 export async function repUpdateEntryAction(id: string, patch: { title?: string; url?: string; courseCode?: string }): Promise<RepResult<null>> {
@@ -84,7 +84,7 @@ export async function adminSetRepStatusAction(id: string, status: "approved" | "
 export async function repStartUploadAction(input: { courseId: string; fileName: string; fileType: string; size: number }): Promise<RepResult<{ uploadUrl: string }>> {
   return run(() => repStartUpload(input));
 }
-export async function repFinishUploadAction(input: { courseId: string; kind: UploadKind; fileId: string; title: string }): Promise<RepResult<{ id: string }>> {
+export async function repFinishUploadAction(input: { courseId: string; kind: UploadKind; fileId: string; title: string; lecturer?: string }): Promise<RepResult<{ id: string }>> {
   return run(async () => ({ id: (await repFinishUpload(input)).id }));
 }
 export async function repSetHiddenFilesAction(materialId: string, fileIds: string[]): Promise<RepResult<null>> {

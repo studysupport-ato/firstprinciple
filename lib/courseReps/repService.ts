@@ -18,6 +18,8 @@ import { getArkeselConfiguration } from "@/lib/smsCampaigns/config";
 import { submitArkeselSmsBatch } from "@/lib/smsCampaigns/arkeselProvider";
 import { courseUploadFolder, finishUpload, startUpload, trashUploadedFile } from "./googleDrive";
 import { parseDriveFileId, parseDriveFolderId } from "@/lib/site/materialsHub";
+import { notifyRepUpload } from "./uploadPush";
+import { after } from "next/server";
 
 if (typeof window !== "undefined") {
   throw new Error("lib/courseReps/repService.ts is server-only.");
@@ -188,6 +190,12 @@ export async function getRepScope(): Promise<RepScope> {
   return { rep, courses };
 }
 
+/** Who gave the slides, e.g. "Dr. Mensah" (optional). */
+function cleanLecturer(value?: string) {
+  const clean = (value ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
+  return clean || undefined;
+}
+
 async function markRep(id: string, rep: RepApplication) {
   await db().from("course_materials").update({ created_by_rep: rep.id }).eq("id", id);
 }
@@ -231,7 +239,7 @@ function materialFields(type: RepMaterialType, url: string) {
     : { materialType: "slides" as const, kind: "link" as const, description: undefined };
 }
 
-export async function repAddMaterial(input: { courseId: string; type: RepMaterialType; title: string; url: string }) {
+export async function repAddMaterial(input: { courseId: string; type: RepMaterialType; title: string; url: string; lecturer?: string }) {
   const rep = await requireApprovedRep();
   const course = await requireOwnCourse(rep, input.courseId);
   const title = input.title.trim();
@@ -246,9 +254,11 @@ export async function repAddMaterial(input: { courseId: string; type: RepMateria
     courseTitle: title,
     url: input.url.trim(),
     status: "published",
+    credit: cleanLecturer(input.lecturer),
     ...fields,
   });
   await markRep(created.id, rep);
+  after(() => notifyRepUpload({ departmentId: rep.departmentId, studyYear: rep.studyYear, courseId: course.id, courseTitle: course.courseTitle, title, kind: input.type === "youtube" ? "videos" : input.type }));
   return created;
 }
 
@@ -295,7 +305,7 @@ export async function repStartUpload(input: { courseId: string; fileName: string
   return { uploadUrl };
 }
 
-export async function repFinishUpload(input: { courseId: string; kind: UploadKind; fileId: string; title: string }) {
+export async function repFinishUpload(input: { courseId: string; kind: UploadKind; fileId: string; title: string; lecturer?: string }) {
   const rep = await requireApprovedRep();
   const course = await requireOwnCourse(rep, input.courseId);
   if (!course.driveFolderId) throw new RepAccessError("Start the upload again.");
@@ -313,8 +323,10 @@ export async function repFinishUpload(input: { courseId: string; kind: UploadKin
     materialType: input.kind === "books" ? "pdf" : "slides",
     description: input.kind === "books" ? "book" : undefined,
     kind: "link",
+    credit: cleanLecturer(input.lecturer),
   });
   await markRep(created.id, rep);
+  after(() => notifyRepUpload({ departmentId: rep.departmentId, studyYear: rep.studyYear, courseId: course.id, courseTitle: course.courseTitle, title, kind: input.kind }));
   return created;
 }
 

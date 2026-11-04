@@ -27,16 +27,17 @@ import { getEntryType, type CourseMaterialEntry } from "@/lib/courseMaterials";
 import { BROWN, CREAM, Overlay, OVERLAY_Z, Eyebrow, GOLD, HubStyles, INK, MUTED, Panel, Pill, RoundChevron, Sheet, SOFT, YT_RED, BlueprintCard, goldPlate, ROW_LINE, backButtonStyle, backLabelStyle, goldGround, hubFont, panelShadow } from "./ui";
 import { useHubChoice, useHubData } from "./useHub";
 import { SlideDeck, preloadSlides } from "./SlideDeck";
+import { RecentUploadsView } from "./RecentUploads";
 import { CourseYouTube } from "@/components/course-materials/CourseDetail";
 import { deriveMaterialType } from "@/lib/courseMaterialsDisplay";
 
-type View = "course" | "slides" | "videos" | "books";
+type View = "course" | "slides" | "videos" | "books" | "recent";
 
 export function MaterialsHubView() {
   const params = useSearchParams();
   const courseId = params.get("course") ?? "";
   const viewParam = params.get("view");
-  const view: View = viewParam === "slides" || viewParam === "videos" || viewParam === "books" ? viewParam : "course";
+  const view: View = viewParam === "slides" || viewParam === "videos" || viewParam === "books" || viewParam === "recent" ? viewParam : "course";
   const folderId = params.get("folder");
   const data = useHubData();
   const course = data.entries.find((e) => e.id === courseId && getEntryType(e) === "course");
@@ -54,22 +55,25 @@ export function MaterialsHubView() {
 .mh-wrap.mh-wide{max-width:1100px}
 .mh-wrap.mh-full{max-width:1600px}
 .mh-course{display:block}
+.mh-folders{margin-top:16px;display:flex;flex-direction:column;gap:14px}
 @media (min-width:1024px){
 .mh-wrap{padding:28px 40px 56px}
 .mh-course{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:28px;align-items:start}
 .mh-course .mh-course-right>p:first-child{margin-top:0 !important}
+.mh-folders{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);align-items:start}
 }
 `}</style>
       <div className={`mh-wrap ${view === "videos" ? "mh-full" : "mh-wide"}`}>
         {data.status === "loading" ? <p style={{ fontWeight: 700 }}>Loading…</p> : null}
         {data.status === "error" ? <p style={{ fontWeight: 700 }}>Course materials could not load. Refresh to try again.</p> : null}
-        {data.status === "ready" && !course ? (
+        {view === "recent" ? <RecentUploadsView /> : null}
+        {view !== "recent" && data.status === "ready" && !course ? (
           <div>
             <BackLink href="/">Home</BackLink>
             <p style={{ fontWeight: 700 }}>This course is not available.</p>
           </div>
         ) : null}
-        {course ? (
+        {course && view !== "recent" ? (
           view === "course" ? (
             <CourseView course={course} groups={groups} />
           ) : view === "slides" ? (
@@ -122,7 +126,7 @@ function CourseView({ course, groups }: { course: CourseMaterialEntry; groups: R
   const slidesCount = groups.slides.length;
   const repCount = [...groups.slides, ...groups.books, ...groups.videos].filter((m) => isNewRepUpload(m)).length;
   const rows: Array<{ view: View; title: string; sub: string; tile: React.ReactNode }> = [
-    { view: "slides", title: "Slides", sub: slidesCount ? (slidesCount === 1 && parseDriveFolderId(groups.slides[0].url) ? "PDF folder" : `${slidesCount} ${slidesCount === 1 ? "item" : "items"}`) : "Coming soon", tile: <Tile plate><FileText size={22} color={INK} strokeWidth={2.2} /></Tile> },
+    { view: "slides", title: "Slides", sub: slidesCount ? "Lecturer slides · Department slides" : "Coming soon", tile: <Tile plate><FileText size={22} color={INK} strokeWidth={2.2} /></Tile> },
     { view: "videos", title: "YouTube playlist", sub: groups.videos.length ? (groups.videos.every((v) => /^\s*chapter\s*\d/i.test(v.courseTitle)) ? `${groups.videos.length} ${groups.videos.length === 1 ? "chapter" : "chapters"}` : `${groups.videos.length} ${groups.videos.length === 1 ? "playlist" : "playlists"}`) : "Coming soon", tile: <Tile bg={YT_RED}><Play size={20} color="#fff" fill="#fff" /></Tile> },
     { view: "books", title: "Books", sub: groups.books.length ? `${groups.books.length} ${groups.books.length === 1 ? "book" : "books"}` : "Coming soon", tile: <Tile bg={CREAM}><BookOpen size={20} color={INK} strokeWidth={2.2} /></Tile> },
   ];
@@ -195,73 +199,157 @@ function Empty({ text }: { text: string }) {
 type DriveKind = "slides" | "books";
 const KIND_TITLE: Record<DriveKind, string> = { slides: "Slides", books: "Books" };
 
-/** Slides and books: Drive folders are listed and opened inside the site. */
+/**
+ * Slides and books come in two folders: the lecturer's slides that the course
+ * rep uploads (the main one), and the department's existing folder.
+ */
 function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; course: CourseMaterialEntry; slides: CourseMaterialEntry[]; folderId: string | null }) {
-  // One Drive folder: list its files straight away. A sub-folder: list that one.
-  const driveRoots = slides.map((s) => parseDriveFolderId(s.url)).filter((id): id is string => Boolean(id));
-  const activeFolder = folderId ?? (slides.length === 1 && driveRoots.length === 1 ? driveRoots[0] : null);
   const [viewing, setViewing] = useState<DriveItem | null>(null);
   useEffect(() => preloadSlides(), []);
+  const fromRep = useMemo(() => slides.filter((m) => m.fromRep).sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [slides]);
+  const bank = useMemo(() => slides.filter((m) => !m.fromRep), [slides]);
+  const noun = kind === "books" ? "books" : "slides";
+  const Noun = kind === "books" ? "Books" : "Slides";
+  const open = (fileId: string, name: string) => setViewing({ id: fileId, name, mimeType: "application/pdf", size: null, isFolder: false });
+  const viewer = viewing ? <PdfViewer item={viewing} courseCode={course.courseCode} onClose={() => setViewing(null)} /> : null;
 
-  if (activeFolder) {
+  // Inside the lecturer folder: everything the course rep has added.
+  if (folderId === REP_FOLDER) {
     return (
       <div className="hub-row">
-        <DriveFolder kind={kind} course={course} folderId={activeFolder} isRoot={!folderId} hidden={slides.flatMap((m) => m.hiddenFiles ?? [])} />
+        <ListHeader course={course} title={`Lecturer ${noun}`} sub={`Lecturer ${noun}`} back={<BackLink href={hubHref(course.id, kind)}>{Noun}</BackLink>}>
+          <p style={{ margin: "8px 0 0", fontSize: 12, fontWeight: 700, color: "rgba(246,239,220,.6)" }}>Uploaded by your course rep · {fromRep.length} {fromRep.length === 1 ? "file" : "files"}</p>
+        </ListHeader>
+        {fromRep.length ? <EntryRows list={fromRep} course={course} kind={kind} rep onOpen={open} /> : <Empty text={`Your course rep hasn’t uploaded ${noun} yet.`} />}
+        {viewer}
       </div>
     );
   }
+  // Inside the department folder: one Drive folder opens straight away; several are listed.
+  if (folderId === DEPT_FOLDER) {
+    const single = bank.length === 1 ? parseDriveFolderId(bank[0].url) : null;
+    if (single) {
+      return (
+        <div className="hub-row">
+          <DriveFolder kind={kind} course={course} folderId={single} isRoot={false} hidden={bank[0].hiddenFiles ?? []} />
+        </div>
+      );
+    }
+    return (
+      <div className="hub-row">
+        <ListHeader course={course} title={`Department ${noun}`} sub={`Department ${noun}`} back={<BackLink href={hubHref(course.id, kind)}>{Noun}</BackLink>} />
+        {bank.length ? <EntryRows list={bank} course={course} kind={kind} onOpen={open} /> : <Empty text={`No department ${noun} yet.`} />}
+        {viewer}
+      </div>
+    );
+  }
+  // A sub-folder opened from either folder.
+  if (folderId) {
+    return (
+      <div className="hub-row">
+        <DriveFolder kind={kind} course={course} folderId={folderId} isRoot={false} hidden={slides.flatMap((m) => m.hiddenFiles ?? [])} />
+      </div>
+    );
+  }
+
+  const fresh = fromRep.filter((m) => isNewRepUpload(m, 7)).length;
   return (
     <div className="hub-row">
-      <ListHeader course={course} title={KIND_TITLE[kind]} sub={slides.length ? `${slides.length} ${slides.length === 1 ? "item" : "items"}` : KIND_TITLE[kind]} />
-      {slides.length === 0 ? <Empty text={`Your course rep hasn’t uploaded ${kind === "books" ? "books" : "slides"} yet.`} /> : null}
-      {(() => {
-        const fromRep = slides.filter((m) => m.fromRep).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-        const bank = slides.filter((m) => !m.fromRep);
-        const rows = (list: CourseMaterialEntry[], rep: boolean) => (
-          <Panel style={{ marginTop: 10, ...(rep ? { border: "2px solid #12804A" } : {}) }}>
-            {list.map((s, i) => {
-              const folder = parseDriveFolderId(s.url);
-              const fileId = parseDriveFileId(s.url);
-              const fresh = isNewRepUpload(s);
-              const style = { display: "flex", alignItems: "center", gap: 14, minHeight: 64, padding: "10px 12px", borderBottom: i < list.length - 1 ? `1px solid ${ROW_LINE}` : "none", textDecoration: "none", animationDelay: `${i * 50}ms` } as const;
-              const body = (
-                <>
-                  <Tile bg={rep ? "#12804A" : "#2A251C"} size={40}>{folder ? <Folder size={18} color={rep ? "#fff" : GOLD} /> : <FileText size={18} color={rep ? "#fff" : GOLD} />}</Tile>
-                  <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-                    <span style={{ fontSize: 15, fontWeight: 800, color: CREAM }}>{s.courseTitle}</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>
-                      {fresh ? <span style={{ height: 18, padding: "0 7px", borderRadius: 999, background: "#12804A", color: "#fff", fontSize: 10, fontWeight: 900, letterSpacing: ".06em", display: "inline-flex", alignItems: "center" }}>NEW</span> : null}
-                      {rep ? `Course rep · ${timeAgo(s.createdAt)}` : folder ? "Folder" : fileId ? "PDF" : "Opens a link"}
-                    </span>
-                  </span>
-                  {folder || fileId ? <RoundChevron /> : <ExternalLink size={16} color="rgba(246,239,220,.55)" />}
-                </>
-              );
-              if (folder) return <Link key={s.id} href={hubHref(course.id, kind, folder)} className="hub-row hub-tap hub-dark-row" style={style}>{body}</Link>;
-              if (fileId) return <button key={s.id} type="button" onPointerEnter={() => preloadSlides(fileId)} onTouchStart={() => preloadSlides(fileId)} onClick={() => setViewing({ id: fileId, name: s.courseTitle, mimeType: "application/pdf", size: null, isFolder: false })} className="hub-row hub-tap hub-dark-row" style={{ ...style, width: "100%", border: 0, borderBottom: style.borderBottom, background: "transparent", textAlign: "left", fontFamily: "inherit", cursor: "pointer" }}>{body}</button>;
-              return <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer" className="hub-row hub-tap hub-dark-row" style={style}>{body}</a>;
-            })}
-          </Panel>
-        );
-        return (
+      <BackLink href={hubHref(course.id)}>{courseLabel(course)}</BackLink>
+      <h1 style={{ margin: "12px 0 0", fontSize: 36, fontWeight: 900, letterSpacing: "-.035em" }}>{Noun}</h1>
+      <div className="mh-folders">
+        {/* Main folder: the lecturer's slides, uploaded by the course rep. */}
+        <div style={{ borderRadius: 26, background: REP_GREEN, color: "#fff", overflow: "hidden", border: `2px solid ${GOLD}`, boxShadow: "0 20px 40px -16px rgba(18,128,74,.7)" }}>
+          <Link href={hubHref(course.id, kind, REP_FOLDER)} className="hub-tap" style={{ position: "relative", display: "block", padding: "20px 20px 16px", color: "#fff", textDecoration: "none" }}>
+            <span style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
+              <span style={{ width: 58, height: 58, flexShrink: 0, borderRadius: 17, ...goldPlate, display: "flex", alignItems: "center", justifyContent: "center" }}><Folder size={28} color={INK} strokeWidth={2.2} /></span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 22, fontWeight: 900, lineHeight: 1.1 }}>Lecturer {noun}</span>
+                <span style={{ display: "block", marginTop: 3, fontSize: 13, fontWeight: 700, opacity: 0.85 }}>Uploaded by your course rep · {fromRep.length} {fromRep.length === 1 ? "file" : "files"}</span>
+              </span>
+            </span>
+            {fresh ? <span style={{ position: "relative", display: "inline-flex", marginTop: 12, height: 26, alignItems: "center", padding: "0 10px", borderRadius: 999, background: GOLD, color: INK, fontSize: 11, fontWeight: 900, letterSpacing: ".05em" }}>{fresh} NEW THIS WEEK</span> : null}
+          </Link>
+          <div style={{ background: "rgba(0,0,0,.18)" }}>
+            {fromRep.length === 0 ? (
+              <p style={{ margin: 0, padding: "14px 20px 16px", borderTop: "1px solid rgba(255,255,255,.12)", fontSize: 14, fontWeight: 700, opacity: 0.85 }}>Nothing yet. Your course rep’s uploads land here.</p>
+            ) : (
+              <>
+                {fromRep.slice(0, 3).map((m) => {
+                  const fileId = parseDriveFileId(m.url);
+                  const isNew = isNewRepUpload(m, 7);
+                  const body = (
+                    <>
+                      <span style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 11, background: "#fff", color: REP_GREEN, display: "flex", alignItems: "center", justifyContent: "center" }}><FileText size={18} /></span>
+                      <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
+                        <span style={{ fontSize: 15.5, fontWeight: 800 }}>{m.courseTitle}</span>
+                        <span style={{ fontSize: 12, opacity: 0.8 }}>
+                          {isNew ? <b style={{ background: GOLD, color: INK, padding: "1px 6px", borderRadius: 999, fontSize: 10, marginRight: 6 }}>NEW</b> : null}
+                          {[timeAgo(m.createdAt), m.credit].filter(Boolean).join(" · ")}
+                        </span>
+                      </span>
+                      <span aria-hidden style={{ fontSize: 20 }}>›</span>
+                    </>
+                  );
+                  const rowStyle = { display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 18px", border: 0, borderTop: "1px solid rgba(255,255,255,.12)", background: "transparent", color: "#fff", textAlign: "left", fontFamily: "inherit", cursor: "pointer", textDecoration: "none" } as const;
+                  return fileId ? (
+                    <button key={m.id} type="button" onPointerEnter={() => preloadSlides(fileId)} onTouchStart={() => preloadSlides(fileId)} onClick={() => open(fileId, m.courseTitle)} className="hub-tap" style={rowStyle}>{body}</button>
+                  ) : (
+                    <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer" className="hub-tap" style={rowStyle}>{body}</a>
+                  );
+                })}
+                <Link href={hubHref(course.id, kind, REP_FOLDER)} className="hub-tap" style={{ display: "block", padding: "13px 20px", borderTop: "1px solid rgba(255,255,255,.12)", color: "#fff", fontSize: 14, fontWeight: 900, textDecoration: "none" }}>Open folder · {fromRep.length} {fromRep.length === 1 ? "file" : "files"} →</Link>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Second folder: what the department already shared. */}
+        <Link href={hubHref(course.id, kind, DEPT_FOLDER)} className="hub-row hub-tap hub-dark-row" style={{ display: "flex", alignItems: "center", gap: 14, minHeight: 84, padding: "14px 16px", borderRadius: 22, background: INK, border: "1px solid rgba(233,188,58,.28)", boxShadow: panelShadow, color: CREAM, textDecoration: "none", alignSelf: "start" }}>
+          <Tile bg="#2A251C" size={50}><Folder size={24} color={GOLD} /></Tile>
+          <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+            <span style={{ fontSize: 18, fontWeight: 800 }}>Department {noun}</span>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: "rgba(246,239,220,.55)" }}>{bank.length ? "From the department’s folder" : "Nothing here yet"}</span>
+          </span>
+          <RoundChevron />
+        </Link>
+      </div>
+      {viewer}
+    </div>
+  );
+}
+
+const REP_FOLDER = "rep";
+const DEPT_FOLDER = "dept";
+const REP_GREEN = "#12804A";
+
+/** A plain list of material entries (files, folders or links). */
+function EntryRows({ list, course, kind, rep = false, onOpen }: { list: CourseMaterialEntry[]; course: CourseMaterialEntry; kind: DriveKind; rep?: boolean; onOpen: (fileId: string, name: string) => void }) {
+  return (
+    <Panel style={{ marginTop: 14, ...(rep ? { border: `2px solid ${REP_GREEN}` } : {}) }}>
+      {list.map((s, i) => {
+        const folder = parseDriveFolderId(s.url);
+        const fileId = parseDriveFileId(s.url);
+        const fresh = isNewRepUpload(s, 7);
+        const style = { display: "flex", alignItems: "center", gap: 14, minHeight: 64, padding: "10px 12px", borderBottom: i < list.length - 1 ? `1px solid ${ROW_LINE}` : "none", textDecoration: "none", animationDelay: `${Math.min(i, 12) * 40}ms` } as const;
+        const body = (
           <>
-            {fromRep.length ? (
-              <>
-                <SectionLabel color="#12804A">Uploaded by your course rep</SectionLabel>
-                {rows(fromRep, true)}
-              </>
-            ) : null}
-            {bank.length ? (
-              <>
-                {fromRep.length ? <SectionLabel>Slide bank</SectionLabel> : <div style={{ height: 6 }} />}
-                {rows(bank, false)}
-              </>
-            ) : null}
+            <Tile bg={rep ? REP_GREEN : "#2A251C"} size={40}>{folder ? <Folder size={18} color={rep ? "#fff" : GOLD} /> : <FileText size={18} color={rep ? "#fff" : GOLD} />}</Tile>
+            <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+              <span style={{ fontSize: 15, fontWeight: 800, color: CREAM }}>{s.courseTitle}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>
+                {fresh ? <span style={{ height: 18, padding: "0 7px", borderRadius: 999, background: REP_GREEN, color: "#fff", fontSize: 10, fontWeight: 900, letterSpacing: ".06em", display: "inline-flex", alignItems: "center" }}>NEW</span> : null}
+                {rep ? [timeAgo(s.createdAt), s.credit].filter(Boolean).join(" · ") : folder ? "Folder" : fileId ? "PDF" : "Opens a link"}
+              </span>
+            </span>
+            {folder || fileId ? <RoundChevron /> : <ExternalLink size={16} color="rgba(246,239,220,.55)" />}
           </>
         );
-      })()}
-      {viewing ? <PdfViewer item={viewing} courseCode={course.courseCode} onClose={() => setViewing(null)} /> : null}
-    </div>
+        if (folder) return <Link key={s.id} href={hubHref(course.id, kind, folder)} className="hub-row hub-tap hub-dark-row" style={style}>{body}</Link>;
+        if (fileId) return <button key={s.id} type="button" onPointerEnter={() => preloadSlides(fileId)} onTouchStart={() => preloadSlides(fileId)} onClick={() => onOpen(fileId, s.courseTitle)} className="hub-row hub-tap hub-dark-row" style={{ ...style, width: "100%", border: 0, borderBottom: style.borderBottom, background: "transparent", textAlign: "left", fontFamily: "inherit", cursor: "pointer" }}>{body}</button>;
+        return <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer" className="hub-row hub-tap hub-dark-row" style={style}>{body}</a>;
+      })}
+    </Panel>
   );
 }
 
