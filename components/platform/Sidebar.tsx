@@ -8,7 +8,7 @@ import {
   Library,
   CircleHelp,
   Cpu,
-  UserCheck,
+  House,
   LogIn,
   LogOut,
   MonitorPlay,
@@ -40,6 +40,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, onSign
   const compact = collapsed && !mobileOpen;
 
   const isActive = (path: string) => {
+    if (path === "/") return pathname === "/";
     if (path === "/dashboard") return pathname === "/dashboard";
     // The general-courses playlist has its own menu item.
     if (path === "/course-materials") return pathname.startsWith(path) && !pathname.startsWith("/course-materials/general");
@@ -78,6 +79,10 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, onSign
       <div className="no-scrollbar flex-1 overflow-y-auto">
         <nav className="flex flex-col gap-0.5">
           {!compact && <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#F6EFDC]/30">Menu</div>}
+          <Link href="/" onClick={onMobileClose} className={navItemClass("/")} title="Home: your course materials">
+            <House size={19} strokeWidth={2.5} />
+            {!compact && <span>Home</span>}
+          </Link>
           <Link href="/dashboard" onClick={onMobileClose} className={navItemClass("/dashboard")} title="Dashboard">
             <Compass size={19} strokeWidth={2.5} />
             {!compact && <span>Dashboard</span>}
@@ -102,10 +107,6 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, onSign
           <Link href="/questions" onClick={onMobileClose} data-tour="questions" className={navItemClass("/questions")} title="Questions">
             <CircleHelp size={19} strokeWidth={2.5} />
             {!compact && <span>Questions</span>}
-          </Link>
-          <Link href="/course-rep" onClick={onMobileClose} className={navItemClass("/course-rep")} title="Course reps">
-            <UserCheck size={19} strokeWidth={2.5} />
-            {!compact && <span>Course reps</span>}
           </Link>
           <Link href="/skills-workshop" onClick={onMobileClose} className={navItemClass("/skills-workshop")} title="Skills Workshop">
             <Cpu size={19} strokeWidth={2.5} />

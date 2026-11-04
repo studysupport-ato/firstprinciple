@@ -48,6 +48,8 @@ export interface CourseMaterialsDepartment {
 
 export interface CourseMaterialEntry {
   id: string;
+  /** Added by an approved course rep (not part of the existing bank). */
+  fromRep?: boolean;
   departmentId: string;
   courseCode?: string;
   courseTitle: string;

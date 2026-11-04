@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, BookOpen, Eye, EyeOff, FileText, Folder, Link2, Lock, Pencil, Play, Plus, Trash2, Upload } from "lucide-react";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { useAuthSession } from "@/lib/auth/useAuthSession";
-import { availableDepartments, formatBytes, listDriveFolder, monogram, parseDriveFolderId, tidyFileName, type DriveItem } from "@/lib/site/materialsHub";
+import { availableDepartments, formatBytes, listDriveFolder, parseDriveFolderId, tidyFileName, type DriveItem } from "@/lib/site/materialsHub";
 import type { CourseMaterialEntry } from "@/lib/courseMaterials";
 import {
   applyAsRepAction,
@@ -264,12 +264,10 @@ function RepPanel() {
       {courses.length ? (
         <Panel style={{ marginTop: 12 }}>
           {courses.map((c, i) => {
-            const [prefix, number] = splitCode(c.courseCode, c.courseTitle);
             return (
               <button key={c.id} type="button" onClick={() => setOpenCourse(c.id)} className="hub-tap hub-dark-row" style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, minHeight: 72, padding: "12px 14px", border: 0, borderBottom: i < courses.length - 1 ? `1px solid ${ROW_LINE}` : "none", background: "transparent", textAlign: "left", fontFamily: "inherit", cursor: "pointer" }}>
-                <span style={{ width: 48, height: 48, flexShrink: 0, borderRadius: 14, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1, ...goldPlate }}>
-                  <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: ".08em", opacity: 0.7 }}>{prefix}</span>
-                  <span style={{ fontSize: number.length > 3 ? 13 : 17, fontWeight: 900 }}>{number}</span>
+                <span style={{ width: 48, height: 48, flexShrink: 0, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", ...goldPlate }}>
+                  <FileText size={20} strokeWidth={2.3} aria-hidden />
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 15, fontWeight: 700, color: CREAM }}>{c.courseTitle}</span>
@@ -293,10 +291,6 @@ function RepPanel() {
 const smallGhost: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, height: 32, padding: "0 12px", borderRadius: 999, border: "1px solid rgba(233,188,58,.45)", background: "transparent", color: GOLD, fontFamily: "inherit", fontSize: 12, fontWeight: 800, cursor: "pointer" };
 const iconButton: React.CSSProperties = { width: 38, height: 38, flexShrink: 0, borderRadius: 999, border: "1px solid rgba(233,188,58,.3)", background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" };
 
-function splitCode(code: string | undefined, title: string): [string, string] {
-  const match = code?.match(/^([A-Za-z]+)\s*(\d+)/);
-  return match ? [match[1].toUpperCase(), match[2]] : ["", monogram(title)];
-}
 
 function linkKind(url: string) {
   if (/drive\.google\.com\/(drive\/)?(u\/\d+\/)?folders/i.test(url)) return "Drive folder";

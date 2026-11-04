@@ -315,3 +315,62 @@ export function formatBytes(bytes: number | null) {
 export function isDownloadable(item: DriveItem) {
   return !item.isFolder && !item.mimeType.startsWith("application/vnd.google-apps.");
 }
+
+/* ─── New from course reps ──────────────────────────────────────────── */
+
+export const REP_NEW_DAYS = 14;
+const SEEN_KEY = "b2b.repUploadsSeen.v1";
+
+export interface RepUpload {
+  entry: CourseMaterialEntry;
+  course: HubCourse;
+}
+
+/** Slides and books course reps added recently to the student's courses, newest first. */
+export function recentRepUploads(entries: CourseMaterialEntry[], courses: HubCourse[], days = REP_NEW_DAYS): RepUpload[] {
+  const since = Date.now() - days * 86_400_000;
+  const out: RepUpload[] = [];
+  for (const course of courses) {
+    if (course.kind !== "course") continue;
+    for (const entry of entries) {
+      if (entry.parentId !== course.id || !entry.fromRep || !isLive(entry)) continue;
+      if (getEntryType(entry) === "course") continue;
+      if (Date.parse(entry.createdAt) < since) continue;
+      out.push({ entry, course });
+    }
+  }
+  return out.sort((a, b) => b.entry.createdAt.localeCompare(a.entry.createdAt));
+}
+
+export function isNewRepUpload(entry: CourseMaterialEntry, days = REP_NEW_DAYS) {
+  return Boolean(entry.fromRep) && Date.parse(entry.createdAt) >= Date.now() - days * 86_400_000;
+}
+
+export function readSeenUploads(): string[] {
+  try {
+    const raw = JSON.parse(window.localStorage.getItem(SEEN_KEY) ?? "[]");
+    return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export function markUploadsSeen(ids: string[]) {
+  try {
+    const next = Array.from(new Set([...readSeenUploads(), ...ids])).slice(-300);
+    window.localStorage.setItem(SEEN_KEY, JSON.stringify(next));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/** "just now", "3 hours ago", "2 days ago". */
+export function timeAgo(iso: string) {
+  const mins = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
+  if (mins < 2) return "just now";
+  if (mins < 60) return `${mins} minutes ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  const days = Math.round(hours / 24);
+  return `${days} ${days === 1 ? "day" : "days"} ago`;
+}

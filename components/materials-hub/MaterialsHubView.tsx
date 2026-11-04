@@ -14,6 +14,8 @@ import {
   generalTwin,
   groupCourseMaterials,
   isDownloadable,
+  isNewRepUpload,
+  timeAgo,
   listDriveFolder,
   parseDriveFileId,
   parseDriveFolderId,
@@ -107,6 +109,7 @@ function CourseView({ course, groups }: { course: CourseMaterialEntry; groups: R
   const data = useHubData();
   const department = data.departments.find((d) => d.id === choice?.departmentId);
   const slidesCount = groups.slides.length;
+  const repCount = [...groups.slides, ...groups.books, ...groups.videos].filter((m) => isNewRepUpload(m)).length;
   const rows: Array<{ view: View; title: string; sub: string; tile: React.ReactNode }> = [
     { view: "slides", title: "Slides", sub: slidesCount ? (slidesCount === 1 && parseDriveFolderId(groups.slides[0].url) ? "PDF folder" : `${slidesCount} ${slidesCount === 1 ? "item" : "items"}`) : "Coming soon", tile: <Tile plate><FileText size={22} color={INK} strokeWidth={2.2} /></Tile> },
     { view: "videos", title: "YouTube playlist", sub: groups.videos.length ? (groups.videos.every((v) => /^\s*chapter\s*\d/i.test(v.courseTitle)) ? `${groups.videos.length} ${groups.videos.length === 1 ? "chapter" : "chapters"}` : `${groups.videos.length} ${groups.videos.length === 1 ? "playlist" : "playlists"}`) : "Coming soon", tile: <Tile bg={YT_RED}><Play size={20} color="#fff" fill="#fff" /></Tile> },
@@ -118,7 +121,9 @@ function CourseView({ course, groups }: { course: CourseMaterialEntry; groups: R
       <BlueprintCard department={department?.name} style={{ marginTop: 10 }}>
         {course.courseCode ? <span style={{ display: "inline-flex", alignItems: "center", height: 24, padding: "0 9px", borderRadius: 7, ...goldPlate, fontSize: 11, fontWeight: 900, letterSpacing: ".06em" }}>{course.courseCode}</span> : null}
         <h1 style={{ margin: course.courseCode ? "14px 0 0" : 0, maxWidth: "58%", fontSize: 32, fontWeight: 800, letterSpacing: "-.035em", lineHeight: 1, color: CREAM }}>{course.courseTitle}</h1>
-        <p style={{ margin: "10px 0 0", maxWidth: "62%", fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.6)" }}>Uploaded by your course rep</p>
+        {repCount ? (
+          <span style={{ marginTop: 12, display: "inline-flex", alignItems: "center", height: 26, padding: "0 10px", borderRadius: 999, background: "#12804A", color: "#fff", fontSize: 11, fontWeight: 900, letterSpacing: ".05em" }}>{repCount} NEW FROM YOUR COURSE REP</span>
+        ) : null}
       </BlueprintCard>
       <Eyebrow style={{ margin: "24px 4px 10px", color: "rgba(26,24,20,.65)" }}>Materials</Eyebrow>
       <Panel>
@@ -193,30 +198,63 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
     <div className="hub-row">
       <ListHeader course={course} title={KIND_TITLE[kind]} sub={slides.length ? `${slides.length} ${slides.length === 1 ? "item" : "items"}` : KIND_TITLE[kind]} />
       {slides.length === 0 ? <Empty text={`Your course rep hasn’t uploaded ${kind === "books" ? "books" : "slides"} yet.`} /> : null}
-      {slides.length ? (
-        <Panel style={{ marginTop: 16 }}>
-          {slides.map((s, i) => {
-            const folder = parseDriveFolderId(s.url);
-            const fileId = parseDriveFileId(s.url);
-            const style = { display: "flex", alignItems: "center", gap: 14, minHeight: 64, padding: "10px 12px", borderBottom: i < slides.length - 1 ? `1px solid ${ROW_LINE}` : "none", textDecoration: "none", animationDelay: `${i * 50}ms` } as const;
-            const body = (
+      {(() => {
+        const fromRep = slides.filter((m) => m.fromRep).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        const bank = slides.filter((m) => !m.fromRep);
+        const rows = (list: CourseMaterialEntry[], rep: boolean) => (
+          <Panel style={{ marginTop: 10, ...(rep ? { border: "2px solid #12804A" } : {}) }}>
+            {list.map((s, i) => {
+              const folder = parseDriveFolderId(s.url);
+              const fileId = parseDriveFileId(s.url);
+              const fresh = isNewRepUpload(s);
+              const style = { display: "flex", alignItems: "center", gap: 14, minHeight: 64, padding: "10px 12px", borderBottom: i < list.length - 1 ? `1px solid ${ROW_LINE}` : "none", textDecoration: "none", animationDelay: `${i * 50}ms` } as const;
+              const body = (
+                <>
+                  <Tile bg={rep ? "#12804A" : "#2A251C"} size={40}>{folder ? <Folder size={18} color={rep ? "#fff" : GOLD} /> : <FileText size={18} color={rep ? "#fff" : GOLD} />}</Tile>
+                  <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+                    <span style={{ fontSize: 15, fontWeight: 800, color: CREAM }}>{s.courseTitle}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>
+                      {fresh ? <span style={{ height: 18, padding: "0 7px", borderRadius: 999, background: "#12804A", color: "#fff", fontSize: 10, fontWeight: 900, letterSpacing: ".06em", display: "inline-flex", alignItems: "center" }}>NEW</span> : null}
+                      {rep ? `Course rep · ${timeAgo(s.createdAt)}` : folder ? "Folder" : fileId ? "PDF" : "Opens a link"}
+                    </span>
+                  </span>
+                  {folder || fileId ? <RoundChevron /> : <ExternalLink size={16} color="rgba(246,239,220,.55)" />}
+                </>
+              );
+              if (folder) return <Link key={s.id} href={hubHref(course.id, kind, folder)} className="hub-row hub-tap hub-dark-row" style={style}>{body}</Link>;
+              if (fileId) return <button key={s.id} type="button" onClick={() => setViewing({ id: fileId, name: s.courseTitle, mimeType: "application/pdf", size: null, isFolder: false })} className="hub-row hub-tap hub-dark-row" style={{ ...style, width: "100%", border: 0, borderBottom: style.borderBottom, background: "transparent", textAlign: "left", fontFamily: "inherit", cursor: "pointer" }}>{body}</button>;
+              return <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer" className="hub-row hub-tap hub-dark-row" style={style}>{body}</a>;
+            })}
+          </Panel>
+        );
+        return (
+          <>
+            {fromRep.length ? (
               <>
-                <Tile bg="#2A251C" size={40}>{folder ? <Folder size={18} color={GOLD} /> : <FileText size={18} color={GOLD} />}</Tile>
-                <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-                  <span style={{ fontSize: 15, fontWeight: 800, color: CREAM }}>{s.courseTitle}</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>{folder ? "Folder" : fileId ? "PDF" : "Opens a link"}</span>
-                </span>
-                {folder || fileId ? <RoundChevron /> : <ExternalLink size={16} color="rgba(246,239,220,.55)" />}
+                <SectionLabel color="#12804A">Uploaded by your course rep</SectionLabel>
+                {rows(fromRep, true)}
               </>
-            );
-            if (folder) return <Link key={s.id} href={hubHref(course.id, kind, folder)} className="hub-row hub-tap hub-dark-row" style={style}>{body}</Link>;
-            if (fileId) return <button key={s.id} type="button" onClick={() => setViewing({ id: fileId, name: s.courseTitle, mimeType: "application/pdf", size: null, isFolder: false })} className="hub-row hub-tap hub-dark-row" style={{ ...style, width: "100%", border: 0, borderBottom: style.borderBottom, background: "transparent", textAlign: "left", fontFamily: "inherit", cursor: "pointer" }}>{body}</button>;
-            return <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer" className="hub-row hub-tap hub-dark-row" style={style}>{body}</a>;
-          })}
-        </Panel>
-      ) : null}
+            ) : null}
+            {bank.length ? (
+              <>
+                {fromRep.length ? <SectionLabel>Slide bank</SectionLabel> : <div style={{ height: 6 }} />}
+                {rows(bank, false)}
+              </>
+            ) : null}
+          </>
+        );
+      })()}
       {viewing ? <PdfViewer item={viewing} courseCode={course.courseCode} onClose={() => setViewing(null)} /> : null}
     </div>
+  );
+}
+
+function SectionLabel({ children, color }: { children: React.ReactNode; color?: string }) {
+  return (
+    <p style={{ margin: "22px 4px 0", display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 900, letterSpacing: ".14em", textTransform: "uppercase", color: color ?? "rgba(26,24,20,.65)" }}>
+      <span aria-hidden style={{ width: 10, height: 10, borderRadius: 999, background: color ?? "rgba(26,24,20,.45)" }} />
+      {children}
+    </p>
   );
 }
 

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState, type CSSProperties } from "react";
-import { ArrowLeft, ArrowRight, Check, Lock, Phone, Upload } from "lucide-react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { ArrowLeft, ArrowRight, Check, FileText, Lock, Phone, Sparkles, Upload, X } from "lucide-react";
 import { DepartmentDrawing } from "@/components/course-materials/DepartmentDrawing";
 import {
   HUB_SEMESTERS,
@@ -12,30 +12,33 @@ import {
   availableDepartments,
   coursesFor,
   hasAnything,
-  monogram,
+  markUploadsSeen,
+  readSeenUploads,
+  recentRepUploads,
+  timeAgo,
   type HubChoice,
+  type RepUpload,
 } from "@/lib/site/materialsHub";
 import type { CourseMaterialSemester, CourseMaterialYear, CourseMaterialsDepartment, CourseMaterialEntry } from "@/lib/courseMaterials";
-import { CREAM, GOLD, HubStyles, INK, Pill, RoundChevron, goldGround, hubFont, BlueprintCard, Eyebrow, goldPlate, panelShadow, ROW_LINE } from "./ui";
+import { CREAM, GOLD, HubStyles, INK, OVERLAY_Z, Overlay, Pill, RoundChevron, goldGround, hubFont, BlueprintCard, Eyebrow, goldPlate, panelShadow, ROW_LINE } from "./ui";
 import { useHubChoice, useHubData } from "./useHub";
 
 export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: boolean }) {
   const data = useHubData();
   const { choice, setChoice, ready } = useHubChoice();
   const [picking, setPicking] = useState(false);
-  const pickerRef = useRef<HTMLDivElement>(null);
 
   const department = data.departments.find((d) => d.id === choice?.departmentId);
   const courses = useMemo(() => (choice ? coursesFor(data.entries, choice) : []), [data.entries, choice]);
-  const hasChoice = Boolean(choice && department);
-
-  const startPicking = () => {
-    setPicking(true);
-    window.setTimeout(() => pickerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
-  };
+  const uploads = useMemo(() => recentRepUploads(data.entries, courses), [data.entries, courses]);
+  const newByCourse = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const u of uploads) map.set(u.course.id, (map.get(u.course.id) ?? 0) + 1);
+    return map;
+  }, [uploads]);
 
   return (
-    <section aria-label="Your course materials" style={{ ...goldGround, ...hubFont, color: INK, position: "relative", overflow: "hidden" }}>
+    <section id="materials" aria-label="Your course materials" style={{ ...goldGround, ...hubFont, color: INK, position: "relative", overflow: "hidden", scrollMarginTop: 70 }}>
       <HubStyles />
       <QuickStyles />
       {adminPreview ? (
@@ -46,40 +49,9 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
       <BackgroundDrawings />
 
       <div className="qa-wrap">
-        {!ready ? null : !hasChoice ? (
-          <>
-            {!picking ? <Hero onStart={startPicking} /> : null}
-            {picking ? (
-              <div ref={pickerRef} style={{ scrollMarginTop: 80 }}>
-                <InlinePicker
-                  departments={availableDepartments(data.departments)}
-                  entries={data.entries}
-                  loading={data.status === "loading"}
-                  initial={choice}
-                  onCancel={() => setPicking(false)}
-                  onDone={(next) => {
-                    setChoice(next);
-                    setPicking(false);
-                  }}
-                />
-              </div>
-            ) : null}
-          </>
-        ) : picking ? (
-          <div ref={pickerRef} style={{ scrollMarginTop: 80 }}>
-            <InlinePicker
-              departments={availableDepartments(data.departments)}
-              entries={data.entries}
-              loading={false}
-              initial={choice}
-              onCancel={() => setPicking(false)}
-              onDone={(next) => {
-                setChoice(next);
-                setPicking(false);
-              }}
-            />
-          </div>
-        ) : choice && department ? (
+        {!ready ? null : !(choice && department) ? (
+          <Hero onStart={() => setPicking(true)} />
+        ) : (
           <div className="qa-side">
             <div className="qa-left">
               <BlueprintCard department={department.name} style={{ minHeight: 210 }}>
@@ -89,7 +61,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                   <Pill gold>Year {choice.year}</Pill>
                   <Pill gold>Semester {choice.semester}</Pill>
                 </div>
-                <button type="button" onClick={startPicking} style={{ marginTop: 10, minHeight: 36, border: 0, background: "none", padding: 0, fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: GOLD, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}>
+                <button type="button" onClick={() => setPicking(true)} style={{ marginTop: 10, minHeight: 36, border: 0, background: "none", padding: 0, fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: GOLD, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}>
                   Change
                 </button>
               </BlueprintCard>
@@ -108,25 +80,30 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
               {courses.length ? (
                 <div className="qa-courses">
                   {courses.map((course, i) => {
-                    const [prefix, number] = splitCode(course.code, course.title);
+                    const fresh = newByCourse.get(course.id) ?? 0;
                     const inner = (
                       <>
-                        <span style={{ width: 50, height: 50, flexShrink: 0, borderRadius: 14, ...goldPlate, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
-                          <span style={{ fontSize: 8, fontWeight: 900, letterSpacing: ".08em", color: "rgba(26,24,20,.7)" }}>{prefix}</span>
-                          <span style={{ fontSize: number.length > 3 ? 13 : 17, fontWeight: 900, letterSpacing: "-.02em", marginTop: 2 }}>{number}</span>
+                        <span style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 14, ...goldPlate, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <FileText size={20} strokeWidth={2.3} aria-hidden />
                         </span>
-                        <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
+                        <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
                           <span style={{ fontSize: 16, fontWeight: 800, color: CREAM, letterSpacing: "-.01em" }}>{course.title}</span>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>{course.kind === "link" ? linkLabel(course.url) : course.general ? "General course" : "Slides · Videos · Books"}</span>
+                          {fresh ? (
+                            <span style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, height: 22, padding: "0 9px", borderRadius: 999, background: NEW_GREEN, color: "#fff", fontSize: 11, fontWeight: 900, letterSpacing: ".04em" }}>
+                              <Sparkles size={11} strokeWidth={2.6} aria-hidden /> {fresh} NEW FROM COURSE REP
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>{course.kind === "link" ? linkLabel(course.url) : course.general ? "General course" : "Slides · Videos · Books"}</span>
+                          )}
                         </span>
                         <RoundChevron />
                       </>
                     );
-                    const rowStyle = { display: "flex", alignItems: "center", gap: 14, minHeight: 80, padding: "12px 14px", borderRadius: 22, background: INK, border: "1px solid rgba(233,188,58,.28)", boxShadow: panelShadow, textDecoration: "none", animationDelay: `${Math.min(i, 10) * 60}ms` } as const;
+                    const rowStyle = { display: "flex", alignItems: "center", gap: 14, minHeight: 80, padding: "12px 14px", borderRadius: 22, background: INK, border: fresh ? `2px solid ${NEW_GREEN}` : "1px solid rgba(233,188,58,.28)", boxShadow: panelShadow, textDecoration: "none", animationDelay: `${Math.min(i, 10) * 60}ms` } as const;
                     return course.kind === "link" ? (
                       <a key={course.id} href={course.url} target="_blank" rel="noopener noreferrer" className="hub-row hub-tap hub-dark-row" style={rowStyle}>{inner}</a>
                     ) : (
-                      <Link key={course.id} href={`/materials-hub?course=${encodeURIComponent(course.id)}`} className="hub-row hub-tap hub-dark-row" style={rowStyle}>{inner}</Link>
+                      <Link key={course.id} href={`/materials-hub?course=${encodeURIComponent(course.id)}${fresh ? "&view=slides" : ""}`} className="hub-row hub-tap hub-dark-row" style={rowStyle}>{inner}</Link>
                     );
                   })}
                 </div>
@@ -141,11 +118,89 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
               </div>
             </div>
           </div>
-        ) : data.status === "error" ? (
-          <p style={{ margin: 0, padding: "18px 0", textAlign: "center", fontSize: 14, fontWeight: 700 }}>Course materials could not load. Refresh to try again.</p>
+        )}
+        {data.status === "error" ? (
+          <p style={{ margin: "16px 0 0", textAlign: "center", fontSize: 14, fontWeight: 700 }}>Course materials could not load. Refresh to try again.</p>
         ) : null}
       </div>
+
+      {picking ? (
+        <PickerPopup
+          departments={availableDepartments(data.departments)}
+          entries={data.entries}
+          loading={data.status === "loading"}
+          initial={choice}
+          onClose={() => setPicking(false)}
+          onDone={(next) => {
+            setChoice(next);
+            setPicking(false);
+          }}
+        />
+      ) : null}
+      {ready && choice && !picking ? <RepUploadAlert uploads={uploads} /> : null}
     </section>
+  );
+}
+
+const NEW_GREEN = "#12804A";
+
+/* ─── "Your course rep just uploaded…" ─────────────────────────────── */
+
+function RepUploadAlert({ uploads }: { uploads: RepUpload[] }) {
+  const [fresh, setFresh] = useState<RepUpload[]>([]);
+  useEffect(() => {
+    const seen = new Set(readSeenUploads());
+    setFresh(uploads.filter((u) => !seen.has(u.entry.id)));
+  }, [uploads]);
+  if (!fresh.length) return null;
+  const close = () => {
+    markUploadsSeen(fresh.map((u) => u.entry.id));
+    setFresh([]);
+  };
+  const first = fresh[0];
+  const kind = (u: RepUpload) => (u.entry.description === "book" ? "book" : u.entry.materialType === "playlist" || u.entry.materialType === "video" ? "video" : "slides");
+  return (
+    <Overlay>
+      <div role="dialog" aria-modal="true" aria-label="New from your course rep" style={{ position: "fixed", inset: 0, zIndex: OVERLAY_Z, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, ...hubFont }}>
+        <button type="button" aria-label="Close" onClick={close} className="hub-fade" style={{ position: "absolute", inset: 0, border: 0, padding: 0, background: "rgba(14,13,11,.7)", cursor: "pointer" }} />
+        <div className="hub-sheet" style={{ position: "relative", width: "100%", maxWidth: 480, maxHeight: "90dvh", overflowY: "auto", borderRadius: 28, background: NEW_GREEN, color: "#fff", boxShadow: "0 30px 70px rgba(0,0,0,.45)", border: `3px solid ${GOLD}` }}>
+          <div style={{ padding: "26px 24px 8px" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 30, padding: "0 12px", borderRadius: 999, background: GOLD, color: INK, fontSize: 13, fontWeight: 900, letterSpacing: ".08em" }}>
+              <Sparkles size={14} strokeWidth={2.6} aria-hidden /> JUST UPLOADED
+            </span>
+            <h2 style={{ margin: "16px 0 0", fontSize: 34, fontWeight: 900, lineHeight: 1.02, letterSpacing: "-.03em" }}>
+              Your course rep just uploaded new {kind(first) === "book" ? "books" : kind(first) === "video" ? "videos" : "slides"}
+            </h2>
+          </div>
+          <div style={{ padding: "12px 16px 4px", display: "flex", flexDirection: "column", gap: 10 }}>
+            {fresh.slice(0, 4).map((u) => (
+              <Link
+                key={u.entry.id}
+                href={`/materials-hub?course=${encodeURIComponent(u.course.id)}&view=${kind(u) === "book" ? "books" : kind(u) === "video" ? "videos" : "slides"}`}
+                onClick={close}
+                className="hub-tap"
+                style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 14px", borderRadius: 18, background: "#fff", color: INK, textDecoration: "none" }}
+              >
+                <span style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 14, ...goldPlate, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <FileText size={21} strokeWidth={2.3} aria-hidden />
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 17, fontWeight: 900, lineHeight: 1.2 }}>{u.entry.courseTitle}</span>
+                  <span style={{ display: "block", marginTop: 3, fontSize: 13, fontWeight: 700, color: "#5C564B" }}>{u.course.title} · {timeAgo(u.entry.createdAt)}</span>
+                </span>
+                <span style={{ flexShrink: 0, height: 36, padding: "0 14px", borderRadius: 999, background: INK, color: GOLD, display: "inline-flex", alignItems: "center", fontSize: 13, fontWeight: 800 }}>Open</span>
+              </Link>
+            ))}
+            {fresh.length > 4 ? <p style={{ margin: "2px 4px 0", fontSize: 14, fontWeight: 700 }}>+ {fresh.length - 4} more in your courses</p> : null}
+          </div>
+          <div style={{ padding: "12px 16px 18px" }}>
+            <button type="button" onClick={close} style={{ width: "100%", height: 50, border: "2px solid rgba(255,255,255,.6)", borderRadius: 999, background: "transparent", color: "#fff", fontFamily: "inherit", fontSize: 15, fontWeight: 800, cursor: "pointer" }}>
+              Later
+            </button>
+          </div>
+        </div>
+      </div>
+    </Overlay>
   );
 }
 
@@ -168,6 +223,9 @@ function QuickStyles() {
 .qa-arrow svg{width:16px;height:16px}
 .qa-steps{display:none}
 .qa-grid{margin-top:18px;display:grid;grid-template-columns:1fr;gap:8px}
+.qa-pop-wrap{align-items:flex-end}
+.qa-pop{max-height:92dvh;border-radius:28px 28px 0 0;border-bottom:0 !important;padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (min-width:768px){.qa-pop-wrap{align-items:center;padding:24px}.qa-pop{max-width:880px;max-height:86dvh;border-radius:28px;border-bottom:2px solid #E9BC3A !important}}
 @media (min-width:640px){.qa-grid{grid-template-columns:1fr 1fr}.qa-courses{grid-template-columns:1fr 1fr}}
 @media (min-width:1024px){
 .qa-wrap{padding:44px 40px 48px}
@@ -216,9 +274,12 @@ function Hero({ onStart }: { onStart: () => void }) {
           <p className="qa-sub">
             Find all your materials here, <span style={{ background: "linear-gradient(transparent 58%, rgba(26,24,20,.15) 58%)" }}>uploaded by your course reps</span>.
           </p>
-          <button type="button" onClick={onStart} className="hub-tap" style={{ marginTop: 22, height: 56, padding: "0 28px", border: 0, borderRadius: 999, background: INK, color: GOLD, display: "inline-flex", alignItems: "center", gap: 10, fontFamily: "inherit", fontSize: 18, fontWeight: 800, cursor: "pointer", boxShadow: "0 14px 28px -14px rgba(26,24,20,.7)" }}>
+          <button type="button" onClick={onStart} className="hub-tap" style={{ marginTop: 22, marginRight: 18, height: 56, padding: "0 28px", border: 0, borderRadius: 999, background: INK, color: GOLD, display: "inline-flex", alignItems: "center", gap: 10, fontFamily: "inherit", fontSize: 18, fontWeight: 800, cursor: "pointer", boxShadow: "0 14px 28px -14px rgba(26,24,20,.7)" }}>
             Let’s get started <ArrowRight size={20} strokeWidth={2.6} aria-hidden />
           </button>
+          <Link href="/course-rep" style={{ display: "inline-block", marginTop: 14, marginLeft: 4, fontSize: 15, fontWeight: 800, color: INK, textDecoration: "underline", textUnderlineOffset: 4 }}>
+            Apply as a course rep
+          </Link>
         </div>
         <div className="qa-art" aria-hidden>
           <div className="qa-wa"><WhatsAppMock /></div>
@@ -283,15 +344,10 @@ function NeatList() {
         <Eyebrow style={{ color: GOLD, fontSize: 10 }}>Your programme · Year 1</Eyebrow>
         <div style={{ fontSize: 18, fontWeight: 800, marginTop: 4 }}>All your materials</div>
       </div>
-      {[
-        ["MATH", "151", "Algebra"],
-        ["ME", "159", "Technical Drawing"],
-        ["EE", "151", "Applied Electricity"],
-      ].map(([p, n, t], i) => (
-        <div key={n + p} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderBottom: i < 2 ? `1px solid ${ROW_LINE}` : "none" }}>
-          <span style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 11, ...goldPlate, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
-            <span style={{ fontSize: 7, fontWeight: 800, opacity: 0.7 }}>{p}</span>
-            <span style={{ fontSize: 14, fontWeight: 900 }}>{n}</span>
+      {["Algebra", "Technical Drawing", "Applied Electricity"].map((t, i) => (
+        <div key={t} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderBottom: i < 2 ? `1px solid ${ROW_LINE}` : "none" }}>
+          <span style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 11, ...goldPlate, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <FileText size={18} strokeWidth={2.3} />
           </span>
           <span>
             <span style={{ display: "block", fontSize: 14, fontWeight: 700 }}>{t}</span>
@@ -301,12 +357,6 @@ function NeatList() {
       ))}
     </div>
   );
-}
-
-function splitCode(code: string | undefined, title: string): [string, string] {
-  const match = code?.match(/^([A-Za-z]+)\s*(\d+)/);
-  if (match) return [match[1].toUpperCase(), match[2]];
-  return ["", monogram(title)];
 }
 
 function linkLabel(url?: string) {
@@ -343,31 +393,33 @@ function CourseRepCard() {
         <Upload size={19} strokeWidth={2.4} />
       </span>
       <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-        <span style={{ fontSize: 15, fontWeight: 800 }}>Are you a course rep?</span>
-        <span style={{ fontSize: 12, fontWeight: 500, lineHeight: 1.4, color: "rgba(246,239,220,.6)" }}>Apply to upload lecture materials for your class.</span>
+        <span style={{ fontSize: 15, fontWeight: 800 }}>Apply as a course rep</span>
+        <span style={{ fontSize: 12, fontWeight: 500, lineHeight: 1.4, color: "rgba(246,239,220,.6)" }}>Upload lecture materials for your class.</span>
       </span>
       <span style={{ height: 34, padding: "0 14px", borderRadius: 999, border: "1px solid rgba(233,188,58,.5)", color: GOLD, fontSize: 12, fontWeight: 800, display: "inline-flex", alignItems: "center" }}>Apply</span>
     </Link>
   );
 }
 
-/* ─── Programme > year > semester, inline on the page ─────────────────── */
+/* ─── Programme > year > semester, in a popup ──────────────────────── */
 
 type Step = 0 | 1 | 2;
+const POP_BG = "#14120E";
+const POP_CARD = "#26221B";
 
-function InlinePicker({
+function PickerPopup({
   departments,
   entries,
   loading,
   initial,
-  onCancel,
+  onClose,
   onDone,
 }: {
   departments: CourseMaterialsDepartment[];
   entries: CourseMaterialEntry[];
   loading: boolean;
   initial: HubChoice | null;
-  onCancel: () => void;
+  onClose: () => void;
   onDone: (choice: HubChoice) => void;
 }) {
   const [step, setStep] = useState<Step>(0);
@@ -375,85 +427,104 @@ function InlinePicker({
   const [year, setYear] = useState<CourseMaterialYear | null>(initial?.year ?? null);
   const department = departments.find((d) => d.id === departmentId);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   const titles = ["Which programme do you offer?", "Which year are you in?", "Which semester?"];
-  const back = () => (step === 0 ? onCancel() : setStep((step - 1) as Step));
 
   return (
-    <div className="hub-row">
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <button type="button" onClick={back} className="hub-tap" aria-label="Back" style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 999, border: 0, background: INK, color: GOLD, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-          <ArrowLeft size={20} strokeWidth={2.8} aria-hidden />
-        </button>
-        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(26,24,20,.65)" }}>Step {step + 1} of 3</span>
-        <span style={{ flex: "1 1 120px", maxWidth: 240, display: "flex", gap: 5 }}>
-          {[0, 1, 2].map((i) => (
-            <span key={i} style={{ flex: 1, height: 5, borderRadius: 999, background: i <= step ? INK : "rgba(26,24,20,.2)", transition: "background .3s" }} />
-          ))}
-        </span>
-      </div>
-      {step > 0 && department ? (
-        <p style={{ margin: "14px 0 0", fontSize: 14, fontWeight: 800, color: "rgba(26,24,20,.7)" }}>
-          {department.name}
-          {step === 2 && year ? ` · Year ${year}` : ""}
-        </p>
-      ) : null}
-      <h2 style={{ margin: step > 0 ? "4px 0 0" : "16px 0 0", fontSize: 32, fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1.05 }}>{titles[step]}</h2>
-
-      {step === 0 ? (
-        loading ? (
-          <p style={{ marginTop: 18, fontSize: 14, fontWeight: 700 }}>Loading programmes…</p>
-        ) : (
-          <div className="qa-grid">
-            {departments.map((d, i) => {
-              const selected = d.id === departmentId;
-              const usable = d.available !== false;
-              return (
-                <button
-                  key={d.id}
-                  type="button"
-                  disabled={!usable}
-                  onClick={() => {
-                    setDepartmentId(d.id);
-                    setYear(null);
-                    setStep(1);
-                  }}
-                  className="hub-row hub-tap hub-dark-row"
-                  style={{ position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 12, minHeight: 58, padding: "0 14px", borderRadius: 16, border: selected ? `2px solid ${GOLD}` : "1px solid rgba(233,188,58,.25)", background: INK, color: usable ? CREAM : "rgba(246,239,220,.35)", fontFamily: "inherit", fontSize: 15, fontWeight: 700, textAlign: "left", cursor: usable ? "pointer" : "not-allowed", animationDelay: `${Math.min(i, 17) * 22}ms` }}
-                >
-                  <DepartmentDrawing name={d.name} style={{ position: "absolute", right: -18, top: -6, width: 110, height: 70, color: CREAM, opacity: 0.12, pointerEvents: "none" }} />
-                  <span style={{ position: "relative", width: 36, height: 36, flexShrink: 0, borderRadius: 10, ...(usable ? goldPlate : { background: "#2A251C", color: "rgba(246,239,220,.35)" }), fontSize: 12, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>{monogram(d.name)}</span>
-                  <span style={{ position: "relative", flex: 1 }}>{d.name}</span>
-                  {selected ? <Check size={18} color={GOLD} strokeWidth={3} aria-hidden style={{ position: "relative" }} /> : !usable ? <Lock size={14} aria-hidden style={{ position: "relative" }} /> : null}
-                </button>
-              );
-            })}
+    <Overlay>
+      <div role="dialog" aria-modal="true" aria-label="Choose your programme" className="qa-pop-wrap" style={{ position: "fixed", inset: 0, zIndex: OVERLAY_Z, display: "flex", justifyContent: "center", ...hubFont }}>
+        <button type="button" aria-label="Close" onClick={onClose} className="hub-fade" style={{ position: "absolute", inset: 0, border: 0, padding: 0, background: "rgba(14,13,11,.65)", cursor: "pointer" }} />
+        <div className="hub-sheet qa-pop" style={{ position: "relative", width: "100%", display: "flex", flexDirection: "column", background: POP_BG, color: CREAM, border: `2px solid ${GOLD}`, boxShadow: "0 30px 70px rgba(0,0,0,.5)", overflow: "hidden" }}>
+          <span aria-hidden style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(#E9BC3A 1px, transparent 1px), linear-gradient(90deg, #E9BC3A 1px, transparent 1px)", backgroundSize: "28px 28px", opacity: 0.05, pointerEvents: "none" }} />
+          <div style={{ position: "relative", padding: "18px 20px 0", display: "flex", alignItems: "center", gap: 12 }}>
+            {step > 0 ? (
+              <button type="button" onClick={() => setStep((step - 1) as Step)} aria-label="Back" className="hub-tap" style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 999, border: `1px solid rgba(233,188,58,.5)`, background: "transparent", color: GOLD, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                <ArrowLeft size={20} strokeWidth={2.8} aria-hidden />
+              </button>
+            ) : null}
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".14em", textTransform: "uppercase", color: GOLD }}>Step {step + 1} of 3</span>
+            <span style={{ flex: 1, maxWidth: 200, display: "flex", gap: 5 }}>
+              {[0, 1, 2].map((i) => (
+                <span key={i} style={{ flex: 1, height: 5, borderRadius: 999, background: i <= step ? GOLD : "rgba(246,239,220,.15)", transition: "background .3s" }} />
+              ))}
+            </span>
+            <span style={{ flex: 1 }} />
+            <button type="button" onClick={onClose} aria-label="Close" className="hub-tap" style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 999, border: 0, background: POP_CARD, color: CREAM, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+              <X size={19} strokeWidth={2.6} aria-hidden />
+            </button>
           </div>
-        )
-      ) : null}
 
-      {step === 1 && department ? (
-        <ChoiceGrid
-          options={HUB_YEARS.map((y) => ({ value: y, number: String(y), label: YEAR_LABEL[y], available: hasAnything(entries, department.id, y), selected: y === year }))}
-          onPick={(value) => {
-            setYear(value as CourseMaterialYear);
-            setStep(2);
-          }}
-        />
-      ) : null}
+          <div style={{ position: "relative", padding: "14px 20px 22px", overflowY: "auto", minHeight: 0 }}>
+            {step > 0 && department ? (
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "rgba(246,239,220,.6)" }}>
+                {department.name}
+                {step === 2 && year ? ` · Year ${year}` : ""}
+              </p>
+            ) : null}
+            <h2 style={{ margin: step > 0 ? "4px 0 0" : 0, fontSize: 30, fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1.05, color: CREAM }}>{titles[step]}</h2>
 
-      {step === 2 && department && year ? (
-        <ChoiceGrid
-          options={HUB_SEMESTERS.map((s) => ({ value: s, number: String(s), label: `Semester ${s}`, available: hasAnything(entries, department.id, year, s), selected: initial?.departmentId === department.id && initial.year === year && initial.semester === s }))}
-          onPick={(value) => onDone({ departmentId: department.id, year, semester: value as CourseMaterialSemester })}
-        />
-      ) : null}
-    </div>
+            {step === 0 ? (
+              loading ? (
+                <p style={{ marginTop: 18, fontSize: 14, fontWeight: 700 }}>Loading programmes…</p>
+              ) : (
+                <div className="qa-grid">
+                  {departments.map((d, i) => {
+                    const selected = d.id === departmentId;
+                    const usable = d.available !== false;
+                    return (
+                      <button
+                        key={d.id}
+                        type="button"
+                        disabled={!usable}
+                        onClick={() => {
+                          setDepartmentId(d.id);
+                          setYear(null);
+                          setStep(1);
+                        }}
+                        className="hub-row hub-tap"
+                        style={{ position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 10, minHeight: 58, padding: "0 16px", borderRadius: 16, border: selected ? 0 : "1px solid rgba(233,188,58,.22)", ...(selected ? goldPlate : { background: POP_CARD }), color: selected ? INK : usable ? CREAM : "rgba(246,239,220,.3)", fontFamily: "inherit", fontSize: 15, fontWeight: 750, textAlign: "left", cursor: usable ? "pointer" : "not-allowed", animationDelay: `${Math.min(i, 17) * 22}ms` }}
+                      >
+                        <DepartmentDrawing name={d.name} style={{ position: "absolute", right: -18, top: -6, width: 110, height: 70, color: selected ? INK : CREAM, opacity: 0.12, pointerEvents: "none" }} />
+                        <span style={{ position: "relative", flex: 1 }}>{d.name}</span>
+                        {selected ? <Check size={18} strokeWidth={3} aria-hidden style={{ position: "relative" }} /> : !usable ? <Lock size={14} aria-hidden style={{ position: "relative" }} /> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              )
+            ) : null}
+
+            {step === 1 && department ? (
+              <ChoiceGrid
+                options={HUB_YEARS.map((y) => ({ value: y, number: String(y), label: YEAR_LABEL[y], available: hasAnything(entries, department.id, y), selected: y === year }))}
+                onPick={(value) => {
+                  setYear(value as CourseMaterialYear);
+                  setStep(2);
+                }}
+              />
+            ) : null}
+
+            {step === 2 && department && year ? (
+              <ChoiceGrid
+                options={HUB_SEMESTERS.map((s) => ({ value: s, number: String(s), label: `Semester ${s}`, available: hasAnything(entries, department.id, year, s), selected: initial?.departmentId === department.id && initial.year === year && initial.semester === s }))}
+                onPick={(value) => onDone({ departmentId: department.id, year, semester: value as CourseMaterialSemester })}
+              />
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </Overlay>
   );
 }
 
 function ChoiceGrid({ options, onPick }: { options: Array<{ value: number; number: string; label: string; available: boolean; selected: boolean }>; onPick: (value: number) => void }) {
   return (
-    <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12, maxWidth: 720 }}>
+    <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12 }}>
       {options.map((o, i) => (
         <button
           key={o.value}
@@ -461,14 +532,14 @@ function ChoiceGrid({ options, onPick }: { options: Array<{ value: number; numbe
           disabled={!o.available}
           onClick={() => onPick(o.value)}
           className="hub-row hub-tap"
-          style={{ position: "relative", height: 118, padding: 16, borderRadius: 20, textAlign: "left", fontFamily: "inherit", display: "flex", flexDirection: "column", justifyContent: "space-between", cursor: o.available ? "pointer" : "not-allowed", border: o.available ? "1px solid rgba(233,188,58,.3)" : "2px dashed rgba(26,24,20,.25)", background: o.available ? INK : "rgba(255,255,255,.25)", boxShadow: o.available ? panelShadow : "none", animationDelay: `${i * 60}ms` }}
+          style={{ position: "relative", height: 118, padding: 16, borderRadius: 20, textAlign: "left", fontFamily: "inherit", display: "flex", flexDirection: "column", justifyContent: "space-between", cursor: o.available ? "pointer" : "not-allowed", border: o.available ? (o.selected ? 0 : "1px solid rgba(233,188,58,.3)") : "2px dashed rgba(246,239,220,.15)", ...(o.available && o.selected ? goldPlate : { background: o.available ? POP_CARD : "transparent" }), animationDelay: `${i * 60}ms` }}
         >
-          {!o.available ? <Lock size={14} color="rgba(26,24,20,.4)" style={{ position: "absolute", right: 14, top: 14 }} aria-hidden /> : null}
-          {o.selected && o.available ? <Check size={18} color={GOLD} strokeWidth={3} style={{ position: "absolute", right: 14, top: 14 }} aria-hidden /> : null}
-          <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: "-.04em", lineHeight: 1, color: o.available ? GOLD : "rgba(26,24,20,.35)" }}>{o.number}</span>
+          {!o.available ? <Lock size={14} color="rgba(246,239,220,.3)" style={{ position: "absolute", right: 14, top: 14 }} aria-hidden /> : null}
+          {o.selected && o.available ? <Check size={18} color={INK} strokeWidth={3} style={{ position: "absolute", right: 14, top: 14 }} aria-hidden /> : null}
+          <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: "-.04em", lineHeight: 1, color: o.available ? (o.selected ? INK : GOLD) : "rgba(246,239,220,.25)" }}>{o.number}</span>
           <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <span style={{ fontSize: 14, fontWeight: 800, color: o.available ? CREAM : "rgba(26,24,20,.45)" }}>{o.label}</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: o.available ? "rgba(246,239,220,.55)" : "rgba(26,24,20,.45)" }}>{o.available ? "Materials ready" : "Not available yet"}</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: o.available ? (o.selected ? INK : CREAM) : "rgba(246,239,220,.3)" }}>{o.label}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: o.available ? (o.selected ? "rgba(26,24,20,.65)" : "rgba(246,239,220,.55)") : "rgba(246,239,220,.3)" }}>{o.available ? "Materials ready" : "Not available yet"}</span>
           </span>
         </button>
       ))}
