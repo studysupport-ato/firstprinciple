@@ -16,39 +16,96 @@ export function isPdfItem(item: DriveItem) {
   return item.mimeType === "application/pdf" || /\.pdf$/i.test(item.name);
 }
 
+type PdfJs = typeof import("pdfjs-dist");
+let libPromise: Promise<PdfJs> | null = null;
+function loadLib() {
+  libPromise ??= import("pdfjs-dist").then((pdfjs) => {
+    pdfjs.GlobalWorkerOptions.workerSrc = WORKER_SRC;
+    return pdfjs;
+  });
+  return libPromise;
+}
+
+// Opened files stay in memory for the visit, so going back to a deck is instant.
+const docs = new Map<string, { promise: Promise<PDFDocumentProxy>; progress: number; listeners: Set<(p: number) => void> }>();
+function openDoc(id: string) {
+  let entry = docs.get(id);
+  if (!entry) {
+    const listeners = new Set<(p: number) => void>();
+    const created: { promise: Promise<PDFDocumentProxy>; progress: number; listeners: Set<(p: number) => void> } = { promise: Promise.resolve(null as unknown as PDFDocumentProxy), progress: 0, listeners };
+    created.promise = loadLib().then((pdfjs) => {
+      const task = pdfjs.getDocument({ url: driveMediaUrl(id), disableAutoFetch: true, rangeChunkSize: 262144 });
+      task.onProgress = ({ loaded, total }: { loaded: number; total: number }) => {
+        if (!total) return;
+        created.progress = Math.min(99, Math.round((loaded / total) * 100));
+        listeners.forEach((fn) => fn(created.progress));
+      };
+      return task.promise;
+    });
+    created.promise.catch(() => docs.delete(id));
+    entry = created;
+    docs.set(id, entry);
+    if (docs.size > 6) {
+      const oldest = docs.keys().next().value as string;
+      void docs.get(oldest)?.promise.then((d) => d.cleanup()).catch(() => undefined);
+      docs.delete(oldest);
+    }
+  }
+  return entry;
+}
+
+/** Warm up the slide viewer (and optionally start fetching one file) before it is opened. */
+export function preloadSlides(fileId?: string) {
+  if (typeof window === "undefined") return;
+  void loadLib().catch(() => undefined);
+  if (fileId) void openDoc(fileId).promise.catch(() => undefined);
+}
+
+// Draws pages one at a time so the slide on screen is never waiting behind thumbnails.
+let queue: Promise<unknown> = Promise.resolve();
+function enqueue<T>(job: () => Promise<T>): Promise<T> {
+  const run = queue.then(job, job);
+  queue = run.catch(() => undefined);
+  return run;
+}
+
 export function SlideDeck({ item, title, onPage }: { item: DriveItem; title: string; onPage?: (page: number, total: number) => void }) {
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [failed, setFailed] = useState(!isPdfItem(item));
-  const [ratio, setRatio] = useState(16 / 9);
+  const [progress, setProgress] = useState(0);
   const [page, setPage] = useState(1);
+  const [firstDrawn, setFirstDrawn] = useState(false);
+  const [slot, setSlot] = useState({ w: 0, h: 0 });
   const trackRef = useRef<HTMLDivElement>(null);
   const thumbsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isPdfItem(item)) return;
     let cancelled = false;
-    let loading: { destroy: () => Promise<void> } | null = null;
-    (async () => {
-      try {
-        const pdfjs = await import("pdfjs-dist");
-        pdfjs.GlobalWorkerOptions.workerSrc = WORKER_SRC;
-        const task = pdfjs.getDocument({ url: driveMediaUrl(item.id) });
-        loading = task;
-        const d = await task.promise;
-        if (cancelled) return;
-        const first = await d.getPage(1);
-        const vp = first.getViewport({ scale: 1 });
-        setRatio(vp.width / vp.height);
-        setDoc(d);
-      } catch {
-        if (!cancelled) setFailed(true);
-      }
-    })();
+    const entry = openDoc(item.id);
+    setProgress(entry.progress);
+    const listen = (p: number) => !cancelled && setProgress(p);
+    entry.listeners.add(listen);
+    entry.promise.then(
+      (d) => !cancelled && setDoc(d),
+      () => !cancelled && setFailed(true),
+    );
     return () => {
       cancelled = true;
-      void loading?.destroy();
+      entry.listeners.delete(listen);
     };
-  }, [item]);
+  }, [item.id, item]);
+
+  // The space one slide can fill, so each page keeps its own shape.
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const measure = () => setSlot({ w: Math.max(0, track.clientWidth - 24), h: Math.max(0, track.clientHeight - 32) });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(track);
+    return () => ro.disconnect();
+  }, [doc]);
 
   const total = doc?.numPages ?? 0;
 
@@ -90,7 +147,7 @@ export function SlideDeck({ item, title, onPage }: { item: DriveItem; title: str
     return (
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 14, color: "rgba(246,239,220,.7)", fontSize: 14, fontWeight: 700 }}>
         <span className="deck-spin" style={{ width: 34, height: 34, borderRadius: 999, border: "3px solid rgba(233,188,58,.25)", borderTopColor: GOLD }} />
-        Opening slides…
+        {progress > 0 ? `Opening slides… ${progress}%` : "Opening slides…"}
         <style>{`.deck-spin{animation:deckSpin .8s linear infinite}@keyframes deckSpin{to{transform:rotate(360deg)}}`}</style>
       </div>
     );
@@ -119,7 +176,7 @@ export function SlideDeck({ item, title, onPage }: { item: DriveItem; title: str
       >
         {pages.map((n) => (
           <div key={n} style={{ flex: "0 0 100%", height: "100%", scrollSnapAlign: "start", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 12px" }}>
-            <PageCanvas doc={doc} n={n} ratio={ratio} render={Math.abs(n - page) <= 2} />
+            <PageCanvas doc={doc} n={n} slot={slot} render={n === page || (firstDrawn && Math.abs(n - page) <= 2)} onDrawn={n === 1 ? () => setFirstDrawn(true) : undefined} />
           </div>
         ))}
       </div>
@@ -139,9 +196,9 @@ export function SlideDeck({ item, title, onPage }: { item: DriveItem; title: str
             data-thumb={n}
             aria-label={`Slide ${n}`}
             onClick={() => goTo(n)}
-            style={{ flexShrink: 0, height: 62, width: Math.round(62 * ratio), padding: 0, border: 0, borderRadius: 6, overflow: "hidden", background: "#fff", cursor: "pointer", outline: n === page ? `3px solid ${GOLD}` : "none", outlineOffset: 2, opacity: n === page ? 1 : 0.55 }}
+            style={{ flexShrink: 0, height: 62, width: 86, padding: 0, border: 0, borderRadius: 6, overflow: "hidden", background: "#fff", cursor: "pointer", outline: n === page ? `3px solid ${GOLD}` : "none", outlineOffset: 2, opacity: n === page ? 1 : 0.55 }}
           >
-            <Thumb doc={doc} n={n} root={thumbsRef} />
+            <Thumb doc={doc} n={n} root={thumbsRef} enabled={firstDrawn} />
           </button>
         ))}
       </div>
@@ -149,81 +206,92 @@ export function SlideDeck({ item, title, onPage }: { item: DriveItem; title: str
   );
 }
 
-function PageCanvas({ doc, n, ratio, render }: { doc: PDFDocumentProxy; n: number; ratio: number; render: boolean }) {
+function PageCanvas({ doc, n, slot, render, onDrawn }: { doc: PDFDocumentProxy; n: number; slot: { w: number; h: number }; render: boolean; onDrawn?: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const boxRef = useRef<HTMLDivElement>(null);
-  const [drawn, setDrawn] = useState(false);
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  const drawnFor = useRef("");
+  const onDrawnRef = useRef(onDrawn);
+  onDrawnRef.current = onDrawn;
 
   useEffect(() => {
-    if (!render || drawn) return;
+    if (!render || !slot.w || !slot.h) return;
+    const key = `${slot.w}x${slot.h}`;
+    if (drawnFor.current === key) return;
     let cancelled = false;
     let task: { cancel: () => void; promise: Promise<unknown> } | null = null;
-    (async () => {
+    void enqueue(async () => {
       try {
+        if (cancelled) return;
         const p = await doc.getPage(n);
-        const box = boxRef.current;
         const canvas = canvasRef.current;
-        if (cancelled || !box || !canvas) return;
+        if (cancelled || !canvas) return;
         const base = p.getViewport({ scale: 1 });
+        // Fit the page inside the slot without stretching it.
+        const fit = Math.min(slot.w / base.width, slot.h / base.height);
+        const w = Math.floor(base.width * fit);
+        const h = Math.floor(base.height * fit);
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const scale = (Math.max(box.clientWidth, 320) / base.width) * dpr;
-        const vp = p.getViewport({ scale });
+        const vp = p.getViewport({ scale: fit * dpr });
         canvas.width = Math.floor(vp.width);
         canvas.height = Math.floor(vp.height);
         task = p.render({ canvas, viewport: vp });
         await task.promise;
-        if (!cancelled) setDrawn(true);
+        if (cancelled) return;
+        setSize({ w, h });
+        drawnFor.current = key;
+        onDrawnRef.current?.();
       } catch {
         /* cancelled or unreadable page */
       }
-    })();
+    });
     return () => {
       cancelled = true;
       task?.cancel();
     };
-  }, [doc, n, render, drawn]);
+  }, [doc, n, render, slot.w, slot.h]);
 
   return (
-    <div ref={boxRef} style={{ position: "relative", width: "100%", maxWidth: 1100, maxHeight: "100%", aspectRatio: String(ratio), background: "#fff", borderRadius: 8, overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,.5)" }}>
+    <div style={{ position: "relative", width: size?.w ?? Math.min(slot.w, 640), height: size?.h ?? Math.min(slot.h, 360), background: "#fff", borderRadius: 8, overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,.5)", flexShrink: 0 }}>
       <canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block" }} />
-      {!drawn ? <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#8A8478", fontSize: 13, fontWeight: 700 }}>Slide {n}</span> : null}
+      {!size ? <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#8A8478", fontSize: 13, fontWeight: 700 }}>Slide {n}</span> : null}
     </div>
   );
 }
 
-function Thumb({ doc, n, root }: { doc: PDFDocumentProxy; n: number; root: React.RefObject<HTMLDivElement | null> }) {
+function Thumb({ doc, n, root, enabled }: { doc: PDFDocumentProxy; n: number; root: React.RefObject<HTMLDivElement | null>; enabled: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const el = canvasRef.current;
-    if (!el || visible) return;
+    if (!el || visible || !enabled) return;
     const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && setVisible(true), { root: root.current, rootMargin: "0px 300px" });
     io.observe(el);
     return () => io.disconnect();
-  }, [root, visible]);
+  }, [root, visible, enabled]);
 
   useEffect(() => {
     if (!visible) return;
     let cancelled = false;
-    (async () => {
+    void enqueue(async () => {
       try {
+        if (cancelled) return;
         const p = await doc.getPage(n);
         const canvas = canvasRef.current;
         if (cancelled || !canvas) return;
         const base = p.getViewport({ scale: 1 });
-        const vp = p.getViewport({ scale: 124 / base.height });
+        const vp = p.getViewport({ scale: Math.min(172 / base.width, 124 / base.height) });
         canvas.width = Math.floor(vp.width);
         canvas.height = Math.floor(vp.height);
         await p.render({ canvas, viewport: vp }).promise;
       } catch {
         /* ignore */
       }
-    })();
+    });
     return () => {
       cancelled = true;
     };
   }, [visible, doc, n]);
 
-  return <canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block", background: "#fff", color: CREAM }} />;
+  return <canvas ref={canvasRef} style={{ width: "100%", height: "100%", display: "block", objectFit: "contain", background: "#fff", color: CREAM }} />;
 }

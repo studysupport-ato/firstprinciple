@@ -26,7 +26,7 @@ import {
 import { getEntryType, type CourseMaterialEntry } from "@/lib/courseMaterials";
 import { BROWN, CREAM, Overlay, OVERLAY_Z, Eyebrow, GOLD, HubStyles, INK, MUTED, Panel, Pill, RoundChevron, Sheet, SOFT, YT_RED, BlueprintCard, goldPlate, ROW_LINE, backButtonStyle, backLabelStyle, goldGround, hubFont, panelShadow } from "./ui";
 import { useHubChoice, useHubData } from "./useHub";
-import { SlideDeck } from "./SlideDeck";
+import { SlideDeck, preloadSlides } from "./SlideDeck";
 import { CourseYouTube } from "@/components/course-materials/CourseDetail";
 import { deriveMaterialType } from "@/lib/courseMaterialsDisplay";
 
@@ -186,6 +186,7 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
   const driveRoots = slides.map((s) => parseDriveFolderId(s.url)).filter((id): id is string => Boolean(id));
   const activeFolder = folderId ?? (slides.length === 1 && driveRoots.length === 1 ? driveRoots[0] : null);
   const [viewing, setViewing] = useState<DriveItem | null>(null);
+  useEffect(() => preloadSlides(), []);
 
   if (activeFolder) {
     return (
@@ -222,7 +223,7 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
                 </>
               );
               if (folder) return <Link key={s.id} href={hubHref(course.id, kind, folder)} className="hub-row hub-tap hub-dark-row" style={style}>{body}</Link>;
-              if (fileId) return <button key={s.id} type="button" onClick={() => setViewing({ id: fileId, name: s.courseTitle, mimeType: "application/pdf", size: null, isFolder: false })} className="hub-row hub-tap hub-dark-row" style={{ ...style, width: "100%", border: 0, borderBottom: style.borderBottom, background: "transparent", textAlign: "left", fontFamily: "inherit", cursor: "pointer" }}>{body}</button>;
+              if (fileId) return <button key={s.id} type="button" onPointerEnter={() => preloadSlides(fileId)} onTouchStart={() => preloadSlides(fileId)} onClick={() => setViewing({ id: fileId, name: s.courseTitle, mimeType: "application/pdf", size: null, isFolder: false })} className="hub-row hub-tap hub-dark-row" style={{ ...style, width: "100%", border: 0, borderBottom: style.borderBottom, background: "transparent", textAlign: "left", fontFamily: "inherit", cursor: "pointer" }}>{body}</button>;
               return <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer" className="hub-row hub-tap hub-dark-row" style={style}>{body}</a>;
             })}
           </Panel>
@@ -263,6 +264,7 @@ type FolderState = { status: "loading" } | { status: "ready"; items: DriveItem[]
 function DriveFolder({ kind, course, folderId, isRoot, hidden = [] }: { kind: DriveKind; course: CourseMaterialEntry; folderId: string; isRoot: boolean; hidden?: string[] }) {
   const [state, setState] = useState<FolderState>({ status: "loading" });
   const [viewing, setViewing] = useState<DriveItem | null>(null);
+  useEffect(() => preloadSlides(), []);
   const [downloadOpen, setDownloadOpen] = useState(false);
   const router = useRouter();
 
@@ -326,7 +328,7 @@ function DriveFolder({ kind, course, folderId, isRoot, hidden = [] }: { kind: Dr
                 }
                 return (
                   <div key={item.id} className="hub-row hub-dark-row" style={rowStyle}>
-                    <button type="button" onClick={() => setViewing(item)} className="hub-tap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, border: 0, background: "none", padding: 0, textAlign: "left", fontFamily: "inherit", cursor: "pointer" }}>
+                    <button type="button" onPointerEnter={() => preloadSlides(item.id)} onTouchStart={() => preloadSlides(item.id)} onClick={() => setViewing(item)} className="hub-tap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, border: 0, background: "none", padding: 0, textAlign: "left", fontFamily: "inherit", cursor: "pointer" }}>
                       {kind === "books" ? (
                         <span aria-hidden style={{ width: 34, height: 44, flexShrink: 0, borderRadius: "3px 7px 7px 3px", borderLeft: `4px solid ${BROWN}`, ...goldPlate }} />
                       ) : (
