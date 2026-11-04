@@ -49,7 +49,18 @@ export function MaterialsHubView() {
   return (
     <div style={{ ...goldGround, ...hubFont, color: INK, minHeight: "100dvh" }}>
       <HubStyles />
-      <div style={{ maxWidth: 560, margin: "0 auto", padding: "16px 18px 40px" }}>
+      <style>{`
+.mh-wrap{margin:0 auto;padding:16px 18px 40px;max-width:560px}
+.mh-wrap.mh-wide{max-width:1100px}
+.mh-wrap.mh-full{max-width:1600px}
+.mh-course{display:block}
+@media (min-width:1024px){
+.mh-wrap{padding:28px 40px 56px}
+.mh-course{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:28px;align-items:start}
+.mh-course .mh-course-right>p:first-child{margin-top:0 !important}
+}
+`}</style>
+      <div className={`mh-wrap ${view === "videos" ? "mh-full" : "mh-wide"}`}>
         {data.status === "loading" ? <p style={{ fontWeight: 700 }}>Loading…</p> : null}
         {data.status === "error" ? <p style={{ fontWeight: 700 }}>Course materials could not load. Refresh to try again.</p> : null}
         {data.status === "ready" && !course ? (
@@ -118,13 +129,15 @@ function CourseView({ course, groups }: { course: CourseMaterialEntry; groups: R
   return (
     <div className="hub-row">
       <BackLink href="/">Your courses</BackLink>
-      <BlueprintCard department={department?.name} style={{ marginTop: 10 }}>
+      <div className="mh-course" style={{ marginTop: 10 }}>
+      <BlueprintCard department={department?.name} style={{ minHeight: 200 }}>
         {course.courseCode ? <span style={{ display: "inline-flex", alignItems: "center", height: 24, padding: "0 9px", borderRadius: 7, ...goldPlate, fontSize: 11, fontWeight: 900, letterSpacing: ".06em" }}>{course.courseCode}</span> : null}
         <h1 style={{ margin: course.courseCode ? "14px 0 0" : 0, maxWidth: "58%", fontSize: 32, fontWeight: 800, letterSpacing: "-.035em", lineHeight: 1, color: CREAM }}>{course.courseTitle}</h1>
         {repCount ? (
           <span style={{ marginTop: 12, display: "inline-flex", alignItems: "center", height: 26, padding: "0 10px", borderRadius: 999, background: "#12804A", color: "#fff", fontSize: 11, fontWeight: 900, letterSpacing: ".05em" }}>{repCount} NEW FROM YOUR COURSE REP</span>
         ) : null}
       </BlueprintCard>
+      <div className="mh-course-right">
       <Eyebrow style={{ margin: "24px 4px 10px", color: "rgba(26,24,20,.65)" }}>Materials</Eyebrow>
       <Panel>
         {rows.map((row, i) => (
@@ -148,6 +161,8 @@ function CourseView({ course, groups }: { course: CourseMaterialEntry; groups: R
           </a>
         ))}
       </Panel>
+      </div>
+      </div>
     </div>
   );
 }
