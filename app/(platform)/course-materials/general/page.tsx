@@ -5,23 +5,14 @@ import { useEffect, useMemo, useState } from "react";
 
 import { CourseDetail } from "@/components/course-materials/CourseDetail";
 import { CourseMaterialsChrome } from "@/components/course-materials/CourseMaterialsChrome";
-import { GENERAL_DEPARTMENT_ID, type CourseMaterialEntry, type CourseMaterialsDepartment } from "@/lib/courseMaterials";
-import { readLocalChoice } from "@/lib/site/materialsHub";
+import { GENERAL_DEPARTMENT_ID, type CourseMaterialEntry } from "@/lib/courseMaterials";
 import { createCourseMaterialsRepository } from "@/lib/courseMaterialsRepository";
 import { deriveMaterialType, type MaterialRow } from "@/lib/courseMaterialsDisplay";
 
 const BOOKMARK_STORAGE_KEY = "b2b-course-material-bookmarks-v1";
 
-function isVideo(entry: CourseMaterialEntry) {
-  if ((entry.entryType ?? "material") !== "material") return false;
-  const type = deriveMaterialType(entry);
-  return type === "Playlist" || type === "Video Lecture";
-}
-
 export default function GeneralCoursesPage() {
   const [entries, setEntries] = useState<CourseMaterialEntry[]>([]);
-  const [departments, setDepartments] = useState<CourseMaterialsDepartment[]>([]);
-  const [programme, setProgramme] = useState<string>(GENERAL_DEPARTMENT_ID);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -31,14 +22,10 @@ export default function GeneralCoursesPage() {
   useEffect(() => {
     let active = true;
     const repository = createCourseMaterialsRepository("supabase");
-    // Every course's YouTube playlists live here: general courses and each programme's.
-    Promise.all([repository.listCourseMaterials({ visibility: "student" }), repository.listDepartments({ visibility: "student" })])
-      .then(([rows, depts]) => {
-        if (!active) return;
-        setEntries(rows);
-        setDepartments(depts);
-        const chosen = readLocalChoice()?.departmentId;
-        if (chosen && rows.some((r) => r.departmentId === chosen && isVideo(r))) setProgramme(chosen);
+    repository
+      .listCourseMaterials({ departmentId: GENERAL_DEPARTMENT_ID, visibility: "student" })
+      .then((rows) => {
+        if (active) setEntries(rows);
       })
       .catch((loadError) => {
         console.error("[Back2Basics with Kwamina] Failed to load general courses", loadError);
@@ -70,24 +57,16 @@ export default function GeneralCoursesPage() {
   const courses = useMemo(() => {
     const byOrder = (a: CourseMaterialEntry, b: CourseMaterialEntry) => a.order - b.order || a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id);
     return entries
-      .filter((entry) => (entry.entryType ?? "material") === "course" && entry.departmentId === programme)
+      .filter((entry) => (entry.entryType ?? "material") === "course")
       .sort(byOrder)
       .map((course) => ({
         course,
         materials: entries
-          .filter((entry) => (entry.entryType ?? "material") === "material" && entry.parentId === course.id && isVideo(entry))
+          .filter((entry) => (entry.entryType ?? "material") === "material" && entry.parentId === course.id)
           .sort(byOrder)
           .map<MaterialRow>((entry) => ({ ...entry, type: deriveMaterialType(entry) })),
-      }))
-      .filter(({ materials }) => programme === GENERAL_DEPARTMENT_ID || materials.length > 0);
-  }, [entries, programme]);
-
-  // Programmes that have at least one playlist.
-  const programmes = useMemo(() => {
-    const withVideos = new Set(entries.filter((e) => isVideo(e) && e.parentId).map((e) => e.departmentId));
-    return departments.filter((d) => d.id !== GENERAL_DEPARTMENT_ID && withVideos.has(d.id));
-  }, [entries, departments]);
-  const programmeName = programme === GENERAL_DEPARTMENT_ID ? "General courses" : departments.find((d) => d.id === programme)?.name ?? "Courses";
+      }));
+  }, [entries]);
 
   const normalized = query.trim().toLowerCase();
   const results = courses.filter(({ course }) => !normalized || `${course.courseCode ?? ""} ${course.courseTitle}`.toLowerCase().includes(normalized));
@@ -103,7 +82,7 @@ export default function GeneralCoursesPage() {
         <CourseDetail
           course={{ courseCode: active.course.courseCode, courseTitle: active.course.courseTitle, credit: active.course.credit, topics: active.course.topics, outline: active.course.outline }}
           materials={active.materials}
-          backLabel={programmeName}
+          backLabel="General courses"
           onBack={() => setSelectedId(null)}
           bookmarks={bookmarks}
           toggleBookmark={toggleBookmark}
@@ -115,28 +94,9 @@ export default function GeneralCoursesPage() {
   return (
     <CourseMaterialsChrome>
       <div>
-        <p className="mb-2 mt-6 text-[11px] font-bold uppercase tracking-[0.14em] text-[#26231C]/60">YouTube playlists</p>
-        <h1 className="font-sans text-[clamp(2.5rem,6vw,3.5rem)] font-black leading-[1.0] tracking-[-0.02em] text-[#1A1814]">{programmeName}</h1>
-        <p className="mt-3 max-w-[520px] text-[17px] font-medium text-[#26231C]/80">
-          {programme === GENERAL_DEPARTMENT_ID ? "Taken across the College of Engineering, whatever your programme or year." : "Video lessons for this programme’s courses, sorted by chapter."}
-        </p>
-        {programmes.length ? (
-          <div className="mt-5 flex max-w-full flex-wrap gap-2">
-            {[{ id: GENERAL_DEPARTMENT_ID, name: "General courses" }, ...programmes].map((d) => (
-              <button
-                key={d.id}
-                type="button"
-                onClick={() => {
-                  setProgramme(d.id);
-                  setQuery("");
-                }}
-                className={`h-10 rounded-full px-4 text-[14px] font-extrabold transition ${programme === d.id ? "bg-[#1A1814] text-[#E9BC3A]" : "bg-[#1A1814]/10 text-[#1A1814] hover:bg-[#1A1814]/20"}`}
-              >
-                {d.name}
-              </button>
-            ))}
-          </div>
-        ) : null}
+        <p className="mb-2 mt-6 text-[11px] font-bold uppercase tracking-[0.14em] text-[#26231C]/60">Course Materials</p>
+        <h1 className="font-sans text-[clamp(2.5rem,6vw,3.5rem)] font-black leading-[1.0] tracking-[-0.02em] text-[#1A1814]">General courses</h1>
+        <p className="mt-3 max-w-[520px] text-[17px] font-medium text-[#26231C]/80">Taken across the College of Engineering, whatever your programme or year.</p>
 
         <div className="relative mt-6 max-w-[640px]">
           <Search className="pointer-events-none absolute left-5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#F6EFDC]/60" />
@@ -164,7 +124,7 @@ export default function GeneralCoursesPage() {
         ) : (
           <>
             <p className="mt-6 text-[16px] font-semibold text-[#26231C]">
-              {results.length} {results.length === 1 ? "course" : "courses"}
+              {results.length} {results.length === 1 ? "general course" : "general courses"}
             </p>
             <div className="mt-3 rounded-[24px] bg-[#1A1814] p-2 shadow-[0_2px_14px_rgba(0,0,0,0.22)]">
               {results.map(({ course, materials }) => {

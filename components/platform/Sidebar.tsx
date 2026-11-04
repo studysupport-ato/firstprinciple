@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BookOpen,
   Compass,
+  Library,
   CircleHelp,
   Cpu,
   House,
@@ -90,10 +91,13 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose, onSign
             <BookOpen size={19} strokeWidth={2.5} />
             {!compact && <span>Courses</span>}
           </Link>
+          <Link href="/course-materials" onClick={onMobileClose} data-tour="course-materials" className={navItemClass("/course-materials")} title="Course Materials">
+            <Library size={19} strokeWidth={2.5} />
+            {!compact && <span>Course Materials</span>}
+          </Link>
           <Link
             href="/course-materials/general"
             onClick={onMobileClose}
-            data-tour="course-materials"
             className={navItemClass("/course-materials/general")}
             title="YouTube Playlist for General Courses"
           >

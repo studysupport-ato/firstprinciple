@@ -6,5 +6,5 @@ import { redirect } from "next/navigation";
  * Redirect the user there seamlessly.
  */
 export default function CourseCourseMaterialsRedirect() {
-  redirect("/#materials");
+  redirect("/course-materials");
 }
