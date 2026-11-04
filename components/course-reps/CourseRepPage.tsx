@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, BookOpen, Clock, Eye, EyeOff, FileText, Folder, Link2, Lock, Pencil, Play, Plus, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, BookOpen, Eye, EyeOff, FileText, Folder, Link2, Lock, Pencil, Play, Plus, Trash2, Upload } from "lucide-react";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { useAuthSession } from "@/lib/auth/useAuthSession";
 import { availableDepartments, formatBytes, listDriveFolder, monogram, parseDriveFolderId, tidyFileName, type DriveItem } from "@/lib/site/materialsHub";
@@ -23,7 +23,10 @@ import type { RepApplication, RepMaterialType, RepScope } from "@/lib/courseReps
 import { BlueprintCard, CREAM, GOLD, HubStyles, INK, MUTED, Panel, Pill, ROW_LINE, Sheet, SOFT, backButtonStyle, goldGround, goldPlate, hubFont } from "@/components/materials-hub/ui";
 import { useHubData } from "@/components/materials-hub/useHub";
 
-const fieldLabel: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 700, color: "#5C564B", marginBottom: 6 };
+const fieldLabel: React.CSSProperties = { display: "block", fontSize: 14, fontWeight: 600, color: INK, marginBottom: 6 };
+const plainCard: React.CSSProperties = { borderRadius: 12, background: "#FFFFFF", border: "1px solid #E2DCCB", padding: 20 };
+const plainInput: React.CSSProperties = { width: "100%", height: 46, borderRadius: 8, border: "1px solid #CFC8B8", background: "#FFFFFF", padding: "0 12px", fontFamily: "inherit", fontSize: 16, color: INK, boxSizing: "border-box" };
+const plainButton: React.CSSProperties = { width: "100%", height: 48, border: 0, borderRadius: 8, background: INK, color: "#FFFFFF", fontFamily: "inherit", fontSize: 16, fontWeight: 700, cursor: "pointer" };
 const inputStyle: React.CSSProperties = { width: "100%", height: 48, borderRadius: 14, border: "1.5px solid transparent", background: SOFT, padding: "0 14px", fontFamily: "inherit", fontSize: 16, fontWeight: 600, color: INK, outline: "none", boxSizing: "border-box" };
 const darkButton: React.CSSProperties = { width: "100%", height: 50, border: 0, borderRadius: 999, background: INK, color: GOLD, fontFamily: "inherit", fontSize: 15, fontWeight: 800, cursor: "pointer" };
 
@@ -52,8 +55,8 @@ export function CourseRepPage() {
   if (!loading && !authenticated) {
     body = (
       <Intro>
-        <p style={{ margin: "14px 0 0", fontSize: 14, lineHeight: 1.5, color: "rgba(246,239,220,.7)" }}>Sign in or create an account first. Your email is how you’ll sign in to upload.</p>
-        <button type="button" onClick={() => setAuthOpen(true)} className="hub-plate" style={{ ...darkButton, ...goldPlate, marginTop: 16 }}>Sign in to apply</button>
+        <p style={{ margin: "12px 0 0", fontSize: 14, lineHeight: 1.5, color: "#5C564B" }}>Sign in or create an account first.</p>
+        <button type="button" onClick={() => setAuthOpen(true)} style={{ ...plainButton, marginTop: 16 }}>Sign in to apply</button>
       </Intro>
     );
   } else if (application === null || application?.status === "declined" || application?.status === "revoked") {
@@ -78,12 +81,11 @@ export function CourseRepPage() {
 
 function Intro({ children }: { children?: React.ReactNode }) {
   return (
-    <BlueprintCard compact>
-      <p style={{ margin: 0, fontSize: 11, fontWeight: 800, letterSpacing: ".16em", textTransform: "uppercase", color: GOLD }}>Course rep access</p>
-      <h1 style={{ margin: "6px 0 0", fontSize: 26, fontWeight: 800, letterSpacing: "-.03em", lineHeight: 1.05, color: CREAM }}>Upload materials for your class</h1>
-      <p style={{ margin: "8px 0 0", fontSize: 13, fontWeight: 500, color: "rgba(246,239,220,.6)" }}>We check every application before giving access.</p>
+    <div style={plainCard}>
+      <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Apply to be a course rep</h1>
+      <p style={{ margin: "6px 0 0", fontSize: 14, lineHeight: 1.5, color: "#5C564B" }}>Course reps upload slides and other materials for their class. We check every application before giving access.</p>
       {children}
-    </BlueprintCard>
+    </div>
   );
 }
 
@@ -111,51 +113,44 @@ function ApplyForm({ previous, onDone }: { previous: RepApplication | null | und
   }
 
   return (
-    <>
-      <Intro>
-        {previous?.status === "declined" ? <p style={{ margin: "12px 0 0", fontSize: 13, fontWeight: 700, color: GOLD }}>Your last application wasn’t approved. You can apply again.</p> : null}
-        {previous?.status === "revoked" ? <p style={{ margin: "12px 0 0", fontSize: 13, fontWeight: 700, color: GOLD }}>Your course rep access was removed. You can apply again.</p> : null}
-      </Intro>
-      <form onSubmit={submit} style={{ marginTop: 14, borderRadius: 24, background: "#FFFDF8", padding: "16px 16px 18px", boxShadow: "0 14px 32px -16px rgba(26,24,20,.45)" }}>
-        <label style={fieldLabel} htmlFor="rep-name">Full name</label>
-        <input id="rep-name" value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" placeholder="e.g. Ama Serwaa Mensah" style={inputStyle} required />
+    <form onSubmit={submit} style={plainCard}>
+      <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Apply to be a course rep</h1>
+      <p style={{ margin: "6px 0 18px", fontSize: 14, lineHeight: 1.5, color: "#5C564B" }}>
+        {previous?.status === "declined" ? "Your last application wasn’t approved. You can apply again." : previous?.status === "revoked" ? "Your course rep access was removed. You can apply again." : "We check every application before giving access."}
+      </p>
 
-        <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="rep-programme">Programme</label>
-        <select id="rep-programme" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} style={{ ...inputStyle, appearance: "auto" }} required>
-          <option value="">Choose your programme</option>
-          {programmes.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+      <label style={fieldLabel} htmlFor="rep-name">Full name</label>
+      <input id="rep-name" value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" style={plainInput} required />
 
-        <span style={{ ...fieldLabel, marginTop: 12 }}>Year</span>
-        <div role="radiogroup" aria-label="Year" style={{ display: "flex", gap: 6 }}>
-          {[1, 2, 3, 4].map((y) => (
-            <button key={y} type="button" role="radio" aria-checked={year === y} onClick={() => setYear(y)} style={{ flex: 1, height: 42, border: 0, borderRadius: 12, background: year === y ? INK : SOFT, color: year === y ? GOLD : "#5C564B", fontFamily: "inherit", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Year {y}</button>
-          ))}
-        </div>
+      <label style={{ ...fieldLabel, marginTop: 14 }} htmlFor="rep-programme">Programme</label>
+      <select id="rep-programme" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} style={plainInput} required>
+        <option value="">Choose…</option>
+        {programmes.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+      </select>
 
-        <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="rep-phone">Phone number</label>
-        <input id="rep-phone" value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" autoComplete="tel" inputMode="tel" placeholder="024 123 4567" style={inputStyle} required />
+      <label style={{ ...fieldLabel, marginTop: 14 }} htmlFor="rep-year">Year</label>
+      <select id="rep-year" value={year} onChange={(e) => setYear(Number(e.target.value))} style={plainInput}>
+        {[1, 2, 3, 4].map((y) => <option key={y} value={y}>Year {y}</option>)}
+      </select>
 
-        <ErrorLine text={error} />
-        <button type="submit" disabled={busy} style={{ ...darkButton, marginTop: 16, opacity: busy ? 0.6 : 1 }}>{busy ? "Sending…" : "Send application"}</button>
-        <p style={{ margin: "10px 0 0", fontSize: 11, fontWeight: 600, color: MUTED, textAlign: "center" }}>You can only upload for the programme and year you choose here.</p>
-      </form>
-    </>
+      <label style={{ ...fieldLabel, marginTop: 14 }} htmlFor="rep-phone">Phone number</label>
+      <input id="rep-phone" value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" autoComplete="tel" inputMode="tel" placeholder="024 123 4567" style={plainInput} required />
+
+      <ErrorLine text={error} />
+      <button type="submit" disabled={busy} style={{ ...plainButton, marginTop: 20, opacity: busy ? 0.6 : 1 }}>{busy ? "Sending…" : "Submit application"}</button>
+    </form>
   );
 }
 
 function Pending({ application }: { application: RepApplication }) {
   return (
-    <BlueprintCard department={application.departmentName} style={{ marginTop: 60, textAlign: "center", padding: "26px 22px" }}>
-      <span style={{ width: 64, height: 64, borderRadius: 999, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", ...goldPlate }}><Clock size={26} strokeWidth={2.3} /></span>
-      <h1 style={{ margin: "16px 0 0", fontSize: 26, fontWeight: 800, letterSpacing: "-.03em", color: CREAM }}>Application received</h1>
-      <p style={{ margin: "8px 0 0", fontSize: 14, lineHeight: 1.5, color: "rgba(246,239,220,.65)" }}>
-        We’ll confirm you as course rep for <b style={{ color: CREAM }}>{application.departmentName} · Year {application.studyYear}</b>. You’ll get a text on {application.phone.replace(/^\+233/, "0")} when it’s done.
+    <div style={plainCard}>
+      <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Application received</h1>
+      <p style={{ margin: "8px 0 0", fontSize: 15, lineHeight: 1.55, color: "#3A352B" }}>
+        You applied to be course rep for <b>{application.departmentName}, Year {application.studyYear}</b>. We’ll text you on {application.phone.replace(/^\+233/, "0")} once it’s reviewed.
       </p>
-      <span style={{ marginTop: 18, display: "inline-flex", alignItems: "center", gap: 8, height: 34, padding: "0 14px", borderRadius: 999, background: "#2A251C", fontSize: 12, fontWeight: 800, color: GOLD }}>
-        <span style={{ width: 8, height: 8, borderRadius: 999, background: GOLD }} />Pending review
-      </span>
-    </BlueprintCard>
+      <p style={{ margin: "12px 0 0", fontSize: 13, fontWeight: 600, color: "#8F6500" }}>Status: waiting for review</p>
+    </div>
   );
 }
 
