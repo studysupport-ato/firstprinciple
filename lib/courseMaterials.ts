@@ -81,6 +81,10 @@ export interface CourseMaterialEntry {
   available?: boolean;
   /** Who wrote or compiled it, e.g. "Compiled by Ama Mensah (EE 2027)". Shown on the course tile. */
   credit?: string;
+  /** For a material that links a Drive folder: Drive file ids students should not see. */
+  hiddenFiles?: string[];
+  /** For a course: the folder the site created in the Back2Basics Drive for uploads. */
+  driveFolderId?: string | null;
   createdAt: string;
   updatedAt: string;
 }

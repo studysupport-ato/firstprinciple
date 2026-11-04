@@ -15,7 +15,15 @@ import {
   type RepApplication,
   type RepMaterialType,
   type RepScope,
+  type ImportSource,
+  type UploadKind,
+  importCoursesFromFolder,
+  listImportSources,
+  repFinishUpload,
+  repSetHiddenFiles,
+  repStartUpload,
 } from "./repService";
+import { DriveNotConnectedError, driveConnectConfigured, getConnectionInfo } from "./googleDrive";
 
 export type RepResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -23,7 +31,7 @@ async function run<T>(fn: () => Promise<T>): Promise<RepResult<T>> {
   try {
     return { ok: true, data: await fn() };
   } catch (error) {
-    const message = error instanceof RepAccessError ? error.message : error instanceof Error && error.name === "AdminUnauthorizedError" ? "Admin sign-in required." : "Something went wrong. Try again.";
+    const message = error instanceof RepAccessError || error instanceof DriveNotConnectedError || (error instanceof Error && /^(Upload a PDF|Files can be up to|Google Drive would not start|That file is not in)/.test(error.message)) ? error.message : error instanceof Error && error.name === "AdminUnauthorizedError" ? "Admin sign-in required." : "Something went wrong. Try again.";
     if (!(error instanceof RepAccessError)) console.error("[course reps]", error);
     return { ok: false, error: message };
   }
@@ -70,5 +78,37 @@ export async function adminSetRepStatusAction(id: string, status: "approved" | "
     await requireAdmin();
     await setApplicationStatus(id, status);
     return null;
+  });
+}
+
+export async function repStartUploadAction(input: { courseId: string; fileName: string; fileType: string; size: number }): Promise<RepResult<{ uploadUrl: string }>> {
+  return run(() => repStartUpload(input));
+}
+export async function repFinishUploadAction(input: { courseId: string; kind: UploadKind; fileId: string; title: string }): Promise<RepResult<{ id: string }>> {
+  return run(async () => ({ id: (await repFinishUpload(input)).id }));
+}
+export async function repSetHiddenFilesAction(materialId: string, fileIds: string[]): Promise<RepResult<null>> {
+  return run(async () => {
+    await repSetHiddenFiles(materialId, fileIds);
+    return null;
+  });
+}
+
+export async function adminDriveStatusAction(): Promise<RepResult<{ configured: boolean; connected: { email: string | null; connectedAt: string } | null }>> {
+  return run(async () => {
+    await requireAdmin();
+    return { configured: driveConnectConfigured(), connected: await getConnectionInfo().catch(() => null) };
+  });
+}
+export async function adminImportSourcesAction(): Promise<RepResult<ImportSource[]>> {
+  return run(async () => {
+    await requireAdmin();
+    return listImportSources();
+  });
+}
+export async function adminImportCoursesAction(sourceMaterialId: string, folders: Array<{ folderId: string; code: string; title: string }>): Promise<RepResult<number>> {
+  return run(async () => {
+    await requireAdmin();
+    return importCoursesFromFolder(sourceMaterialId, folders);
   });
 }

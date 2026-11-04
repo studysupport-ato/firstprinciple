@@ -119,8 +119,35 @@ export function coursesFor(entries: CourseMaterialEntry[], choice: HubChoice): H
       out.push({ id: entry.id, code: entry.courseCode, title: entry.courseTitle, kind: "course", general });
     }
   }
-  // Programme courses first, then the general ones every programme shares.
-  return [...out.filter((c) => !c.general), ...out.filter((c) => c.general)];
+  // A programme course that is really a general course (same code, or same name) shows once:
+  // the programme's row, with the general course's code and its playlists folded in.
+  const generals = out.filter((c) => c.general);
+  const own = out.filter((c) => !c.general).map((c) => {
+    const twin = generals.find((g) => sameCourse(c, g));
+    return twin ? { ...c, code: c.code || twin.code, title: twin.code && !c.code ? twin.title : c.title } : c;
+  });
+  const shown = generals.filter((g) => !own.some((c) => sameCourse(c, g)));
+  return [...own, ...shown];
+}
+
+function courseKey(text?: string) {
+  return (text ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+/** "ME 161" = "ME161"; "BASIC MECHANICS" = "Basic Mechanics"; "MATH 151 ALGEBRA" matches code MATH 151. */
+export function sameCourse(a: { code?: string; title: string }, b: { code?: string; title: string }) {
+  const codeA = courseKey(a.code) || courseKey(a.title.match(/^[A-Za-z]{2,5}\s?\d{3}/)?.[0]);
+  const codeB = courseKey(b.code) || courseKey(b.title.match(/^[A-Za-z]{2,5}\s?\d{3}/)?.[0]);
+  if (codeA && codeB) return codeA === codeB;
+  const nameA = courseKey(a.title.replace(/^[A-Za-z]{2,5}\s?\d{3}\s*/, "").replace(/\bI\b$/i, "1"));
+  const nameB = courseKey(b.title.replace(/^[A-Za-z]{2,5}\s?\d{3}\s*/, "").replace(/\bI\b$/i, "1"));
+  return Boolean(nameA) && nameA === nameB;
+}
+
+/** The general course that a programme course stands in for, if any (to fold in its playlists). */
+export function generalTwin(entries: CourseMaterialEntry[], course: CourseMaterialEntry): CourseMaterialEntry | undefined {
+  if (course.departmentId === GENERAL_DEPARTMENT_ID) return undefined;
+  return entries.find((e) => e.departmentId === GENERAL_DEPARTMENT_ID && getEntryType(e) === "course" && isLive(e) && sameCourse({ code: course.courseCode, title: course.courseTitle }, { code: e.courseCode, title: e.courseTitle }));
 }
 
 export function hasAnything(entries: CourseMaterialEntry[], departmentId: string, year: CourseMaterialYear, semester?: CourseMaterialSemester) {
@@ -162,9 +189,10 @@ export interface CourseGroups {
 
 const BOOK_PATTERN = /\b(book|textbook|text book|handbook|manual)\b/i;
 
-export function groupCourseMaterials(entries: CourseMaterialEntry[], courseId: string): CourseGroups {
+export function groupCourseMaterials(entries: CourseMaterialEntry[], courseId: string | string[]): CourseGroups {
   const groups: CourseGroups = { slides: [], videos: [], books: [], other: [] };
-  const children = entries.filter((e) => e.parentId === courseId && isLive(e)).sort((a, b) => a.order - b.order);
+  const ids = Array.isArray(courseId) ? courseId : [courseId];
+  const children = entries.filter((e) => e.parentId && ids.includes(e.parentId) && isLive(e)).sort((a, b) => ids.indexOf(a.parentId as string) - ids.indexOf(b.parentId as string) || a.order - b.order);
   for (const entry of children) {
     const t = entry.materialType;
     if (entry.description === "book" || BOOK_PATTERN.test(entry.courseTitle)) groups.books.push(entry);

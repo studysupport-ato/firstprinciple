@@ -16,6 +16,8 @@ import { parseYouTubeVideoId } from "@/lib/youtube";
 import { parseYouTubePlaylistId } from "@/lib/youtubePlaylist";
 import { getArkeselConfiguration } from "@/lib/smsCampaigns/config";
 import { submitArkeselSmsBatch } from "@/lib/smsCampaigns/arkeselProvider";
+import { courseUploadFolder, finishUpload, startUpload, trashUploadedFile } from "./googleDrive";
+import { parseDriveFileId, parseDriveFolderId } from "@/lib/site/materialsHub";
 
 if (typeof window !== "undefined") {
   throw new Error("lib/courseReps/repService.ts is server-only.");
@@ -276,6 +278,133 @@ export async function repRemoveEntry(id: string) {
     for (const child of children) await repository.archiveCourseMaterial(child.id);
   }
   await repository.archiveCourseMaterial(id);
+  // A file the site uploaded to the Back2Basics Drive goes to that Drive's bin (drive.file can't touch anyone else's files).
+  const fileId = getEntryType(entry) === "material" ? parseDriveFileId(entry.url) : null;
+  if (fileId) await trashUploadedFile(fileId);
+}
+
+/* ─── Uploads to the Back2Basics Drive ───────────────────────────────── */
+
+export type UploadKind = "slides" | "books";
+
+export async function repStartUpload(input: { courseId: string; fileName: string; fileType: string; size: number }) {
+  const rep = await requireApprovedRep();
+  const course = await requireOwnCourse(rep, input.courseId);
+  const folder = await courseUploadFolder(course, rep.departmentName);
+  const uploadUrl = await startUpload(folder, { name: input.fileName, type: input.fileType, size: input.size });
+  return { uploadUrl };
+}
+
+export async function repFinishUpload(input: { courseId: string; kind: UploadKind; fileId: string; title: string }) {
+  const rep = await requireApprovedRep();
+  const course = await requireOwnCourse(rep, input.courseId);
+  if (!course.driveFolderId) throw new RepAccessError("Start the upload again.");
+  const file = await finishUpload(input.fileId, course.driveFolderId);
+  const title = input.title.trim() || file.name.replace(/\.(pdf|pptx?|docx?)$/i, "");
+  const created = await createCourseMaterialsAdminRepository().createCourseMaterial({
+    departmentId: rep.departmentId,
+    studyYear: rep.studyYear,
+    semester: course.semester ?? null,
+    entryType: "material",
+    parentId: course.id,
+    courseTitle: title,
+    url: `https://drive.google.com/file/d/${file.id}/view`,
+    status: "published",
+    materialType: input.kind === "books" ? "pdf" : "slides",
+    description: input.kind === "books" ? "book" : undefined,
+    kind: "link",
+  });
+  await markRep(created.id, rep);
+  return created;
+}
+
+/* ─── Hiding files inside a linked Drive folder ─────────────────────── */
+
+export async function repSetHiddenFiles(materialId: string, fileIds: string[]) {
+  const rep = await requireApprovedRep();
+  const entry = await requireOwnEntry(rep, materialId);
+  if (getEntryType(entry) !== "material" || !parseDriveFolderId(entry.url)) throw new RepAccessError("Only Drive folders have files to hide.");
+  const ids = [...new Set(fileIds.filter((id) => /^[A-Za-z0-9_-]{10,}$/.test(id)))].slice(0, 2000);
+  const { error } = await db().from("course_materials").update({ hidden_files: ids, updated_at: new Date().toISOString() }).eq("id", materialId);
+  if (error) throw new RepAccessError("Could not save that change.");
+}
+
+/* ─── Admin: turn existing slide folders into courses ───────────────── */
+
+export interface ImportSource {
+  materialId: string;
+  departmentId: string;
+  departmentName: string;
+  studyYear: number;
+  semester: 1 | 2;
+  title: string;
+  folderId: string;
+  alreadyImported: string[];
+}
+
+export async function listImportSources(): Promise<ImportSource[]> {
+  const repository = createCourseMaterialsAdminRepository();
+  const [departments, entries] = await Promise.all([repository.listDepartments(), repository.listCourseMaterials()]);
+  const names = new Map(departments.map((d) => [d.id, d.name]));
+  const linked = new Map<string, Set<string>>();
+  for (const e of entries) {
+    if (e.status === "archived" || getEntryType(e) !== "material" || !e.parentId) continue;
+    const folder = parseDriveFolderId(e.url);
+    if (!folder) continue;
+    const parent = entries.find((p) => p.id === e.parentId);
+    if (!parent || /^\s*all\b|semester|first year|slides$/i.test(parent.courseTitle)) continue; // the bundle itself, not an imported course
+    if (!linked.has(e.departmentId)) linked.set(e.departmentId, new Set());
+    linked.get(e.departmentId)!.add(folder);
+  }
+  return entries
+    .filter((e) => e.status === "published" && e.departmentId !== GENERAL_DEPARTMENT_ID && getEntryType(e) !== "course" && parseDriveFolderId(e.url))
+    .filter((e) => /\b(all|slides|semester|year)\b/i.test(e.courseTitle))
+    .map((e) => ({
+      materialId: e.id,
+      departmentId: e.departmentId,
+      departmentName: names.get(e.departmentId) ?? e.departmentId,
+      studyYear: e.studyYear ?? 1,
+      semester: (/second\s+sem/i.test(e.courseTitle) ? 2 : e.semester ?? 1) as 1 | 2,
+      title: e.courseTitle,
+      folderId: parseDriveFolderId(e.url) as string,
+      alreadyImported: [...(linked.get(e.departmentId) ?? [])],
+    }));
+}
+
+export async function importCoursesFromFolder(sourceMaterialId: string, folders: Array<{ folderId: string; code: string; title: string }>) {
+  const source = (await listImportSources()).find((s) => s.materialId === sourceMaterialId);
+  if (!source) throw new Error("That slides folder was not found.");
+  const repository = createCourseMaterialsAdminRepository();
+  let created = 0;
+  for (const folder of folders) {
+    if (!/^[A-Za-z0-9_-]{10,}$/.test(folder.folderId) || source.alreadyImported.includes(folder.folderId)) continue;
+    const title = folder.title.trim();
+    if (!title) continue;
+    const course = await repository.createCourseMaterial({
+      departmentId: source.departmentId,
+      studyYear: source.studyYear as CourseMaterialYear,
+      semester: source.semester,
+      entryType: "course",
+      courseCode: folder.code.trim().toUpperCase() || undefined,
+      courseTitle: title,
+      url: "",
+      status: "published",
+    });
+    await repository.createCourseMaterial({
+      departmentId: source.departmentId,
+      studyYear: source.studyYear as CourseMaterialYear,
+      semester: source.semester,
+      entryType: "material",
+      parentId: course.id,
+      courseTitle: "Slides",
+      url: `https://drive.google.com/drive/folders/${folder.folderId}`,
+      status: "published",
+      materialType: "slides",
+      kind: "link",
+    });
+    created += 1;
+  }
+  return created;
 }
 
 /* ─── Admin side ─────────────────────────────────────────────────────── */

@@ -11,6 +11,7 @@ import {
   driveMediaUrl,
   drivePreviewUrl,
   formatBytes,
+  generalTwin,
   groupCourseMaterials,
   isDownloadable,
   listDriveFolder,
@@ -36,7 +37,11 @@ export function MaterialsHubView() {
   const folderId = params.get("folder");
   const data = useHubData();
   const course = data.entries.find((e) => e.id === courseId && getEntryType(e) === "course");
-  const groups = useMemo(() => groupCourseMaterials(data.entries, courseId), [data.entries, courseId]);
+  const groups = useMemo(() => {
+    const own = data.entries.find((e) => e.id === courseId);
+    const twin = own ? generalTwin(data.entries, own) : undefined;
+    return groupCourseMaterials(data.entries, twin ? [courseId, twin.id] : courseId);
+  }, [data.entries, courseId]);
 
   return (
     <div style={{ ...goldGround, ...hubFont, color: INK, minHeight: "100dvh" }}>
@@ -179,7 +184,7 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
   if (activeFolder) {
     return (
       <div className="hub-row">
-        <DriveFolder kind={kind} course={course} folderId={activeFolder} isRoot={!folderId} />
+        <DriveFolder kind={kind} course={course} folderId={activeFolder} isRoot={!folderId} hidden={slides.flatMap((m) => m.hiddenFiles ?? [])} />
       </div>
     );
   }
@@ -216,7 +221,7 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
 
 type FolderState = { status: "loading" } | { status: "ready"; items: DriveItem[] } | { status: "error"; reason: string };
 
-function DriveFolder({ kind, course, folderId, isRoot }: { kind: DriveKind; course: CourseMaterialEntry; folderId: string; isRoot: boolean }) {
+function DriveFolder({ kind, course, folderId, isRoot, hidden = [] }: { kind: DriveKind; course: CourseMaterialEntry; folderId: string; isRoot: boolean; hidden?: string[] }) {
   const [state, setState] = useState<FolderState>({ status: "loading" });
   const [viewing, setViewing] = useState<DriveItem | null>(null);
   const [downloadOpen, setDownloadOpen] = useState(false);
@@ -226,13 +231,14 @@ function DriveFolder({ kind, course, folderId, isRoot }: { kind: DriveKind; cour
     const controller = new AbortController();
     setState({ status: "loading" });
     listDriveFolder(folderId, controller.signal)
-      .then((items) => setState({ status: "ready", items }))
+      .then((items) => setState({ status: "ready", items: items.filter((item) => !hidden.includes(item.id)) }))
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         setState({ status: "error", reason: error instanceof Error ? error.message : "error" });
       });
     return () => controller.abort();
-  }, [folderId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folderId, hidden.join(",")]);
 
   const files = state.status === "ready" ? state.items.filter(isDownloadable) : [];
   const totalBytes = files.reduce((sum, f) => sum + (f.size ?? 0), 0);
