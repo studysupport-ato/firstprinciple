@@ -18,7 +18,7 @@ import { parseYouTubeVideoId } from "@/lib/youtube";
 import { parseYouTubePlaylistId } from "@/lib/youtubePlaylist";
 
 /** Flip to true to show the new flow to every student (it is admin-only until then). */
-export const MATERIALS_HUB_LIVE = false;
+export const MATERIALS_HUB_LIVE = true;
 
 /** The number students call to offer a resource. Leave empty to hide the call button. */
 export const RESOURCE_CONTACT_PHONE = "";

@@ -154,7 +154,7 @@ export default function PlatformLayout({
           <nav data-testid="mobile-bottom-navigation" className="fixed bottom-0 left-0 right-0 z-40 flex h-[76px] items-center justify-around bg-[#1A1814] pb-[env(safe-area-inset-bottom)] px-2 md:hidden">
             <MobileNavItem href="/" icon="House" label="Home" current={pathname === "/"} />
             <MobileNavItem href="/courses" icon="BookOpen" label="Courses" current={pathname === "/courses" || pathname?.startsWith("/courses/")} />
-            <MobileNavItem href="/course-materials" icon="Library" label="Materials" current={pathname === "/course-materials"} />
+            <MobileNavItem href="/#materials" icon="Library" label="Materials" current={pathname === "/course-materials"} />
             <MobileNavItem href="/questions" icon="HelpCircle" label="Questions" current={pathname === "/questions"} />
           </nav>
         ) : null}

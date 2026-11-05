@@ -20,6 +20,8 @@ import { courseUploadFolder, finishUpload, startUpload, trashUploadedFile } from
 import { parseDriveFileId, parseDriveFolderId } from "@/lib/site/materialsHub";
 import { notifyRepUpload } from "./uploadPush";
 import { after } from "next/server";
+import { getResendConfiguration } from "@/lib/emailCampaigns/config";
+import { submitBrandedEmail } from "@/lib/emailCampaigns/resendProvider";
 
 if (typeof window !== "undefined") {
   throw new Error("lib/courseReps/repService.ts is server-only.");
@@ -139,7 +141,30 @@ export async function applyAsRep(input: { fullName: string; departmentId: string
     ? await db().from("course_rep_applications").update({ ...row, created_at: now }).eq("id", existing.id)
     : await db().from("course_rep_applications").insert(row);
   if (error) throw new RepAccessError("Your application could not be sent. Try again.");
-  return (await getMyApplication()) as RepApplication;
+  const saved = (await getMyApplication()) as RepApplication;
+  after(() => tellAdminAboutApplication(saved));
+  return saved;
+}
+
+/** Emails the Back2Basics admin when someone applies to be a course rep. Never blocks the application. */
+async function tellAdminAboutApplication(application: RepApplication) {
+  try {
+    const to = process.env.ADMIN_EMAIL?.trim();
+    if (!to) return;
+    const esc = (v: string) => v.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);
+    const phone = application.phone.replace(/^\+233/, "0");
+    const html = `<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.5;color:#1A1814">
+      <h2 style="margin:0 0 12px">New course rep application</h2>
+      <p style="margin:0"><b>${esc(application.fullName)}</b></p>
+      <p style="margin:0">${esc(application.departmentName)}</p>
+      <p style="margin:0">Year ${application.studyYear}</p>
+      <p style="margin:0 0 18px">${esc(phone)}</p>
+      <a href="https://www.b2bwithkwamina.com/admin/course-reps" style="display:inline-block;background:#1A1814;color:#E9BC3A;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:bold">Review application</a>
+    </div>`;
+    await submitBrandedEmail(getResendConfiguration(), { recipient: to, subject: `Course rep application: ${application.fullName} (${application.departmentName}, Year ${application.studyYear})`, html });
+  } catch (error) {
+    console.error("[course-rep] admin email failed", error instanceof Error ? error.message : "unknown");
+  }
 }
 
 /** The signed-in user's approved rep record, or an error. Called before every rep read or write. */
