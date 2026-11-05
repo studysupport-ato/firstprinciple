@@ -134,3 +134,16 @@ export async function repFinishReplaceAction(input: { materialId: string; fileId
     return null;
   });
 }
+
+/* Admin: the hidden test programme, shown to the admin as a student would see it. */
+const TEST_PROGRAMME_ID = "inter-science-test";
+export async function adminTestHubDataAction(): Promise<RepResult<{ departments: import("@/lib/courseMaterials").CourseMaterialsDepartment[]; entries: import("@/lib/courseMaterials").CourseMaterialEntry[] }>> {
+  return run(async () => {
+    await requireAdmin();
+    const { createCourseMaterialsAdminRepository } = await import("@/lib/content/adminRepository");
+    const repo = createCourseMaterialsAdminRepository();
+    const [departments, entries] = await Promise.all([repo.listDepartments(), repo.listCourseMaterials({ departmentId: TEST_PROGRAMME_ID })]);
+    const test = departments.filter((d) => d.id === TEST_PROGRAMME_ID).map((d) => ({ ...d, status: "published" as const, available: true }));
+    return { departments: test, entries: entries.filter((e) => e.status !== "archived") };
+  });
+}

@@ -15,7 +15,40 @@ export interface HubData {
 
 let cache: { departments: CourseMaterialsDepartment[]; entries: CourseMaterialEntry[] } | null = null;
 
+/* Admin only: hidden programmes (the test one) added on top of what students see, for this visit. */
+let extra: { departments: CourseMaterialsDepartment[]; entries: CourseMaterialEntry[] } = { departments: [], entries: [] };
+const extraListeners = new Set<() => void>();
+export function addAdminHubData(more: { departments: CourseMaterialsDepartment[]; entries: CourseMaterialEntry[] }) {
+  const ids = new Set(more.entries.map((e) => e.id));
+  const deptIds = new Set(more.departments.map((d) => d.id));
+  extra = { departments: [...extra.departments.filter((d) => !deptIds.has(d.id)), ...more.departments], entries: [...extra.entries.filter((e) => !ids.has(e.id)), ...more.entries] };
+  extraListeners.forEach((fn) => fn());
+}
+
 export function useHubData(): HubData {
+  const base = useBaseHubData();
+  const [version, bump] = useState(0);
+  useEffect(() => {
+    const fn = () => bump((n) => n + 1);
+    extraListeners.add(fn);
+    return () => {
+      extraListeners.delete(fn);
+    };
+  }, []);
+  return useMemo(() => {
+    if (!extra.departments.length && !extra.entries.length) return base;
+    const deptIds = new Set(extra.departments.map((d) => d.id));
+    const entryIds = new Set(extra.entries.map((e) => e.id));
+    return {
+      ...base,
+      departments: [...base.departments.filter((d) => !deptIds.has(d.id)), ...extra.departments],
+      entries: [...base.entries.filter((e) => !entryIds.has(e.id)), ...extra.entries],
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [base, version]);
+}
+
+function useBaseHubData(): HubData {
   const [state, setState] = useState<HubData>(() => (cache ? { status: "ready", ...cache } : { status: "loading", departments: [], entries: [] }));
   useEffect(() => {
     if (cache) return;
