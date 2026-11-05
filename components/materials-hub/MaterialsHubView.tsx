@@ -288,6 +288,7 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
                         <span style={{ fontSize: 15.5, fontWeight: 800 }}>{m.courseTitle}</span>
                         <span style={{ fontSize: 12, opacity: 0.8 }}>
                           {isNew ? <b style={{ background: GOLD, color: INK, padding: "1px 6px", borderRadius: 999, fontSize: 10, marginRight: 6 }}>NEW</b> : null}
+                          {m.replacedAt ? <b style={{ background: GOLD, color: INK, padding: "1px 6px", borderRadius: 999, fontSize: 10, marginRight: 6 }}>UPDATED</b> : null}
                           {m.uploadedBy ? `Uploaded by ${m.uploadedBy}` : "Uploaded by your course rep"}
                         </span>
                         <span style={{ fontSize: 12, opacity: 0.8 }}>{timeAgo(m.createdAt)}</span>
@@ -346,7 +347,8 @@ function EntryRows({ list, course, kind, rep = false, onOpen }: { list: CourseMa
             <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
               <span style={{ fontSize: 15, fontWeight: 800, color: CREAM }}>{s.courseTitle}</span>
               {fresh ? <span style={{ alignSelf: "flex-start", height: 18, padding: "0 7px", borderRadius: 999, background: REP_GREEN, color: "#fff", fontSize: 10, fontWeight: 900, letterSpacing: ".06em", display: "inline-flex", alignItems: "center" }}>NEW</span> : null}
-              {(rep ? [s.uploadedBy ? `Uploaded by ${s.uploadedBy}` : "Uploaded by your course rep", s.credit ? `Lecturer: ${s.credit}` : null, timeAgo(s.createdAt)] : [folder ? "Folder" : fileId ? "PDF" : "Opens a link", s.credit ? `Credit: ${s.credit}` : null])
+              {s.replacedAt ? <span style={{ alignSelf: "flex-start", height: 18, padding: "0 7px", borderRadius: 999, background: GOLD, color: INK, fontSize: 10, fontWeight: 900, letterSpacing: ".06em", display: "inline-flex", alignItems: "center" }}>UPDATED</span> : null}
+              {(rep ? [s.description === "handwritten" ? "Handwritten notes" : null, s.uploadedBy ? `Uploaded by ${s.uploadedBy}` : "Uploaded by your course rep", s.credit ? `Lecturer: ${s.credit}` : null, s.changeNote ? `Changed: ${s.changeNote}` : null, timeAgo(s.replacedAt ?? s.createdAt)] : [folder ? "Folder" : fileId ? "PDF" : "Opens a link", s.credit ? `Credit: ${s.credit}` : null])
                 .filter(Boolean)
                 .map((line) => <span key={line} style={{ fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>{line}</span>)}
             </span>

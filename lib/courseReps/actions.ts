@@ -11,6 +11,9 @@ import {
   repCreateCourse,
   repRemoveEntry,
   repUpdateEntry,
+  repMoveEntry,
+  repMoveCourseSemester,
+  repFinishReplace,
   setApplicationStatus,
   type RepApplication,
   type RepMaterialType,
@@ -84,7 +87,7 @@ export async function adminSetRepStatusAction(id: string, status: "approved" | "
 export async function repStartUploadAction(input: { courseId: string; fileName: string; fileType: string; size: number }): Promise<RepResult<{ uploadUrl: string }>> {
   return run(() => repStartUpload(input));
 }
-export async function repFinishUploadAction(input: { courseId: string; kind: UploadKind; fileId: string; title: string; lecturer?: string }): Promise<RepResult<{ id: string }>> {
+export async function repFinishUploadAction(input: { courseId: string; kind: UploadKind; fileId: string; title: string; lecturer?: string; handwritten?: boolean }): Promise<RepResult<{ id: string }>> {
   return run(async () => ({ id: (await repFinishUpload(input)).id }));
 }
 export async function repSetHiddenFilesAction(materialId: string, fileIds: string[]): Promise<RepResult<null>> {
@@ -110,5 +113,24 @@ export async function adminImportCoursesAction(sourceMaterialId: string, folders
   return run(async () => {
     await requireAdmin();
     return importCoursesFromFolder(sourceMaterialId, folders);
+  });
+}
+
+export async function repMoveEntryAction(id: string, direction: "up" | "down"): Promise<RepResult<null>> {
+  return run(async () => {
+    await repMoveEntry(id, direction);
+    return null;
+  });
+}
+export async function repMoveCourseSemesterAction(id: string, semester: 1 | 2): Promise<RepResult<null>> {
+  return run(async () => {
+    await repMoveCourseSemester(id, semester);
+    return null;
+  });
+}
+export async function repFinishReplaceAction(input: { materialId: string; fileId: string; note?: string; notify?: boolean }): Promise<RepResult<null>> {
+  return run(async () => {
+    await repFinishReplace(input);
+    return null;
   });
 }

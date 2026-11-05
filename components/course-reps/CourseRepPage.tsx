@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, BookOpen, Eye, EyeOff, FileText, Folder, Link2, Lock, Pencil, Play, Plus, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowLeft, ArrowLeftRight, ArrowUp, BookOpen, Camera, Eye, EyeOff, FileText, Folder, ImagePlus, Link2, Lock, MoreHorizontal, PenLine, Pencil, Play, Plus, RefreshCw, Trash2, Upload, X } from "lucide-react";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { useAuthSession } from "@/lib/auth/useAuthSession";
-import { availableDepartments, formatBytes, listDriveFolder, parseDriveFolderId, tidyFileName, type DriveItem } from "@/lib/site/materialsHub";
+import { availableDepartments, formatBytes, listDriveFolder, parseDriveFileId, parseDriveFolderId, tidyFileName, type DriveItem } from "@/lib/site/materialsHub";
+import { imagesToPdf } from "@/lib/courseReps/imagesToPdf";
 import type { CourseMaterialEntry } from "@/lib/courseMaterials";
 import {
   applyAsRepAction,
@@ -18,6 +19,9 @@ import {
   repSetHiddenFilesAction,
   repStartUploadAction,
   repUpdateEntryAction,
+  repMoveEntryAction,
+  repMoveCourseSemesterAction,
+  repFinishReplaceAction,
 } from "@/lib/courseReps/actions";
 import type { RepApplication, RepMaterialType, RepScope } from "@/lib/courseReps/repService";
 import { BlueprintCard, CREAM, GOLD, HubStyles, INK, MUTED, Panel, Pill, ROW_LINE, Sheet, SOFT, backButtonStyle, goldGround, goldPlate, hubFont } from "@/components/materials-hub/ui";
@@ -177,6 +181,24 @@ function RepPanel() {
   const [addTo, setAddTo] = useState<Course | null>(null);
   const [editing, setEditing] = useState<CourseMaterialEntry | null>(null);
   const [managing, setManaging] = useState<CourseMaterialEntry | null>(null);
+  const [replacing, setReplacing] = useState<CourseMaterialEntry | null>(null);
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [busyMove, setBusyMove] = useState(false);
+  async function move(entry: CourseMaterialEntry, direction: "up" | "down") {
+    setBusyMove(true);
+    const result = await repMoveEntryAction(entry.id, direction);
+    if (!result.ok) window.alert(result.error);
+    await load();
+    setBusyMove(false);
+  }
+  async function moveSemester(entry: CourseMaterialEntry) {
+    const to = (entry.semester ?? 1) === 1 ? 2 : 1;
+    if (!window.confirm(`Move “${entry.courseTitle}” and everything in it to Semester ${to}?`)) return;
+    const result = await repMoveCourseSemesterAction(entry.id, to);
+    if (!result.ok) return window.alert(result.error);
+    setSemester(to);
+    await load();
+  }
 
   const load = useCallback(async () => {
     const result = await repScopeAction();
@@ -211,6 +233,11 @@ function RepPanel() {
           <h1 style={{ margin: "10px 0 0", maxWidth: "62%", fontSize: 24, fontWeight: 800, letterSpacing: "-.03em", lineHeight: 1.05, color: CREAM }}>{current.courseTitle}</h1>
           <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
             <button type="button" onClick={() => setEditing(current)} style={smallGhost}><Pencil size={13} /> Rename</button>
+            <button type="button" onClick={() => moveSemester(current)} style={smallGhost}><ArrowLeftRight size={13} /> Move to Semester {(current.semester ?? 1) === 1 ? 2 : 1}</button>
+          </div>
+          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" disabled={busyMove} onClick={() => move(current, "up")} style={smallGhost}><ArrowUp size={13} /> Move course up</button>
+            <button type="button" disabled={busyMove} onClick={() => move(current, "down")} style={smallGhost}><ArrowDown size={13} /> Move course down</button>
             <button type="button" onClick={() => remove(current)} style={{ ...smallGhost, color: "#F2A39B", borderColor: "rgba(242,163,155,.45)" }}><Trash2 size={13} /> Remove course</button>
           </div>
         </BlueprintCard>
@@ -220,19 +247,30 @@ function RepPanel() {
               const yt = m.materialType === "playlist" || m.materialType === "video";
               const book = m.description === "book";
               return (
-                <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 10px 10px 12px", borderBottom: i < current.materials.length - 1 ? `1px solid ${ROW_LINE}` : "none" }}>
+                <div key={m.id} style={{ borderBottom: i < current.materials.length - 1 ? `1px solid ${ROW_LINE}` : "none" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 10px 10px 12px" }}>
                   <span aria-hidden style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center", ...(yt ? { background: "#FF0033" } : book ? goldPlate : { background: "#2A251C", border: "1px solid rgba(233,188,58,.25)" }) }}>
-                    {yt ? <Play size={15} color="#fff" fill="#fff" /> : book ? <BookOpen size={16} color={INK} /> : <FileText size={16} color={GOLD} />}
+                    {yt ? <Play size={15} color="#fff" fill="#fff" /> : book ? <BookOpen size={16} color={INK} /> : m.description === "handwritten" ? <PenLine size={16} color={GOLD} /> : <FileText size={16} color={GOLD} />}
                   </span>
                   <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
                     <span style={{ fontSize: 14, fontWeight: 700, color: CREAM, overflowWrap: "anywhere" }}>{m.courseTitle}</span>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(246,239,220,.5)" }}>{yt ? "YouTube" : book ? "Book" : "Slides"}</span>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(246,239,220,.5)" }}>{yt ? "YouTube" : book ? "Book" : m.description === "handwritten" ? "Handwritten notes" : "Slides"}</span>
                     <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(246,239,220,.5)" }}>{linkKind(m.url)}</span>
+                    {m.replacedAt ? <span style={{ fontSize: 12, fontWeight: 700, color: GOLD }}>Updated{m.changeNote ? `: ${m.changeNote}` : ""}</span> : null}
                     {m.hiddenFiles?.length ? <span style={{ fontSize: 12, fontWeight: 500, color: "rgba(246,239,220,.5)" }}>{m.hiddenFiles.length} hidden</span> : null}
                   </span>
-                  {parseDriveFolderId(m.url) ? <button type="button" onClick={() => setManaging(m)} aria-label={`Show or hide files in ${m.courseTitle}`} style={iconButton}><Folder size={15} color={GOLD} /></button> : null}
-                  <button type="button" onClick={() => setEditing(m)} aria-label={`Edit ${m.courseTitle}`} style={iconButton}><Pencil size={15} color={GOLD} /></button>
-                  <button type="button" onClick={() => remove(m)} aria-label={`Remove ${m.courseTitle}`} style={iconButton}><Trash2 size={15} color="#F2A39B" /></button>
+                  <button type="button" onClick={() => setMenuFor(menuFor === m.id ? null : m.id)} aria-label={`Actions for ${m.courseTitle}`} aria-expanded={menuFor === m.id} style={{ ...iconButton, ...(menuFor === m.id ? { background: GOLD } : null) }}><MoreHorizontal size={17} color={menuFor === m.id ? INK : GOLD} /></button>
+                </div>
+                {menuFor === m.id ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "0 12px 12px 62px" }}>
+                    <button type="button" disabled={busyMove || i === 0} onClick={() => move(m, "up")} style={{ ...smallGhost, opacity: i === 0 ? 0.4 : 1 }}><ArrowUp size={13} /> Move up</button>
+                    <button type="button" disabled={busyMove || i === current.materials.length - 1} onClick={() => move(m, "down")} style={{ ...smallGhost, opacity: i === current.materials.length - 1 ? 0.4 : 1 }}><ArrowDown size={13} /> Move down</button>
+                    {parseDriveFileId(m.url) ? <button type="button" onClick={() => setReplacing(m)} style={smallGhost}><RefreshCw size={13} /> Replace file</button> : null}
+                    <button type="button" onClick={() => setEditing(m)} style={smallGhost}><Pencil size={13} /> Edit</button>
+                    {parseDriveFolderId(m.url) ? <button type="button" onClick={() => setManaging(m)} style={smallGhost}><Folder size={13} /> Show or hide files</button> : null}
+                    <button type="button" onClick={() => remove(m)} style={{ ...smallGhost, color: "#F2A39B", borderColor: "rgba(242,163,155,.45)" }}><Trash2 size={13} /> Remove</button>
+                  </div>
+                ) : null}
                 </div>
               );
             })}
@@ -244,6 +282,7 @@ function RepPanel() {
         <AddMaterialSheet course={addTo} onClose={() => setAddTo(null)} onSaved={load} />
         <EditSheet entry={editing} onClose={() => setEditing(null)} onSaved={load} />
         <FilesSheet material={managing} onClose={() => setManaging(null)} onSaved={load} />
+        <ReplaceSheet material={replacing} course={current} onClose={() => setReplacing(null)} onSaved={load} />
       </div>
     );
   }
@@ -285,7 +324,7 @@ function RepPanel() {
       )}
       <button type="button" onClick={() => setAddCourse(true)} className="hub-plate" style={{ ...darkButton, ...goldPlate, marginTop: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><Plus size={18} /> Add a course</button>
       <p style={{ margin: "10px 0 0", fontSize: 12, fontWeight: 600, color: "rgba(26,24,20,.7)", textAlign: "center" }}>General courses shared by every programme (ME 161, EE 151, ENGL 157…) are managed by Back2Basics.</p>
-      <AddCourseSheet open={addCourse} semester={semester} onClose={() => setAddCourse(false)} onSaved={load} />
+      <AddCourseSheet open={addCourse} semester={semester} existing={scope.courses} onOpenExisting={(id) => { setAddCourse(false); setOpenCourse(id); }} onClose={() => setAddCourse(false)} onSaved={load} />
     </div>
   );
 }
@@ -305,20 +344,29 @@ function linkKind(url: string) {
   }
 }
 
-function AddCourseSheet({ open, semester, onClose, onSaved }: { open: boolean; semester: 1 | 2; onClose: () => void; onSaved: () => Promise<void> }) {
+function AddCourseSheet({ open, semester, existing, onOpenExisting, onClose, onSaved }: { open: boolean; semester: 1 | 2; existing: Course[]; onOpenExisting: (id: string) => void; onClose: () => void; onSaved: () => Promise<void> }) {
   const [code, setCode] = useState("");
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
   useEffect(() => {
     if (open) {
       setCode("");
       setTitle("");
       setError(null);
+      setConfirmed(false);
     }
   }, [open]);
+  const twin = useMemo(() => {
+    const c = sameKey(code);
+    const t = sameKey(title);
+    if (!c && !t) return null;
+    return existing.find((x) => (c && sameKey(x.courseCode) === c) || (t.length > 3 && sameKey(x.courseTitle) === t)) ?? null;
+  }, [code, title, existing]);
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    if (twin && !confirmed) return;
     setBusy(true);
     const result = await repCreateCourseAction({ semester, courseCode: code, courseTitle: title });
     setBusy(false);
@@ -334,18 +382,47 @@ function AddCourseSheet({ open, semester, onClose, onSaved }: { open: boolean; s
         <label style={{ ...fieldLabel, marginTop: 14 }} htmlFor="c-code">Course code</label>
         <input id="c-code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. COE 151" style={inputStyle} />
         <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="c-title">Course name</label>
-        <input id="c-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Introduction to Computing" style={inputStyle} required />
+        <input id="c-title" value={title} onChange={(e) => { setTitle(e.target.value); setConfirmed(false); }} placeholder="e.g. Introduction to Computing" style={inputStyle} required />
+        {twin && !confirmed ? (
+          <DuplicateWarning
+            title="This course is already here"
+            text={`${twin.courseCode ? `${twin.courseCode} ` : ""}${twin.courseTitle} already exists for Semester ${twin.semester ?? 1}, with ${twin.materials.length} ${twin.materials.length === 1 ? "item" : "items"}.`}
+            openLabel="Open that course"
+            onOpen={() => onOpenExisting(twin.id)}
+            onAnyway={() => setConfirmed(true)}
+          />
+        ) : null}
         <ErrorLine text={error} />
-        <button type="submit" disabled={busy} style={{ ...darkButton, marginTop: 16, opacity: busy ? 0.6 : 1 }}>{busy ? "Saving…" : "Add course"}</button>
+        <button type="submit" disabled={busy || Boolean(twin && !confirmed)} style={{ ...darkButton, marginTop: 16, opacity: busy || (twin && !confirmed) ? 0.5 : 1 }}>{busy ? "Saving…" : "Add course"}</button>
       </form>
     </Sheet>
   );
 }
 
-const TYPES: Array<{ value: RepMaterialType; label: string }> = [
+type AddType = "slides" | "books" | "handwritten";
+const TYPES: Array<{ value: AddType; label: string }> = [
   { value: "slides", label: "Slides" },
   { value: "books", label: "Books" },
+  { value: "handwritten", label: "Handwritten notes" },
 ];
+
+/** "EE 151" = "ee151"; "Applied Electricity" = "appliedelectricity". */
+function sameKey(text?: string) {
+  return (text ?? "").toLowerCase().replace(/\.(pdf|pptx?|docx?)$/i, "").replace(/[^a-z0-9]/g, "");
+}
+
+function DuplicateWarning({ title, text, openLabel, onOpen, onAnyway }: { title: string; text: string; openLabel?: string; onOpen?: () => void; onAnyway: () => void }) {
+  return (
+    <div role="alert" style={{ marginTop: 12, borderRadius: 18, background: "#FFF4D6", border: "2px solid #D9A21E", padding: "14px 16px" }}>
+      <p style={{ margin: 0, display: "flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 800 }}><AlertTriangle size={18} color="#8F6500" aria-hidden /> {title}</p>
+      <p style={{ margin: "6px 0 0", fontSize: 14, lineHeight: 1.45, color: "#4A453C" }}>{text}</p>
+      <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+        {onOpen ? <button type="button" onClick={onOpen} style={{ flex: 1, height: 44, border: 0, borderRadius: 999, background: INK, color: GOLD, fontFamily: "inherit", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>{openLabel}</button> : null}
+        <button type="button" onClick={onAnyway} style={{ flex: 1, height: 44, border: "1px solid #CFC8B8", borderRadius: 999, background: "transparent", fontFamily: "inherit", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Add anyway</button>
+      </div>
+    </div>
+  );
+}
 
 /** PUTs the file straight to Google Drive (never through our server), reporting progress. */
 function uploadToDrive(url: string, file: File, onProgress: (fraction: number) => void): Promise<string> {
@@ -371,15 +448,18 @@ function uploadToDrive(url: string, file: File, onProgress: (fraction: number) =
 }
 
 function AddMaterialSheet({ course, onClose, onSaved }: { course: Course | null; onClose: () => void; onSaved: () => Promise<void> }) {
-  const [type, setType] = useState<RepMaterialType>("slides");
+  const [type, setType] = useState<AddType>("slides");
   const [how, setHow] = useState<"upload" | "link">("upload");
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [lecturer, setLecturer] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [pages, setPages] = useState<Array<{ file: File; preview: string }>>([]);
   const [progress, setProgress] = useState<number | null>(null);
+  const [stage, setStage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
   useEffect(() => {
     if (course) {
       setType("slides");
@@ -388,28 +468,67 @@ function AddMaterialSheet({ course, onClose, onSaved }: { course: Course | null;
       setUrl("");
       setLecturer("");
       setFile(null);
+      setPages([]);
       setProgress(null);
+      setStage(null);
       setError(null);
+      setConfirmed(false);
     }
   }, [course]);
-  const uploading = how === "upload" && type !== "youtube";
+  useEffect(() => () => pages.forEach((p) => URL.revokeObjectURL(p.preview)), [pages]);
+  const handwritten = type === "handwritten";
+  const uploading = handwritten || how === "upload";
+
+  // Same title or same file name as something already in this course?
+  const twin = useMemo(() => {
+    if (!course) return null;
+    const keys = [sameKey(title), file ? sameKey(file.name) : ""].filter((k) => k.length > 2);
+    if (!keys.length) return null;
+    return course.materials.find((m) => keys.includes(sameKey(m.courseTitle))) ?? null;
+  }, [course, title, file]);
+
+  function addPhotos(list: FileList | null) {
+    if (!list) return;
+    const images = Array.from(list).filter((f) => f.type.startsWith("image/"));
+    if (!images.length) return setError("Choose photos (JPG or PNG).");
+    setError(null);
+    setPages((cur) => [...cur, ...images.map((f) => ({ file: f, preview: URL.createObjectURL(f) }))].slice(0, 40));
+  }
+  function movePage(i: number, d: -1 | 1) {
+    setPages((cur) => {
+      const next = [...cur];
+      const j = i + d;
+      if (j < 0 || j >= next.length) return cur;
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!course) return;
+    if (twin && !confirmed) return;
     setError(null);
     setBusy(true);
     try {
       if (uploading) {
-        if (!file) throw new Error("Choose a file to upload.");
-        const started = await repStartUploadAction({ courseId: course.id, fileName: file.name, fileType: file.type || "application/pdf", size: file.size });
+        let upload = file;
+        if (handwritten) {
+          if (!pages.length) throw new Error("Add at least one page.");
+          if (title.trim().length < 2) throw new Error("Give the notes a title.");
+          setStage("Preparing pages…");
+          upload = await imagesToPdf(pages.map((p) => p.file), title, (done, total) => setStage(`Preparing page ${done} of ${total}…`));
+          setStage(null);
+        }
+        if (!upload) throw new Error("Choose a file to upload.");
+        const started = await repStartUploadAction({ courseId: course.id, fileName: upload.name, fileType: upload.type || "application/pdf", size: upload.size });
         if (!started.ok) throw new Error(started.error);
         setProgress(0);
-        const fileId = await uploadToDrive(started.data.uploadUrl, file, setProgress);
-        const finished = await repFinishUploadAction({ courseId: course.id, kind: type === "books" ? "books" : "slides", fileId, title, lecturer });
+        const fileId = await uploadToDrive(started.data.uploadUrl, upload, setProgress);
+        const finished = await repFinishUploadAction({ courseId: course.id, kind: type === "books" ? "books" : "slides", fileId, title, lecturer, handwritten });
         if (!finished.ok) throw new Error(finished.error);
       } else {
-        const result = await repAddMaterialAction({ courseId: course.id, type, title, url, lecturer });
+        const result = await repAddMaterialAction({ courseId: course.id, type: type as RepMaterialType, title, url, lecturer });
         if (!result.ok) throw new Error(result.error);
       }
       await onSaved();
@@ -417,12 +536,14 @@ function AddMaterialSheet({ course, onClose, onSaved }: { course: Course | null;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setProgress(null);
+      setStage(null);
     } finally {
       setBusy(false);
     }
   }
 
   const choice = (on: boolean): React.CSSProperties => ({ flex: 1, border: `2px solid ${on ? INK : "#E4DFD3"}`, borderRadius: 16, padding: 12, display: "flex", flexDirection: "column", gap: 4, background: on ? "#fff" : "transparent", textAlign: "left", fontFamily: "inherit", cursor: "pointer", color: on ? INK : "#5C564B" });
+  const photoButton: React.CSSProperties = { flex: 1, height: 48, borderRadius: 14, border: `2px solid ${INK}`, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 800, cursor: "pointer" };
   return (
     <Sheet open={Boolean(course)} onClose={busy ? undefined : onClose} label="Add material">
       <form onSubmit={save} style={{ padding: "16px 22px 24px", overflowY: "auto" }}>
@@ -431,10 +552,10 @@ function AddMaterialSheet({ course, onClose, onSaved }: { course: Course | null;
         <span style={{ ...fieldLabel, marginTop: 14 }}>Type</span>
         <div role="radiogroup" aria-label="Type" style={{ display: "flex", gap: 6 }}>
           {TYPES.map((t) => (
-            <button key={t.value} type="button" role="radio" aria-checked={type === t.value} onClick={() => setType(t.value)} style={{ flex: 1, height: 42, border: 0, borderRadius: 12, background: type === t.value ? INK : SOFT, color: type === t.value ? GOLD : "#5C564B", fontFamily: "inherit", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>{t.label}</button>
+            <button key={t.value} type="button" role="radio" aria-checked={type === t.value} onClick={() => setType(t.value)} style={{ flex: t.value === "handwritten" ? 1.5 : 1, height: 42, border: 0, borderRadius: 12, background: type === t.value ? INK : SOFT, color: type === t.value ? GOLD : "#5C564B", fontFamily: "inherit", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>{t.label}</button>
           ))}
         </div>
-        {type !== "youtube" ? (
+        {!handwritten ? (
           <>
             <span style={{ ...fieldLabel, marginTop: 12 }}>How</span>
             <div style={{ display: "flex", gap: 8 }}>
@@ -442,8 +563,33 @@ function AddMaterialSheet({ course, onClose, onSaved }: { course: Course | null;
               <button type="button" onClick={() => setHow("link")} style={choice(how === "link")}><Link2 size={18} /><b style={{ fontSize: 14 }}>Paste a link</b><span style={{ fontSize: 11, fontWeight: 600, color: MUTED }}>Google Drive file or folder</span></button>
             </div>
           </>
-        ) : null}
-        {uploading ? (
+        ) : (
+          <>
+            <span style={{ ...fieldLabel, marginTop: 12 }}>Pages</span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <label style={photoButton}><Camera size={18} /> Take photo<input type="file" accept="image/*" capture="environment" onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }} style={{ display: "none" }} /></label>
+              <label style={photoButton}><ImagePlus size={18} /> Choose photos<input type="file" accept="image/*" multiple onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }} style={{ display: "none" }} /></label>
+            </div>
+            {pages.length ? (
+              <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+                {pages.map((p, i) => (
+                  <div key={p.preview} style={{ position: "relative", borderRadius: 10, overflow: "hidden", border: "1px solid #E2DCCB", background: "#fff", aspectRatio: "3 / 4" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.preview} alt={`Page ${i + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                    <span style={{ position: "absolute", left: 6, top: 6, width: 22, height: 22, borderRadius: 999, background: INK, color: GOLD, fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{i + 1}</span>
+                    <button type="button" aria-label={`Remove page ${i + 1}`} onClick={() => setPages((cur) => cur.filter((_, k) => k !== i))} style={{ position: "absolute", right: 4, top: 4, width: 28, height: 28, borderRadius: 999, border: 0, background: "rgba(26,24,20,.8)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><X size={14} /></button>
+                    <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, display: "flex", justifyContent: "space-between", padding: 4 }}>
+                      <button type="button" aria-label={`Move page ${i + 1} earlier`} disabled={i === 0} onClick={() => movePage(i, -1)} style={{ width: 30, height: 30, borderRadius: 999, border: 0, background: "rgba(26,24,20,.8)", color: "#fff", opacity: i === 0 ? 0.35 : 1, cursor: "pointer" }}>‹</button>
+                      <button type="button" aria-label={`Move page ${i + 1} later`} disabled={i === pages.length - 1} onClick={() => movePage(i, 1)} style={{ width: 30, height: 30, borderRadius: 999, border: 0, background: "rgba(26,24,20,.8)", color: "#fff", opacity: i === pages.length - 1 ? 0.35 : 1, cursor: "pointer" }}>›</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            <p style={{ margin: "8px 0 0", fontSize: 12, fontWeight: 600, color: MUTED }}>Snap each page in good light. We brighten them a little and join them into one PDF.</p>
+          </>
+        )}
+        {uploading && !handwritten ? (
           <>
             <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="m-file">File</label>
             <input
@@ -453,6 +599,7 @@ function AddMaterialSheet({ course, onClose, onSaved }: { course: Course | null;
               onChange={(e) => {
                 const chosen = e.target.files?.[0] ?? null;
                 setFile(chosen);
+                setConfirmed(false);
                 if (chosen && !title) setTitle(tidyFileName(chosen.name));
               }}
               style={{ ...inputStyle, height: "auto", padding: 12, fontSize: 14 }}
@@ -461,20 +608,20 @@ function AddMaterialSheet({ course, onClose, onSaved }: { course: Course | null;
           </>
         ) : null}
         <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="m-title">Title</label>
-        <input id="m-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={type === "youtube" ? "e.g. Chapter 1: Number systems" : type === "books" ? "e.g. Engineering Mathematics, K. A. Stroud" : "e.g. Lecture 3: Logic gates"} style={inputStyle} required={!uploading} />
-        {type !== "youtube" ? (
-          <>
-            <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="m-lecturer">Lecturer (optional)</label>
-            <input id="m-lecturer" value={lecturer} onChange={(e) => setLecturer(e.target.value)} placeholder="e.g. Dr. Mensah" style={inputStyle} />
-          </>
-        ) : null}
+        <input id="m-title" value={title} onChange={(e) => { setTitle(e.target.value); setConfirmed(false); }} placeholder={handwritten ? "e.g. Week 3 notes: Kirchhoff’s laws" : type === "books" ? "e.g. Engineering Mathematics, K. A. Stroud" : "e.g. Lecture 3: Logic gates"} style={inputStyle} required={!uploading || handwritten} />
+        <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="m-lecturer">Lecturer (optional)</label>
+        <input id="m-lecturer" value={lecturer} onChange={(e) => setLecturer(e.target.value)} placeholder="e.g. Dr. Mensah" style={inputStyle} />
         {!uploading ? (
           <>
             <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="m-url"><Link2 size={12} style={{ verticalAlign: -1 }} /> Link</label>
             <input id="m-url" value={url} onChange={(e) => setUrl(e.target.value)} type="url" inputMode="url" placeholder="https://" style={{ ...inputStyle, fontSize: 14 }} required />
-            <p style={{ margin: "6px 0 0", fontSize: 12, fontWeight: 600, color: MUTED }}>{type === "youtube" ? "YouTube playlist or video link." : "Drive links must be shared as “Anyone with the link”."}</p>
+            <p style={{ margin: "6px 0 0", fontSize: 12, fontWeight: 600, color: MUTED }}>Drive links must be shared as “Anyone with the link”.</p>
           </>
         ) : null}
+        {twin && !confirmed ? (
+          <DuplicateWarning title="This looks like it’s already here" text={`“${twin.courseTitle}” is already in this course${twin.createdAt ? `, added ${new Date(twin.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}.`} onAnyway={() => setConfirmed(true)} />
+        ) : null}
+        {stage ? <p style={{ margin: "12px 0 0", fontSize: 13, fontWeight: 700 }} aria-live="polite">{stage}</p> : null}
         {progress !== null ? (
           <div style={{ marginTop: 14 }}>
             <div style={{ height: 8, borderRadius: 999, background: "#EFEADF", overflow: "hidden" }}><div style={{ width: `${Math.round(progress * 100)}%`, height: "100%", background: INK, transition: "width .2s" }} /></div>
@@ -482,7 +629,76 @@ function AddMaterialSheet({ course, onClose, onSaved }: { course: Course | null;
           </div>
         ) : null}
         <ErrorLine text={error} />
-        <button type="submit" disabled={busy} style={{ ...darkButton, marginTop: 16, opacity: busy ? 0.6 : 1 }}>{busy ? (uploading ? "Uploading…" : "Publishing…") : "Publish to students"}</button>
+        <button type="submit" disabled={busy || Boolean(twin && !confirmed)} style={{ ...darkButton, marginTop: 16, opacity: busy || (twin && !confirmed) ? 0.5 : 1 }}>{busy ? (uploading ? "Uploading…" : "Publishing…") : handwritten && pages.length ? `Upload ${pages.length} ${pages.length === 1 ? "page" : "pages"}` : "Publish to students"}</button>
+      </form>
+    </Sheet>
+  );
+}
+
+/** Swap in a newer version of a file: it keeps its place and title; students see "Updated". */
+function ReplaceSheet({ material, course, onClose, onSaved }: { material: CourseMaterialEntry | null; course: Course; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [note, setNote] = useState("");
+  const [notify, setNotify] = useState(true);
+  const [progress, setProgress] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (material) {
+      setFile(null);
+      setNote("");
+      setNotify(true);
+      setProgress(null);
+      setError(null);
+    }
+  }, [material]);
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    if (!material) return;
+    if (!file) return setError("Choose the new version.");
+    setBusy(true);
+    setError(null);
+    try {
+      const started = await repStartUploadAction({ courseId: course.id, fileName: file.name, fileType: file.type || "application/pdf", size: file.size });
+      if (!started.ok) throw new Error(started.error);
+      setProgress(0);
+      const fileId = await uploadToDrive(started.data.uploadUrl, file, setProgress);
+      const done = await repFinishReplaceAction({ materialId: material.id, fileId, note, notify });
+      if (!done.ok) throw new Error(done.error);
+      await onSaved();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setProgress(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Sheet open={Boolean(material)} onClose={busy ? undefined : onClose} label="Replace file">
+      <form onSubmit={save} style={{ padding: "16px 22px 24px", overflowY: "auto" }}>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>Replace file</h2>
+        <p style={{ margin: "4px 0 0", fontSize: 14, lineHeight: 1.45, color: "#5C564B" }}>Swap in a corrected or newer version. It keeps its place and title; students see an Updated tag.</p>
+        <div style={{ marginTop: 12, borderRadius: 16, background: SOFT, padding: 14 }}>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 800, letterSpacing: ".1em", color: MUTED }}>NOW</p>
+          <p style={{ margin: "4px 0 0", fontSize: 16, fontWeight: 700 }}>{material?.courseTitle}</p>
+        </div>
+        <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="r-file">New version</label>
+        <input id="r-file" type="file" accept=".pdf,.ppt,.pptx,.doc,.docx,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} style={{ ...inputStyle, height: "auto", padding: 12, fontSize: 14 }} />
+        {file ? <p style={{ margin: "6px 0 0", fontSize: 12, fontWeight: 600, color: MUTED }}>{formatBytes(file.size)}</p> : null}
+        <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="r-note">What changed? (optional)</label>
+        <input id="r-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Fixed question 4" style={inputStyle} />
+        <label style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 10, fontSize: 14, fontWeight: 600 }}>
+          <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} style={{ width: 20, height: 20 }} /> Tell my class it was updated
+        </label>
+        {progress !== null ? (
+          <div style={{ marginTop: 14 }}>
+            <div style={{ height: 8, borderRadius: 999, background: "#EFEADF", overflow: "hidden" }}><div style={{ width: `${Math.round(progress * 100)}%`, height: "100%", background: INK }} /></div>
+            <p style={{ margin: "6px 0 0", fontSize: 12, fontWeight: 700 }} aria-live="polite">{progress < 1 ? `Uploading… ${Math.round(progress * 100)}%` : "Finishing…"}</p>
+          </div>
+        ) : null}
+        <ErrorLine text={error} />
+        <button type="submit" disabled={busy} style={{ ...darkButton, marginTop: 16, opacity: busy ? 0.6 : 1 }}>{busy ? "Replacing…" : "Replace file"}</button>
       </form>
     </Sheet>
   );

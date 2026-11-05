@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ArrowLeft, ArrowRight, Bell, Check, FileText, Lock, Phone, Sparkles, Upload, X } from "lucide-react";
 import { RecentUploadsCard } from "./RecentUploads";
+import { HubTour, tourDone, type TourStep } from "./HubTour";
 import { canUseUploadPush, markAsked, permission, syncUploadPush, turnOnUploadPush, wasAsked } from "@/lib/courseReps/uploadPushClient";
 import { DepartmentDrawing } from "@/components/course-materials/DepartmentDrawing";
 import {
@@ -30,6 +31,32 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
   const { choice, setChoice, ready } = useHubChoice();
   const [picking, setPicking] = useState(false);
   const [askPush, setAskPush] = useState(false);
+  const [presetDept, setPresetDept] = useState<string | null>(null);
+  const [tourOpen, setTourOpen] = useState(false);
+  const tourSteps: TourStep[] = useMemo(() => {
+    const pushable = typeof window !== "undefined" && canUseUploadPush() && permission() === "default";
+    return [
+      { target: "hub-programme", title: "This is your programme", body: "Your courses follow the programme, year and semester you picked. Tap Change any time." },
+      { target: "hub-recent", title: "Recent uploads", body: "Every new file your course reps add for your year shows here first." },
+      { target: "hub-just", title: "New slides glow", body: "For 1½ hours after your course rep uploads, this card glows. Tap Open to read them." },
+      { target: "hub-courses", title: "Your courses", body: "Tap a course to find Lecturer slides from your course rep, and Departmental slides below." },
+      pushable && choice
+        ? { title: "Never miss an upload", body: "Turn on notifications and your phone will buzz the moment new slides land.", action: { label: "Turn on notifications", run: () => { markAsked(); return turnOnUploadPush(choice); } } }
+        : { title: "That’s it", body: "Tap How it works under your programme any time to see this again." },
+    ];
+  }, [choice]);
+
+  // Came from the old Course Materials page with a programme: go straight to its year and semester.
+  useEffect(() => {
+    if (!ready || data.status !== "ready") return;
+    const p = new URLSearchParams(window.location.search).get("programme");
+    if (!p) return;
+    window.history.replaceState(null, "", window.location.pathname + window.location.hash);
+    if (!data.departments.some((d) => d.id === p)) return;
+    if (choice?.departmentId === p) return;
+    setPresetDept(p);
+    setPicking(true);
+  }, [ready, data.status, data.departments, choice]);
 
   // Notifications already allowed on this phone: keep them pointed at the chosen programme and year.
   useEffect(() => {
@@ -39,7 +66,8 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
   useEffect(() => {
     if (!ready || !choice) return;
     const timer = window.setTimeout(() => {
-      if (canUseUploadPush() && permission() === "default" && !wasAsked()) setAskPush(true);
+      if (!tourDone()) setTourOpen(true);
+      else if (canUseUploadPush() && permission() === "default" && !wasAsked()) setAskPush(true);
     }, 1500);
     return () => window.clearTimeout(timer);
   }, [ready, choice]);
@@ -73,6 +101,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
         ) : (
           <div className="qa-side">
             <div className="qa-left">
+              <div data-tour-step="hub-programme">
               <BlueprintCard department={department.name} style={{ minHeight: 210 }}>
                 <Eyebrow style={{ color: GOLD }}>Your programme</Eyebrow>
                 <h2 style={{ margin: "8px 0 0", maxWidth: "60%", fontSize: 30, fontWeight: 800, letterSpacing: "-.03em", lineHeight: 1, color: CREAM }}>{department.name}</h2>
@@ -83,8 +112,14 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                 <button type="button" onClick={() => setPicking(true)} style={{ marginTop: 10, minHeight: 36, border: 0, background: "none", padding: 0, fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: GOLD, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}>
                   Change
                 </button>
+                <button type="button" onClick={() => setTourOpen(true)} style={{ marginTop: 10, marginLeft: 16, minHeight: 36, border: 0, background: "none", padding: 0, fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: CREAM, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}>
+                  How it works
+                </button>
               </BlueprintCard>
-              <RecentUploadsCard departmentId={choice.departmentId} year={choice.year} style={{ marginTop: 22 }} />
+              </div>
+              <div data-tour-step="hub-recent">
+                <RecentUploadsCard departmentId={choice.departmentId} year={choice.year} style={{ marginTop: 22 }} />
+              </div>
               <div className="qa-desktop-only" style={{ display: "flex", flexDirection: "column" }}>
                 <ResourceCard />
                 <CourseRepCard />
@@ -99,7 +134,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
               </div>
 
               {courses.length ? (
-                <div className="qa-courses">
+                <div className="qa-courses" data-tour-step="hub-courses">
                   {courses.map((course, i) => {
                     const fresh = newByCourse.get(course.id) ?? 0;
                     const inner = (
@@ -151,16 +186,23 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
           entries={data.entries}
           loading={data.status === "loading"}
           initial={choice}
-          onClose={() => setPicking(false)}
+          startDepartmentId={presetDept}
+          onClose={() => {
+            setPicking(false);
+            setPresetDept(null);
+          }}
           onDone={(next) => {
             setChoice(next);
             setPicking(false);
-            if (canUseUploadPush() && permission() === "default" && !wasAsked()) setAskPush(true);
+            setPresetDept(null);
+            if (!tourDone()) window.setTimeout(() => setTourOpen(true), 600);
+            else if (canUseUploadPush() && permission() === "default" && !wasAsked()) setAskPush(true);
           }}
         />
       ) : null}
       {askPush && choice ? <PushAsk choice={choice} programme={department?.name ?? "your programme"} onClose={() => setAskPush(false)} /> : null}
-      {ready && choice && !picking && !askPush ? <RepUploadAlert uploads={uploads} /> : null}
+      {tourOpen ? <HubTour steps={tourSteps} onClose={() => setTourOpen(false)} /> : null}
+      {ready && choice && !picking && !askPush && !tourOpen && tourDone() ? <RepUploadAlert uploads={uploads} /> : null}
     </section>
   );
 }
@@ -180,7 +222,7 @@ function JustUploaded({ uploads }: { uploads: RepUpload[] }) {
   if (!fresh.length) return null;
   const href = (u: RepUpload) => `/materials-hub?course=${encodeURIComponent(u.course.id)}&view=${u.entry.materialType === "playlist" || u.entry.materialType === "video" ? "videos" : "slides&folder=rep"}`;
   return (
-    <div className="hub-row qa-glow" style={{ marginBottom: 22, borderRadius: 26, background: "#FFFFFF", color: INK, padding: "20px 18px 16px", border: "2px solid #FFFFFF" }}>
+    <div className="hub-row qa-glow" data-tour-step="hub-just" style={{ marginBottom: 22, borderRadius: 26, background: "#FFFFFF", color: INK, padding: "20px 18px 16px", border: "2px solid #FFFFFF" }}>
       <span style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 30, padding: "0 12px", borderRadius: 999, background: NEW_GREEN, color: "#fff", fontSize: 12, fontWeight: 900, letterSpacing: ".1em" }}>
         <span className="qa-dot" style={{ width: 8, height: 8, borderRadius: 999, background: "#fff" }} /> JUST UPLOADED
       </span>
@@ -525,6 +567,7 @@ export function PickerPopup({
   entries,
   loading,
   initial,
+  startDepartmentId,
   onClose,
   onDone,
 }: {
@@ -532,11 +575,12 @@ export function PickerPopup({
   entries: CourseMaterialEntry[];
   loading: boolean;
   initial: HubChoice | null;
+  startDepartmentId?: string | null;
   onClose: () => void;
   onDone: (choice: HubChoice) => void;
 }) {
-  const [step, setStep] = useState<Step>(0);
-  const [departmentId, setDepartmentId] = useState<string | null>(initial?.departmentId ?? null);
+  const [step, setStep] = useState<Step>(startDepartmentId ? 1 : 0);
+  const [departmentId, setDepartmentId] = useState<string | null>(startDepartmentId ?? initial?.departmentId ?? null);
   const [year, setYear] = useState<CourseMaterialYear | null>(initial?.year ?? null);
   const department = departments.find((d) => d.id === departmentId);
 

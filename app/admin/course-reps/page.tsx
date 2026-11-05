@@ -54,6 +54,7 @@ export default function AdminCourseRepsPage() {
         title="Course Reps"
         description="Approved reps can only add, edit and remove course materials for their own programme and year. They cannot reach lessons, the admin panel or general courses. Approving or declining sends them a text."
       />
+      <TestRepCard />
       <DriveCard />
       {error ? <p className="mb-4 rounded-xl bg-[#FDECEA] px-4 py-3 text-[14px] font-semibold text-[#B3261E]">{error}</p> : null}
       {!rows && !error ? <p className="text-[14px] text-[#666666]">Loading…</p> : null}
@@ -145,6 +146,27 @@ export default function AdminCourseRepsPage() {
       ) : null}
       <ImportSection />
     </div>
+  );
+}
+
+/** A ready-made course rep account for trying the rep tools. Its programme is hidden from students. */
+function TestRepCard() {
+  return (
+    <section style={{ marginTop: 16, borderRadius: 14, border: "2px solid #1A1814", background: "#FFFFFF", padding: "18px 20px" }}>
+      <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800 }}>Try it as a course rep</h2>
+      <p style={{ margin: "6px 0 0", fontSize: 14, lineHeight: 1.5, color: "#555" }}>
+        Sign in on the site with the test account to see the course rep panel exactly as a rep does. It manages <b>Inter Science (test)</b>, Year 1, a programme students can’t see, so nothing you add reaches them.
+      </p>
+      <p style={{ margin: "10px 0 0", fontSize: 14 }}>
+        Email: <b>test.rep@b2bwithkwamina.com</b>
+        <br />
+        Password: the one Claude gave you
+      </p>
+      <a href="/course-rep" target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", marginTop: 12, height: 40, alignItems: "center", padding: "0 16px", borderRadius: 999, background: "#1A1814", color: "#E9BC3A", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>
+        Open the course rep page
+      </a>
+      <p style={{ margin: "8px 0 0", fontSize: 12, color: "#777" }}>Use a private window, so you stay signed in to your own account here.</p>
+    </section>
   );
 }
 

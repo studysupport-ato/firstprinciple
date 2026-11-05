@@ -52,6 +52,9 @@ export interface CourseMaterialEntry {
   fromRep?: boolean;
   /** The course rep who uploaded it, for credit. */
   uploadedBy?: string;
+  /** Set when a course rep swapped in a newer file. */
+  replacedAt?: string;
+  changeNote?: string;
   departmentId: string;
   courseCode?: string;
   courseTitle: string;

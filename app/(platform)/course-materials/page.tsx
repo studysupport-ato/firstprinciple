@@ -10,11 +10,14 @@ import {
   FileText,
   FolderOpen,
   Globe,
+  Pin,
   Play,
   Search,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+
+const PIN_KEY = "b2b.pinnedProgramme";
 
 import { CourseDetail } from "@/components/course-materials/CourseDetail";
 import { CourseMaterialsChrome } from "@/components/course-materials/CourseMaterialsChrome";
@@ -103,6 +106,25 @@ export default function CourseMaterialsPage() {
   const [selectedDepartment, setSelectedDepartment] = useState<CourseMaterialsDepartment | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   const [selectedStudyYear, setSelectedStudyYear] = useState<CourseMaterialYear | null>(1);
+  // The student's programme is pinned here in gold; opening any programme goes to its courses on the Home page.
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      const local = JSON.parse(window.localStorage.getItem("b2b.materialsChoice.v1") ?? "null") as { departmentId?: string } | null;
+      setPinnedId(window.localStorage.getItem(PIN_KEY) ?? local?.departmentId ?? null);
+    } catch {
+      setPinnedId(null);
+    }
+  }, []);
+  const pinned = pinnedId ? directory.departments.find((d) => d.id === pinnedId && d.available !== false) ?? null : null;
+  function openOnHome(departmentId: string) {
+    try {
+      window.localStorage.setItem(PIN_KEY, departmentId);
+    } catch {
+      /* storage unavailable */
+    }
+    window.location.href = `/?programme=${encodeURIComponent(departmentId)}#materials`;
+  }
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -464,11 +486,28 @@ export default function CourseMaterialsPage() {
             </button>
           </div>
         ) : (
+          <>
+          {pinned ? (
+            <button
+              type="button"
+              onClick={() => openOnHome(pinned.id)}
+              className="mt-8 flex w-full items-center gap-4 rounded-[24px] border-2 border-[#1A1814] p-5 text-left text-[#1A1814] shadow-[0_14px_30px_-14px_rgba(26,24,20,0.7)] md:max-w-[640px]"
+              style={{ background: "linear-gradient(135deg,#C8901A 0%,#F6DC8A 34%,#E9BC3A 58%,#B9840F 100%)" }}
+            >
+              <Pin className="h-6 w-6 shrink-0" strokeWidth={2.5} aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[11px] font-black uppercase tracking-[0.12em]">Your programme, pinned</span>
+                <span className="block text-[20px] font-black leading-tight">{pinned.name}</span>
+                <span className="block text-[13px] font-semibold">Open your courses on the Home page</span>
+              </span>
+              <span className="inline-flex h-10 shrink-0 items-center rounded-full bg-[#1A1814] px-4 text-[13px] font-black text-[#E9BC3A]">Open</span>
+            </button>
+          ) : null}
           <div className="mt-8 grid gap-4 md:grid-cols-2">
-            {visibleDepartments.map(({ department }, index) => {
+            {[...visibleDepartments].sort((a, b) => Number(b.department.id === pinnedId) - Number(a.department.id === pinnedId)).map(({ department }, index) => {
               return (
                 <AnimatedItem key={department.id} index={index} className="flex">
-                  <article className={`group relative flex min-h-[162px] w-full flex-col items-start overflow-hidden rounded-[24px] ${department.available === false ? "bg-[#3B372E]" : "bg-[#1A1814]"} p-6 shadow-[0_2px_14px_rgba(0,0,0,0.22)] transition-transform duration-300 hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0 md:p-[28px]`}>
+                  <article className={`group relative flex min-h-[162px] w-full flex-col items-start overflow-hidden rounded-[24px] ${department.available === false ? "bg-[#3B372E]" : "bg-[#1A1814]"} ${department.id === pinnedId ? "ring-4 ring-[#E9BC3A]" : ""} p-6 shadow-[0_2px_14px_rgba(0,0,0,0.22)] transition-transform duration-300 hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0 md:p-[28px]`}>
                     <DepartmentBlueprint name={department.name} />
                     <div className="relative z-10 flex min-h-full w-full flex-1 flex-col items-start">
                       <h2 className="relative z-10 max-w-[70%] font-sans text-[22px] font-black leading-tight text-[#F6EFDC] md:text-[24px]">
@@ -482,10 +521,7 @@ export default function CourseMaterialsPage() {
                       ) : (
                       <button
                         type="button"
-                        onClick={() => {
-                          setSelectedStudyYear(1);
-                          setSelectedDepartment(department);
-                        }}
+                        onClick={() => openOnHome(department.id)}
                         className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#8F6500] px-5 py-2 text-[14px] font-bold text-[#F6EFDC] transition-colors hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8F6500] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A1814] active:scale-[0.98]"
                       >
                         View course materials
@@ -499,6 +535,7 @@ export default function CourseMaterialsPage() {
               );
             })}
           </div>
+          </>
         )}
       </div>
     </CourseMaterialsChrome>

@@ -230,6 +230,7 @@ export async function repCreateCourse(input: { semester: number; courseCode: str
     status: "published",
   });
   await markRep(created.id, rep);
+  await placeLast(rep, created.id);
   return created;
 }
 
@@ -272,6 +273,7 @@ export async function repAddMaterial(input: { courseId: string; type: RepMateria
     ...fields,
   });
   await markRep(created.id, rep);
+  await placeLast(rep, created.id);
   after(() => notifyRepUpload({ departmentId: rep.departmentId, studyYear: rep.studyYear, courseId: course.id, courseTitle: course.courseTitle, title, kind: input.type === "youtube" ? "videos" : input.type }));
   return created;
 }
@@ -319,7 +321,7 @@ export async function repStartUpload(input: { courseId: string; fileName: string
   return { uploadUrl };
 }
 
-export async function repFinishUpload(input: { courseId: string; kind: UploadKind; fileId: string; title: string; lecturer?: string }) {
+export async function repFinishUpload(input: { courseId: string; kind: UploadKind; fileId: string; title: string; lecturer?: string; handwritten?: boolean }) {
   const rep = await requireApprovedRep();
   const course = await requireOwnCourse(rep, input.courseId);
   if (!course.driveFolderId) throw new RepAccessError("Start the upload again.");
@@ -335,11 +337,12 @@ export async function repFinishUpload(input: { courseId: string; kind: UploadKin
     url: `https://drive.google.com/file/d/${file.id}/view`,
     status: "published",
     materialType: input.kind === "books" ? "pdf" : "slides",
-    description: input.kind === "books" ? "book" : undefined,
+    description: input.kind === "books" ? "book" : input.handwritten ? "handwritten" : undefined,
     kind: "link",
     credit: cleanLecturer(input.lecturer),
   });
   await markRep(created.id, rep);
+  await placeLast(rep, created.id);
   after(() => notifyRepUpload({ departmentId: rep.departmentId, studyYear: rep.studyYear, courseId: course.id, courseTitle: course.courseTitle, title, kind: input.kind }));
   return created;
 }
@@ -480,5 +483,74 @@ export async function setApplicationStatus(id: string, status: Exclude<RepStatus
     );
   } else if (status === "declined") {
     await textRep(application, `Hi ${first}, your Back2Basics course rep application for ${application.departmentName}, Year ${application.studyYear} was not approved. Reply to this number if you think this is a mistake.`);
+  }
+}
+
+/* ─── Order, replace, move between semesters ─────────────────────────── */
+
+/** Siblings a rep can reorder: the materials of one course, or the courses of one semester. */
+async function siblingsOf(rep: RepApplication, entry: CourseMaterialEntry) {
+  const all = await createCourseMaterialsAdminRepository().listCourseMaterials({ departmentId: rep.departmentId });
+  const live = all.filter((e) => e.status !== "archived" && e.studyYear === rep.studyYear);
+  const list = getEntryType(entry) === "course"
+    ? live.filter((e) => getEntryType(e) === "course" && (e.semester ?? 1) === (entry.semester ?? 1))
+    : live.filter((e) => e.parentId === entry.parentId);
+  return list.sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+}
+
+async function writeOrder(list: CourseMaterialEntry[]) {
+  await Promise.all(list.map((e, i) => (e.order === i ? null : db().from("course_materials").update({ order_index: i }).eq("id", e.id))));
+}
+
+/** New items go to the end of their list. */
+async function placeLast(rep: RepApplication, id: string) {
+  const entry = await loadEntry(id);
+  if (!entry) return;
+  const list = (await siblingsOf(rep, entry)).filter((e) => e.id !== id);
+  await writeOrder([...list, entry]);
+}
+
+export async function repMoveEntry(id: string, direction: "up" | "down") {
+  const rep = await requireApprovedRep();
+  const entry = await requireOwnEntry(rep, id);
+  const list = await siblingsOf(rep, entry);
+  const i = list.findIndex((e) => e.id === id);
+  const j = direction === "up" ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+  await writeOrder(list);
+}
+
+/** A course moves to the other semester, with everything in it. */
+export async function repMoveCourseSemester(id: string, semester: 1 | 2) {
+  const rep = await requireApprovedRep();
+  const entry = await requireOwnEntry(rep, id);
+  if (getEntryType(entry) !== "course") throw new RepAccessError("Only courses move between semesters.");
+  if (semester !== 1 && semester !== 2) throw new RepAccessError("Choose semester 1 or 2.");
+  await db().from("course_materials").update({ semester, updated_at: new Date().toISOString() }).eq("id", id);
+  await db().from("course_materials").update({ semester }).eq("parent_id", id);
+  await placeLast(rep, id);
+}
+
+/** After the browser uploads the new version: point the material at it, keep its place and title. */
+export async function repFinishReplace(input: { materialId: string; fileId: string; note?: string; notify?: boolean }) {
+  const rep = await requireApprovedRep();
+  const entry = await requireOwnEntry(rep, input.materialId);
+  if (getEntryType(entry) !== "material" || !entry.parentId) throw new RepAccessError("Only files can be replaced.");
+  const course = await requireOwnCourse(rep, entry.parentId);
+  if (!course.driveFolderId) throw new RepAccessError("Start the upload again.");
+  const file = await finishUpload(input.fileId, course.driveFolderId);
+  const oldFile = parseDriveFileId(entry.url);
+  const note = (input.note ?? "").replace(/\s+/g, " ").trim().slice(0, 140) || null;
+  const now = new Date().toISOString();
+  const { error } = await db()
+    .from("course_materials")
+    .update({ url: `https://drive.google.com/file/d/${file.id}/view`, replaced_at: now, change_note: note, uploaded_by: rep.fullName, updated_at: now })
+    .eq("id", entry.id);
+  if (error) throw new RepAccessError("Could not save the new version.");
+  // The old copy goes to the Drive bin only if the site uploaded it (drive.file can't touch anything else).
+  if (oldFile && oldFile !== file.id) await trashUploadedFile(oldFile);
+  if (input.notify !== false) {
+    after(() => notifyRepUpload({ departmentId: rep.departmentId, studyYear: rep.studyYear, courseId: course.id, courseTitle: course.courseTitle, title: `${entry.courseTitle} (updated)`, kind: entry.description === "book" ? "books" : "slides" }));
   }
 }
