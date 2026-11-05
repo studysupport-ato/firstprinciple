@@ -21,8 +21,8 @@ const ROOT_FOLDER_NAME = "Back2Basics course materials";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 
 export class DriveNotConnectedError extends Error {
-  constructor() {
-    super("Uploads aren’t switched on yet. Ask Back2Basics to connect the Google Drive.");
+  constructor(message = "Uploads aren’t switched on yet. Ask Back2Basics to connect the Google Drive.") {
+    super(message);
     this.name = "DriveNotConnectedError";
   }
 }
@@ -65,8 +65,10 @@ export async function completeConnection(code: string) {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ code, client_id: id, client_secret: secret, redirect_uri: `${SITE_ORIGIN}${DRIVE_CALLBACK_PATH}`, grant_type: "authorization_code" }),
   });
-  const body = (await response.json()) as { refresh_token?: string; id_token?: string; error?: string; error_description?: string };
+  const body = (await response.json()) as { refresh_token?: string; id_token?: string; scope?: string; error?: string; error_description?: string };
   if (!response.ok || !body.refresh_token) throw new Error(body.error_description || body.error || "Google did not return a refresh token.");
+  // Google lets people untick the Drive box on the consent screen; without it nothing can be uploaded.
+  if (!(body.scope ?? "").split(" ").includes(SCOPES[0])) throw new MissingDriveScopeError();
   let email: string | null = null;
   try {
     const payload = JSON.parse(Buffer.from((body.id_token ?? "").split(".")[1] ?? "", "base64url").toString("utf8")) as { email?: string };
@@ -76,12 +78,31 @@ export async function completeConnection(code: string) {
   }
   const { error } = await db().from("drive_connection").upsert({ id: 1, refresh_token: body.refresh_token, account_email: email, root_folder_id: null, connected_at: new Date().toISOString() });
   if (error) throw new Error("Could not save the Drive connection.");
+  cachedToken = null;
   return email;
 }
 
-export async function getConnectionInfo(): Promise<{ email: string | null; connectedAt: string } | null> {
+export class MissingDriveScopeError extends Error {
+  constructor() {
+    super("missing-scope");
+    this.name = "MissingDriveScopeError";
+  }
+}
+
+const PAUSED = "Uploads are paused for a moment. Back2Basics is reconnecting Google Drive. Try again later.";
+
+export async function getConnectionInfo(): Promise<{ email: string | null; connectedAt: string; driveAccess: boolean } | null> {
   const { data } = await db().from("drive_connection").select("account_email,connected_at").eq("id", 1).maybeSingle();
-  return data ? { email: data.account_email ?? null, connectedAt: data.connected_at } : null;
+  if (!data) return null;
+  let driveAccess = false;
+  try {
+    const token = await accessToken();
+    const info = (await (await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(token)}`)).json()) as { scope?: string };
+    driveAccess = (info.scope ?? "").split(" ").includes(SCOPES[0]);
+  } catch {
+    driveAccess = false;
+  }
+  return { email: data.account_email ?? null, connectedAt: data.connected_at, driveAccess };
 }
 
 let cachedToken: { value: string; expires: number } | null = null;
@@ -108,7 +129,14 @@ async function drive<T>(path: string, init: RequestInit = {}): Promise<T> {
     ...init,
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(init.headers ?? {}) },
   });
-  if (!response.ok) throw new Error(`Google Drive ${response.status}: ${(await response.text()).slice(0, 200)}`);
+  if (!response.ok) {
+    const text = (await response.text()).slice(0, 300);
+    if (response.status === 403 && /insufficient authentication scopes|insufficientPermissions/i.test(text)) {
+      console.error("[drive] the connected Google account did not grant Drive access; reconnect it in the admin panel");
+      throw new DriveNotConnectedError(PAUSED);
+    }
+    throw new Error(`Google Drive ${response.status}: ${text.slice(0, 200)}`);
+  }
   return (response.status === 204 ? null : await response.json()) as T;
 }
 
@@ -175,6 +203,7 @@ export async function startUpload(folderId: string, file: { name: string; type: 
     body: JSON.stringify({ name: clean(file.name), parents: [folderId] }),
   });
   const location = response.headers.get("location");
+  if (response.status === 403) throw new DriveNotConnectedError(PAUSED);
   if (!response.ok || !location) throw new Error("Google Drive would not start the upload. Try again.");
   return location;
 }

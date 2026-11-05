@@ -21,7 +21,7 @@ import { parseYouTubePlaylistId } from "@/lib/youtubePlaylist";
  * The new flow shows to every student until this time (UTC), then goes back to admin-only.
  * Set it to null to keep it admin-only, or far in the future to keep it on.
  */
-export const MATERIALS_HUB_LIVE_UNTIL: string | null = "2026-11-05T20:15:00Z";
+export const MATERIALS_HUB_LIVE_UNTIL: string | null = "2099-01-01T00:00:00Z";
 export function materialsHubLive(now = Date.now()) {
   return MATERIALS_HUB_LIVE_UNTIL !== null && now < Date.parse(MATERIALS_HUB_LIVE_UNTIL);
 }

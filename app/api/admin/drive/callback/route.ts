@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/adminSession";
-import { SITE_ORIGIN, completeConnection } from "@/lib/courseReps/googleDrive";
+import { MissingDriveScopeError, SITE_ORIGIN, completeConnection } from "@/lib/courseReps/googleDrive";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
   try {
     await completeConnection(code);
   } catch (error) {
+    if (error instanceof MissingDriveScopeError) return back("noscope");
     console.error("[drive connect]", error);
     return back("failed");
   }

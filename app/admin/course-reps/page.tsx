@@ -172,12 +172,13 @@ function TestRepCard() {
 }
 
 function DriveCard() {
-  const [status, setStatus] = useState<{ configured: boolean; connected: { email: string | null; connectedAt: string } | null } | null>(null);
+  const [status, setStatus] = useState<{ configured: boolean; connected: { email: string | null; connectedAt: string; driveAccess: boolean } | null } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   useEffect(() => {
     void adminDriveStatusAction().then((r) => r.ok && setStatus(r.data));
     const result = new URLSearchParams(window.location.search).get("drive");
     if (result === "connected") setNotice("Google Drive connected. Course reps can now upload files.");
+    if (result === "noscope") setNotice("Google Drive wasn’t connected: the box that lets Back2Basics see, edit and create its files was not ticked. Tap Connect again and tick it on Google’s screen.");
     if (result === "failed") setNotice("Connecting Google Drive didn’t work. Try again, and make sure you tick the box that lets Back2Basics see and manage its files.");
   }, []);
   if (!status) return null;
@@ -188,7 +189,9 @@ function DriveCard() {
         <p className="mt-1 text-[13px] text-[#666666]">
           {!status.configured
             ? "Not set up yet: GOOGLE_DRIVE_CLIENT_ID and GOOGLE_DRIVE_CLIENT_SECRET are missing in Vercel."
-            : status.connected
+            : status.connected && !status.connected.driveAccess
+              ? "Uploads are NOT working: this Google account didn’t give Drive access. Tap Reconnect, choose the Back2Basics account, and tick the box that lets Back2Basics see, edit and create its Google Drive files."
+              : status.connected
               ? `Connected to ${status.connected.email ?? "a Google account"}. Reps’ files go into “Back2Basics course materials” in that Drive.`
               : "Connect the Back2Basics Google account so course reps can upload PDFs from the site."}
         </p>

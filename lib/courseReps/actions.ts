@@ -97,7 +97,7 @@ export async function repSetHiddenFilesAction(materialId: string, fileIds: strin
   });
 }
 
-export async function adminDriveStatusAction(): Promise<RepResult<{ configured: boolean; connected: { email: string | null; connectedAt: string } | null }>> {
+export async function adminDriveStatusAction(): Promise<RepResult<{ configured: boolean; connected: { email: string | null; connectedAt: string; driveAccess: boolean } | null }>> {
   return run(async () => {
     await requireAdmin();
     return { configured: driveConnectConfigured(), connected: await getConnectionInfo().catch(() => null) };
