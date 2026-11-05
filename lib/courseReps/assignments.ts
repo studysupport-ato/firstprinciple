@@ -14,7 +14,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerVapidConfig, isPushServerConfigured } from "@/lib/push/config";
 import { sendOneNotification } from "@/lib/push/dispatch";
 import { validateSubscriptionEndpoint, validateSubscriptionKeys } from "@/lib/push/validation";
-import { requireAdmin } from "@/lib/adminSession";
+import { isAdminVisitor } from "@/lib/site/isAdminVisitor";
 import { RepAccessError, requireApprovedRep, requireOwnCourse } from "./repService";
 import { courseUploadFolder, finishUpload, startUpload, trashUploadedFile } from "./googleDrive";
 import { notifyClass } from "./uploadPush";
@@ -81,12 +81,7 @@ async function publishedDepartment(departmentId: string) {
   if (!data) return false;
   if (data.status === "published") return true;
   // Hidden programmes (like the test one) are visible to the admin only.
-  try {
-    await requireAdmin();
-    return true;
-  } catch {
-    return false;
-  }
+  return isAdminVisitor();
 }
 
 /* ─── Students ───────────────────────────────────────────────────────── */

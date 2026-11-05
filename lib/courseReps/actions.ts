@@ -139,7 +139,8 @@ export async function repFinishReplaceAction(input: { materialId: string; fileId
 const TEST_PROGRAMME_ID = "inter-science-test";
 export async function adminTestHubDataAction(): Promise<RepResult<{ departments: import("@/lib/courseMaterials").CourseMaterialsDepartment[]; entries: import("@/lib/courseMaterials").CourseMaterialEntry[] }>> {
   return run(async () => {
-    await requireAdmin();
+    const { isAdminVisitor } = await import("@/lib/site/isAdminVisitor");
+    if (!(await isAdminVisitor())) throw new RepAccessError("Admin sign-in required.");
     const { createCourseMaterialsAdminRepository } = await import("@/lib/content/adminRepository");
     const repo = createCourseMaterialsAdminRepository();
     const [departments, entries] = await Promise.all([repo.listDepartments(), repo.listCourseMaterials({ departmentId: TEST_PROGRAMME_ID })]);

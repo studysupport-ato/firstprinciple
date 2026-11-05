@@ -22,8 +22,7 @@ export default async function MarketingPage() {
   }
   // New features show to everyone once their "live" switch is on; until then
   // only an admin (admin panel session, or an allowlisted student account) sees them.
-  const needsAdminCheck = !SKILLS_TRAINING.live || !MATERIALS_HUB_LIVE;
-  const isAdmin = needsAdminCheck ? await isAdminVisitor() : false;
+  const isAdmin = await isAdminVisitor();
   const showSkillsTraining = SKILLS_TRAINING.live || isAdmin;
   const showMaterialsHub = MATERIALS_HUB_LIVE || isAdmin;
   return (
@@ -33,6 +32,7 @@ export default async function MarketingPage() {
       adminPreview={showSkillsTraining && !SKILLS_TRAINING.live}
       showMaterialsHub={showMaterialsHub}
       materialsHubPreview={showMaterialsHub && !MATERIALS_HUB_LIVE}
+      isAdmin={isAdmin}
     />
   );
 }

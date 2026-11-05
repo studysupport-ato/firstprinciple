@@ -1,5 +1,6 @@
 "use client";
 
+import { AdminTestProgramme } from "@/components/materials-hub/AdminTestProgramme";
 import Link from "next/link";
 import { MaterialsQuickAccess } from "@/components/materials-hub/MaterialsQuickAccess";
 import { useEffect, useRef, useState } from "react";
@@ -35,6 +36,7 @@ export function HomePage({
   adminPreview = false,
   showMaterialsHub = false,
   materialsHubPreview = false,
+  isAdmin = false,
 }: {
   firstLessonHref: string | null;
   /** The new front page: Arduino Skills Training first, skills pillar open. */
@@ -44,6 +46,7 @@ export function HomePage({
   /** Programme > year > semester picker and "Your courses" (admin-only while testing). */
   showMaterialsHub?: boolean;
   materialsHubPreview?: boolean;
+  isAdmin?: boolean;
 }) {
   const lessonHref = firstLessonHref ?? "/courses";
   const pillars = showSkillsTraining
@@ -62,6 +65,7 @@ export function HomePage({
         </p>
       ) : null}
       <main>
+        {showMaterialsHub && isAdmin ? <AdminTestProgramme /> : null}
         {showMaterialsHub ? <MaterialsQuickAccess adminPreview={materialsHubPreview} /> : null}
         {/* Opening */}
         <section className="relative overflow-hidden" style={goldGround}>

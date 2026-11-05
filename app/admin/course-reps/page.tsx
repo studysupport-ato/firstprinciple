@@ -166,10 +166,7 @@ function TestRepCard() {
         Open the course rep page
       </a>
       <p style={{ margin: "8px 0 0", fontSize: 12, color: "#777" }}>Use a private window, so you stay signed in to your own account here.</p>
-      <a href="/admin/course-reps/student-view" style={{ display: "inline-flex", marginTop: 12, height: 40, alignItems: "center", padding: "0 16px", borderRadius: 999, background: "#1E5BC6", color: "#FFFFFF", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>
-        See the student view (Inter Science test)
-      </a>
-      <p style={{ margin: "6px 0 0", fontSize: 12, color: "#777" }}>Slides, Assignments and the notice board as students see them, with the test programme added for you only.</p>
+      <p style={{ margin: "8px 0 0", fontSize: 13, color: "#555" }}>To see it as a student: on the homepage, signed in as admin, tap Change on your programme and pick <b>Inter Science (test)</b>, Year 1. Only admins see that programme.</p>
     </section>
   );
 }
