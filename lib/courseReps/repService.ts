@@ -20,8 +20,7 @@ import { courseUploadFolder, finishUpload, startUpload, trashUploadedFile } from
 import { parseDriveFileId, parseDriveFolderId } from "@/lib/site/materialsHub";
 import { notifyRepUpload } from "./uploadPush";
 import { after } from "next/server";
-import { getResendConfiguration } from "@/lib/emailCampaigns/config";
-import { submitBrandedEmail } from "@/lib/emailCampaigns/resendProvider";
+import { tellOwner } from "./adminUpdates";
 
 if (typeof window !== "undefined") {
   throw new Error("lib/courseReps/repService.ts is server-only.");
@@ -146,25 +145,14 @@ export async function applyAsRep(input: { fullName: string; departmentId: string
   return saved;
 }
 
-/** Emails the Back2Basics admin when someone applies to be a course rep. Never blocks the application. */
+/** Tells the site owner (email + phone notification) that someone applied. */
 async function tellAdminAboutApplication(application: RepApplication) {
-  try {
-    const to = process.env.ADMIN_EMAIL?.trim();
-    if (!to) return;
-    const esc = (v: string) => v.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);
-    const phone = application.phone.replace(/^\+233/, "0");
-    const html = `<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.5;color:#1A1814">
-      <h2 style="margin:0 0 12px">New course rep application</h2>
-      <p style="margin:0"><b>${esc(application.fullName)}</b></p>
-      <p style="margin:0">${esc(application.departmentName)}</p>
-      <p style="margin:0">Year ${application.studyYear}</p>
-      <p style="margin:0 0 18px">${esc(phone)}</p>
-      <a href="https://www.b2bwithkwamina.com/admin/course-reps" style="display:inline-block;background:#1A1814;color:#E9BC3A;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:bold">Review application</a>
-    </div>`;
-    await submitBrandedEmail(getResendConfiguration(), { recipient: to, subject: `Course rep application: ${application.fullName} (${application.departmentName}, Year ${application.studyYear})`, html });
-  } catch (error) {
-    console.error("[course-rep] admin email failed", error instanceof Error ? error.message : "unknown");
-  }
+  await tellOwner({
+    subject: `New course rep application: ${application.fullName}`,
+    lines: [application.fullName, application.departmentName, `Year ${application.studyYear}`, application.phone.replace(/^\+233/, "0")],
+    pushTitle: "New course rep application",
+    pushBody: `${application.fullName}\n${application.departmentName}, Year ${application.studyYear}`,
+  });
 }
 
 /** The signed-in user's approved rep record, or an error. Called before every rep read or write. */
@@ -458,12 +446,14 @@ export async function listApplicationsForAdmin(): Promise<RepApplication[]> {
   return rows.map((r) => ({ ...map(r, names), uploads: counts.get(r.id) ?? 0 }));
 }
 
-async function textRep(application: RepApplication, message: string) {
+async function textRep(application: RepApplication, message: string): Promise<{ sent: boolean; reason?: string }> {
   try {
     const configuration = getArkeselConfiguration();
-    await submitArkeselSmsBatch(configuration, { recipients: [{ phoneNumber: application.phone }], message });
-  } catch {
+    const result = await submitArkeselSmsBatch(configuration, { recipients: [{ phoneNumber: application.phone }], message });
+    return result.status === "provider_accepted" ? { sent: true } : { sent: false, reason: result.error };
+  } catch (error) {
     /* SMS is a courtesy; the decision stands even if the text fails */
+    return { sent: false, reason: error instanceof Error ? error.message : "SMS could not be sent." };
   }
 }
 
@@ -478,7 +468,16 @@ export async function setApplicationStatus(id: string, status: Exclude<RepStatus
   const application = map(data as Row, await departmentNames([(data as Row).department_id]));
   const first = application.fullName.split(" ")[0];
   if (status === "approved") {
-    await textRep(application, `Hi ${first}, you're now the Back2Basics course rep for ${application.departmentName}, Year ${application.studyYear}. Sign in at b2bwithkwamina.com/course-rep to add materials for your class.`);
+    const sms = await textRep(application, `Hi ${first}, you're now the Back2Basics course rep for ${application.departmentName}, Year ${application.studyYear}. Sign in at b2bwithkwamina.com/course-rep to add materials for your class.`);
+    const phone = application.phone.replace(/^\+233/, "0");
+    after(() =>
+      tellOwner({
+        subject: sms.sent ? `Approval text sent to ${application.fullName}` : `Approval text NOT sent to ${application.fullName}`,
+        lines: [application.fullName, application.departmentName, `Year ${application.studyYear}`, phone, sms.sent ? "The approval SMS was accepted for delivery." : `The approval SMS failed: ${sms.reason ?? "unknown reason"}. Call or text them yourself.`],
+        pushTitle: sms.sent ? "Course rep approved, text sent" : "Course rep approved, text NOT sent",
+        pushBody: `${application.fullName}\n${phone}`,
+      }),
+    );
   } else if (status === "declined") {
     await textRep(application, `Hi ${first}, your Back2Basics course rep application for ${application.departmentName}, Year ${application.studyYear} was not approved. Reply to this number if you think this is a mistake.`);
   }

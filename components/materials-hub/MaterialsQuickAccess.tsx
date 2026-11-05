@@ -65,8 +65,11 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
       <BackgroundDrawings />
 
       <div className="qa-wrap">
-        {!ready ? null : !(choice && department) ? (
+        {/* The headline shows straight away (no empty flash); returning students then see their courses. */}
+        {!ready || !choice || (!department && data.status !== "loading") ? (
           <Hero onStart={() => setPicking(true)} />
+        ) : !department ? (
+          <div style={{ minHeight: 420, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>Loading your courses…</div>
         ) : (
           <div className="qa-side">
             <div className="qa-left">
@@ -517,7 +520,7 @@ type Step = 0 | 1 | 2;
 const POP_BG = "#14120E";
 const POP_CARD = "#26221B";
 
-function PickerPopup({
+export function PickerPopup({
   departments,
   entries,
   loading,
