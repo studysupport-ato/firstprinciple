@@ -30,6 +30,7 @@ import { buildSemesters, hasUnassignedLegacy, linkHost, type CourseNode } from "
 import { createCourseMaterialsRepository, type CourseMaterialsRepository } from "@/lib/courseMaterialsRepository";
 import { GENERAL_DEPARTMENT_ID, type CourseMaterialYear, type CourseMaterialsDepartment, type CourseMaterialsDirectory } from "@/lib/courseMaterials";
 import { deriveMaterialType, type MaterialRow, type MaterialType } from "@/lib/courseMaterialsDisplay";
+import { MATERIALS_HUB_LIVE } from "@/lib/site/materialsHub";
 
 const RESOURCE_TYPES: Array<"ALL" | MaterialType> = ["ALL", "PDF Document", "Lecture Slides", "Past Questions", "Video Lecture", "Playlist", "External Link"];
 const STUDY_YEARS: Array<{ value: CourseMaterialYear; label: string }> = [
@@ -122,6 +123,16 @@ export default function CourseMaterialsPage() {
       window.localStorage.setItem(PIN_KEY, departmentId);
     } catch {
       /* storage unavailable */
+    }
+    setPinnedId(departmentId);
+    // While the homepage materials section is switched off, open the programme here as before.
+    if (!MATERIALS_HUB_LIVE) {
+      const department = directory.departments.find((d) => d.id === departmentId);
+      if (department) {
+        setSelectedStudyYear(1);
+        setSelectedDepartment(department);
+      }
+      return;
     }
     window.location.href = `/?programme=${encodeURIComponent(departmentId)}#materials`;
   }
@@ -498,7 +509,7 @@ export default function CourseMaterialsPage() {
               <span className="min-w-0 flex-1">
                 <span className="block text-[11px] font-black uppercase tracking-[0.12em]">Your programme, pinned</span>
                 <span className="block text-[20px] font-black leading-tight">{pinned.name}</span>
-                <span className="block text-[13px] font-semibold">Open your courses on the Home page</span>
+                <span className="block text-[13px] font-semibold">{MATERIALS_HUB_LIVE ? "Open your courses on the Home page" : "Open your programme’s materials"}</span>
               </span>
               <span className="inline-flex h-10 shrink-0 items-center rounded-full bg-[#1A1814] px-4 text-[13px] font-black text-[#E9BC3A]">Open</span>
             </button>
