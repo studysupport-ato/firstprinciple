@@ -25,6 +25,28 @@ import {
 import type { CourseMaterialSemester, CourseMaterialYear, CourseMaterialsDepartment, CourseMaterialEntry } from "@/lib/courseMaterials";
 import { CREAM, GOLD, HubStyles, INK, OVERLAY_Z, Overlay, Pill, RoundChevron, goldGround, hubFont, BlueprintCard, Eyebrow, goldPlate, panelShadow, ROW_LINE, backButtonStyle } from "./ui";
 import { useHubChoice, useHubData } from "./useHub";
+import { useAuthSession } from "@/lib/auth/useAuthSession";
+import { myRepApplicationAction } from "@/lib/courseReps/actions";
+
+/** "approved" / "pending" when the signed-in account has a course rep application, else null. */
+function useRepStatus() {
+  const { authenticated, loading } = useAuthSession();
+  const [status, setStatus] = useState<"approved" | "pending" | null>(null);
+  useEffect(() => {
+    if (loading) return;
+    if (!authenticated) return setStatus(null);
+    let cancelled = false;
+    void myRepApplicationAction().then((result) => {
+      if (cancelled) return;
+      const s = result.ok ? result.data?.status : null;
+      setStatus(s === "approved" ? "approved" : s === "pending" ? "pending" : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [authenticated, loading]);
+  return status;
+}
 
 export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: boolean }) {
   const data = useHubData();
@@ -411,6 +433,7 @@ function BackgroundDrawings() {
 }
 
 function Hero({ onStart }: { onStart: () => void }) {
+  const repStatus = useRepStatus();
   return (
     <div className="hub-row">
       <div className="qa-hero">
@@ -424,7 +447,7 @@ function Hero({ onStart }: { onStart: () => void }) {
             Let’s get started <ArrowRight size={20} strokeWidth={2.6} aria-hidden />
           </button>
           <Link href="/course-rep" style={{ display: "inline-block", marginTop: 14, marginLeft: 4, fontSize: 15, fontWeight: 800, color: INK, textDecoration: "underline", textUnderlineOffset: 4 }}>
-            Apply as a course rep
+            {repStatus === "approved" ? "Open your Course Rep Panel" : repStatus === "pending" ? "Your course rep application" : "Apply as a course rep"}
           </Link>
         </div>
         <div className="qa-art" aria-hidden>
@@ -533,16 +556,21 @@ function ResourceCard() {
 }
 
 function CourseRepCard() {
+  const repStatus = useRepStatus();
+  const approved = repStatus === "approved";
+  const title = approved ? "Course Rep Panel" : repStatus === "pending" ? "Course rep application sent" : "Apply as a course rep";
+  const line = approved ? "Post slides and assignments for your class." : repStatus === "pending" ? "We’ll text you once you’re approved." : "Upload lecture materials for your class.";
+  const action = approved ? "Open" : repStatus === "pending" ? "View" : "Apply";
   return (
-    <Link href="/course-rep" className="hub-row hub-tap" style={{ marginTop: 12, borderRadius: 24, background: INK, border: "1px solid rgba(233,188,58,.3)", padding: 16, display: "flex", alignItems: "center", gap: 14, color: CREAM, textDecoration: "none", boxShadow: "0 14px 32px -16px rgba(26,24,20,.6)", animationDelay: "360ms" }}>
+    <Link href="/course-rep" className="hub-row hub-tap" style={{ marginTop: 12, borderRadius: 24, background: INK, border: approved ? `2px solid ${GOLD}` : "1px solid rgba(233,188,58,.3)", padding: 16, display: "flex", alignItems: "center", gap: 14, color: CREAM, textDecoration: "none", boxShadow: "0 14px 32px -16px rgba(26,24,20,.6)", animationDelay: "360ms" }}>
       <span aria-hidden style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", ...goldPlate }}>
         <Upload size={19} strokeWidth={2.4} />
       </span>
       <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-        <span style={{ fontSize: 15, fontWeight: 800 }}>Apply as a course rep</span>
-        <span style={{ fontSize: 12, fontWeight: 500, lineHeight: 1.4, color: "rgba(246,239,220,.6)" }}>Upload lecture materials for your class.</span>
+        <span style={{ fontSize: 15, fontWeight: 800 }}>{title}</span>
+        <span style={{ fontSize: 12, fontWeight: 500, lineHeight: 1.4, color: "rgba(246,239,220,.6)" }}>{line}</span>
       </span>
-      <span style={{ height: 34, padding: "0 14px", borderRadius: 999, border: "1px solid rgba(233,188,58,.5)", color: GOLD, fontSize: 12, fontWeight: 800, display: "inline-flex", alignItems: "center" }}>Apply</span>
+      <span style={{ height: 34, padding: "0 14px", borderRadius: 999, border: approved ? 0 : "1px solid rgba(233,188,58,.5)", ...(approved ? goldPlate : { color: GOLD }), fontSize: 12, fontWeight: 800, display: "inline-flex", alignItems: "center" }}>{action}</span>
     </Link>
   );
 }
