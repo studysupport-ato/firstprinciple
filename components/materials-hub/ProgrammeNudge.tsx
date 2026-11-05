@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { X } from "lucide-react";
-import { MATERIALS_HUB_LIVE, availableDepartments } from "@/lib/site/materialsHub";
+import { materialsHubLive, availableDepartments } from "@/lib/site/materialsHub";
 import { CREAM, GOLD, HubStyles, INK, OVERLAY_Z, Overlay, goldPlate, hubFont } from "./ui";
 import { useHubChoice, useHubData } from "./useHub";
 import { PickerPopup } from "./MaterialsQuickAccess";
@@ -20,7 +20,7 @@ export function ProgrammeNudge() {
   const [show, setShow] = useState(false);
   const [picking, setPicking] = useState(false);
   const [done, setDone] = useState(false);
-  const skipped = !MATERIALS_HUB_LIVE || SKIP.some((r) => r.test(pathname));
+  const skipped = !materialsHubLive() || SKIP.some((r) => r.test(pathname));
 
   useEffect(() => {
     if (skipped || !ready || choice) return;

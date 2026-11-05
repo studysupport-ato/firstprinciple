@@ -17,8 +17,14 @@ import {
 import { parseYouTubeVideoId } from "@/lib/youtube";
 import { parseYouTubePlaylistId } from "@/lib/youtubePlaylist";
 
-/** Flip to true to show the new flow to every student (it is admin-only until then). */
-export const MATERIALS_HUB_LIVE = false;
+/**
+ * The new flow shows to every student until this time (UTC), then goes back to admin-only.
+ * Set it to null to keep it admin-only, or far in the future to keep it on.
+ */
+export const MATERIALS_HUB_LIVE_UNTIL: string | null = "2026-11-05T20:15:00Z";
+export function materialsHubLive(now = Date.now()) {
+  return MATERIALS_HUB_LIVE_UNTIL !== null && now < Date.parse(MATERIALS_HUB_LIVE_UNTIL);
+}
 
 /** The number students call to offer a resource. Leave empty to hide the call button. */
 export const RESOURCE_CONTACT_PHONE = "";

@@ -3,7 +3,7 @@ import { HomePage } from "@/components/marketing/HomePage";
 import { firstFreeLessonHref } from "@/lib/content/freeLessons";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SKILLS_TRAINING } from "@/lib/site/skillsTraining";
-import { MATERIALS_HUB_LIVE } from "@/lib/site/materialsHub";
+import { materialsHubLive } from "@/lib/site/materialsHub";
 import { isAdminVisitor } from "@/lib/site/isAdminVisitor";
 
 export const metadata: Metadata = {
@@ -24,14 +24,14 @@ export default async function MarketingPage() {
   // only an admin (admin panel session, or an allowlisted student account) sees them.
   const isAdmin = await isAdminVisitor();
   const showSkillsTraining = SKILLS_TRAINING.live || isAdmin;
-  const showMaterialsHub = MATERIALS_HUB_LIVE || isAdmin;
+  const showMaterialsHub = materialsHubLive() || isAdmin;
   return (
     <HomePage
       firstLessonHref={firstLesson}
       showSkillsTraining={showSkillsTraining}
       adminPreview={showSkillsTraining && !SKILLS_TRAINING.live}
       showMaterialsHub={showMaterialsHub}
-      materialsHubPreview={showMaterialsHub && !MATERIALS_HUB_LIVE}
+      materialsHubPreview={showMaterialsHub && !materialsHubLive()}
       isAdmin={isAdmin}
     />
   );
