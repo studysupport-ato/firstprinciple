@@ -83,3 +83,33 @@ export async function turnOffUploadPush() {
     /* ignore */
   }
 }
+
+/** Ask for permission if needed (must follow a tap) and return this phone's push address, for reminders. */
+export async function pushAddress(): Promise<{ ok: true; endpoint: string; keys: { p256dh: string; auth: string } } | { ok: false; error: string }> {
+  if (!canUseUploadPush()) return { ok: false, error: "This browser can’t show notifications. On iPhone, add the site to your Home Screen first." };
+  const result = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+  if (result !== "granted") return { ok: false, error: result === "denied" ? "Notifications are blocked for this site in your browser settings." : "Notifications weren’t allowed." };
+  try {
+    const sub = await subscription(true);
+    const json = sub?.toJSON();
+    if (!json?.endpoint || !json.keys?.p256dh || !json.keys?.auth) return { ok: false, error: "Your browser didn’t give us a notification address." };
+    return { ok: true, endpoint: json.endpoint, keys: { p256dh: json.keys.p256dh, auth: json.keys.auth } };
+  } catch {
+    return { ok: false, error: "Could not switch on notifications." };
+  }
+}
+
+const DEVICE_KEY = "b2b.deviceId";
+/** A random id for this browser, so done marks and reminders work without an account. */
+export function deviceId(): string | undefined {
+  try {
+    let id = window.localStorage.getItem(DEVICE_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      window.localStorage.setItem(DEVICE_KEY, id);
+    }
+    return id;
+  } catch {
+    return undefined;
+  }
+}

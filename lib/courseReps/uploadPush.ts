@@ -50,22 +50,33 @@ export async function isUploadSubscriptionActive(endpoint: unknown, departmentId
 
 /** Tell every phone registered for this programme and year. Never throws: an upload must not fail because of a notification. */
 export async function notifyRepUpload(upload: { departmentId: string; studyYear: number; courseId: string; courseTitle: string; title: string; kind: "slides" | "books" | "videos" }) {
+  const what = upload.kind === "books" ? "book" : upload.kind === "videos" ? "videos" : "slides";
+  await notifyClass({
+    departmentId: upload.departmentId,
+    studyYear: upload.studyYear,
+    title: `New ${what} from your course rep`,
+    body: `${upload.courseTitle}: ${upload.title}. Tap to open.`,
+    path: `/materials-hub?course=${encodeURIComponent(upload.courseId)}&view=${upload.kind}`,
+    tag: `rep-upload-${upload.courseId}`,
+  });
+}
+
+/** Any message to the whole class (programme + year). Never throws. */
+export async function notifyClass(message: { departmentId: string; studyYear: number; title: string; body: string; path: string; tag: string }) {
   try {
     if (!isPushServerConfigured()) return;
     const vapid = getServerVapidConfig();
-    const { data } = await db().from(TABLE).select("endpoint,p256dh,auth,failed_attempts").eq("department_id", upload.departmentId).eq("study_year", upload.studyYear).limit(5000);
+    const { data } = await db().from(TABLE).select("endpoint,p256dh,auth,failed_attempts").eq("department_id", message.departmentId).eq("study_year", message.studyYear).limit(5000);
     const subs = (data ?? []) as Array<{ endpoint: string; p256dh: string; auth: string; failed_attempts: number }>;
     if (!subs.length) return;
-    const what = upload.kind === "books" ? "book" : upload.kind === "videos" ? "videos" : "slides";
-    const path = `/materials-hub?course=${encodeURIComponent(upload.courseId)}&view=${upload.kind}`;
     const payload = JSON.stringify({
-      title: `New ${what} from your course rep`,
-      body: `${upload.courseTitle}: ${upload.title}. Tap to open.`.slice(0, 200),
+      title: message.title.slice(0, 80),
+      body: message.body.slice(0, 200),
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
-      tag: `rep-upload-${upload.courseId}`,
-      url: `${SITE}${path}`,
-      data: { url: `${SITE}${path}` },
+      tag: message.tag,
+      url: `${SITE}${message.path}`,
+      data: { url: `${SITE}${message.path}` },
     });
     const queue = [...subs];
     const worker = async () => {

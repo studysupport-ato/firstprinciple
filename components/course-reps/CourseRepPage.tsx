@@ -26,6 +26,7 @@ import {
 import type { RepApplication, RepMaterialType, RepScope } from "@/lib/courseReps/repService";
 import { BlueprintCard, CREAM, GOLD, HubStyles, INK, MUTED, Panel, Pill, ROW_LINE, Sheet, SOFT, backButtonStyle, goldGround, goldPlate, hubFont } from "@/components/materials-hub/ui";
 import { useHubData } from "@/components/materials-hub/useHub";
+import { RepAssignments } from "./RepAssignments";
 
 const fieldLabel: React.CSSProperties = { display: "block", fontSize: 14, fontWeight: 600, color: INK, marginBottom: 6 };
 const plainCard: React.CSSProperties = { borderRadius: 12, background: "#FFFFFF", border: "1px solid #E2DCCB", padding: 20 };
@@ -184,6 +185,7 @@ function RepPanel() {
   const [replacing, setReplacing] = useState<CourseMaterialEntry | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [busyMove, setBusyMove] = useState(false);
+  const [tab, setTab] = useState<"slides" | "assignments">("slides");
   async function move(entry: CourseMaterialEntry, direction: "up" | "down") {
     setBusyMove(true);
     const result = await repMoveEntryAction(entry.id, direction);
@@ -297,6 +299,12 @@ function RepPanel() {
           <span style={{ display: "inline-flex", alignItems: "center", gap: 5, height: 28, padding: "0 11px", borderRadius: 999, background: "#2A251C", color: GOLD, fontSize: 12, fontWeight: 800 }}><Lock size={12} /> Your programme only</span>
         </div>
       </BlueprintCard>
+      <div role="tablist" aria-label="What to manage" style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <button type="button" role="tab" aria-selected={tab === "slides"} onClick={() => setTab("slides")} style={{ minHeight: 52, borderRadius: 16, border: tab === "slides" ? `2px solid ${INK}` : "2px solid transparent", background: "#DFF3E1", color: "#1B5E20", fontFamily: "inherit", fontSize: 16, fontWeight: 900, cursor: "pointer" }}>Slides</button>
+        <button type="button" role="tab" aria-selected={tab === "assignments"} onClick={() => setTab("assignments")} style={{ minHeight: 52, borderRadius: 16, border: tab === "assignments" ? `2px solid ${INK}` : "2px solid transparent", background: "#1E5BC6", color: "#fff", fontFamily: "inherit", fontSize: 16, fontWeight: 900, cursor: "pointer" }}>Assignments</button>
+      </div>
+      {tab === "assignments" ? <RepAssignments courses={scope.courses} semester={semester} /> : (
+      <>
       <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
         {([1, 2] as const).map((s) => (
           <button key={s} type="button" onClick={() => setSemester(s)} style={{ height: 38, padding: "0 16px", border: 0, borderRadius: 999, background: semester === s ? INK : "rgba(26,24,20,.12)", color: semester === s ? GOLD : INK, fontFamily: "inherit", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Semester {s}</button>
@@ -325,6 +333,8 @@ function RepPanel() {
       <button type="button" onClick={() => setAddCourse(true)} className="hub-plate" style={{ ...darkButton, ...goldPlate, marginTop: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><Plus size={18} /> Add a course</button>
       <p style={{ margin: "10px 0 0", fontSize: 12, fontWeight: 600, color: "rgba(26,24,20,.7)", textAlign: "center" }}>General courses shared by every programme (ME 161, EE 151, ENGL 157…) are managed by Back2Basics.</p>
       <AddCourseSheet open={addCourse} semester={semester} existing={scope.courses} onOpenExisting={(id) => { setAddCourse(false); setOpenCourse(id); }} onClose={() => setAddCourse(false)} onSaved={load} />
+      </>
+      )}
     </div>
   );
 }

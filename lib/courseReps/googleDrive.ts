@@ -154,8 +154,12 @@ const ALLOWED_TYPES = new Set([
 ]);
 
 /** Opens a resumable upload; the browser PUTs the file bytes to the returned URL. */
-export async function startUpload(folderId: string, file: { name: string; type: string; size: number }) {
-  if (!ALLOWED_TYPES.has(file.type)) throw new Error("Upload a PDF, PowerPoint or Word file.");
+export const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
+
+export async function startUpload(folderId: string, file: { name: string; type: string; size: number }, options: { images?: boolean } = {}) {
+  if (!ALLOWED_TYPES.has(file.type) && !(options.images && IMAGE_TYPES.has(file.type))) {
+    throw new Error(options.images ? "Upload a PDF or a picture." : "Upload a PDF, PowerPoint or Word file.");
+  }
   if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) throw new Error("Files can be up to 100 MB.");
   const token = await accessToken();
   const response = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id,name,size,mimeType,parents", {

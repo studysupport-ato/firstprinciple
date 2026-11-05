@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ArrowLeft, ArrowRight, Bell, Check, FileText, Lock, Phone, Sparkles, Upload, X } from "lucide-react";
-import { RecentUploadsCard } from "./RecentUploads";
+import { AssignmentsView, FolderBars, NoticeBoard, NoticeStyles, SLIDES_BG, SLIDES_INK, useClassAssignments } from "./NoticeBoard";
 import { HubTour, tourDone, type TourStep } from "./HubTour";
 import { canUseUploadPush, markAsked, permission, syncUploadPush, turnOnUploadPush, wasAsked } from "@/lib/courseReps/uploadPushClient";
 import { DepartmentDrawing } from "@/components/course-materials/DepartmentDrawing";
@@ -23,7 +23,7 @@ import {
   type RepUpload,
 } from "@/lib/site/materialsHub";
 import type { CourseMaterialSemester, CourseMaterialYear, CourseMaterialsDepartment, CourseMaterialEntry } from "@/lib/courseMaterials";
-import { CREAM, GOLD, HubStyles, INK, OVERLAY_Z, Overlay, Pill, RoundChevron, goldGround, hubFont, BlueprintCard, Eyebrow, goldPlate, panelShadow, ROW_LINE } from "./ui";
+import { CREAM, GOLD, HubStyles, INK, OVERLAY_Z, Overlay, Pill, RoundChevron, goldGround, hubFont, BlueprintCard, Eyebrow, goldPlate, panelShadow, ROW_LINE, backButtonStyle } from "./ui";
 import { useHubChoice, useHubData } from "./useHub";
 
 export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: boolean }) {
@@ -33,18 +33,32 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
   const [askPush, setAskPush] = useState(false);
   const [presetDept, setPresetDept] = useState<string | null>(null);
   const [tourOpen, setTourOpen] = useState(false);
+  const [view, setView] = useState<"home" | "slides" | "assignments">("home");
+  const [noticeId, setNoticeId] = useState<string | null>(null);
+  const assignments = useClassAssignments(ready ? choice : null);
   const tourSteps: TourStep[] = useMemo(() => {
     const pushable = typeof window !== "undefined" && canUseUploadPush() && permission() === "default";
     return [
       { target: "hub-programme", title: "This is your programme", body: "Your courses follow the programme, year and semester you picked. Tap Change any time." },
-      { target: "hub-recent", title: "Recent uploads", body: "Every new file your course reps add for your year shows here first." },
-      { target: "hub-just", title: "New slides glow", body: "For 1½ hours after your course rep uploads, this card glows. Tap Open to read them." },
-      { target: "hub-courses", title: "Your courses", body: "Tap a course to find Lecturer slides from your course rep, and Departmental slides below." },
+      { target: "hub-folders", title: "Slides and Assignments", body: "Green is Slides: tap it to see your courses. Blue is Assignments: everything your course rep posts." },
+      { target: "hub-notice", title: "Notice board", body: "New slides and assignments land here first. Urgent ones glow white at the top. Mark assignments done, or ask for reminders." },
       pushable && choice
         ? { title: "Never miss an upload", body: "Turn on notifications and your phone will buzz the moment new slides land.", action: { label: "Turn on notifications", run: () => { markAsked(); return turnOnUploadPush(choice); } } }
         : { title: "That’s it", body: "Tap How it works under your programme any time to see this again." },
     ];
   }, [choice]);
+
+  // Opened from an assignment notification: show it in the Assignments folder.
+  useEffect(() => {
+    if (!ready) return;
+    const id = new URLSearchParams(window.location.search).get("notice");
+    if (!id) return;
+    window.history.replaceState(null, "", window.location.pathname + window.location.hash);
+    setNoticeId(id);
+    setView("assignments");
+    window.setTimeout(() => document.getElementById("materials")?.scrollIntoView({ behavior: "smooth" }), 300);
+  }, [ready]);
+  useEffect(() => setView("home"), [choice?.departmentId, choice?.year]);
 
   // Came from the old Course Materials page with a programme: go straight to its year and semester.
   useEffect(() => {
@@ -85,6 +99,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
     <section id="materials" aria-label="Your course materials" style={{ ...goldGround, ...hubFont, color: INK, position: "relative", overflow: "hidden", scrollMarginTop: 70 }}>
       <HubStyles />
       <QuickStyles />
+      <NoticeStyles />
       {adminPreview ? (
         <p style={{ margin: 0, background: INK, color: GOLD, padding: "8px 20px", textAlign: "center", fontSize: 13, fontWeight: 700 }}>
           Admin preview: only you can see course-materials quick access.
@@ -117,9 +132,6 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                 </button>
               </BlueprintCard>
               </div>
-              <div data-tour-step="hub-recent">
-                <RecentUploadsCard departmentId={choice.departmentId} year={choice.year} style={{ marginTop: 22 }} />
-              </div>
               <div className="qa-desktop-only" style={{ display: "flex", flexDirection: "column" }}>
                 <ResourceCard />
                 <CourseRepCard />
@@ -127,45 +139,57 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
             </div>
 
             <div className="qa-right">
-              <JustUploaded uploads={uploads} />
-              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
-                <h2 style={{ margin: 0, fontSize: 34, fontWeight: 900, letterSpacing: "-.035em", lineHeight: 0.98 }}>Your courses</h2>
-                {courses.length ? <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(26,24,20,.7)" }}>{courses.length} {courses.length === 1 ? "course" : "courses"}</span> : null}
-              </div>
-
-              {courses.length ? (
-                <div className="qa-courses" data-tour-step="hub-courses">
-                  {courses.map((course, i) => {
-                    const fresh = newByCourse.get(course.id) ?? 0;
-                    const inner = (
-                      <>
-                        <span style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 14, ...goldPlate, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <FileText size={20} strokeWidth={2.3} aria-hidden />
-                        </span>
-                        <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
-                          <span style={{ fontSize: 16, fontWeight: 800, color: CREAM, letterSpacing: "-.01em" }}>{course.title}</span>
-                          {fresh ? (
-                            <span style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, height: 22, padding: "0 9px", borderRadius: 999, background: NEW_GREEN, color: "#fff", fontSize: 11, fontWeight: 900, letterSpacing: ".04em" }}>
-                              <Sparkles size={11} strokeWidth={2.6} aria-hidden /> {fresh} NEW FROM COURSE REP
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>{course.kind === "link" ? linkLabel(course.url) : course.general ? "General course" : "Lecturer & departmental slides"}</span>
-                          )}
-                        </span>
-                        <RoundChevron />
-                      </>
-                    );
-                    const rowStyle = { display: "flex", alignItems: "center", gap: 14, minHeight: 80, padding: "12px 14px", borderRadius: 22, background: INK, border: fresh ? `2px solid ${NEW_GREEN}` : "1px solid rgba(233,188,58,.28)", boxShadow: panelShadow, textDecoration: "none", animationDelay: `${Math.min(i, 10) * 60}ms` } as const;
-                    return course.kind === "link" ? (
-                      <a key={course.id} href={course.url} target="_blank" rel="noopener noreferrer" className="hub-row hub-tap hub-dark-row" style={rowStyle}>{inner}</a>
-                    ) : (
-                      <Link key={course.id} href={`/materials-hub?course=${encodeURIComponent(course.id)}${fresh ? "&view=slides&folder=rep" : ""}`} className="hub-row hub-tap hub-dark-row" style={rowStyle}>{inner}</Link>
-                    );
-                  })}
-                </div>
+              {view === "home" ? (
+                <>
+                  <FolderBars courseCount={courses.length} openCount={assignments.items.filter((x) => !x.done).length} onSlides={() => setView("slides")} onAssignments={() => setView("assignments")} />
+                  <NoticeBoard choice={choice} entries={data.entries} assignments={assignments} onSeeAssignments={() => setView("assignments")} />
+                </>
+              ) : view === "assignments" ? (
+                <AssignmentsView assignments={assignments} highlightId={noticeId} onBack={() => { setView("home"); setNoticeId(null); }} />
               ) : (
-                <div style={{ marginTop: 16, borderRadius: 24, border: "2px dashed rgba(26,24,20,.35)", padding: "28px 18px", textAlign: "center", fontSize: 14, fontWeight: 700, color: "rgba(26,24,20,.7)" }}>
-                  Nothing has been uploaded for this semester yet.
+                <div className="hub-row">
+                  <button type="button" onClick={() => setView("home")} className="hub-tap" style={{ ...backButtonStyle, background: SLIDES_BG, color: SLIDES_INK }}>
+                    <ArrowLeft size={20} strokeWidth={2.8} aria-hidden /> Slides
+                  </button>
+                  <div style={{ marginTop: 16, display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+                    <h2 style={{ margin: 0, fontSize: 30, fontWeight: 900, letterSpacing: "-.035em", lineHeight: 0.98 }}>Pick a course</h2>
+                    {courses.length ? <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(26,24,20,.7)" }}>{courses.length} {courses.length === 1 ? "course" : "courses"}</span> : null}
+                  </div>
+                {courses.length ? (
+                  <div className="qa-courses" data-tour-step="hub-courses">
+                    {courses.map((course, i) => {
+                      const fresh = newByCourse.get(course.id) ?? 0;
+                      const inner = (
+                        <>
+                          <span style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 14, ...goldPlate, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <FileText size={20} strokeWidth={2.3} aria-hidden />
+                          </span>
+                          <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+                            <span style={{ fontSize: 16, fontWeight: 800, color: CREAM, letterSpacing: "-.01em" }}>{course.title}</span>
+                            {fresh ? (
+                              <span style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 5, height: 22, padding: "0 9px", borderRadius: 999, background: NEW_GREEN, color: "#fff", fontSize: 11, fontWeight: 900, letterSpacing: ".04em" }}>
+                                <Sparkles size={11} strokeWidth={2.6} aria-hidden /> {fresh} NEW FROM COURSE REP
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(246,239,220,.5)" }}>{course.kind === "link" ? linkLabel(course.url) : course.general ? "General course" : "Lecturer & departmental slides"}</span>
+                            )}
+                          </span>
+                          <RoundChevron />
+                        </>
+                      );
+                      const rowStyle = { display: "flex", alignItems: "center", gap: 14, minHeight: 80, padding: "12px 14px", borderRadius: 22, background: INK, border: fresh ? `2px solid ${NEW_GREEN}` : "1px solid rgba(233,188,58,.28)", boxShadow: panelShadow, textDecoration: "none", animationDelay: `${Math.min(i, 10) * 60}ms` } as const;
+                      return course.kind === "link" ? (
+                        <a key={course.id} href={course.url} target="_blank" rel="noopener noreferrer" className="hub-row hub-tap hub-dark-row" style={rowStyle}>{inner}</a>
+                      ) : (
+                        <Link key={course.id} href={`/materials-hub?course=${encodeURIComponent(course.id)}${fresh ? "&view=slides&folder=rep" : ""}`} className="hub-row hub-tap hub-dark-row" style={rowStyle}>{inner}</Link>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 16, borderRadius: 24, border: "2px dashed rgba(26,24,20,.35)", padding: "28px 18px", textAlign: "center", fontSize: 14, fontWeight: 700, color: "rgba(26,24,20,.7)" }}>
+                    Nothing has been uploaded for this semester yet.
+                  </div>
+                )}
                 </div>
               )}
               <div className="qa-phone-only" style={{ flexDirection: "column" }}>
@@ -193,6 +217,11 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
           }}
           onDone={(next) => {
             setChoice(next);
+            try {
+              window.localStorage.setItem("b2b.pinnedProgramme", next.departmentId);
+            } catch {
+              /* storage unavailable */
+            }
             setPicking(false);
             setPresetDept(null);
             if (!tourDone()) window.setTimeout(() => setTourOpen(true), 600);
@@ -208,44 +237,6 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
 }
 
 const NEW_GREEN = "#12804A";
-const JUST_NOW_MS = 90 * 60_000;
-
-/* ─── Big glowing card for anything uploaded in the last 1½ hours ───── */
-
-function JustUploaded({ uploads }: { uploads: RepUpload[] }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
-  const fresh = uploads.filter((u) => now - Date.parse(u.entry.createdAt) < JUST_NOW_MS).slice(0, 3);
-  if (!fresh.length) return null;
-  const href = (u: RepUpload) => `/materials-hub?course=${encodeURIComponent(u.course.id)}&view=${u.entry.materialType === "playlist" || u.entry.materialType === "video" ? "videos" : "slides&folder=rep"}`;
-  return (
-    <div className="hub-row qa-glow" data-tour-step="hub-just" style={{ marginBottom: 22, borderRadius: 26, background: "#FFFFFF", color: INK, padding: "20px 18px 16px", border: "2px solid #FFFFFF" }}>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 30, padding: "0 12px", borderRadius: 999, background: NEW_GREEN, color: "#fff", fontSize: 12, fontWeight: 900, letterSpacing: ".1em" }}>
-        <span className="qa-dot" style={{ width: 8, height: 8, borderRadius: 999, background: "#fff" }} /> JUST UPLOADED
-      </span>
-      <h3 style={{ margin: "12px 0 0", fontSize: 26, fontWeight: 900, lineHeight: 1.08, letterSpacing: "-.03em" }}>
-        Your course rep just uploaded {fresh.length === 1 ? "new slides" : `${fresh.length} new files`}
-      </h3>
-      <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-        {fresh.map((u) => (
-          <Link key={u.entry.id} href={href(u)} onClick={() => markUploadsSeen([u.entry.id])} className="hub-tap" style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 18, background: "#F6F1E4", color: INK, textDecoration: "none" }}>
-            <span style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 14, ...goldPlate, display: "flex", alignItems: "center", justifyContent: "center" }}><FileText size={21} strokeWidth={2.3} aria-hidden /></span>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: "block", fontSize: 17, fontWeight: 900, lineHeight: 1.2 }}>{u.entry.courseTitle}</span>
-              <span style={{ display: "block", marginTop: 3, fontSize: 13, fontWeight: 700, color: "#5C564B" }}>{u.course.title}</span>
-              <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#5C564B" }}>{timeAgo(u.entry.createdAt)}</span>
-              {u.entry.uploadedBy ? <span style={{ display: "block", marginTop: 2, fontSize: 12, fontWeight: 700, color: NEW_GREEN }}>Uploaded by {u.entry.uploadedBy}</span> : null}
-            </span>
-            <span style={{ flexShrink: 0, height: 38, padding: "0 16px", borderRadius: 999, background: INK, color: GOLD, display: "inline-flex", alignItems: "center", fontSize: 14, fontWeight: 900 }}>Open</span>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 /* ─── "Know the moment your course rep uploads" ─────────────────────── */
 
@@ -583,6 +574,18 @@ export function PickerPopup({
   const [departmentId, setDepartmentId] = useState<string | null>(startDepartmentId ?? initial?.departmentId ?? null);
   const [year, setYear] = useState<CourseMaterialYear | null>(initial?.year ?? null);
   const department = departments.find((d) => d.id === departmentId);
+  // The programme they offer sits first, in gold, as on the Course Materials page.
+  const [pinnedId] = useState<string | null>(() => {
+    try {
+      return initial?.departmentId ?? window.localStorage.getItem("b2b.pinnedProgramme");
+    } catch {
+      return initial?.departmentId ?? null;
+    }
+  });
+  const ordered = useMemo(() => {
+    const pinned = departments.find((d) => d.id === pinnedId);
+    return pinned ? [pinned, ...departments.filter((d) => d.id !== pinned.id)] : departments;
+  }, [departments, pinnedId]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -630,8 +633,9 @@ export function PickerPopup({
                 <p style={{ marginTop: 18, fontSize: 14, fontWeight: 700 }}>Loading programmes…</p>
               ) : (
                 <div className="qa-grid">
-                  {departments.map((d, i) => {
-                    const selected = d.id === departmentId;
+                  {ordered.map((d, i) => {
+                    const selected = d.id === departmentId || (!departmentId && d.id === pinnedId);
+                    const yours = d.id === pinnedId;
                     const usable = d.available !== false;
                     return (
                       <button
@@ -647,7 +651,10 @@ export function PickerPopup({
                         style={{ position: "relative", overflow: "hidden", display: "flex", alignItems: "center", gap: 10, minHeight: 58, padding: "0 16px", borderRadius: 16, border: selected ? 0 : "1px solid rgba(233,188,58,.22)", ...(selected ? goldPlate : { background: POP_CARD }), color: selected ? INK : usable ? CREAM : "rgba(246,239,220,.3)", fontFamily: "inherit", fontSize: 15, fontWeight: 750, textAlign: "left", cursor: usable ? "pointer" : "not-allowed", animationDelay: `${Math.min(i, 17) * 22}ms` }}
                       >
                         <DepartmentDrawing name={d.name} style={{ position: "absolute", right: -18, top: -6, width: 110, height: 70, color: selected ? INK : CREAM, opacity: 0.12, pointerEvents: "none" }} />
-                        <span style={{ position: "relative", flex: 1 }}>{d.name}</span>
+                        <span style={{ position: "relative", flex: 1 }}>
+                          {yours ? <span style={{ display: "block", fontSize: 10, fontWeight: 900, letterSpacing: ".12em", color: selected ? "rgba(26,24,20,.7)" : GOLD }}>YOUR PROGRAMME</span> : null}
+                          {d.name}
+                        </span>
                         {selected ? <Check size={18} strokeWidth={3} aria-hidden style={{ position: "relative" }} /> : !usable ? <Lock size={14} aria-hidden style={{ position: "relative" }} /> : null}
                       </button>
                     );

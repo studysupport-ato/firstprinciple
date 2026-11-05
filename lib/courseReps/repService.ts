@@ -172,7 +172,7 @@ function inScope(rep: RepApplication, entry: CourseMaterialEntry) {
   return entry.departmentId === rep.departmentId && entry.departmentId !== GENERAL_DEPARTMENT_ID && entry.studyYear === rep.studyYear;
 }
 
-async function requireOwnCourse(rep: RepApplication, courseId: string) {
+export async function requireOwnCourse(rep: RepApplication, courseId: string) {
   const course = await loadEntry(courseId);
   if (!course || getEntryType(course) !== "course" || !inScope(rep, course) || course.status === "archived") {
     throw new RepAccessError("That course is not part of your access.");
