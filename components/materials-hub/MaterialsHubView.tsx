@@ -27,6 +27,7 @@ import {
 import { getEntryType, type CourseMaterialEntry } from "@/lib/courseMaterials";
 import { BROWN, CREAM, Overlay, OVERLAY_Z, Eyebrow, GOLD, HubStyles, INK, MUTED, Panel, Pill, RoundChevron, Sheet, SOFT, YT_RED, BlueprintCard, goldPlate, GoldLabel, ROW_LINE, backButtonStyle, backLabelStyle, goldGround, hubFont, panelShadow } from "./ui";
 import { useHubChoice, useHubData } from "./useHub";
+import { FileLine } from "./FileLine";
 import { SlideDeck, preloadSlides } from "./SlideDeck";
 import { RecentUploadsView } from "./RecentUploads";
 import { CourseYouTube } from "@/components/course-materials/CourseDetail";
@@ -78,7 +79,7 @@ export function MaterialsHubView() {
           view === "videos" ? (
             <VideosView course={course} videos={groups.videos} />
           ) : (
-            <DriveMaterials kind="slides" course={course} slides={[...groups.slides, ...groups.books]} folderId={folderId} />
+            <DriveMaterials kind="slides" course={course} slides={[...groups.slides, ...groups.books]} folderId={folderId} openId={params.get("open")} />
           )
         ) : null}
       </div>
@@ -200,8 +201,18 @@ const KIND_TITLE: Record<DriveKind, string> = { slides: "Slides", books: "Books"
  * Slides and books come in two folders: the lecturer's slides that the course
  * rep uploads (the main one), and the department's existing folder.
  */
-function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; course: CourseMaterialEntry; slides: CourseMaterialEntry[]; folderId: string | null }) {
+function DriveMaterials({ kind, course, slides, folderId, openId }: { kind: DriveKind; course: CourseMaterialEntry; slides: CourseMaterialEntry[]; folderId: string | null; openId?: string | null }) {
   const [viewing, setViewing] = useState<DriveItem | null>(null);
+  // Opened from the notice board: show that file straight away.
+  const openedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!openId || openedRef.current === openId) return;
+    const entry = slides.find((m) => m.id === openId);
+    const fileId = entry ? parseDriveFileId(entry.url) : null;
+    if (!entry || !fileId) return;
+    openedRef.current = openId;
+    setViewing({ id: fileId, name: entry.courseTitle, mimeType: "application/pdf", size: null, isFolder: false });
+  }, [openId, slides]);
   useEffect(() => preloadSlides(), []);
   const hub = useHubData();
   const credit = useMemo(() => departmentalCredit(hub.entries, course), [hub.entries, course]);
@@ -257,8 +268,7 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
   return (
     <div className="hub-row">
       <BackLink href="/">Your courses</BackLink>
-      <GoldLabel style={{ margin: "14px 0 0" }}>{Noun}</GoldLabel>
-      <h1 style={{ margin: "10px 0 0", textAlign: "center", fontSize: 34, fontWeight: 900, letterSpacing: "-.035em", lineHeight: 1.05 }}>{course.courseTitle}</h1>
+      <CourseBand course={course} label={Noun === "Books" ? "Books" : "Course"} />
       <div className="mh-folders">
         {/* Main folder: the lecturer's slides, uploaded by the course rep. */}
         <div style={{ borderRadius: 26, background: REP_GREEN, color: "#fff", overflow: "hidden", border: `2px solid ${GOLD}`, boxShadow: "0 20px 40px -16px rgba(18,128,74,.7)" }}>
@@ -278,34 +288,12 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
               <p style={{ margin: 0, padding: "14px 20px 16px", borderTop: "1px solid rgba(255,255,255,.12)", fontSize: 14, fontWeight: 700, opacity: 0.85 }}>Nothing yet. Your course rep’s uploads land here.</p>
             ) : (
               <>
-                {fromRep.slice(0, 3).map((m) => {
-                  const fileId = parseDriveFileId(m.url);
-                  const isNew = isNewRepUpload(m, 7);
-                  const body = (
-                    <>
-                      <span style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 11, background: "#fff", color: REP_GREEN, display: "flex", alignItems: "center", justifyContent: "center" }}><FileText size={18} /></span>
-                      <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
-                        <span style={{ fontSize: 15.5, fontWeight: 800 }}>{m.courseTitle}</span>
-                        <span style={{ fontSize: 12, opacity: 0.8 }}>
-                          {isNew ? <b style={{ background: GOLD, color: INK, padding: "1px 6px", borderRadius: 999, fontSize: 10, marginRight: 6 }}>NEW</b> : null}
-                          {m.replacedAt ? <b style={{ background: GOLD, color: INK, padding: "1px 6px", borderRadius: 999, fontSize: 10, marginRight: 6 }}>UPDATED</b> : null}
-                          {m.uploadedBy ? `Uploaded by ${m.uploadedBy}` : "Uploaded by your course rep"}
-                        </span>
-                        <span style={{ fontSize: 12, opacity: 0.8 }}>{timeAgo(m.createdAt)}</span>
-                        <span style={{ fontSize: 12, opacity: 0.8, display: m.credit ? "block" : "none" }}>
-                          Lecturer: {m.credit}
-                        </span>
-                      </span>
-                      <span aria-hidden style={{ fontSize: 20 }}>›</span>
-                    </>
-                  );
-                  const rowStyle = { display: "flex", alignItems: "center", gap: 12, width: "100%", padding: "12px 18px", border: 0, borderTop: "1px solid rgba(255,255,255,.12)", background: "transparent", color: "#fff", textAlign: "left", fontFamily: "inherit", cursor: "pointer", textDecoration: "none" } as const;
-                  return fileId ? (
-                    <button key={m.id} type="button" onPointerEnter={() => preloadSlides(fileId)} onTouchStart={() => preloadSlides(fileId)} onClick={() => open(fileId, m.courseTitle)} className="hub-tap" style={rowStyle}>{body}</button>
-                  ) : (
-                    <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer" className="hub-tap" style={rowStyle}>{body}</a>
-                  );
-                })}
+                <div style={{ borderTop: "1px solid rgba(255,255,255,.12)" }}>
+                  {fromRep.slice(0, 5).map((m, i, list) => {
+                    const fileId = parseDriveFileId(m.url);
+                    return <FileLine key={m.id} entry={m} tone="green" last={i === list.length - 1} onOpen={() => (fileId ? open(fileId, m.courseTitle) : window.open(m.url, "_blank", "noopener"))} />;
+                  })}
+                </div>
                 <Link href={hubHref(course.id, kind, REP_FOLDER)} className="hub-tap" style={{ display: "block", padding: "13px 20px", borderTop: "1px solid rgba(255,255,255,.12)", color: "#fff", fontSize: 14, fontWeight: 900, textDecoration: "none" }}>Open folder ({fromRep.length} {fromRep.length === 1 ? "file" : "files"}) →</Link>
               </>
             )}
@@ -328,12 +316,44 @@ function DriveMaterials({ kind, course, slides, folderId }: { kind: DriveKind; c
   );
 }
 
+/** The course name, centred in white on green, with its code underneath. */
+function CourseBand({ course, label }: { course: CourseMaterialEntry; label: string }) {
+  return (
+    <div style={{ marginTop: 14, borderRadius: 22, background: REP_GREEN, color: "#fff", padding: "14px 16px", textAlign: "center", boxShadow: "0 16px 30px -18px rgba(18,128,74,.8)" }}>
+      <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: ".16em", opacity: 0.85 }}>{label.toUpperCase()}</div>
+      <h1 style={{ margin: "2px 0 0", fontSize: 30, fontWeight: 900, letterSpacing: "-.03em", lineHeight: 1.05 }}>{course.courseTitle}</h1>
+      {course.courseCode ? <div style={{ marginTop: 2, fontSize: 13, fontWeight: 800, opacity: 0.85 }}>{course.courseCode}</div> : null}
+    </div>
+  );
+}
+
 const REP_FOLDER = "rep";
 const DEPT_FOLDER = "dept";
 const REP_GREEN = "#12804A";
 
 /** A plain list of material entries (files, folders or links). */
 function EntryRows({ list, course, kind, rep = false, onOpen }: { list: CourseMaterialEntry[]; course: CourseMaterialEntry; kind: DriveKind; rep?: boolean; onOpen: (fileId: string, name: string) => void }) {
+  const router = useRouter();
+  if (rep) {
+    return (
+      <Panel style={{ marginTop: 14, border: `2px solid ${REP_GREEN}` }}>
+        {list.map((s, i) => {
+          const folder = parseDriveFolderId(s.url);
+          const fileId = parseDriveFileId(s.url);
+          return (
+            <FileLine
+              key={s.id}
+              entry={s}
+              tone="dark"
+              folder={Boolean(folder)}
+              last={i === list.length - 1}
+              onOpen={() => (folder ? router.push(hubHref(course.id, kind, folder)) : fileId ? onOpen(fileId, s.courseTitle) : window.open(s.url, "_blank", "noopener"))}
+            />
+          );
+        })}
+      </Panel>
+    );
+  }
   return (
     <Panel style={{ marginTop: 14, ...(rep ? { border: `2px solid ${REP_GREEN}` } : {}) }}>
       {list.map((s, i) => {

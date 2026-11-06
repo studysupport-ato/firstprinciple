@@ -164,7 +164,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
               {view === "home" ? (
                 <>
                   <FolderBars courseCount={courses.length} openCount={assignments.items.filter((x) => !x.done).length} onSlides={() => setView("slides")} onAssignments={() => setView("assignments")} />
-                  <NoticeBoard choice={choice} entries={data.entries} assignments={assignments} onSeeAssignments={() => setView("assignments")} />
+                  <NoticeBoard choice={choice} entries={data.entries} assignments={assignments} onSeeAssignments={() => setView("assignments")} onOpenAssignment={(id) => { setNoticeId(id); setView("assignments"); }} />
                 </>
               ) : view === "assignments" ? (
                 <AssignmentsView assignments={assignments} highlightId={noticeId} onBack={() => { setView("home"); setNoticeId(null); }} />

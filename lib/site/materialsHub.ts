@@ -442,3 +442,31 @@ export function departmentalCredit(entries: CourseMaterialEntry[], course: Cours
     sameDept[0];
   return pick?.credit ? tidy(pick.credit) : null;
 }
+
+const WORD_NUMBERS: Record<string, number> = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15 };
+const UNIT_LABEL: Record<string, string> = { week: "Week", wk: "Week", unit: "Unit", lecture: "Lecture", lec: "Lecture", chapter: "Chapter", chap: "Chapter", ch: "Chapter", topic: "Topic", part: "Part", module: "Module" };
+
+/**
+ * "EE161 Week3 The Practical Transformer" -> { code: "EE 161", unit: "Week 3", topic: "The Practical Transformer" }.
+ * "MATH 151 UNIT TWO" -> { code: "MATH 151", unit: "Unit 2", topic: "" }. Anything not found is left out.
+ */
+export function splitTopic(title: string): { code?: string; unit?: string; topic: string } {
+  let rest = title.replace(/\.(pdf|pptx?|docx?)$/i, "").replace(/_+/g, " ").replace(/\s+/g, " ").trim();
+  let code: string | undefined;
+  const c = rest.match(/^([A-Za-z]{2,5})\s?-?(\d{3})(?![\d])/);
+  if (c) {
+    code = `${c[1].toUpperCase()} ${c[2]}`;
+    rest = rest.slice(c[0].length);
+  }
+  let unit: string | undefined;
+  const u = rest.match(/\b(week|wk|unit|lecture|lec|chapter|chap|ch|topic|part|module)\s*[-:.#]?\s*(\d{1,2}|zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen)(?![a-z\d])/i);
+  if (u) {
+    const n = /\d/.test(u[2]) ? Number(u[2]) : WORD_NUMBERS[u[2].toLowerCase()];
+    unit = `${UNIT_LABEL[u[1].toLowerCase()] ?? u[1]} ${n}`;
+    rest = rest.replace(u[0], " ");
+  }
+  let topic = rest.replace(/^[\s\-–—:.,|]+|[\s\-–—:.,|]+$/g, "").replace(/\s+/g, " ").trim();
+  // A leftover version mark like "(2.0)" or "v2" is not a topic.
+  if (/^\(?v?[\d.]+\)?$/i.test(topic)) topic = "";
+  return { code, unit, topic };
+}

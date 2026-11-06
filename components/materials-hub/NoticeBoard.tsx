@@ -6,7 +6,7 @@ import { ArrowLeft, Bell, BellOff, BookOpen, Check, ChevronRight, ClipboardList,
 import { classAssignmentsAction, clearAssignmentReminderAction, setAssignmentDoneAction, setAssignmentReminderAction } from "@/lib/courseReps/assignmentActions";
 import type { AssignmentWithMine } from "@/lib/courseReps/assignments";
 import { deviceId, pushAddress } from "@/lib/courseReps/uploadPushClient";
-import { programmeUploads, timeAgo, type HubChoice, type LoggedUpload } from "@/lib/site/materialsHub";
+import { programmeUploads, splitTopic, timeAgo, type HubChoice, type LoggedUpload } from "@/lib/site/materialsHub";
 import type { CourseMaterialEntry } from "@/lib/courseMaterials";
 import { CREAM, GOLD, INK, OVERLAY_Z, Overlay, backButtonStyle, hubFont } from "./ui";
 
@@ -48,7 +48,8 @@ function fileThumb(id: string) {
   return `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w1000`;
 }
 function slideHref(u: LoggedUpload) {
-  return `/materials-hub?course=${encodeURIComponent(u.course.id)}&view=${u.kind}${u.kind === "videos" ? "" : "&folder=rep"}`;
+  if (u.kind === "videos") return `/materials-hub?course=${encodeURIComponent(u.course.id)}&view=videos`;
+  return `/materials-hub?course=${encodeURIComponent(u.course.id)}&view=slides&open=${encodeURIComponent(u.entry.id)}`;
 }
 
 /* ─── The two folders ────────────────────────────────────────────────── */
@@ -57,25 +58,25 @@ export function FolderBars({ courseCount, openCount, onSlides, onAssignments }: 
   const bar: CSSProperties = { width: "100%", display: "flex", alignItems: "center", gap: 14, minHeight: 84, padding: "14px 18px", borderRadius: 24, border: 0, fontFamily: "inherit", textAlign: "left", cursor: "pointer", boxShadow: "0 16px 30px -18px rgba(26,24,20,.6)" };
   return (
     <div className="nb-bars" data-tour-step="hub-folders">
-      <button type="button" onClick={onSlides} className="hub-tap hub-row" style={{ ...bar, background: SLIDES_BG, color: SLIDES_INK }}>
-        <span aria-hidden style={{ width: 52, height: 52, flexShrink: 0, borderRadius: 16, background: SLIDES_TILE, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <button type="button" onClick={onSlides} className="hub-tap hub-row nb-bar" style={{ ...bar, background: SLIDES_BG, color: SLIDES_INK }}>
+        <span aria-hidden className="nb-ico" style={{ width: 52, height: 52, flexShrink: 0, borderRadius: 16, background: SLIDES_TILE, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Folder size={25} color="#fff" strokeWidth={2.3} />
         </span>
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: "block", fontSize: 22, fontWeight: 900, letterSpacing: "-.02em" }}>Slides</span>
+          <span className="nb-name" style={{ display: "block", fontSize: 22, fontWeight: 900, letterSpacing: "-.02em" }}>Slides</span>
           <span style={{ display: "block", fontSize: 13, fontWeight: 700, opacity: 0.8 }}>{courseCount ? `${courseCount} ${courseCount === 1 ? "course" : "courses"}` : "No courses yet"}</span>
         </span>
-        <ChevronRight size={22} strokeWidth={2.8} aria-hidden />
+        <ChevronRight className="nb-chev" size={22} strokeWidth={2.8} aria-hidden />
       </button>
-      <button type="button" onClick={onAssignments} className="hub-tap hub-row" style={{ ...bar, background: BLUE, color: "#fff", animationDelay: "60ms" }}>
-        <span aria-hidden style={{ width: 52, height: 52, flexShrink: 0, borderRadius: 16, background: "rgba(255,255,255,.18)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <button type="button" onClick={onAssignments} className="hub-tap hub-row nb-bar" style={{ ...bar, background: BLUE, color: "#fff", animationDelay: "60ms" }}>
+        <span aria-hidden className="nb-ico" style={{ width: 52, height: 52, flexShrink: 0, borderRadius: 16, background: "rgba(255,255,255,.18)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <ClipboardList size={25} color="#fff" strokeWidth={2.3} />
         </span>
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: "block", fontSize: 22, fontWeight: 900, letterSpacing: "-.02em" }}>Assignments</span>
+          <span className="nb-name" style={{ display: "block", fontSize: 22, fontWeight: 900, letterSpacing: "-.02em" }}>Assignments</span>
           <span style={{ display: "block", fontSize: 13, fontWeight: 700, opacity: 0.85 }}>{openCount ? `${openCount} not done yet` : "All caught up"}</span>
         </span>
-        <ChevronRight size={22} strokeWidth={2.8} aria-hidden />
+        <ChevronRight className="nb-chev" size={22} strokeWidth={2.8} aria-hidden />
       </button>
     </div>
   );
@@ -85,7 +86,7 @@ export function FolderBars({ courseCount, openCount, onSlides, onAssignments }: 
 
 type FeedItem = { kind: "assignment"; at: string; a: AssignmentWithMine } | { kind: "upload"; at: string; u: LoggedUpload };
 
-export function NoticeBoard({ choice, entries, assignments, onSeeAssignments }: { choice: HubChoice; entries: CourseMaterialEntry[]; assignments: ClassAssignments; onSeeAssignments: () => void }) {
+export function NoticeBoard({ choice, entries, assignments, onSeeAssignments, onOpenAssignment }: { choice: HubChoice; entries: CourseMaterialEntry[]; assignments: ClassAssignments; onSeeAssignments: () => void; onOpenAssignment: (id: string) => void }) {
   const [remindFor, setRemindFor] = useState<AssignmentWithMine | null>(null);
   const urgent = assignments.items.filter((a) => a.urgent && !a.done);
   const feed = useMemo<FeedItem[]>(() => {
@@ -105,15 +106,15 @@ export function NoticeBoard({ choice, entries, assignments, onSeeAssignments }: 
           <span style={{ height: 28, padding: "0 11px", borderRadius: 999, background: RED, color: "#fff", fontSize: 12, fontWeight: 900, letterSpacing: ".06em", display: "inline-flex", alignItems: "center" }}>{urgent.length} URGENT</span>
         ) : null}
       </div>
-      <p style={{ margin: "4px 0 0 22px", fontSize: 13, fontWeight: 700, color: "rgba(246,239,220,.6)" }}>Check here first. New from your course reps.</p>
+      <p style={{ margin: "4px 0 0 22px", fontSize: 13, fontWeight: 700, color: "rgba(246,239,220,.6)" }}>Check here first. Tap any notice to open it.</p>
 
       <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
         {urgent.map((a) => (
-          <AssignmentCard key={a.id} a={a} assignments={assignments} onRemind={() => setRemindFor(a)} />
+          <AssignmentCard key={a.id} a={a} assignments={assignments} onRemind={() => setRemindFor(a)} onOpen={() => onOpenAssignment(a.id)} />
         ))}
         {feed.map((item) =>
           item.kind === "assignment" ? (
-            <AssignmentCard key={item.a.id} a={item.a} assignments={assignments} onRemind={() => setRemindFor(item.a)} compact />
+            <AssignmentCard key={item.a.id} a={item.a} assignments={assignments} onRemind={() => setRemindFor(item.a)} onOpen={() => onOpenAssignment(item.a.id)} compact />
           ) : (
             <UploadNotice key={item.u.entry.id} u={item.u} />
           ),
@@ -134,28 +135,35 @@ export function NoticeBoard({ choice, entries, assignments, onSeeAssignments }: 
   );
 }
 
+function CourseStrip({ title, bg }: { title: string; bg: string }) {
+  return <div style={{ background: bg, color: "#FFFFFF", padding: "7px 14px", textAlign: "center", fontSize: 15, fontWeight: 900, letterSpacing: ".01em", lineHeight: 1.2 }}>{title}</div>;
+}
+
 function UploadNotice({ u }: { u: LoggedUpload }) {
-  const Icon = u.kind === "books" ? BookOpen : u.kind === "videos" ? Play : FileText;
-  const what = u.kind === "books" ? "NEW BOOK" : u.kind === "videos" ? "NEW VIDEOS" : u.entry.replacedAt ? "SLIDES UPDATED" : "NEW SLIDES";
+  const { code, unit, topic } = splitTopic(u.entry.courseTitle);
+  const updated = Boolean(u.entry.replacedAt);
   return (
-    <Link href={slideHref(u)} className="hub-tap" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 18, background: SLIDES_BG, color: SLIDES_INK, textDecoration: "none" }}>
-      <span aria-hidden style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 12, background: SLIDES_TILE, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <Icon size={19} color="#fff" strokeWidth={2.3} />
+    <Link href={slideHref(u)} className="hub-tap" style={{ display: "block", borderRadius: 16, overflow: "hidden", background: SLIDES_BG, color: SLIDES_INK, textDecoration: "none" }}>
+      <CourseStrip title={u.course.courseTitle} bg={SLIDES_TILE} />
+      <span style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px" }}>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          {code ? <span style={{ display: "block", fontSize: 12, fontWeight: 800 }}>{code}</span> : null}
+          {unit ? <span style={{ display: "inline-flex", marginTop: 3, height: 22, padding: "0 9px", borderRadius: 7, background: SLIDES_TILE, color: "#FFFFFF", fontSize: 12, fontWeight: 800, alignItems: "center" }}>{unit}</span> : null}
+          {topic || (!code && !unit) ? <span style={{ display: "block", marginTop: 5, fontSize: 17, fontWeight: 900, lineHeight: 1.15, color: INK }}>{topic || u.entry.courseTitle}</span> : null}
+          <span style={{ display: "block", marginTop: 3, fontSize: 12, fontWeight: 600 }}>
+            {updated ? "Updated " : u.kind === "books" ? "Book, " : u.kind === "videos" ? "Videos, " : ""}
+            {timeAgo(u.entry.replacedAt ?? u.entry.createdAt)}
+          </span>
+        </span>
+        <ChevronRight size={18} strokeWidth={2.8} aria-hidden />
       </span>
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: "block", fontSize: 11, fontWeight: 900, letterSpacing: ".1em", opacity: 0.8 }}>{what}</span>
-        <span style={{ display: "block", fontSize: 15, fontWeight: 900, color: INK }}>{u.course.courseTitle}</span>
-        <span style={{ display: "block", fontSize: 13, fontWeight: 700 }}>{u.entry.courseTitle}</span>
-        <span style={{ display: "block", fontSize: 12, fontWeight: 600, opacity: 0.75 }}>{timeAgo(u.entry.replacedAt ?? u.entry.createdAt)}</span>
-      </span>
-      <ChevronRight size={18} strokeWidth={2.8} aria-hidden />
     </Link>
   );
 }
 
 /* ─── One assignment ─────────────────────────────────────────────────── */
 
-export function AssignmentCard({ a, assignments, onRemind, compact, highlight }: { a: AssignmentWithMine; assignments: ClassAssignments; onRemind: () => void; compact?: boolean; highlight?: boolean }) {
+export function AssignmentCard({ a, assignments, onRemind, compact, highlight, onOpen }: { a: AssignmentWithMine; assignments: ClassAssignments; onRemind: () => void; compact?: boolean; highlight?: boolean; onOpen?: () => void }) {
   const [busy, setBusy] = useState(false);
   const urgentLook = a.urgent && !a.done;
   const toggleDone = async () => {
@@ -169,7 +177,10 @@ export function AssignmentCard({ a, assignments, onRemind, compact, highlight }:
   const fg = urgentLook ? INK : "#fff";
   const sub = urgentLook ? "#5C564B" : "rgba(255,255,255,.78)";
   return (
-    <div id={`notice-${a.id}`} className={urgentLook ? "nb-glow" : undefined} style={{ borderRadius: 20, padding: "14px 14px 12px", background: urgentLook ? "#FFFFFF" : BLUE, color: fg, opacity: a.done ? 0.62 : 1, outline: highlight ? `4px solid ${GOLD}` : "none", outlineOffset: 2 }}>
+    <div id={`notice-${a.id}`} className={urgentLook ? "nb-glow" : undefined} style={{ borderRadius: 20, overflow: "hidden", background: urgentLook ? "#FFFFFF" : BLUE, color: fg, opacity: a.done ? 0.62 : 1, outline: highlight ? `4px solid ${GOLD}` : "none", outlineOffset: 2 }}>
+      <CourseStrip title={a.courseTitle} bg={urgentLook ? RED : BLUE_DEEP} />
+      <div style={{ padding: "12px 14px 12px" }}>
+      <div onClick={onOpen} role={onOpen ? "button" : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? (e) => e.key === "Enter" && onOpen() : undefined} style={{ cursor: onOpen ? "pointer" : "default" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         {urgentLook ? (
           <span style={{ height: 24, padding: "0 10px", borderRadius: 999, background: RED, color: "#fff", fontSize: 11, fontWeight: 900, letterSpacing: ".08em", display: "inline-flex", alignItems: "center" }}>URGENT</span>
@@ -182,7 +193,6 @@ export function AssignmentCard({ a, assignments, onRemind, compact, highlight }:
           </span>
         ) : null}
       </div>
-      <div style={{ marginTop: 6, fontSize: 18, fontWeight: 900, letterSpacing: "-.01em", lineHeight: 1.15, textDecoration: a.done ? "line-through" : "none" }}>{a.courseTitle}</div>
       {a.body ? (
         <p style={{ margin: "6px 0 0", fontSize: 15, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word", display: compact ? "-webkit-box" : "block", WebkitLineClamp: compact ? 4 : undefined, WebkitBoxOrient: compact ? "vertical" : undefined, overflow: compact ? "hidden" : "visible" }}>{a.body}</p>
       ) : null}
@@ -202,6 +212,7 @@ export function AssignmentCard({ a, assignments, onRemind, compact, highlight }:
       <div style={{ marginTop: 8, fontSize: 12, fontWeight: 600, color: sub }}>{timeAgo(a.createdAt)}</div>
       {a.postedBy ? <div style={{ fontSize: 12, fontWeight: 600, color: sub }}>Posted by {a.postedBy}</div> : null}
       {a.reminder && !a.done ? <div style={{ marginTop: 4, fontSize: 12, fontWeight: 800, color: urgentLook ? BLUE : "#fff" }}>Reminding you {intervalLabel(a.reminder.everyMinutes).toLowerCase()} until {endLabel(a.reminder.endsAt)}</div> : null}
+      </div>
       <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
         <button type="button" onClick={toggleDone} disabled={busy} className="hub-tap" style={{ flex: 1, minHeight: 44, borderRadius: 999, border: 0, background: a.done ? (urgentLook ? "#EDE8DC" : "rgba(255,255,255,.2)") : urgentLook ? INK : "#fff", color: a.done ? fg : urgentLook ? GOLD : BLUE_DEEP, fontFamily: "inherit", fontSize: 14, fontWeight: 900, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
           {a.done ? "Mark as not done" : (<><Check size={16} strokeWidth={3} aria-hidden /> Mark as done</>)}
@@ -211,6 +222,7 @@ export function AssignmentCard({ a, assignments, onRemind, compact, highlight }:
             <Bell size={16} strokeWidth={2.4} aria-hidden /> {a.reminder ? "Reminder on" : "Remind me"}
           </button>
         ) : null}
+      </div>
       </div>
     </div>
   );
@@ -350,8 +362,12 @@ export function AssignmentsView({ assignments, highlightId, onBack }: { assignme
 export function NoticeStyles() {
   return (
     <style>{`
-.nb-bars{display:grid;grid-template-columns:1fr;gap:12px}
-@media (min-width:640px){.nb-bars{grid-template-columns:1fr 1fr}}
+.nb-bars{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nb-bar{gap:10px !important;padding:12px !important;min-height:74px !important}
+.nb-bar .nb-ico{width:40px !important;height:40px !important;border-radius:12px !important}
+.nb-bar .nb-name{font-size:18px !important}
+.nb-bar .nb-chev{display:none}
+@media (min-width:640px){.nb-bar{gap:14px !important;padding:14px 18px !important;min-height:84px !important}.nb-bar .nb-ico{width:52px !important;height:52px !important}.nb-bar .nb-name{font-size:22px !important}.nb-bar .nb-chev{display:block}}
 .nb-live{animation:nbLive 1.1s ease-in-out infinite}
 @keyframes nbLive{0%,100%{box-shadow:0 0 0 0 rgba(211,47,47,.7)}50%{box-shadow:0 0 0 7px rgba(211,47,47,0)}}
 .nb-glow{animation:nbGlow 2.4s ease-in-out infinite}
