@@ -48,22 +48,46 @@ export function useHubData(): HubData {
   }, [base, version]);
 }
 
+const FRESH_MS = 30_000;
+let cachedAt = 0;
+let inflight: Promise<void> | null = null;
+const baseListeners = new Set<(next: HubData) => void>();
+
+/** Fetch what students can see; everyone using the data gets the new copy. Removed items disappear. */
+function refreshHubData() {
+  if (inflight) return inflight;
+  const repository = createCourseMaterialsRepository("supabase");
+  inflight = Promise.all([repository.listDepartments({ visibility: "student" }), repository.listCourseMaterials({ visibility: "student" })])
+    .then(([departments, entries]) => {
+      cache = { departments, entries };
+      cachedAt = Date.now();
+      baseListeners.forEach((fn) => fn({ status: "ready", departments, entries }));
+    })
+    .catch(() => {
+      if (!cache) baseListeners.forEach((fn) => fn({ status: "error", departments: [], entries: [] }));
+    })
+    .finally(() => {
+      inflight = null;
+    });
+  return inflight;
+}
+
 function useBaseHubData(): HubData {
   const [state, setState] = useState<HubData>(() => (cache ? { status: "ready", ...cache } : { status: "loading", departments: [], entries: [] }));
   useEffect(() => {
-    if (cache) return;
-    let cancelled = false;
-    const repository = createCourseMaterialsRepository("supabase");
-    Promise.all([repository.listDepartments({ visibility: "student" }), repository.listCourseMaterials({ visibility: "student" })])
-      .then(([departments, entries]) => {
-        cache = { departments, entries };
-        if (!cancelled) setState({ status: "ready", departments, entries });
-      })
-      .catch(() => {
-        if (!cancelled) setState({ status: "error", departments: [], entries: [] });
-      });
+    baseListeners.add(setState);
+    // Show the saved copy straight away, but fetch again if it is more than a few seconds old,
+    // so files and courses a rep removed vanish without closing the app.
+    if (!cache || Date.now() - cachedAt > FRESH_MS) void refreshHubData();
+    const onShow = () => {
+      if (document.visibilityState === "visible" && Date.now() - cachedAt > FRESH_MS) void refreshHubData();
+    };
+    document.addEventListener("visibilitychange", onShow);
+    window.addEventListener("focus", onShow);
     return () => {
-      cancelled = true;
+      baseListeners.delete(setState);
+      document.removeEventListener("visibilitychange", onShow);
+      window.removeEventListener("focus", onShow);
     };
   }, []);
   return state;
