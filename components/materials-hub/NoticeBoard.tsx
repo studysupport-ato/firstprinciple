@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { ArrowLeft, Bell, BellOff, BookOpen, Check, ChevronRight, ClipboardList, FileText, Folder, Paperclip, Play, X } from "lucide-react";
 import { classAssignmentsAction, clearAssignmentReminderAction, setAssignmentDoneAction, setAssignmentReminderAction } from "@/lib/courseReps/assignmentActions";
 import type { AssignmentWithMine } from "@/lib/courseReps/assignments";
@@ -22,18 +22,34 @@ const RED = "#D32F2F";
 export function useClassAssignments(choice: HubChoice | null) {
   const [items, setItems] = useState<AssignmentWithMine[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const loadedAt = useRef(0);
   const load = useCallback(async () => {
     if (!choice) return;
-    const result = await classAssignmentsAction({ departmentId: choice.departmentId, studyYear: choice.year, deviceId: deviceId() });
-    if (result.ok) setItems(result.data);
-    setLoaded(true);
+    try {
+      const result = await classAssignmentsAction({ departmentId: choice.departmentId, studyYear: choice.year, deviceId: deviceId() });
+      if (result.ok) setItems(result.data);
+      loadedAt.current = Date.now();
+      setLoaded(true);
+    } catch {
+      /* Offline or asleep: keep the last list and try again on the next check. */
+    }
   }, [choice]);
   useEffect(() => {
     setLoaded(false);
     setItems([]);
     void load();
-    const timer = window.setInterval(() => void load(), 120_000);
-    return () => window.clearInterval(timer);
+    // Check every two minutes, and again on return, but only while the page is on screen and online.
+    const check = () => {
+      if (document.visibilityState === "visible" && navigator.onLine && Date.now() - loadedAt.current > 30_000) void load();
+    };
+    const timer = window.setInterval(check, 120_000);
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("online", check);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("online", check);
+    };
   }, [load]);
   const patch = useCallback((id: string, change: Partial<AssignmentWithMine>) => setItems((list) => list.map((a) => (a.id === id ? { ...a, ...change } : a))), []);
   return { items, loaded, reload: load, patch };
