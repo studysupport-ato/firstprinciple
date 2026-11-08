@@ -263,12 +263,14 @@ function RepPanel() {
                   </span>
                   <button type="button" onClick={() => setMenuFor(menuFor === m.id ? null : m.id)} aria-label={`Actions for ${m.courseTitle}`} aria-expanded={menuFor === m.id} style={{ ...iconButton, ...(menuFor === m.id ? { background: GOLD } : null) }}><MoreHorizontal size={17} color={menuFor === m.id ? INK : GOLD} /></button>
                 </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "0 12px 12px 62px" }}>
+                  <button type="button" onClick={() => setEditing(m)} style={smallGhost}><Pencil size={13} /> Edit</button>
+                  {parseDriveFileId(m.url) ? <button type="button" onClick={() => setReplacing(m)} style={smallGhost}><RefreshCw size={13} /> Change file</button> : null}
+                </div>
                 {menuFor === m.id ? (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "0 12px 12px 62px" }}>
                     <button type="button" disabled={busyMove || i === 0} onClick={() => move(m, "up")} style={{ ...smallGhost, opacity: i === 0 ? 0.4 : 1 }}><ArrowUp size={13} /> Move up</button>
                     <button type="button" disabled={busyMove || i === current.materials.length - 1} onClick={() => move(m, "down")} style={{ ...smallGhost, opacity: i === current.materials.length - 1 ? 0.4 : 1 }}><ArrowDown size={13} /> Move down</button>
-                    {parseDriveFileId(m.url) ? <button type="button" onClick={() => setReplacing(m)} style={smallGhost}><RefreshCw size={13} /> Replace file</button> : null}
-                    <button type="button" onClick={() => setEditing(m)} style={smallGhost}><Pencil size={13} /> Edit</button>
                     {parseDriveFolderId(m.url) ? <button type="button" onClick={() => setManaging(m)} style={smallGhost}><Folder size={13} /> Show or hide files</button> : null}
                     <button type="button" onClick={() => remove(m)} style={{ ...smallGhost, color: "#F2A39B", borderColor: "rgba(242,163,155,.45)" }}><Trash2 size={13} /> Remove</button>
                   </div>
@@ -282,7 +284,7 @@ function RepPanel() {
         )}
         <button type="button" onClick={() => setAddTo(current)} className="hub-plate" style={{ ...darkButton, ...goldPlate, marginTop: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><Plus size={18} /> Add material</button>
         <AddMaterialSheet course={addTo} onClose={() => setAddTo(null)} onSaved={load} />
-        <EditSheet entry={editing} onClose={() => setEditing(null)} onSaved={load} />
+        <EditSheet entry={editing} onClose={() => setEditing(null)} onSaved={load} onChangeFile={(m) => { setEditing(null); setReplacing(m); }} />
         <FilesSheet material={managing} onClose={() => setManaging(null)} onSaved={load} />
         <ReplaceSheet material={replacing} course={current} onClose={() => setReplacing(null)} onSaved={load} />
       </div>
@@ -774,8 +776,9 @@ function FilesSheet({ material, onClose, onSaved }: { material: CourseMaterialEn
   );
 }
 
-function EditSheet({ entry, onClose, onSaved }: { entry: CourseMaterialEntry | null; onClose: () => void; onSaved: () => Promise<void> }) {
+function EditSheet({ entry, onClose, onSaved, onChangeFile }: { entry: CourseMaterialEntry | null; onClose: () => void; onSaved: () => Promise<void>; onChangeFile?: (m: CourseMaterialEntry) => void }) {
   const [title, setTitle] = useState("");
+  const [lecturer, setLecturer] = useState("");
   const [url, setUrl] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -786,6 +789,7 @@ function EditSheet({ entry, onClose, onSaved }: { entry: CourseMaterialEntry | n
       setTitle(entry.courseTitle);
       setUrl(entry.url);
       setCode(entry.courseCode ?? "");
+      setLecturer(entry.credit ?? "");
       setError(null);
     }
   }, [entry]);
@@ -793,7 +797,8 @@ function EditSheet({ entry, onClose, onSaved }: { entry: CourseMaterialEntry | n
     e.preventDefault();
     if (!entry) return;
     setBusy(true);
-    const result = await repUpdateEntryAction(entry.id, isCourse ? { title, courseCode: code } : { title, url });
+    const uploaded = Boolean(parseDriveFileId(entry.url));
+    const result = await repUpdateEntryAction(entry.id, isCourse ? { title, courseCode: code } : uploaded ? { title, lecturer } : { title, url, lecturer });
     setBusy(false);
     if (!result.ok) return setError(result.error);
     await onSaved();
@@ -813,8 +818,22 @@ function EditSheet({ entry, onClose, onSaved }: { entry: CourseMaterialEntry | n
         <input id="e-title" value={title} onChange={(e) => setTitle(e.target.value)} style={inputStyle} required />
         {!isCourse ? (
           <>
-            <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="e-url">Link</label>
-            <input id="e-url" value={url} onChange={(e) => setUrl(e.target.value)} type="url" style={{ ...inputStyle, fontSize: 14 }} required />
+            <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="e-lecturer">Lecturer (optional)</label>
+            <input id="e-lecturer" value={lecturer} onChange={(e) => setLecturer(e.target.value)} placeholder="e.g. Dr. Mensah" style={inputStyle} />
+            {entry && parseDriveFileId(entry.url) ? (
+              <>
+                <span style={{ ...fieldLabel, marginTop: 12 }}>File</span>
+                <button type="button" onClick={() => entry && onChangeFile?.(entry)} style={{ width: "100%", height: 48, borderRadius: 14, border: `2px solid ${INK}`, background: "#fff", fontFamily: "inherit", fontSize: 15, fontWeight: 800, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <RefreshCw size={16} /> Change the file
+                </button>
+                <p style={{ margin: "6px 0 0", fontSize: 12, fontWeight: 600, color: MUTED }}>Upload a new version. It keeps this file’s place and name.</p>
+              </>
+            ) : (
+              <>
+                <label style={{ ...fieldLabel, marginTop: 12 }} htmlFor="e-url">Link</label>
+                <input id="e-url" value={url} onChange={(e) => setUrl(e.target.value)} type="url" style={{ ...inputStyle, fontSize: 14 }} required />
+              </>
+            )}
           </>
         ) : null}
         <ErrorLine text={error} />

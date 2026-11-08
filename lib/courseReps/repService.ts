@@ -278,7 +278,7 @@ export async function repAddMaterial(input: { courseId: string; type: RepMateria
   return created;
 }
 
-export async function repUpdateEntry(id: string, patch: { title?: string; url?: string; courseCode?: string }) {
+export async function repUpdateEntry(id: string, patch: { title?: string; url?: string; courseCode?: string; lecturer?: string }) {
   const rep = await requireApprovedRep();
   const entry = await requireOwnEntry(rep, id);
   const next: Partial<CourseMaterialEntry> = {};
@@ -291,6 +291,7 @@ export async function repUpdateEntry(id: string, patch: { title?: string; url?: 
     const type: RepMaterialType = entry.materialType === "playlist" || entry.materialType === "video" ? "youtube" : entry.description === "book" ? "books" : "slides";
     Object.assign(next, materialFields(type, patch.url), { url: patch.url.trim() });
   }
+  if (getEntryType(entry) === "material" && patch.lecturer !== undefined) next.credit = cleanLecturer(patch.lecturer) ?? "";
   // Scope fields are never taken from the rep.
   return createCourseMaterialsAdminRepository().updateCourseMaterial(id, next);
 }

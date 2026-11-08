@@ -56,7 +56,7 @@ export async function repCreateCourseAction(input: { semester: number; courseCod
 export async function repAddMaterialAction(input: { courseId: string; type: RepMaterialType; title: string; url: string; lecturer?: string }): Promise<RepResult<{ id: string }>> {
   return run(async () => ({ id: (await repAddMaterial(input)).id }));
 }
-export async function repUpdateEntryAction(id: string, patch: { title?: string; url?: string; courseCode?: string }): Promise<RepResult<null>> {
+export async function repUpdateEntryAction(id: string, patch: { title?: string; url?: string; courseCode?: string; lecturer?: string }): Promise<RepResult<null>> {
   return run(async () => {
     await repUpdateEntry(id, patch);
     return null;
