@@ -25,6 +25,7 @@ import {
   Users,
   X,
   UserCheck,
+  Cpu,
 } from "lucide-react";
 import { BrandLogo } from "@/components/branding/BrandLogo";
 import { setAdminAuthenticated } from "@/lib/adminAuth";
@@ -46,6 +47,7 @@ const navigation = [
   { label: "Resources", href: "/admin/resources", icon: Link2 },
   { label: "Course Materials", href: "/admin/course-materials", icon: Library },
   { label: "Course Reps", href: "/admin/course-reps", icon: UserCheck },
+  { label: "Skills Training", href: "/admin/skills", icon: Cpu },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ] as const;
 

@@ -172,6 +172,13 @@ export async function courseUploadFolder(course: { id: string; courseCode?: stri
   return folder;
 }
 
+/** Back2Basics course materials / Skills training / <Programme>, for skills-session preview photos. */
+export async function skillsUploadFolder(programmeName: string): Promise<string> {
+  const root = await rootFolder();
+  const skills = await findOrCreateFolder("Skills training", root);
+  return findOrCreateFolder(programmeName, skills);
+}
+
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const ALLOWED_TYPES = new Set([
   "application/pdf",

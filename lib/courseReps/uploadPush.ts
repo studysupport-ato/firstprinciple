@@ -61,12 +61,14 @@ export async function notifyRepUpload(upload: { departmentId: string; studyYear:
   });
 }
 
-/** Any message to the whole class (programme + year). Never throws. */
+/** Any message to the whole class (programme + year), or to every registered phone when departmentId is "*". Never throws. */
 export async function notifyClass(message: { departmentId: string; studyYear: number; title: string; body: string; path: string; tag: string }) {
   try {
     if (!isPushServerConfigured()) return;
     const vapid = getServerVapidConfig();
-    const { data } = await db().from(TABLE).select("endpoint,p256dh,auth,failed_attempts").eq("department_id", message.departmentId).eq("study_year", message.studyYear).limit(5000);
+    let query = db().from(TABLE).select("endpoint,p256dh,auth,failed_attempts");
+    if (message.departmentId !== "*") query = query.eq("department_id", message.departmentId).eq("study_year", message.studyYear);
+    const { data } = await query.limit(5000);
     const subs = (data ?? []) as Array<{ endpoint: string; p256dh: string; auth: string; failed_attempts: number }>;
     if (!subs.length) return;
     const payload = JSON.stringify({
