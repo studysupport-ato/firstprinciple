@@ -76,6 +76,10 @@ export const TOPIC_BANKS: Record<string, TopicBank> = {
       "Lines & Planes": ["Lines", "Planes", "Intersections"],
     },
   },
+  "chem-153": {
+    chapterId: "organic-chemistry-past-questions",
+    topics: ["Bonding and Structure", "Isomerism", "Hydrocarbons", "Functional Groups", "Organic Reactions", "Physical Properties", "Polymers and Petroleum"],
+  },
   "me-161": {
     chapterId: "me-161-question-bank",
     topics: ["Forces in 2D", "Forces in 3D", "Particle equilibrium", "Moments", "Trusses", "Friction"],
