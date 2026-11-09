@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/client";
-import { createCourseMaterialsAdminRepository } from "@/lib/courseMaterialsRepository";
+import { createCourseMaterialsAdminRepository } from "@/lib/content/adminRepository";
 import { courseUploadFolder, finishUpload, startUpload } from "@/lib/courseReps/googleDrive";
 
 export const dynamic = "force-dynamic";
