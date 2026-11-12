@@ -22,6 +22,8 @@ import type { Question } from "@/lib/content/types/question";
 type LessonExperienceProps = {
   lesson: Lesson;
   steps?: Array<{ step: number; title: string }>;
+  /** Signed, CDN-cached address of each step's content (by step number). */
+  stepUrls?: Record<number, string>;
   courseId: string;
   preview: boolean;
   testingMode?: boolean;
@@ -158,6 +160,7 @@ function plainHeading(text: string) {
 export function LessonExperience({
   lesson,
   steps: providedSteps,
+  stepUrls,
   courseId,
   preview,
   testingMode = false,
@@ -309,10 +312,14 @@ export function LessonExperience({
             window.performance.mark(`b2b-lesson-step-${stepNumber}-request-start`);
           }
           pending = (async () => {
-            const response = await fetch(
-              `/api/lesson-steps/${encodeURIComponent(lesson.courseId)}/${encodeURIComponent(lesson.weekId)}/${encodeURIComponent(lesson.id)}/${stepNumber}${preview ? "?preview=1" : ""}`,
-              { cache: "no-store" },
-            );
+            const cached = !preview ? stepUrls?.[stepNumber] : undefined;
+            let response = cached ? await fetch(cached).catch(() => null) : null;
+            if (!response || !response.ok) {
+              response = await fetch(
+                `/api/lesson-steps/${encodeURIComponent(lesson.courseId)}/${encodeURIComponent(lesson.weekId)}/${encodeURIComponent(lesson.id)}/${stepNumber}${preview ? "?preview=1" : ""}`,
+                { cache: "no-store" },
+              );
+            }
             const responseText = await response.text();
             let payload: unknown;
             try {
@@ -348,7 +355,7 @@ export function LessonExperience({
     }
 
     setCurrentStep(index);
-  }, [effectiveSteps, lesson.courseId, lesson.id, lesson.weekId, loadingStep, preview]);
+  }, [effectiveSteps, lesson.courseId, lesson.id, lesson.weekId, loadingStep, preview, stepUrls]);
 
   const hasBlocks = activeBlocks.length > 0;
   const hasTextContent = activeBlocks.some((block) => !["image", "video", "interactive"].includes(block.type));

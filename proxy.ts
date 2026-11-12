@@ -128,9 +128,12 @@ export const config = {
      *   - favicon.ico, apple-touch-icon, manifest
      *   - common file extensions (svg/png/jpg/gif/webp/avif/ico/txt/xml/pdf)
      *
+     * The CDN-cached, signed-in-free content routes (api/lesson-content, api/materials-hub) are
+     * excluded: they read no session, and a refreshed cookie would stop the CDN caching them.
+     *
      * Auth endpoints are deliberately NOT excluded: those must also carry a
      * current session cookie.
      */
-    "/((?!ingest|_next/static|_next/image|favicon.ico|apple-touch-icon|manifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|txt|xml|pdf)$).*)",
+    "/((?!ingest|api/lesson-content|api/materials-hub|_next/static|_next/image|favicon.ico|apple-touch-icon|manifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|txt|xml|pdf)$).*)",
   ],
 };

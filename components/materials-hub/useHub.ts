@@ -48,7 +48,7 @@ export function useHubData(): HubData {
   }, [base, version]);
 }
 
-const FRESH_MS = 30_000;
+const FRESH_MS = 120_000;
 let cachedAt = 0;
 let inflight: Promise<void> | null = null;
 const baseListeners = new Set<(next: HubData) => void>();
@@ -56,8 +56,19 @@ const baseListeners = new Set<(next: HubData) => void>();
 /** Fetch what students can see; everyone using the data gets the new copy. Removed items disappear. */
 function refreshHubData() {
   if (inflight) return inflight;
-  const repository = createCourseMaterialsRepository("supabase");
-  inflight = Promise.all([repository.listDepartments({ visibility: "student" }), repository.listCourseMaterials({ visibility: "student" })])
+  // One shared, CDN-cached copy (see /api/materials-hub); straight from the database only if that fails.
+  const fromDatabase = () => {
+    const repository = createCourseMaterialsRepository("supabase");
+    return Promise.all([repository.listDepartments({ visibility: "student" }), repository.listCourseMaterials({ visibility: "student" })]);
+  };
+  inflight = fetch("/api/materials-hub")
+    .then(async (response) => {
+      if (!response.ok) throw new Error(`materials-${response.status}`);
+      const body = (await response.json()) as { departments: CourseMaterialsDepartment[]; entries: CourseMaterialEntry[] };
+      if (!Array.isArray(body.departments) || !Array.isArray(body.entries)) throw new Error("materials-shape");
+      return [body.departments, body.entries] as const;
+    })
+    .catch(fromDatabase)
     .then(([departments, entries]) => {
       cache = { departments, entries };
       cachedAt = Date.now();

@@ -11,6 +11,8 @@ import { withServerRouteTiming } from "@/lib/performance/serverTiming";
 import { withServerTimingSpan } from "@/lib/performance/timingSpans";
 import { isFreeLesson } from "@/lib/content/freeLessons";
 import { isAuthorizedLessonAdmin } from "@/lib/lessonUnlock";
+import { createSupabaseAdminClient } from "@/lib/supabase/client";
+import { lessonStepUrl } from "@/lib/content/lessonContentUrls";
 
 type LessonPageProps = {
   params: Promise<{ courseId: string; chapterId: string; id: string }>;
@@ -75,6 +77,22 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
       lesson = result.lesson;
       steps = result.steps;
       testingMode = result.testingMode;
+    }
+
+    // The student may open this lesson (the step call above checked it): give the browser a
+    // signed, cacheable address for every step, so later steps come from the CDN, not the server.
+    let stepUrls: Record<number, string> | undefined;
+    if (steps && !preview && !testingMode && !freePreview) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const admin = createSupabaseAdminClient() as any;
+        const { data: version } = await admin.rpc("get_day_content_version", { p_day_id: lesson.id });
+        if (typeof version === "string" && version) {
+          stepUrls = Object.fromEntries(steps.map(({ step }) => [step, lessonStepUrl(lesson.id, step, version)]));
+        }
+      } catch {
+        stepUrls = undefined; // fall back to the per-request step route
+      }
     }
 
     // Request-scoped client is supplied explicitly so resource/asset/question reads
@@ -170,6 +188,7 @@ export default async function LessonPage({ params, searchParams }: LessonPagePro
         key={lesson.id}
         lesson={lesson}
         steps={steps}
+        stepUrls={stepUrls}
         courseId={route.courseId}
         preview={preview}
         testingMode={testingMode}
