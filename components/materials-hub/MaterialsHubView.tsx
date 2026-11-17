@@ -28,7 +28,7 @@ import { getEntryType, type CourseMaterialEntry } from "@/lib/courseMaterials";
 import { BROWN, CREAM, Overlay, OVERLAY_Z, Eyebrow, GOLD, HubStyles, INK, MUTED, Panel, Pill, RoundChevron, Sheet, SOFT, YT_RED, BlueprintCard, goldPlate, GoldLabel, ROW_LINE, backButtonStyle, backLabelStyle, goldGround, hubFont, panelShadow } from "./ui";
 import { useHubChoice, useHubData } from "./useHub";
 import { FileLine } from "./FileLine";
-import { SlideDeck, preloadSlides } from "./SlideDeck";
+import { SlideDeck, opensInDrive, preloadSlides } from "./SlideDeck";
 import { RecentUploadsView } from "./RecentUploads";
 import { CourseYouTube } from "@/components/course-materials/CourseDetail";
 import { deriveMaterialType } from "@/lib/courseMaterialsDisplay";
@@ -491,7 +491,7 @@ function DriveFolder({ kind, course, folderId, isRoot, hidden = [], credit }: { 
                 }
                 return (
                   <div key={item.id} className="hub-row hub-dark-row" style={rowStyle}>
-                    <button type="button" onPointerEnter={() => preloadSlides(item.id)} onTouchStart={() => preloadSlides(item.id)} onClick={() => setViewing(item)} className="hub-tap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, border: 0, background: "none", padding: 0, textAlign: "left", fontFamily: "inherit", cursor: "pointer" }}>
+                    <button type="button" onPointerEnter={() => !opensInDrive(item) && preloadSlides(item.id)} onTouchStart={() => !opensInDrive(item) && preloadSlides(item.id)} onClick={() => setViewing(item)} className="hub-tap" style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, border: 0, background: "none", padding: 0, textAlign: "left", fontFamily: "inherit", cursor: "pointer" }}>
                       {kind === "books" ? (
                         <span aria-hidden style={{ width: 34, height: 44, flexShrink: 0, borderRadius: "3px 7px 7px 3px", borderLeft: `4px solid ${BROWN}`, ...goldPlate }} />
                       ) : (

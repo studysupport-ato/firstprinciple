@@ -13,6 +13,14 @@ import { CREAM, GOLD, INK, goldPlate } from "./ui";
 // The "legacy" build also runs on older phones (older iPhone Safari can’t run the modern build).
 const WORKER_SRC = "/pdfjs/pdf.worker-legacy-6.3.289.min.mjs";
 
+/** Files above this size open in Google Drive's own viewer: Google draws the pages, so the phone
+ * does not have to download the whole file first, and our server is never involved. */
+export const DRIVE_VIEWER_FROM_BYTES = 8 * 1024 * 1024;
+
+export function opensInDrive(item: DriveItem) {
+  return !isPdfItem(item) || (item.size ?? 0) > DRIVE_VIEWER_FROM_BYTES;
+}
+
 export function isPdfItem(item: DriveItem) {
   return item.mimeType === "application/pdf" || /\.pdf$/i.test(item.name);
 }
@@ -76,7 +84,8 @@ function enqueue<T>(job: () => Promise<T>): Promise<T> {
 
 export function SlideDeck({ item, title, onPage }: { item: DriveItem; title: string; onPage?: (page: number, total: number) => void }) {
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
-  const [failed, setFailed] = useState(!isPdfItem(item));
+  const big = isPdfItem(item) && (item.size ?? 0) > DRIVE_VIEWER_FROM_BYTES;
+  const [failed, setFailed] = useState(opensInDrive(item));
   const [progress, setProgress] = useState(0);
   const [page, setPage] = useState(1);
   const [firstDrawn, setFirstDrawn] = useState(false);
@@ -87,7 +96,7 @@ export function SlideDeck({ item, title, onPage }: { item: DriveItem; title: str
   const thumbsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!isPdfItem(item)) return;
+    if (opensInDrive(item)) return;
     let cancelled = false;
     const entry = openDoc(item.id);
     setProgress(entry.progress);
@@ -151,7 +160,7 @@ export function SlideDeck({ item, title, onPage }: { item: DriveItem; title: str
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         <iframe title={title} src={drivePreviewUrl(item.id)} allow="autoplay" style={{ flex: 1, minHeight: 0, width: "100%", border: 0, background: "#211D17", display: "block" }} />
         <a href={`https://drive.google.com/file/d/${item.id}/view`} target="_blank" rel="noopener noreferrer" style={{ flexShrink: 0, height: 52, background: INK, color: GOLD, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, textDecoration: "none", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-          Page not loading? Open in Google Drive
+          {big ? "Large file: open it in the Google Drive app" : "Page not loading? Open in Google Drive"}
         </a>
       </div>
     );
