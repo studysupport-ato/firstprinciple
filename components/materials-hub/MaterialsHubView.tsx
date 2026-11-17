@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, BookOpen, Check, Download, ExternalLink, FileText, Folder, Link2, Play, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Check, Download, ExternalLink, FileText, Folder, Home, Link2, Play, Sparkles, X } from "lucide-react";
 import { AuthModal } from "@/components/auth/AuthModal";
 import {
   driveDownloadUrl,
@@ -58,11 +58,22 @@ export function MaterialsHubView() {
 .mh-wrap.mh-full{max-width:1600px}
 .mh-course{display:block}
 .mh-folders{margin-top:16px;display:flex;flex-direction:column;gap:14px}
+.mh-folder{display:flex;flex-direction:column;border-radius:24px;overflow:hidden;color:#fff;text-decoration:none}
+.mh-folder-top{display:flex;align-items:center;gap:14px;padding:16px 16px 12px}
+.mh-folder-tile{width:52px;height:52px;flex-shrink:0;border-radius:16px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center}
+.mh-folder-name{display:block;font-size:22px;font-weight:900;line-height:1.1}
+.mh-folder-sub{display:block;margin-top:2px;font-size:13px;font-weight:700;opacity:.85}
+.mh-folder-new{display:inline-flex;align-items:center;gap:5px;margin-top:6px;height:22px;padding:0 9px;border-radius:999px;background:#fff;font-size:11px;font-weight:900;letter-spacing:.04em}
+.mh-folder-chev{width:34px;height:34px;flex-shrink:0;border-radius:50%;border:1.5px solid rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900}
+.mh-folder-stat{margin:0 16px;flex:1;display:flex;align-items:center;gap:14px;border-radius:16px;padding:12px 16px;min-height:72px}
+.mh-folder-stat b{font-size:42px;font-weight:900;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.mh-folder-stat span{font-size:14px;font-weight:700;line-height:1.25;opacity:.92}
+.mh-folder-foot{margin:12px 16px 16px;align-self:flex-start;display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:12px;font-size:12.5px;font-weight:800}
 @media (min-width:1024px){
 .mh-wrap{padding:28px 40px 56px}
 .mh-course{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:28px;align-items:start}
 .mh-course .mh-course-right>p:first-child{margin-top:0 !important}
-.mh-folders{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);align-items:start}
+.mh-folders{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
 }
 `}</style>
       <div className={`mh-wrap ${view === "videos" ? "mh-full" : "mh-wide"}`}>
@@ -270,45 +281,39 @@ function DriveMaterials({ kind, course, slides, folderId, openId }: { kind: Driv
       <BackLink href="/">Your courses</BackLink>
       <CourseBand course={course} label={Noun === "Books" ? "Books" : "Course"} />
       <div className="mh-folders">
-        {/* Main folder: the lecturer's slides, uploaded by the course rep. */}
-        <div style={{ borderRadius: 26, background: REP_GREEN, color: "#fff", overflow: "hidden", border: `2px solid ${GOLD}`, boxShadow: "0 20px 40px -16px rgba(18,128,74,.7)" }}>
-          <Link href={hubHref(course.id, kind, REP_FOLDER)} className="hub-tap" style={{ position: "relative", display: "block", padding: "20px 20px 16px", color: "#fff", textDecoration: "none" }}>
-            <span style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
-              <span style={{ width: 58, height: 58, flexShrink: 0, borderRadius: 17, ...goldPlate, display: "flex", alignItems: "center", justifyContent: "center" }}><Folder size={28} color={INK} strokeWidth={2.2} /></span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 22, fontWeight: 900, lineHeight: 1.1 }}>Lecturer {noun}</span>
-                <span style={{ display: "block", marginTop: 3, fontSize: 13, fontWeight: 700, opacity: 0.85 }}>Uploaded by your course rep</span>
-                <span style={{ display: "block", marginTop: 1, fontSize: 13, fontWeight: 700, opacity: 0.85 }}>{fromRep.length} {fromRep.length === 1 ? "file" : "files"}</span>
-              </span>
+        {/* Two folders of equal size: the lecturer's (green, from the course rep) and the department's (red). */}
+        <Link href={hubHref(course.id, kind, REP_FOLDER)} className="hub-row hub-tap mh-folder" style={{ background: REP_GREEN, border: "2px solid #7BD88F", boxShadow: "0 20px 40px -18px rgba(18,128,74,.75)" }}>
+          <span className="mh-folder-top">
+            <span className="mh-folder-tile"><Folder size={26} color="#fff" strokeWidth={2.2} /></span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span className="mh-folder-name">Lecturer {noun}</span>
+              <span className="mh-folder-sub">Uploaded by your course rep</span>
+              {fresh ? <span className="mh-folder-new" style={{ color: REP_GREEN }}><Sparkles size={11} strokeWidth={2.6} aria-hidden /> {fresh} NEW</span> : null}
             </span>
-            {fresh ? <span style={{ position: "relative", display: "inline-flex", marginTop: 12, height: 26, alignItems: "center", padding: "0 10px", borderRadius: 999, background: GOLD, color: INK, fontSize: 11, fontWeight: 900, letterSpacing: ".05em" }}>{fresh} NEW THIS WEEK</span> : null}
-          </Link>
-          <div style={{ background: "rgba(0,0,0,.18)" }}>
-            {fromRep.length === 0 ? (
-              <p style={{ margin: 0, padding: "14px 20px 16px", borderTop: "1px solid rgba(255,255,255,.12)", fontSize: 14, fontWeight: 700, opacity: 0.85 }}>Nothing yet. Your course rep’s uploads land here.</p>
-            ) : (
-              <>
-                <div style={{ borderTop: "1px solid rgba(255,255,255,.12)" }}>
-                  {fromRep.slice(0, 5).map((m, i, list) => {
-                    const fileId = parseDriveFileId(m.url);
-                    return <FileLine key={m.id} entry={m} tone="green" last={i === list.length - 1} onOpen={() => (fileId ? open(fileId, m.courseTitle) : window.open(m.url, "_blank", "noopener"))} />;
-                  })}
-                </div>
-                <Link href={hubHref(course.id, kind, REP_FOLDER)} className="hub-tap" style={{ display: "block", padding: "13px 20px", borderTop: "1px solid rgba(255,255,255,.12)", color: "#fff", fontSize: 14, fontWeight: 900, textDecoration: "none" }}>Open folder ({fromRep.length} {fromRep.length === 1 ? "file" : "files"}) →</Link>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Second folder: what the department already shared. */}
-        <Link href={hubHref(course.id, kind, DEPT_FOLDER)} className="hub-row hub-tap hub-dark-row" style={{ display: "flex", alignItems: "center", gap: 14, minHeight: 84, padding: "14px 16px", borderRadius: 22, background: INK, border: "1px solid rgba(233,188,58,.28)", boxShadow: panelShadow, color: CREAM, textDecoration: "none", alignSelf: "start" }}>
-          <Tile bg="#2A251C" size={50}><Folder size={24} color={GOLD} /></Tile>
-          <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
-            <span style={{ fontSize: 18, fontWeight: 800 }}>Departmental {noun}</span>
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: "rgba(246,239,220,.55)" }}>{bank.length ? "From the department’s folder" : "Nothing here yet"}</span>
-            {credit ? <span style={{ fontSize: 12.5, fontWeight: 800, color: GOLD }}>{credit}</span> : null}
+            <span className="mh-folder-chev" aria-hidden>›</span>
           </span>
-          <RoundChevron />
+          <span className="mh-folder-stat" style={{ background: "#0C6638" }}>
+            {fromRep.length ? <b>{fromRep.length}</b> : null}
+            <span>{fromRep.length ? `${Noun} from your lecturer this semester` : "Nothing here yet. Your course rep’s uploads land here."}</span>
+          </span>
+          <span className="mh-folder-foot" style={{ background: "#fff", color: REP_GREEN }}>Open the folder →</span>
+        </Link>
+
+        <Link href={hubHref(course.id, kind, DEPT_FOLDER)} className="hub-row hub-tap mh-folder" style={{ background: DEPT_RED, border: "2px solid #F2A49E", boxShadow: "0 20px 40px -18px rgba(179,38,30,.7)", animationDelay: "60ms" }}>
+          <span className="mh-folder-top">
+            <span className="mh-folder-tile"><Folder size={26} color="#fff" strokeWidth={2.2} /></span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span className="mh-folder-name">Departmental {noun}</span>
+              <span className="mh-folder-sub">{credit ? credit : "From the department’s folder"}</span>
+            </span>
+            <span className="mh-folder-chev" aria-hidden>›</span>
+          </span>
+          <span className="mh-folder-stat" style={{ background: "#8E1C16" }}>
+            {bank.length ? <DeptCount bank={bank} /> : <span>Nothing here yet.</span>}
+          </span>
+          <span className="mh-folder-foot" style={{ background: "rgba(255,255,255,.12)", border: "1px dashed rgba(255,255,255,.6)", color: "#fff" }}>
+            <Home size={14} strokeWidth={2.4} aria-hidden /> Same as Course Materials on your home page
+          </span>
         </Link>
       </div>
       {viewer}
@@ -330,6 +335,30 @@ function CourseBand({ course, label }: { course: CourseMaterialEntry; label: str
 const REP_FOLDER = "rep";
 const DEPT_FOLDER = "dept";
 const REP_GREEN = "#12804A";
+const DEPT_RED = "#B3261E";
+
+/** How many files the department's folder holds (one Drive folder is counted; several entries are counted as they are). */
+function DeptCount({ bank }: { bank: CourseMaterialEntry[] }) {
+  const single = bank.length === 1 ? parseDriveFolderId(bank[0].url) : null;
+  const hidden = bank[0]?.hiddenFiles;
+  const [count, setCount] = useState<number | null>(single ? null : bank.length);
+  useEffect(() => {
+    if (!single) return;
+    const controller = new AbortController();
+    const skip = new Set(hidden ?? []);
+    listDriveFolder(single, controller.signal)
+      .then((items) => setCount(items.filter((item) => !skip.has(item.id)).length))
+      .catch(() => setCount(-1));
+    return () => controller.abort();
+  }, [single, hidden]);
+  if (count === -1) return <span>Various materials for this programme</span>;
+  return (
+    <>
+      <b>{count ?? "…"}</b>
+      <span>Various materials for this programme</span>
+    </>
+  );
+}
 
 /** A plain list of material entries (files, folders or links). */
 function EntryRows({ list, course, kind, rep = false, onOpen }: { list: CourseMaterialEntry[]; course: CourseMaterialEntry; kind: DriveKind; rep?: boolean; onOpen: (fileId: string, name: string) => void }) {

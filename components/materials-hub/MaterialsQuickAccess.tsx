@@ -230,7 +230,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                       return course.kind === "link" ? (
                         <a key={course.id} href={course.url} target="_blank" rel="noopener noreferrer" className="hub-row hub-tap hub-dark-row" style={rowStyle}>{inner}</a>
                       ) : (
-                        <Link key={course.id} href={`/materials-hub?course=${encodeURIComponent(course.id)}${fresh ? "&view=slides&folder=rep" : ""}`} className="hub-row hub-tap hub-dark-row" style={rowStyle}>{inner}</Link>
+                        <Link key={course.id} href={`/materials-hub?course=${encodeURIComponent(course.id)}${fresh ? "&view=slides" : ""}`} className="hub-row hub-tap hub-dark-row" style={rowStyle}>{inner}</Link>
                       );
                     })}
                   </div>
