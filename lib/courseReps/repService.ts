@@ -9,6 +9,7 @@
  * the admin panel, other programmes, other years or the shared general courses.
  */
 import { createSupabaseAdminClient } from "@/lib/supabase/client";
+import { REP_SEMESTER_2_LOCKED } from "./settings";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createCourseMaterialsAdminRepository } from "@/lib/content/adminRepository";
 import { GENERAL_DEPARTMENT_ID, getEntryType, type CourseMaterialEntry, type CourseMaterialSemester, type CourseMaterialYear } from "@/lib/courseMaterials";
@@ -141,6 +142,12 @@ export async function applyAsRep(input: { fullName: string; departmentId: string
     : await db().from("course_rep_applications").insert(row);
   if (error) throw new RepAccessError("Your application could not be sent. Try again.");
   const saved = (await getMyApplication()) as RepApplication;
+  // Every application is approved straight away (the approval text and the owner's notice go out
+  // as usual), except from someone whose rep access was removed before: that one still waits for review.
+  if (existing?.status !== "revoked") {
+    await setApplicationStatus(saved.id, "approved");
+    return (await getMyApplication()) as RepApplication;
+  }
   after(() => tellAdminAboutApplication(saved));
   return saved;
 }
@@ -216,6 +223,7 @@ async function markRep(id: string, rep: RepApplication) {
 export async function repCreateCourse(input: { semester: number; courseCode: string; courseTitle: string }) {
   const rep = await requireApprovedRep();
   if (input.semester !== 1 && input.semester !== 2) throw new RepAccessError("Choose semester 1 or 2.");
+  if (input.semester === 2 && REP_SEMESTER_2_LOCKED) throw new RepAccessError("Semester 2 opens later. Add your Semester 1 courses for now.");
   const title = input.courseTitle.trim();
   if (title.length < 2) throw new RepAccessError("Enter the course name.");
   const code = input.courseCode.trim().toUpperCase().replace(/\s+/g, " ");
@@ -528,6 +536,7 @@ export async function repMoveCourseSemester(id: string, semester: 1 | 2) {
   const entry = await requireOwnEntry(rep, id);
   if (getEntryType(entry) !== "course") throw new RepAccessError("Only courses move between semesters.");
   if (semester !== 1 && semester !== 2) throw new RepAccessError("Choose semester 1 or 2.");
+  if (semester === 2 && REP_SEMESTER_2_LOCKED) throw new RepAccessError("Semester 2 opens later.");
   await db().from("course_materials").update({ semester, updated_at: new Date().toISOString() }).eq("id", id);
   await db().from("course_materials").update({ semester }).eq("parent_id", id);
   await placeLast(rep, id);

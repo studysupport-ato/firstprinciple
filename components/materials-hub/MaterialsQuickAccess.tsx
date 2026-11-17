@@ -1,5 +1,7 @@
 "use client";
 
+import { EXPECTED_COURSES_PER_SEMESTER } from "@/lib/courseReps/settings";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ArrowLeft, ArrowRight, Bell, Check, FileText, Lock, Phone, Sparkles, Upload, X } from "lucide-react";
@@ -212,6 +214,16 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                     Nothing has been uploaded for this semester yet.
                   </div>
                 )}
+                {courses.length < EXPECTED_COURSES_PER_SEMESTER ? (
+                  <Link href="/course-rep" className="hub-tap" style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 20, border: "2px dashed rgba(26,24,20,.4)", background: "rgba(255,255,255,.28)", color: INK, textDecoration: "none" }}>
+                    <span style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 12, background: INK, color: GOLD, display: "flex", alignItems: "center", justifyContent: "center" }}><Upload size={18} strokeWidth={2.4} aria-hidden /></span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: 15, fontWeight: 900 }}>{courses.length ? "Some courses aren’t added yet" : "Your courses aren’t added yet"}</span>
+                      <span style={{ display: "block", marginTop: 2, fontSize: 13, fontWeight: 650, color: "rgba(26,24,20,.72)" }}>Apply as a course rep to add the remaining courses.</span>
+                    </span>
+                    <ArrowRight size={18} strokeWidth={2.6} aria-hidden />
+                  </Link>
+                ) : null}
                 </div>
               )}
               <div className="qa-phone-only" style={{ flexDirection: "column" }}>
@@ -693,7 +705,7 @@ export function PickerPopup({
 
             {step === 1 && department ? (
               <ChoiceGrid
-                options={HUB_YEARS.map((y) => ({ value: y, number: String(y), label: YEAR_LABEL[y], available: hasAnything(entries, department.id, y), selected: y === year }))}
+                options={HUB_YEARS.map((y) => ({ value: y, number: String(y), label: YEAR_LABEL[y], available: true, selected: y === year }))}
                 onPick={(value) => {
                   setYear(value as CourseMaterialYear);
                   setStep(2);
@@ -703,7 +715,7 @@ export function PickerPopup({
 
             {step === 2 && department && year ? (
               <ChoiceGrid
-                options={HUB_SEMESTERS.map((s) => ({ value: s, number: String(s), label: `Semester ${s}`, available: hasAnything(entries, department.id, year, s), selected: initial?.departmentId === department.id && initial.year === year && initial.semester === s }))}
+                options={HUB_SEMESTERS.map((s) => ({ value: s, number: String(s), label: `Semester ${s}`, available: s === 1 || hasAnything(entries, department.id, year, s), selected: initial?.departmentId === department.id && initial.year === year && initial.semester === s }))}
                 onPick={(value) => onDone({ departmentId: department.id, year, semester: value as CourseMaterialSemester })}
               />
             ) : null}
@@ -731,7 +743,7 @@ function ChoiceGrid({ options, onPick }: { options: Array<{ value: number; numbe
           <span style={{ fontSize: 40, fontWeight: 900, letterSpacing: "-.04em", lineHeight: 1, color: o.available ? (o.selected ? INK : GOLD) : "rgba(246,239,220,.25)" }}>{o.number}</span>
           <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <span style={{ fontSize: 14, fontWeight: 800, color: o.available ? (o.selected ? INK : CREAM) : "rgba(246,239,220,.3)" }}>{o.label}</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: o.available ? (o.selected ? "rgba(26,24,20,.65)" : "rgba(246,239,220,.55)") : "rgba(246,239,220,.3)" }}>{o.available ? "Materials ready" : "Not available yet"}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: o.available ? (o.selected ? "rgba(26,24,20,.65)" : "rgba(246,239,220,.55)") : "rgba(246,239,220,.3)" }}>{o.available ? "Open" : "Opens later"}</span>
           </span>
         </button>
       ))}

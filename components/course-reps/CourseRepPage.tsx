@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { REP_SEMESTER_2_LOCKED } from "@/lib/courseReps/settings";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ArrowDown, ArrowLeft, ArrowLeftRight, ArrowUp, BookOpen, Camera, Eye, EyeOff, FileText, Folder, ImagePlus, Link2, Lock, MoreHorizontal, PenLine, Pencil, Play, Plus, RefreshCw, Trash2, Upload, X } from "lucide-react";
 import { AuthModal } from "@/components/auth/AuthModal";
@@ -90,7 +91,7 @@ export function CourseRepPage() {
             <div className="rep-intro">
               <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".16em", textTransform: "uppercase", color: "rgba(26,24,20,.65)" }}>Course reps</span>
               <h1 className="rep-title">Apply as a course rep to upload lecture materials</h1>
-              <p style={{ margin: "14px 0 0", maxWidth: 520, fontSize: 17, fontWeight: 600, lineHeight: 1.45, color: "#3A352B" }}>Upload once, and your whole class finds it here. We confirm every course rep first.</p>
+              <p style={{ margin: "14px 0 0", maxWidth: 520, fontSize: 17, fontWeight: 600, lineHeight: 1.45, color: "#3A352B" }}>Upload once, and your whole class finds it here. Any student can apply, for any year.</p>
             </div>
             {body}
           </div>
@@ -235,7 +236,7 @@ function RepPanel() {
           <h1 style={{ margin: "10px 0 0", maxWidth: "62%", fontSize: 24, fontWeight: 800, letterSpacing: "-.03em", lineHeight: 1.05, color: CREAM }}>{current.courseTitle}</h1>
           <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
             <button type="button" onClick={() => setEditing(current)} style={smallGhost}><Pencil size={13} /> Rename</button>
-            <button type="button" onClick={() => moveSemester(current)} style={smallGhost}><ArrowLeftRight size={13} /> Move to Semester {(current.semester ?? 1) === 1 ? 2 : 1}</button>
+            {REP_SEMESTER_2_LOCKED && (current.semester ?? 1) === 1 ? null : <button type="button" onClick={() => moveSemester(current)} style={smallGhost}><ArrowLeftRight size={13} /> Move to Semester {(current.semester ?? 1) === 1 ? 2 : 1}</button>}
           </div>
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button type="button" disabled={busyMove} onClick={() => move(current, "up")} style={smallGhost}><ArrowUp size={13} /> Move course up</button>
@@ -309,7 +310,11 @@ function RepPanel() {
       <>
       <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
         {([1, 2] as const).map((s) => (
+          s === 2 && REP_SEMESTER_2_LOCKED ? (
+            <span key={s} title="Semester 2 opens later" style={{ height: 38, padding: "0 16px", borderRadius: 999, border: "2px dashed rgba(26,24,20,.3)", color: "rgba(26,24,20,.5)", fontSize: 13, fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 6 }}><Lock size={13} aria-hidden /> Semester 2 · opens later</span>
+          ) : (
           <button key={s} type="button" onClick={() => setSemester(s)} style={{ height: 38, padding: "0 16px", border: 0, borderRadius: 999, background: semester === s ? INK : "rgba(26,24,20,.12)", color: semester === s ? GOLD : INK, fontFamily: "inherit", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Semester {s}</button>
+          )
         ))}
       </div>
       {courses.length ? (
