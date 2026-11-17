@@ -37,7 +37,7 @@ function openDoc(id: string) {
     created.promise = loadLib().then((pdfjs) => {
       const load = (simple: boolean) => {
         // Second try: one plain download (no partial requests), which some phones need.
-        const task = pdfjs.getDocument(simple ? { url: driveMediaUrl(id), disableRange: true, disableStream: true } : { url: driveMediaUrl(id), disableAutoFetch: true, rangeChunkSize: 262144 });
+        const task = pdfjs.getDocument(simple ? { url: driveMediaUrl(id), disableRange: true, disableStream: true } : { url: driveMediaUrl(id), disableAutoFetch: true, rangeChunkSize: 1048576 });
         task.onProgress = ({ loaded, total }: { loaded: number; total: number }) => {
           if (!total) return;
           created.progress = Math.min(99, Math.round((loaded / total) * 100));
@@ -81,6 +81,8 @@ export function SlideDeck({ item, title, onPage }: { item: DriveItem; title: str
   const [page, setPage] = useState(1);
   const [firstDrawn, setFirstDrawn] = useState(false);
   const [slot, setSlot] = useState({ w: 0, h: 0 });
+  // 1 = fit (whole slide, or page width for portrait pages); larger values zoom in.
+  const [zoom, setZoom] = useState(1);
   const trackRef = useRef<HTMLDivElement>(null);
   const thumbsRef = useRef<HTMLDivElement>(null);
 
@@ -174,6 +176,11 @@ export function SlideDeck({ item, title, onPage }: { item: DriveItem; title: str
 .deck-track::-webkit-scrollbar,.deck-thumbs::-webkit-scrollbar{display:none}
 .deck-thumbs{scrollbar-width:none}
 .deck-arrow{display:none}
+.deck-cell{display:flex}
+.deck-cell > div{margin:auto}
+.deck-zoom{position:absolute;right:14px;top:10px;z-index:3;display:flex;gap:6px}
+.deck-zoom button{height:38px;min-width:38px;padding:0 12px;border-radius:999px;border:1px solid rgba(233,188,58,.5);background:rgba(26,23,18,.88);color:#E9BC3A;font:inherit;font-size:15px;font-weight:900;cursor:pointer}
+.deck-zoom button:disabled{opacity:.35;cursor:default}
 @media (min-width:768px){.deck-arrow{display:flex}}
 `}</style>
       <div
@@ -187,10 +194,16 @@ export function SlideDeck({ item, title, onPage }: { item: DriveItem; title: str
         style={{ flex: 1, minHeight: 0, display: "flex", overflowX: "auto", overflowY: "hidden" }}
       >
         {pages.map((n) => (
-          <div key={n} style={{ flex: "0 0 100%", height: "100%", scrollSnapAlign: "start", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px 12px" }}>
-            <PageCanvas doc={doc} n={n} slot={slot} render={n === page || (firstDrawn && Math.abs(n - page) <= 2)} onDrawn={n === 1 ? () => setFirstDrawn(true) : undefined} />
+          <div key={n} className="deck-cell" style={{ flex: "0 0 100%", height: "100%", scrollSnapAlign: "start", overflow: "auto", padding: "16px 12px" }}>
+            <PageCanvas doc={doc} n={n} slot={slot} zoom={zoom} render={n === page || (firstDrawn && Math.abs(n - page) <= 2)} onDrawn={n === 1 ? () => setFirstDrawn(true) : undefined} />
           </div>
         ))}
+      </div>
+
+      <div className="deck-zoom" role="group" aria-label="Zoom">
+        <button type="button" aria-label="Zoom out" onClick={() => setZoom((z) => Math.max(1, Math.round((z - 0.5) * 2) / 2))} disabled={zoom <= 1}>−</button>
+        <button type="button" aria-label="Fit to screen" onClick={() => setZoom(1)} disabled={zoom === 1}>{Math.round(zoom * 100)}%</button>
+        <button type="button" aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(3, z + 0.5))} disabled={zoom >= 3}>+</button>
       </div>
 
       <button type="button" className="deck-arrow" aria-label="Previous slide" onClick={() => goTo(page - 1)} disabled={page <= 1} style={{ position: "absolute", left: 18, top: "calc(50% - 58px)", width: 54, height: 54, borderRadius: 999, border: "1px solid rgba(233,188,58,.5)", background: INK, color: GOLD, alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: page <= 1 ? 0.35 : 1 }}>
@@ -218,7 +231,7 @@ export function SlideDeck({ item, title, onPage }: { item: DriveItem; title: str
   );
 }
 
-function PageCanvas({ doc, n, slot, render, onDrawn }: { doc: PDFDocumentProxy; n: number; slot: { w: number; h: number }; render: boolean; onDrawn?: () => void }) {
+function PageCanvas({ doc, n, slot, zoom, render, onDrawn }: { doc: PDFDocumentProxy; n: number; slot: { w: number; h: number }; zoom: number; render: boolean; onDrawn?: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const drawnFor = useRef("");
@@ -227,7 +240,7 @@ function PageCanvas({ doc, n, slot, render, onDrawn }: { doc: PDFDocumentProxy; 
 
   useEffect(() => {
     if (!render || !slot.w || !slot.h) return;
-    const key = `${slot.w}x${slot.h}`;
+    const key = `${slot.w}x${slot.h}@${zoom}`;
     if (drawnFor.current === key) return;
     let cancelled = false;
     let task: { cancel: () => void; promise: Promise<unknown> } | null = null;
@@ -238,12 +251,16 @@ function PageCanvas({ doc, n, slot, render, onDrawn }: { doc: PDFDocumentProxy; 
         const canvas = canvasRef.current;
         if (cancelled || !canvas) return;
         const base = p.getViewport({ scale: 1 });
-        // Fit the page inside the slot without stretching it.
-        const fit = Math.min(slot.w / base.width, slot.h / base.height);
+        // Slides (landscape) fit the screen. Book and note pages (portrait) fit the width, up to a
+        // comfortable reading width, and scroll down, so their text is large enough to read.
+        const portrait = base.height > base.width * 1.1;
+        const fit = (portrait ? Math.min(slot.w, 900) / base.width : Math.min(slot.w / base.width, slot.h / base.height)) * zoom;
         const w = Math.floor(base.width * fit);
         const h = Math.floor(base.height * fit);
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const vp = p.getViewport({ scale: fit * dpr });
+        // Draw with extra pixels so small print stays sharp, but keep the canvas within what phones can hold.
+        const want = Math.max(1.5, Math.min(window.devicePixelRatio || 1, 3));
+        const cap = Math.sqrt(16_000_000 / Math.max(1, w * h));
+        const vp = p.getViewport({ scale: fit * Math.min(want, cap) });
         canvas.width = Math.floor(vp.width);
         canvas.height = Math.floor(vp.height);
         task = p.render({ canvas, viewport: vp });
@@ -260,7 +277,7 @@ function PageCanvas({ doc, n, slot, render, onDrawn }: { doc: PDFDocumentProxy; 
       cancelled = true;
       task?.cancel();
     };
-  }, [doc, n, render, slot.w, slot.h]);
+  }, [doc, n, render, slot.w, slot.h, zoom]);
 
   return (
     <div style={{ position: "relative", width: size?.w ?? Math.min(slot.w, 640), height: size?.h ?? Math.min(slot.h, 360), background: "#fff", borderRadius: 8, overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,.5)", flexShrink: 0 }}>
