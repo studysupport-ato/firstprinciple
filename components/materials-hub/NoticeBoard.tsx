@@ -108,7 +108,7 @@ export function NoticeBoard({ choice, entries, assignments, onSeeAssignments, on
       </div>
       <p style={{ margin: "4px 0 0 22px", fontSize: 13, fontWeight: 700, color: "rgba(246,239,220,.6)" }}>Check here first. Tap any notice to open it.</p>
 
-      <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+      <div className="nb-list" style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
         {urgent.map((a) => (
           <AssignmentCard key={a.id} a={a} assignments={assignments} onRemind={() => setRemindFor(a)} onOpen={() => onOpenAssignment(a.id)} />
         ))}
@@ -135,25 +135,26 @@ export function NoticeBoard({ choice, entries, assignments, onSeeAssignments, on
   );
 }
 
-function CourseStrip({ title, bg }: { title: string; bg: string }) {
-  return <div style={{ background: bg, color: "#FFFFFF", padding: "7px 14px", textAlign: "center", fontSize: 15, fontWeight: 900, letterSpacing: ".01em", lineHeight: 1.2 }}>{title}</div>;
+function CourseStrip({ title, bg, slim }: { title: string; bg: string; slim?: boolean }) {
+  return <div style={{ background: bg, color: "#FFFFFF", padding: slim ? "4px 12px" : "7px 14px", textAlign: "center", fontSize: slim ? 13.5 : 15, fontWeight: 900, letterSpacing: ".01em", lineHeight: 1.2 }}>{title}</div>;
 }
 
 function UploadNotice({ u }: { u: LoggedUpload }) {
   const { code, unit, topic } = splitTopic(u.entry.courseTitle);
   const updated = Boolean(u.entry.replacedAt);
+  const when = `${updated ? "Updated " : u.kind === "books" ? "Book, " : u.kind === "videos" ? "Videos, " : ""}${timeAgo(u.entry.replacedAt ?? u.entry.createdAt)}`;
+  // Slim: course header, then code, week and time on one line, then the topic.
   return (
-    <Link href={slideHref(u)} className="hub-tap" style={{ display: "block", borderRadius: 16, overflow: "hidden", background: SLIDES_BG, color: SLIDES_INK, textDecoration: "none" }}>
-      <CourseStrip title={u.course.courseTitle} bg={SLIDES_TILE} />
-      <span style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px" }}>
+    <Link href={slideHref(u)} className="hub-tap nb-notice" style={{ display: "block", borderRadius: 14, overflow: "hidden", background: SLIDES_BG, color: SLIDES_INK, textDecoration: "none" }}>
+      <CourseStrip title={u.course.courseTitle} bg={SLIDES_TILE} slim />
+      <span style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 12px 8px" }}>
         <span style={{ flex: 1, minWidth: 0 }}>
-          {code ? <span style={{ display: "block", fontSize: 12, fontWeight: 800 }}>{code}</span> : null}
-          {unit ? <span style={{ display: "inline-flex", marginTop: 3, height: 22, padding: "0 9px", borderRadius: 7, background: SLIDES_TILE, color: "#FFFFFF", fontSize: 12, fontWeight: 800, alignItems: "center" }}>{unit}</span> : null}
-          {topic || (!code && !unit) ? <span style={{ display: "block", marginTop: 5, fontSize: 17, fontWeight: 900, lineHeight: 1.15, color: INK }}>{topic || u.entry.courseTitle}</span> : null}
-          <span style={{ display: "block", marginTop: 3, fontSize: 12, fontWeight: 600 }}>
-            {updated ? "Updated " : u.kind === "books" ? "Book, " : u.kind === "videos" ? "Videos, " : ""}
-            {timeAgo(u.entry.replacedAt ?? u.entry.createdAt)}
+          <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {code ? <span style={{ fontSize: 12, fontWeight: 800 }}>{code}</span> : null}
+            {unit ? <span style={{ display: "inline-flex", height: 20, padding: "0 7px", borderRadius: 6, background: SLIDES_TILE, color: "#FFFFFF", fontSize: 11, fontWeight: 800, alignItems: "center" }}>{unit}</span> : null}
+            <span style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 700 }}>{when}</span>
           </span>
+          <span style={{ display: "block", marginTop: 3, fontSize: 16, fontWeight: 900, lineHeight: 1.2, color: INK }}>{topic || u.entry.courseTitle}</span>
         </span>
         <ChevronRight size={18} strokeWidth={2.8} aria-hidden />
       </span>
@@ -178,8 +179,8 @@ export function AssignmentCard({ a, assignments, onRemind, compact, highlight, o
   const sub = urgentLook ? "#5C564B" : "rgba(255,255,255,.78)";
   return (
     <div id={`notice-${a.id}`} className={urgentLook ? "nb-glow" : undefined} style={{ borderRadius: 20, overflow: "hidden", background: urgentLook ? "#FFFFFF" : BLUE, color: fg, opacity: a.done ? 0.62 : 1, outline: highlight ? `4px solid ${GOLD}` : "none", outlineOffset: 2 }}>
-      <CourseStrip title={a.courseTitle} bg={urgentLook ? RED : BLUE_DEEP} />
-      <div style={{ padding: "12px 14px 12px" }}>
+      <CourseStrip title={a.courseTitle} bg={urgentLook ? RED : BLUE_DEEP} slim={compact} />
+      <div style={{ padding: compact ? "8px 12px 10px" : "12px 14px 12px" }}>
       <div onClick={onOpen} role={onOpen ? "button" : undefined} tabIndex={onOpen ? 0 : undefined} onKeyDown={onOpen ? (e) => e.key === "Enter" && onOpen() : undefined} style={{ cursor: onOpen ? "pointer" : "default" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         {urgentLook ? (

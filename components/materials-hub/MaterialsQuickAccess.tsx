@@ -146,7 +146,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
       ) : null}
       <BackgroundDrawings />
 
-      <div className="qa-wrap">
+      <div className={`qa-wrap${ready && choice && department ? " qa-full" : ""}`}>
         {/* The headline shows straight away (no empty flash); returning students then see their courses. */}
         {!ready || !choice || (!department && data.status !== "loading") ? (
           <Hero onStart={() => setPicking(true)} />
@@ -456,12 +456,22 @@ function QuickStyles() {
 @media (min-width:1024px){
 .qa-wrap{padding:44px 40px 48px}
 .qa-side{display:grid;grid-template-columns:400px 1fr;gap:28px;align-items:start}
-.qa-b{gap:22px}
-.qa-main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:28px;align-items:start}
-.qa-b .nb-bars{grid-template-columns:1fr;gap:16px}
-.qa-b .nb-bar{min-height:118px !important;padding:20px 22px !important;border-radius:28px !important}
-.qa-b .nb-bar .nb-ico{width:64px !important;height:64px !important;border-radius:18px !important}
-.qa-b .nb-bar .nb-name{font-size:30px !important}
+.qa-wrap.qa-full{max-width:none;padding-left:32px;padding-right:32px}
+.qa-b{gap:16px}
+.qa-main{display:flex;flex-direction:column;gap:16px}
+/* one row: Slides, Assignments, then the two small cards */
+.qa-left{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.25fr);gap:12px;align-items:stretch}
+.qa-b .nb-bars{grid-template-columns:1fr 1fr;gap:12px;height:100%}
+.qa-b .nb-bar{min-height:64px !important;padding:10px 14px !important;border-radius:18px !important;gap:12px !important}
+.qa-b .nb-bar .nb-ico{width:40px !important;height:40px !important;border-radius:12px !important}
+.qa-b .nb-bar .nb-name{font-size:19px !important}
+.qa-b .nb-bar > span:nth-child(2){display:flex !important;align-items:baseline;gap:10px}
+.qa-b .nb-bar > span:nth-child(2) > span:last-child{margin-left:auto;white-space:nowrap}
+.qa-extras.qa-desktop-only{display:grid !important;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
+.qa-extras > *{margin-top:0 !important;height:100%}
+/* the notice board spans the width, notices in three columns */
+.qa-b .nb-list{display:grid !important;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.qa-b .nb-list > .nb-glow{grid-column:1/-1}
 .qa-desktop-only{display:flex !important}
 .qa-phone-only{display:none}
 .qa-hero{grid-template-columns:.95fr 1.05fr;gap:28px}
@@ -473,6 +483,10 @@ function QuickStyles() {
 .qa-arrow{top:170px;width:50px;height:50px}.qa-arrow svg{width:24px;height:24px}
 .qa-steps{margin-top:34px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .qa-grid{grid-template-columns:repeat(3,1fr);gap:10px}
+}
+@media (min-width:1400px){
+.qa-b .nb-list{grid-template-columns:repeat(3,minmax(0,1fr))}
+.qa-courses{grid-template-columns:repeat(3,1fr)}
 }
 `}</style>
   );
