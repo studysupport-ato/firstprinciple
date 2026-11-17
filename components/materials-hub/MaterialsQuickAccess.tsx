@@ -59,6 +59,21 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
   const [tourOpen, setTourOpen] = useState(false);
   const [view, setView] = useState<"home" | "slides" | "assignments">("home");
   const [noticeId, setNoticeId] = useState<string | null>(null);
+  // The programme card opens full size, then steps aside into a slim strip so Slides, Assignments
+  // and the Notice Board lead. Once per visit; later visits (and reduced motion) start slim.
+  const [slim, setSlim] = useState(false);
+  useEffect(() => {
+    if (!ready || !choice) return;
+    let seen = false;
+    try { seen = sessionStorage.getItem("b2b-hub-slim") === "1"; } catch { /* storage unavailable */ }
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (seen || reduced) { setSlim(true); return; }
+    const timer = window.setTimeout(() => {
+      setSlim(true);
+      try { sessionStorage.setItem("b2b-hub-slim", "1"); } catch { /* storage unavailable */ }
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [ready, choice]);
   const assignments = useClassAssignments(ready ? choice : null);
   const tourSteps: TourStep[] = useMemo(() => {
     const pushable = typeof window !== "undefined" && canUseUploadPush() && permission() === "default";
@@ -138,34 +153,44 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
         ) : !department ? (
           <div style={{ minHeight: 420, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800 }}>Loading your courses…</div>
         ) : (
-          <div className="qa-side">
-            <div className="qa-left">
-              <div data-tour-step="hub-programme">
+          <div className={`qa-side qa-b${slim ? " qa-slim" : ""}`}>
+            <div className="qa-prog" data-tour-step="hub-programme">
               <BlueprintCard department={department.name} style={{ minHeight: 210 }}>
-                <Eyebrow style={{ color: GOLD }}>Your programme</Eyebrow>
-                <h2 style={{ margin: "8px 0 0", maxWidth: "60%", fontSize: 30, fontWeight: 800, letterSpacing: "-.03em", lineHeight: 1, color: CREAM }}>{department.name}</h2>
-                <div style={{ marginTop: 14, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <Pill gold>Year {choice.year}</Pill>
-                  <Pill gold>Semester {choice.semester}</Pill>
+                <span className="qa-prog-eyebrow"><Eyebrow style={{ color: GOLD }}>Your programme</Eyebrow></span>
+                <div className="qa-prog-row">
+                  <h2 className="qa-prog-title" style={{ margin: "8px 0 0", maxWidth: "60%", fontSize: 30, fontWeight: 800, letterSpacing: "-.03em", lineHeight: 1, color: CREAM }}>{department.name}</h2>
+                  <div className="qa-prog-meta">
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      <Pill gold>Year {choice.year}</Pill>
+                      <Pill gold>Semester {choice.semester}</Pill>
+                    </div>
+                    <span className="qa-prog-links">
+                      <button type="button" onClick={() => setPicking(true)} style={{ minHeight: 36, border: 0, background: "none", padding: 0, fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: GOLD, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}>
+                        Change
+                      </button>
+                      <button type="button" onClick={() => setTourOpen(true)} style={{ minHeight: 36, border: 0, background: "none", padding: 0, fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: CREAM, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}>
+                        How it works
+                      </button>
+                    </span>
+                  </div>
                 </div>
-                <button type="button" onClick={() => setPicking(true)} style={{ marginTop: 10, minHeight: 36, border: 0, background: "none", padding: 0, fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: GOLD, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}>
-                  Change
-                </button>
-                <button type="button" onClick={() => setTourOpen(true)} style={{ marginTop: 10, marginLeft: 16, minHeight: 36, border: 0, background: "none", padding: 0, fontFamily: "inherit", fontSize: 13, fontWeight: 800, color: CREAM, textDecoration: "underline", textUnderlineOffset: 3, cursor: "pointer" }}>
-                  How it works
-                </button>
               </BlueprintCard>
+            </div>
+
+            <div className="qa-main">
+            <div className="qa-left">
+              <div className="qa-bars">
+                <FolderBars courseCount={courses.length} openCount={assignments.items.filter((x) => !x.done).length} onSlides={() => setView("slides")} onAssignments={() => setView("assignments")} />
               </div>
-              <div className="qa-desktop-only" style={{ display: "flex", flexDirection: "column" }}>
-                <ResourceCard />
-                <CourseRepCard />
+              <div className="qa-desktop-only qa-extras" style={{ flexDirection: "column" }}>
+                <ResourceCard small />
+                <CourseRepCard small />
               </div>
             </div>
 
             <div className="qa-right">
               {view === "home" ? (
                 <>
-                  <FolderBars courseCount={courses.length} openCount={assignments.items.filter((x) => !x.done).length} onSlides={() => setView("slides")} onAssignments={() => setView("assignments")} />
                   <NoticeBoard choice={choice} entries={data.entries} assignments={assignments} onSeeAssignments={() => setView("assignments")} onOpenAssignment={(id) => { setNoticeId(id); setView("assignments"); }} />
                 </>
               ) : view === "assignments" ? (
@@ -230,6 +255,7 @@ export function MaterialsQuickAccess({ adminPreview = false }: { adminPreview?: 
                 <ResourceCard />
                 <CourseRepCard />
               </div>
+            </div>
             </div>
           </div>
         )}
@@ -388,6 +414,26 @@ function QuickStyles() {
 .qa-dot{animation:qaDot 1.2s ease-in-out infinite}@keyframes qaDot{50%{opacity:.25}}
 @media (prefers-reduced-motion: reduce){.qa-glow,.qa-dot{animation:none}.qa-glow{box-shadow:0 0 40px 10px rgba(255,255,255,.7)}}
 .qa-wrap{position:relative;max-width:1180px;margin:0 auto;padding:26px 18px 32px}
+/* Layout B: the programme card steps aside into a strip; Slides, Assignments and the Notice Board lead */
+.qa-b{display:flex !important;flex-direction:column;gap:18px}
+.qa-main{display:flex;flex-direction:column;gap:18px}
+.qa-prog > div{transition:padding .6s cubic-bezier(.2,.8,.2,1),min-height .6s cubic-bezier(.2,.8,.2,1),border-radius .6s}
+.qa-prog-eyebrow{display:block;overflow:hidden;max-height:24px;transition:opacity .35s,max-height .5s}
+.qa-prog-title{transition:font-size .6s cubic-bezier(.2,.8,.2,1),margin .6s}
+.qa-prog-meta{margin-top:14px;display:flex;flex-direction:column;gap:2px;transition:margin .6s}
+.qa-prog-links{display:flex;gap:16px;margin-top:4px}
+.qa-slim .qa-prog > div{min-height:0 !important;padding:12px 18px !important;border-radius:22px !important}
+.qa-slim .qa-prog-eyebrow{opacity:0;max-height:0}
+.qa-slim .qa-prog-row{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap}
+.qa-slim .qa-prog-title{margin:0 !important;font-size:19px !important;max-width:none !important;line-height:1.15 !important}
+.qa-slim .qa-prog-meta{margin:0;flex-direction:row;align-items:center;gap:14px;flex-wrap:wrap}
+.qa-slim .qa-prog-links{margin:0}
+.qa-extras{transition:opacity .5s .25s,transform .5s .25s}
+.qa-b:not(.qa-slim) .qa-extras{opacity:0;transform:translateY(10px);pointer-events:none}
+.qa-slim .qa-bars{animation:qaPop .7s cubic-bezier(.2,.8,.2,1) both}
+@keyframes qaPop{0%{transform:scale(.97)}55%{transform:scale(1.02)}100%{transform:scale(1)}}
+.qa-b .qa-right > [data-tour-step="hub-notice"]{margin-top:0 !important}
+@media (prefers-reduced-motion: reduce){.qa-prog > div,.qa-prog-eyebrow,.qa-prog-title,.qa-prog-meta,.qa-extras{transition:none}.qa-slim .qa-bars{animation:none}}
 .qa-side{display:flex;flex-direction:column;gap:18px}
 .qa-left{display:flex;flex-direction:column;gap:0}
 .qa-courses{margin-top:14px;display:grid;grid-template-columns:1fr;gap:10px}
@@ -410,6 +456,12 @@ function QuickStyles() {
 @media (min-width:1024px){
 .qa-wrap{padding:44px 40px 48px}
 .qa-side{display:grid;grid-template-columns:400px 1fr;gap:28px;align-items:start}
+.qa-b{gap:22px}
+.qa-main{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:28px;align-items:start}
+.qa-b .nb-bars{grid-template-columns:1fr;gap:16px}
+.qa-b .nb-bar{min-height:118px !important;padding:20px 22px !important;border-radius:28px !important}
+.qa-b .nb-bar .nb-ico{width:64px !important;height:64px !important;border-radius:18px !important}
+.qa-b .nb-bar .nb-name{font-size:30px !important}
 .qa-desktop-only{display:flex !important}
 .qa-phone-only{display:none}
 .qa-hero{grid-template-columns:.95fr 1.05fr;gap:28px}
@@ -548,15 +600,17 @@ function linkLabel(url?: string) {
   return "Opens a link";
 }
 
-function ResourceCard() {
+function ResourceCard({ small = false }: { small?: boolean }) {
   const phone = RESOURCE_CONTACT_PHONE.trim();
   return (
-    <div className="hub-row" style={{ marginTop: 14, borderRadius: 24, background: "#FFFBF0", padding: 16, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 14px 32px -16px rgba(26,24,20,.45)", animationDelay: "300ms" }}>
+    <div className="hub-row" style={{ marginTop: small ? 12 : 14, borderRadius: small ? 18 : 24, background: "#FFFBF0", padding: small ? "10px 12px" : 16, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 14px 32px -16px rgba(26,24,20,.45)", animationDelay: "300ms" }}>
       <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-        <span style={{ fontSize: 15, fontWeight: 900, letterSpacing: "-.01em" }}>Have a resource that would help?</span>
-        <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.4, color: "rgba(26,24,20,.65)" }}>
-          Contact us to collaborate and receive credit for it.{phone ? ` ${phone}` : ""}
-        </span>
+        <span style={{ fontSize: small ? 14 : 15, fontWeight: 900, letterSpacing: "-.01em" }}>Have a resource that would help?</span>
+        {small ? null : (
+          <span style={{ fontSize: 12, fontWeight: 600, lineHeight: 1.4, color: "rgba(26,24,20,.65)" }}>
+            Contact us to collaborate and receive credit for it.{phone ? ` ${phone}` : ""}
+          </span>
+        )}
       </span>
       {phone ? (
         <a href={`tel:${phone.replace(/\s+/g, "")}`} aria-label={`Call ${phone}`} style={{ width: 48, height: 48, flexShrink: 0, borderRadius: 999, background: INK, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -567,20 +621,20 @@ function ResourceCard() {
   );
 }
 
-function CourseRepCard() {
+function CourseRepCard({ small = false }: { small?: boolean }) {
   const repStatus = useRepStatus();
   const approved = repStatus === "approved";
   const title = approved ? "Course Rep Panel" : repStatus === "pending" ? "Course rep application sent" : "Apply as a course rep";
   const line = approved ? "Post slides and assignments for your class." : repStatus === "pending" ? "We’ll text you once you’re approved." : "Upload lecture materials for your class.";
   const action = approved ? "Open" : repStatus === "pending" ? "View" : "Apply";
   return (
-    <Link href="/course-rep" className="hub-row hub-tap" style={{ marginTop: 12, borderRadius: 24, background: INK, border: approved ? `2px solid ${GOLD}` : "1px solid rgba(233,188,58,.3)", padding: 16, display: "flex", alignItems: "center", gap: 14, color: CREAM, textDecoration: "none", boxShadow: "0 14px 32px -16px rgba(26,24,20,.6)", animationDelay: "360ms" }}>
-      <span aria-hidden style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", ...goldPlate }}>
-        <Upload size={19} strokeWidth={2.4} />
+    <Link href="/course-rep" className="hub-row hub-tap" style={{ marginTop: small ? 10 : 12, borderRadius: small ? 18 : 24, background: INK, border: approved ? `2px solid ${GOLD}` : "1px solid rgba(233,188,58,.3)", padding: small ? "10px 12px" : 16, display: "flex", alignItems: "center", gap: 14, color: CREAM, textDecoration: "none", boxShadow: "0 14px 32px -16px rgba(26,24,20,.6)", animationDelay: "360ms" }}>
+      <span aria-hidden style={{ width: small ? 36 : 46, height: small ? 36 : 46, flexShrink: 0, borderRadius: small ? 11 : 14, display: "flex", alignItems: "center", justifyContent: "center", ...goldPlate }}>
+        <Upload size={small ? 16 : 19} strokeWidth={2.4} />
       </span>
       <span style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
         <span style={{ fontSize: 15, fontWeight: 800 }}>{title}</span>
-        <span style={{ fontSize: 12, fontWeight: 500, lineHeight: 1.4, color: "rgba(246,239,220,.6)" }}>{line}</span>
+        {small ? null : <span style={{ fontSize: 12, fontWeight: 500, lineHeight: 1.4, color: "rgba(246,239,220,.6)" }}>{line}</span>}
       </span>
       <span style={{ height: 34, padding: "0 14px", borderRadius: 999, border: approved ? 0 : "1px solid rgba(233,188,58,.5)", ...(approved ? goldPlate : { color: GOLD }), fontSize: 12, fontWeight: 800, display: "inline-flex", alignItems: "center" }}>{action}</span>
     </Link>
