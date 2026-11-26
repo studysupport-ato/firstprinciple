@@ -219,6 +219,11 @@ export default function WeekClient({ course, week, days, preview = false }: { co
                           <h3 className={`font-sans text-[15px] font-bold leading-snug break-words ${textStyle}`}>
                             <EducationalText text={day.title} />
                           </h3>
+                          {day.description ? (
+                            <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-[#F6EFDC]/65">
+                              <EducationalText text={day.description} />
+                            </p>
+                          ) : null}
                           <p className={`mt-0.5 text-[12px] font-medium ${statusColor}`}>
                             {statusText}
                           </p>
@@ -237,6 +242,11 @@ export default function WeekClient({ course, week, days, preview = false }: { co
                           <h3 className={`font-sans text-[15px] font-bold leading-snug break-words ${textStyle}`}>
                             <EducationalText text={day.title} />
                           </h3>
+                          {day.description ? (
+                            <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-[#F6EFDC]/65">
+                              <EducationalText text={day.description} />
+                            </p>
+                          ) : null}
                           <p className={`mt-0.5 text-[12px] font-medium ${statusColor}`}>
                             {statusText}
                           </p>
