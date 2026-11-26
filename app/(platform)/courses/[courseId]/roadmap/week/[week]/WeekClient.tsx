@@ -115,7 +115,7 @@ export default function WeekClient({ course, week, days, preview = false }: { co
 
           {/* ── BREADCRUMB ── */}
           <p className="mb-[2px] text-[11px] font-bold uppercase tracking-[0.14em] text-[#26231C]/55">
-            {course.code} · TOPIC
+            {course.code} / TOPIC
           </p>
 
           <div className="mb-10">
@@ -192,7 +192,7 @@ export default function WeekClient({ course, week, days, preview = false }: { co
                   }
 
                   if (index === 0 && authenticated === false && !isComplete) {
-                    statusText = "Open lesson · no sign-up needed";
+                    statusText = "Open lesson, no sign-up needed";
                     statusColor = "text-[#E9BC3A]";
                   }
 
@@ -287,7 +287,7 @@ export default function WeekClient({ course, week, days, preview = false }: { co
                   {nextLesson && (
                     <>
                       <div className="mt-2 mb-6 text-[13px] font-medium text-[#F6EFDC]/70">
-                        Lesson {firstIncompleteIndex + 1} · about 25 minutes
+                        Lesson {firstIncompleteIndex + 1}, about 25 minutes
                       </div>
                       <Link
                         href={`/courses/${course.id}/chapter/${nextLesson.chapterId}/lesson/${nextLesson.id}?week=${week.weekNumber}${preview ? "&preview=1" : ""}`}

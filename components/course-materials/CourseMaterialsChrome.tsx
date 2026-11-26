@@ -42,7 +42,7 @@ export function CourseMaterialsChrome({ children }: { children: ReactNode }) {
             <div className="mb-[14px] flex items-center justify-between gap-4">
               <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.1em] text-[#26231C]/55">
                 <span>Learning space</span>
-                <span className="text-[8px]">·</span>
+                <span>/</span>
                 <span className="text-[#26231C]/80">MATH 151</span>
               </div>
 

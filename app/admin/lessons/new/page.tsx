@@ -154,7 +154,7 @@ export default function AdminNewLessonPage() {
               <span className="field-label">Course</span>
               <select value={courseId} onChange={(event) => setCourseId(event.target.value)} className="admin-input">
                 {courses.map((row) => (
-                  <option key={row.course.id} value={row.course.id}>{row.course.code} · {row.course.title}</option>
+                  <option key={row.course.id} value={row.course.id}>{row.course.code}, {row.course.title}</option>
                 ))}
               </select>
             </label>

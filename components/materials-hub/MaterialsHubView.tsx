@@ -671,7 +671,7 @@ function VideosView({ course, videos }: { course: CourseMaterialEntry; videos: C
     <div className="hub-row">
       <BackLink href={hubHref(course.id)}>{courseLabel(course)}</BackLink>
       <div style={{ marginTop: 14 }}>
-        {rows.length === 0 ? <Empty text="Your course rep hasn’t added playlists yet." /> : <CourseYouTube course={course} materials={rows} where={`Materials quick access · ${courseLabel(course)}`} />}
+        {rows.length === 0 ? <Empty text="Your course rep hasn’t added playlists yet." /> : <CourseYouTube course={course} materials={rows} where={`Materials quick access, ${courseLabel(course)}`} />}
       </div>
     </div>
   );

@@ -384,7 +384,7 @@ export default function AdminSmsPage() {
           <form onSubmit={handleSend} className="space-y-5">
             <div className="rounded-2xl border border-[#E5E5E5] bg-[#FFFBF5] p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="text-sm font-semibold">Recipients · {recipientMode === "all" ? "All eligible" : `${selected.size} custom selected`}</span>
+                <span className="text-sm font-semibold">Recipients: {recipientMode === "all" ? "All eligible" : `${selected.size} custom selected`}</span>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { setRecipientMode("all"); setSelected(new Map()); setPickerOpen(false); }} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${recipientMode === "all" ? "border-[#111111] bg-[#FFF4CC]" : "border-[#E5E5E5] bg-white"}`}>All Users</button>
                   <button type="button" onClick={() => { setRecipientMode("custom"); setPickerOpen(true); }} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${recipientMode === "custom" ? "border-[#111111] bg-[#FFF4CC]" : "border-[#E5E5E5] bg-white"}`}>Custom Users</button>
@@ -419,7 +419,7 @@ export default function AdminSmsPage() {
                       {smsStudents.map((student) => {
                         const reason = ineligibleReason(student);
                         const eligible = !reason && student.smsConsentStatus === "opted_in";
-                        return <div key={student.studentId} className="flex items-start gap-3 p-3"><input type="checkbox" aria-label={`Select ${student.fullName}`} checked={selected.has(student.studentId)} disabled={!eligible} onChange={() => selectStudent(student)} className="mt-1 accent-[#111111] disabled:opacity-35" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{student.fullName || "Name unavailable"}</p><p className="text-xs text-[#666666]">{student.phoneNumber || "No phone number provided"}</p>{reason ? <p className="mt-1 text-xs text-[#8C2D1C]">{reason}</p> : <p className="mt-1 text-xs text-[#2E6D3D]">Opt-in recorded · {student.consentSource}</p>}</div></div>;
+                        return <div key={student.studentId} className="flex items-start gap-3 p-3"><input type="checkbox" aria-label={`Select ${student.fullName}`} checked={selected.has(student.studentId)} disabled={!eligible} onChange={() => selectStudent(student)} className="mt-1 accent-[#111111] disabled:opacity-35" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{student.fullName || "Name unavailable"}</p><p className="text-xs text-[#666666]">{student.phoneNumber || "No phone number provided"}</p>{reason ? <p className="mt-1 text-xs text-[#8C2D1C]">{reason}</p> : <p className="mt-1 text-xs text-[#2E6D3D]">Opt-in recorded, {student.consentSource}</p>}</div></div>;
                       })}
                     </div>
                     <div className="mt-3 flex items-center justify-between text-xs text-[#666666]">
@@ -441,7 +441,7 @@ export default function AdminSmsPage() {
                 <ul className="max-h-32 space-y-1 overflow-auto text-xs text-[#666666]">
                   {selectedList.map((student) => {
                     const phone = normalizeGhanaSmsNumber(student.phoneNumber);
-                    return <li key={student.studentId}>{student.fullName} · {phone.ok ? phone.e164 : "Needs phone correction"}</li>;
+                    return <li key={student.studentId}>{student.fullName}, {phone.ok ? phone.e164 : "Needs phone correction"}</li>;
                   })}
                 </ul>
               </div>
@@ -487,15 +487,15 @@ export default function AdminSmsPage() {
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium">Message</span>
               <textarea required maxLength={SMS_MESSAGE_MAX_LENGTH} rows={5} value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Write a concise educational update…" className="w-full resize-y rounded-xl border border-[#E5E5E5] bg-white px-4 py-3 text-sm leading-6 outline-none focus:border-[#111111]" />
-              <span className="mt-1 block text-right text-xs text-[#666666]">{Array.from(message).length} characters · {message.length}/{SMS_MESSAGE_MAX_LENGTH} storage limit</span>
+              <span className="mt-1 block text-right text-xs text-[#666666]">{Array.from(message).length} characters, {message.length}/{SMS_MESSAGE_MAX_LENGTH} storage limit</span>
             </label>
             <div className={`rounded-xl border p-3 text-sm ${segments.segments > 1 ? "border-[#E5D39C] bg-[#FFF9E8] text-[#5B4812]" : "border-[#E5E5E5] bg-[#FAFAFA] text-[#555555]"}`}>
-              <p className="font-semibold">{segments.encoding} · estimated {segments.segments} segment{segments.segments === 1 ? "" : "s"} per recipient</p>
+              <p className="font-semibold">{segments.encoding}, estimated {segments.segments} segment{segments.segments === 1 ? "" : "s"} per recipient</p>
               <p className="mt-1 text-xs">Estimate only; Arkesel or network routing may segment differently. {segments.encoding === "GSM-7" ? `${segments.characters}/${segments.singleMessageLimit} septets for one segment; concatenated segments carry up to ${segments.charactersPerSegment} septets each.` : `${segments.characters}/${segments.singleMessageLimit} UCS-2 code units for one segment; concatenated segments carry up to ${segments.charactersPerSegment} units each. Emoji may occupy two code units.`}</p>
               {segments.segments > 1 ? <p className="mt-1 text-xs font-medium">Long messages use multiple segments. No exact cost estimate is configured.</p> : null}
             </div>
             <div className="rounded-2xl border border-[#E5E5E5] bg-[#FAFAFA] p-4">
-              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-[#666666]">Plain-text preview · sender ID: {configuration?.senderName ?? "Loading"}</p>
+              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-[#666666]">Plain-text preview, sender ID: {configuration?.senderName ?? "Loading"}</p>
               <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.trim() || "Your SMS message will appear here."}</p>
               <p className="mt-2 text-xs text-[#666666]">No rich formatting; the message is sent as plain text.</p>
             </div>
@@ -553,7 +553,7 @@ export default function AdminSmsPage() {
                 <details className="min-w-0 flex-1 rounded-2xl border border-[#E5E5E5] p-4">
                   <summary className="cursor-pointer list-none">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0"><p className="line-clamp-2 whitespace-pre-wrap text-sm font-semibold">{campaign.message}</p><p className="mt-1 text-xs text-[#666666]">{dateLabel(campaign.created_at)} · {campaign.recipients.length} recipients · {campaign.sender_name}</p></div>
+                      <div className="min-w-0"><p className="line-clamp-2 whitespace-pre-wrap text-sm font-semibold">{campaign.message}</p><p className="mt-1 text-xs text-[#666666]">{dateLabel(campaign.created_at)}, {campaign.recipients.length} recipients, {campaign.sender_name}</p></div>
                       <span className="shrink-0 rounded-full bg-[#FFF4CC] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide">{statusLabel(campaign.status)}</span>
                     </div>
                   </summary>
@@ -563,10 +563,10 @@ export default function AdminSmsPage() {
                       {campaign.recipients.map((recipient) => (
                         <li key={recipient.id} className="flex items-start justify-between gap-3 border-b border-[#F1F1F1] pb-2 text-xs">
                           <span className="min-w-0">
-                            <span className="block truncate font-medium">{recipient.recipient_name || "Student"} · {recipient.recipient_phone}</span>
+                            <span className="block truncate font-medium">{recipient.recipient_name || "Student"}, {recipient.recipient_phone}</span>
                             {recipient.provider_reference ? <span className="block text-[#666666]">Provider reference: {recipient.provider_reference}</span> : null}
                             <span className="block text-[#666666]">Submission attempts: {recipient.attempt_count}/5</span>
-                            {recipient.provider_status ? <span className="block text-[#666666]">Arkesel report: {recipient.provider_status}{recipient.delivery_updated_at ? ` · ${dateLabel(recipient.delivery_updated_at)}` : ""}</span> : null}
+                            {recipient.provider_status ? <span className="block text-[#666666]">Arkesel report: {recipient.provider_status}{recipient.delivery_updated_at ? `, ${dateLabel(recipient.delivery_updated_at)}` : ""}</span> : null}
                             {recipient.consent_source_snapshot === "admin_attestation" && recipient.consent_reference_snapshot ? <span className="block text-[#666666]">Manual consent evidence: {recipient.consent_reference_snapshot}</span> : null}
                             {recipient.error_message ? <span className="mt-1 block text-[#8C2D1C]">{recipient.error_message}</span> : null}
                           </span>

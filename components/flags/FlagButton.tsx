@@ -131,8 +131,8 @@ export function FlagButton({
                       {options.length > 1 ? "Flag" : `Flag this ${current.type === "lesson" ? "step" : current.type}`}
                     </h2>
                     <p className="mt-1 text-[13.5px] text-[#5C564B]">
-                      {current.location}
-                      {current.title && !current.location.includes(current.title) ? ` · ${current.title}` : ""}
+                      {current.location.split(" · ").join(", ")}
+                      {current.title && !current.location.includes(current.title) ? `, ${current.title}` : ""}
                     </p>
                   </div>
                   <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#5C564B] hover:bg-black/5">

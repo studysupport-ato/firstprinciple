@@ -130,7 +130,7 @@ export function PlaylistEditor({
         <div className="text-[14px] font-bold">Videos (untick to hide from students, tick to show again)</div>
         {playlist ? (
           <div className="text-[13px] text-[#C9BFA6]">
-            {playlist.channel ? `${playlist.channel} · ` : ""}
+            {playlist.channel ? `${playlist.channel}, ` : ""}
             {playlistShown + extras.length} of {playlist.videos.length + extras.length} will show
           </div>
         ) : null}
@@ -178,7 +178,7 @@ export function PlaylistEditor({
                     <option value="worked">Worked example</option>
                   </select>
                   <span className="text-[12px] text-[#8F8671]">
-                    {video.channel ? `${video.channel} · ` : ""}
+                    {video.channel ? `${video.channel}, ` : ""}
                     {playlist.source === "custom" ? "name it after what it covers" : "added by you"}
                   </span>
                 </span>

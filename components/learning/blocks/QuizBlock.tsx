@@ -187,7 +187,7 @@ export function QuizBlock({ id, variant, questions }: QuizBlockData) {
   if (finished) {
     return (
       <div className="lesson-quiz flex flex-col gap-4">
-        <p className="font-sans text-sm font-semibold text-[#E9BC3A]">{isEnd ? "End-of-lesson test" : "Mid-lesson test"} · Results</p>
+        <p className="font-sans text-sm font-semibold text-[#E9BC3A]">{isEnd ? "End-of-lesson test" : "Mid-lesson test"}: Results</p>
         <p className="font-serif text-[2rem] leading-tight">
           You got {correct} of {questions.length}
         </p>
@@ -208,7 +208,7 @@ export function QuizBlock({ id, variant, questions }: QuizBlockData) {
   return (
     <div className="lesson-quiz flex flex-col gap-4">
       <p className="font-sans text-sm font-semibold text-[#E9BC3A]">
-        {isEnd ? "End-of-lesson test" : "Mid-lesson test"} · Question {index + 1} of {questions.length}
+        {isEnd ? "End-of-lesson test" : "Mid-lesson test"}: Question {index + 1} of {questions.length}
       </p>
       {answeredBefore && index === 0 && !locked ? (
         <p className="lesson-quiz-card rounded-xl border border-white/25 bg-white/10 px-4 py-3 font-sans text-[0.95rem] leading-relaxed">

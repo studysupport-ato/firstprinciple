@@ -456,7 +456,7 @@ export default function DashboardPage() {
                   <div className="hidden shrink-0 items-center gap-3 sm:flex">
                     {continueLearning && (
                       <span className="rounded-full bg-[#1A1814] px-5 py-2.5 text-[14px] font-bold text-[#F6EFDC]">
-                        MATH 151 · Week {continueLearning.weekNumber}
+                        MATH 151, Week {continueLearning.weekNumber}
                       </span>
                     )}
                     <Link href={authenticated === true ? "/settings" : "/courses"} className="flex h-11 w-11 items-center justify-center rounded-full bg-[#1A1814] text-[15px] font-black text-[#F6EFDC] transition hover:scale-105">
@@ -484,7 +484,7 @@ export default function DashboardPage() {
                       {continueLearning ? (
                         <>
                           <p className="mb-[12px] text-[14px] font-bold text-[#F6EFDC]">
-                            MATH 151 · Week {continueLearning.weekNumber} · Day {continueLearning.completedDays + 1}
+                            MATH 151, Week {continueLearning.weekNumber}, Day {continueLearning.completedDays + 1}
                           </p>
                           <h2 className="mb-[24px] font-sans text-[32px] sm:text-[40px] font-black leading-[1.05] tracking-[-0.02em] text-[#F6EFDC] max-[900px]:text-[26px]">
                             {continueLearning.lessonTitle}

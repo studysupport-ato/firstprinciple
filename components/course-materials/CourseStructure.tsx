@@ -54,7 +54,7 @@ export function CourseStructure({ outline }: { outline: CourseOutlineChapter[] }
         <span className="min-w-0 flex-1">
           <span className="block text-[16px] font-black">{shown ? "Hide course structure" : "Tap here to see course structure"}</span>
           <span className="mt-0.5 block text-[12px] text-[#F6EFDC]/60">
-            {outline.length} chapters · {sections} sections · {subtopics} subtopics
+            {outline.length} chapters, {sections} sections, {subtopics} subtopics
           </span>
         </span>
         <ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 text-[#E9BC3A] transition-transform duration-300 ${shown ? "rotate-180" : ""}`} />
@@ -67,7 +67,7 @@ export function CourseStructure({ outline }: { outline: CourseOutlineChapter[] }
             const isOpen = index === open;
             const color = CHAPTER_COLORS[index % CHAPTER_COLORS.length];
             const subCount = chapter.secs.reduce((n, sec) => n + sec.subs.length, 0);
-            const meta = `${chapter.secs.length} sections${subCount ? ` · ${subCount} subtopics` : ""}`;
+            const meta = `${chapter.secs.length} sections${subCount ? `, ${subCount} subtopics` : ""}`;
             let step = 0;
             const delay = () => `${(step += 1) * 0.035}s`;
             return (

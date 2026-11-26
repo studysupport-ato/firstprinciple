@@ -275,7 +275,7 @@ export default function CourseMaterialsPage() {
         acc[label] = (acc[label] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
-      const typeString = Object.entries(typeCounts).map(([type, count]) => `${type} ${count}`).join(" · ");
+      const typeString = Object.entries(typeCounts).map(([type, count]) => `${type} ${count}`).join(", ");
       if (!course.available) {
         return (
           <div
@@ -287,7 +287,7 @@ export default function CourseMaterialsPage() {
               <span className="rounded-[4px] bg-[#4A4538] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.05em] text-[#9A917B]">{course.courseCode}</span>
             )}
             <h3 className="mt-4 font-sans text-[22px] font-black leading-tight text-[#9A917B] line-clamp-2">{course.courseTitle}</h3>
-            {course.credit ? <p className="mt-2 line-clamp-2 text-[12.5px] font-semibold text-[#9A917B]">Credit · {course.credit}</p> : null}
+            {course.credit ? <p className="mt-2 line-clamp-2 text-[12.5px] font-semibold text-[#9A917B]">Credit: {course.credit}</p> : null}
             <div className="mt-10 rounded-full border border-dashed border-[#6F6753] px-4 py-2 text-[13px] font-bold text-[#B8AE95]">Not available at the moment</div>
           </div>
         );
@@ -313,7 +313,7 @@ export default function CourseMaterialsPage() {
           <h3 className="mt-4 font-sans text-[22px] font-black leading-tight text-[#F6EFDC] line-clamp-2">{course.courseTitle}</h3>
           {course.credit ? (
             <p className="mt-2 line-clamp-2 text-[12.5px] font-semibold leading-snug text-[#E9BC3A]">
-              <span className="font-medium text-[#F6EFDC]/60">Credit · </span>
+              <span className="font-medium text-[#F6EFDC]/60">Credit: </span>
               {course.credit}
             </p>
           ) : null}
@@ -337,7 +337,7 @@ export default function CourseMaterialsPage() {
           <CourseDetail
             course={activeCourse}
             materials={activeMaterials}
-            backLabel={`${STUDY_YEARS.find((y) => y.value === selectedStudyYear)?.label || "First year"} · Semester ${activeCourse.semester}`}
+            backLabel={`${STUDY_YEARS.find((y) => y.value === selectedStudyYear)?.label || "First year"}, Semester ${activeCourse.semester}`}
             onBack={() => setSelectedCourse(null)}
             bookmarks={bookmarks}
             toggleBookmark={toggleBookmark}
@@ -360,7 +360,7 @@ export default function CourseMaterialsPage() {
               {STUDY_YEARS.find(y => y.value === selectedStudyYear)?.label || "First year"}
             </h1>
             <p className="mt-2 text-[17px] font-medium text-[#26231C]/80">
-              {allCourses.length} courses · {materialCount} materials
+              {allCourses.length} courses, {materialCount} materials
             </p>
 
             <div className="mt-8 flex items-center gap-3 overflow-x-auto whitespace-nowrap pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap md:overflow-x-visible md:pb-0">
@@ -409,7 +409,7 @@ export default function CourseMaterialsPage() {
 
                   {semester.links.length > 0 ? (
                     <div className="mt-2 rounded-[24px] bg-[#1A1814] px-6 py-5 shadow-[0_2px_14px_rgba(0,0,0,0.22)]">
-                      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[#E9BC3A]">For the whole semester · External links</p>
+                      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[#E9BC3A]">For the whole semester, External links</p>
                       {semester.links.map((link) => (
                         <a
                           key={link.id}
@@ -419,7 +419,7 @@ export default function CourseMaterialsPage() {
                           className="flex min-h-[44px] items-center justify-between gap-3 border-t border-[#3A3428] py-3 text-[16px] font-semibold text-[#F6EFDC] transition hover:text-[#E9BC3A]"
                         >
                           <span>
-                            {link.courseTitle} <span className="text-[13px] font-normal text-[#F6EFDC]/60">· {linkHost(link.url)}</span>
+                            {link.courseTitle} <span className="text-[13px] font-normal text-[#F6EFDC]/60">({linkHost(link.url)})</span>
                           </span>
                           <span className="shrink-0 text-[#E9BC3A]">Open ↗</span>
                         </a>

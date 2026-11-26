@@ -130,7 +130,7 @@ export default function AdminCourseRepsPage() {
                     {past.map((r) => (
                       <tr key={r.id} className="border-t border-[#F0F0F0] first:border-t-0">
                         <td className={`${td} font-semibold`}>{r.fullName}</td>
-                        <td className={td}>{r.departmentName} · Year {r.studyYear}</td>
+                        <td className={td}>{r.departmentName}, Year {r.studyYear}</td>
                         <td className={`${td} text-[#666666]`}>{r.status === "declined" ? "Declined" : "Access removed"}</td>
                         <td className={`${td} text-right`}>
                           <button type="button" disabled={busy === r.id} onClick={() => decide(r, "approved")} className="rounded-full border border-[#111111] px-4 py-2 text-[13px] font-bold hover:bg-[#F5F5F5] disabled:opacity-50">Approve instead</button>
@@ -280,7 +280,7 @@ function ImportSection() {
             <div className="flex flex-wrap items-center gap-3 px-4 py-3.5">
               <div className="min-w-0 flex-1">
                 <p className="text-[14px] font-semibold">{source.departmentName}</p>
-                <p className="text-[12px] text-[#666666]">{source.title} · Year {source.studyYear} · Semester {source.semester}{source.alreadyImported.length ? ` · ${source.alreadyImported.length} imported` : ""}</p>
+                <p className="text-[12px] text-[#666666]">{source.title}, Year {source.studyYear}, Semester {source.semester}{source.alreadyImported.length ? `, ${source.alreadyImported.length} imported` : ""}</p>
               </div>
               <button type="button" onClick={() => (open === source.materialId ? setOpen(null) : preview(source))} className="rounded-full border border-[#111111] px-4 py-2 text-[13px] font-bold">{open === source.materialId ? "Close" : "Preview courses"}</button>
             </div>
@@ -298,7 +298,7 @@ function ImportSection() {
                         {candidates.map((c, i) => (
                           <tr key={c.folderId} className="border-t border-[#EEEEEE]">
                             <td className="py-2"><input type="checkbox" aria-label={`Import ${c.name}`} disabled={c.done} checked={c.pick && !c.done} onChange={(e) => setCandidates((prev) => prev && prev.map((x, j) => (j === i ? { ...x, pick: e.target.checked } : x)))} /></td>
-                            <td className="py-2 pr-3 text-[13px] text-[#666666]">{c.name}{c.done ? " · already imported" : ""}</td>
+                            <td className="py-2 pr-3 text-[13px] text-[#666666]">{c.name}{c.done ? ", already imported" : ""}</td>
                             <td className="py-2 pr-3"><input value={c.code} disabled={c.done} onChange={(e) => setCandidates((prev) => prev && prev.map((x, j) => (j === i ? { ...x, code: e.target.value } : x)))} className="w-28 rounded-lg border border-[#E5E5E5] px-2 py-1.5 text-[13px]" placeholder="e.g. ME 195" /></td>
                             <td className="py-2"><input value={c.title} disabled={c.done} onChange={(e) => setCandidates((prev) => prev && prev.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} className="w-full rounded-lg border border-[#E5E5E5] px-2 py-1.5 text-[13px]" /></td>
                           </tr>

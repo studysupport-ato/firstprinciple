@@ -93,8 +93,8 @@ export function PlaylistImporter({ busy, onImport, onError }: { busy: boolean; o
           <div>
             <div className="text-lg font-extrabold">{playlist.title}</div>
             <div className="text-[14px] text-[#C9BFA6]">
-              {playlist.channel ? `${playlist.channel} · ` : ""}
-              {playlist.videos.length} videos{hidden.size ? ` · ${shown} will show` : ""}
+              {playlist.channel ? `${playlist.channel}, ` : ""}
+              {playlist.videos.length} videos{hidden.size ? `, ${shown} will show` : ""}
             </div>
             {playlist.source === "feed" ? (
               <p className="mt-1 text-[13px] text-[#E9BC3A]">Only the newest {playlist.videos.length} videos could be read. Add YOUTUBE_API_KEY in Vercel to get the whole playlist.</p>

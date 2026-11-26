@@ -112,7 +112,7 @@ export default function AdminQuestionsPage() {
             >
               {courses.map((row) => (
                 <option key={row.course.id} value={row.course.id}>
-                  {row.course.code} · {row.course.title}
+                  {row.course.code}, {row.course.title}
                 </option>
               ))}
             </select>
@@ -140,7 +140,7 @@ export default function AdminQuestionsPage() {
       <div className="mb-6 flex items-center justify-between rounded-[24px] border border-[#E5E5E5] bg-white p-4">
         <div>
           <div className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-[#666666]">Question bank</div>
-          <div className="mt-2 font-serif text-3xl text-[#111111]">{selectedCourse ? `${selectedCourse.course.code} · ${selectedCourse.course.title}` : "Course not found"}</div>
+          <div className="mt-2 font-serif text-3xl text-[#111111]">{selectedCourse ? `${selectedCourse.course.code}, ${selectedCourse.course.title}` : "Course not found"}</div>
         </div>
         <div className="rounded-full bg-[#F7F7F8] px-3 py-1.5 text-sm font-medium text-[#111111]">
           {loading ? "Loading..." : `${totalCount} questions`}

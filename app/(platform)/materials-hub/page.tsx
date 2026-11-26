@@ -7,7 +7,7 @@ import { materialsHubLive } from "@/lib/site/materialsHub";
 import { isAdminVisitor } from "@/lib/site/isAdminVisitor";
 
 export const metadata: Metadata = {
-  title: "Course materials · Back2Basics with Kwamina",
+  title: "Course materials | Back2Basics with Kwamina",
   robots: { index: false },
 };
 

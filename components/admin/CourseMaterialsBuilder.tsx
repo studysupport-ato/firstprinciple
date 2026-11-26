@@ -86,7 +86,7 @@ export function CourseMaterialsBuilder({
   const semesterLegacy = buildSemesters(inDepartment, departmentId, year)[semester - 1].courses.filter((course) => course.legacy);
   const openCourse = openCourseId ? courses.find((course) => course.id === openCourseId) ?? null : null;
   const openMaterials = openCourse ? inDepartment.filter((entry) => typeOf(entry) === "material" && entry.parentId === openCourse.id) : [];
-  const semesterTitle = `${YEARS[year - 1].label} · Semester ${semester}`;
+  const semesterTitle = `${YEARS[year - 1].label}, Semester ${semester}`;
   const materialCountFor = (courseId: string) => inDepartment.filter((entry) => typeOf(entry) === "material" && entry.parentId === courseId).length;
 
   async function run(action: () => Promise<{ ok: boolean; error?: string }>, notice: string, after?: () => void) {
@@ -310,7 +310,7 @@ export function CourseMaterialsBuilder({
               <h2 className="mt-1 font-sans text-[28px] font-extrabold">Courses</h2>
               {legacy.length > 0 ? (
                 <a href="#older-materials" className="mt-1 inline-block text-[14px] font-semibold text-[#E9BC3A] underline-offset-4 hover:underline">
-                  {legacy.length} older {legacy.length === 1 ? "material has" : "materials have"} no year yet · see below
+                  {legacy.length} older {legacy.length === 1 ? "material has" : "materials have"} no year yet, see below
                 </a>
               ) : null}
             </div>
@@ -320,7 +320,7 @@ export function CourseMaterialsBuilder({
                 {course.courseCode ? <span className="rounded-md bg-[#E9BC3A] px-2 py-0.5 text-xs font-extrabold text-[#1A1814]">{course.courseCode}</span> : null}
                 <span className="min-w-[160px] flex-1">
                   <span className="block text-[19px] font-semibold">{course.courseTitle}</span>
-                  {course.credit ? <span className="block text-[13px] font-semibold text-[#E9BC3A]">Credit · {course.credit}</span> : null}
+                  {course.credit ? <span className="block text-[13px] font-semibold text-[#E9BC3A]">Credit: {course.credit}</span> : null}
                 </span>
                 <span className="text-sm text-[#C9BFA6]">{materialCountFor(course.id)} materials</span>
                 <AvailabilityToggle available={course.available !== false} disabled={busy} onChange={(next) => setAvailable(course, next)} label={course.courseTitle} />
@@ -346,7 +346,7 @@ export function CourseMaterialsBuilder({
                 {group.materials.map((material) => (
                   <div key={material.id} className="flex flex-wrap items-center gap-3 pl-1 text-[15px] text-[#C9BFA6]">
                     <a href={material.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate underline-offset-4 hover:text-[#F6EFDC] hover:underline">
-                      {material.courseTitle} · {linkHost(material.url)}
+                      {material.courseTitle}, {linkHost(material.url)}
                     </a>
                     <button type="button" disabled={busy} onClick={() => remove(material, "Material")} className={removeButton} aria-label={`Remove ${material.courseTitle}`}>
                       Remove
@@ -375,7 +375,7 @@ export function CourseMaterialsBuilder({
             {semesterLinks.map((link) => (
               <div key={link.id} className="flex flex-wrap items-center gap-3 border-t border-[#3A3428] py-3.5">
                 <span className="min-w-[200px] flex-1 text-lg font-semibold">
-                  {link.courseTitle} <span className="text-sm font-normal text-[#C9BFA6]">· {linkHost(link.url)}</span>
+                  {link.courseTitle} <span className="text-sm font-normal text-[#C9BFA6]">({linkHost(link.url)})</span>
                 </span>
                 <button type="button" disabled={busy} onClick={() => remove(link, "Link")} className={removeButton} aria-label={`Remove ${link.courseTitle}`}>
                   Remove
@@ -402,7 +402,7 @@ export function CourseMaterialsBuilder({
                 ← {semesterTitle}
               </button>
               <h2 className="font-sans text-[30px] font-extrabold">
-                {openCourse.courseCode ? `${openCourse.courseCode} · ` : ""}
+                {openCourse.courseCode ? `${openCourse.courseCode}, ` : ""}
                 {openCourse.courseTitle}
               </h2>
               <div className="mt-1 text-[15px] text-[#C9BFA6]">{openMaterials.length} materials</div>
@@ -456,13 +456,13 @@ export function CourseMaterialsBuilder({
       {/* OLDER LOOSE MATERIALS */}
       {legacy.length > 0 ? (
         <section id="older-materials" className="basis-full rounded-[22px] bg-[#1A1814] p-6 text-[#F6EFDC]">
-          <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#E9BC3A]">Added before courses existed · no year set</div>
+          <div className="text-xs font-bold uppercase tracking-[0.14em] text-[#E9BC3A]">Added before courses existed, no year set</div>
           <h2 className="mt-1 font-sans text-[24px] font-extrabold">Older materials ({legacy.length})</h2>
           <p className="mt-1 text-[15px] text-[#C9BFA6]">Students see these under the &quot;Unassigned&quot; tab. Move each into a course when you are ready, or remove it.</p>
           {legacy.map((entry) => (
             <div key={entry.id} className="mt-1 flex flex-wrap items-center gap-3 border-t border-[#3A3428] py-3">
               <span className="min-w-[200px] flex-1 text-base font-semibold">
-                {entry.courseCode ? `${entry.courseCode} · ` : ""}
+                {entry.courseCode ? `${entry.courseCode}, ` : ""}
                 {entry.courseTitle}
                 <span className="ml-2 text-sm font-normal text-[#C9BFA6]">{YEARS.find((item) => item.value === entry.studyYear)?.label ?? "No year"}</span>
               </span>
@@ -476,7 +476,7 @@ export function CourseMaterialsBuilder({
                 <option value="">{courses.length === 0 ? "Add a course first" : "Move into a course…"}</option>
                 {courses.map((course) => (
                   <option key={course.id} value={course.id}>
-                    {YEARS.find((item) => item.value === course.studyYear)?.label} · S{course.semester} · {course.courseTitle}
+                    {YEARS.find((item) => item.value === course.studyYear)?.label}, S{course.semester}, {course.courseTitle}
                   </option>
                 ))}
               </select>

@@ -99,7 +99,7 @@ export function HomePage({
             </div>
             <figure className="m-0 min-w-0 flex-[1_1_420px] rounded-[26px] bg-[#1A1814] p-4 shadow-[0_18px_50px_rgba(26,24,20,.35)]">
               <div className="flex items-center justify-between px-1.5 pb-3 pt-1">
-                <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#E9BC3A]">Inside a lesson · Algebra</span>
+                <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#E9BC3A]">Inside a lesson: Algebra</span>
                 <span className="text-[12px] font-semibold text-[#F6EFDC]/65">Step 7 of 7</span>
               </div>
               <img
@@ -176,7 +176,7 @@ export function HomePage({
                 </a>
               ) : (
                 <span aria-disabled="true" className="flex min-h-[44px] items-center justify-center rounded-2xl border-2 border-dashed border-[#E9BC3A]/60 px-5 py-4 text-[16px] font-bold text-[#F6EFDC]/75">
-                  Collaboration form · link coming soon
+                  Collaboration form (link coming soon)
                 </span>
               )}
             </div>

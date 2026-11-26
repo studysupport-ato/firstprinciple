@@ -177,7 +177,7 @@ export function GeneralCoursesBuilder({
             ← All general courses
           </button>
           <h2 className="font-sans text-[30px] font-extrabold">
-            {open.courseCode ? `${open.courseCode} · ` : ""}
+            {open.courseCode ? `${open.courseCode}, ` : ""}
             {open.courseTitle}
           </h2>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-[15px] text-[#C9BFA6]">

@@ -165,7 +165,7 @@ export default function RoadmapClient({ course, weeks, daysByWeek, preview = fal
 
           {/* ── BREADCRUMB ── */}
           <p className="mb-[2px] text-[11px] font-black uppercase tracking-[0.14em] text-[#1A1814]">
-            {course.code} · {course.title}
+            {course.code}, {course.title}
           </p>
 
           <div className="mb-10">

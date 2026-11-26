@@ -19,10 +19,10 @@ function questionFlagTitle(prompt: string) {
   return plain.length > 110 ? `${plain.slice(0, 107)}…` : plain || "Question";
 }
 
-/** " · from KNUST EE 151 exam, December 2006" when the explanation names its source. */
+/** ", from KNUST EE 151 exam, December 2006" when the explanation names its source. */
 function questionSourceLabel(explanation?: string) {
   const match = /Source:\s*([^\n]+?)\.?\s*$/.exec(explanation ?? "");
-  return match ? ` · from ${match[1].slice(0, 80)}` : "";
+  return match ? `, from ${match[1].slice(0, 80)}` : "";
 }
 
 /**
@@ -37,7 +37,7 @@ function VideoSolutionPanel({ solution, submitted }: { solution: VideoSolution; 
   const { video } = solution;
   const embed = `${buildYouTubeEmbedUrl(video.youtubeId)}${video.start ? `&start=${video.start}` : ""}`;
   const watch = `${buildYouTubeWatchUrl(video.youtubeId)}${video.start ? `&t=${video.start}s` : ""}`;
-  const meta = [video.channel, video.minutes ? `${video.minutes} min` : null, video.part].filter(Boolean).join(" · ");
+  const meta = [video.channel, video.minutes ? `${video.minutes} min` : null, video.part].filter(Boolean).join(", ");
 
   return (
     <section aria-label="Video solution" className="space-y-4 rounded-[24px] bg-[#1A1814] p-5 text-[#F6EFDC] md:p-6">

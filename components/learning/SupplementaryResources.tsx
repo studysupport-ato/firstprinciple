@@ -22,7 +22,7 @@ function YouTubeResourceCard({ resource }: { resource: Extract<LearningResource,
       <div className="space-y-3 p-4">
         <div className="flex items-center justify-between gap-3">
           <ResourceEyebrow>{sourceLabel}</ResourceEyebrow>
-          <span className="text-xs text-[#666666]">YouTube · plays here</span>
+          <span className="text-xs text-[#666666]">YouTube, plays here</span>
         </div>
         <h3 className="font-serif text-xl leading-tight text-[#111111]"><EducationalText text={resource.title} /></h3>
         {resource.description ? <p className="text-sm leading-6 text-[#666666]"><EducationalText text={resource.description} /></p> : null}

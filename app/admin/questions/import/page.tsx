@@ -141,7 +141,7 @@ export default function AdminQuestionImportPage() {
             <select value={selectedCourseId} onChange={(event) => setSelectedCourseId(event.target.value)} className="admin-input w-full">
               {courses.map((row) => (
                 <option key={row.course.id} value={row.course.id}>
-                  {row.course.code} · {row.course.title}
+                  {row.course.code}, {row.course.title}
                 </option>
               ))}
             </select>
@@ -242,13 +242,13 @@ export default function AdminQuestionImportPage() {
                 <div className="whitespace-pre-line font-medium text-[#111111]">{question.prompt}</div>
                 <div className="mt-3 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.14em] text-[#666666]">
                   <span>{question.type}</span>
-                  <span>·</span>
+                  <span>/</span>
                   <span>{question.difficulty}</span>
-                  <span>·</span>
+                  <span>/</span>
                   <span>{question.topic}</span>
-                  <span>·</span>
+                  <span>/</span>
                   <span>{question.marks} marks</span>
-                  <span>·</span>
+                  <span>/</span>
                   <span>{question.metadata?.status ?? "draft"}</span>
                 </div>
                 {question.options?.length ? (

@@ -219,7 +219,7 @@ function WorkedExample({ title, caseNum, children }: { title: string, caseNum: n
   return (
     <div className="bg-white border border-[#E5E5E5] rounded-xl overflow-hidden mb-4">
       <button onClick={() => setOpen(!open)} className="w-full px-6 py-4 flex items-center justify-between bg-[#F8FAFC] hover:bg-[#F1F5F9] transition-colors">
-        <span className="font-sans font-semibold text-sm text-[#1E293B]">Case {caseNum} · {title}</span>
+        <span className="font-sans font-semibold text-sm text-[#1E293B]">Case {caseNum}: {title}</span>
         <ChevronDown size={16} className={`text-[#64748b] transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       <AnimatePresence>
@@ -371,7 +371,7 @@ export default function IntroLessonPage() {
     },
     {
       id: 1,
-      title: "1.2 · The Principle of Mathematical Induction",
+      title: "1.2 The Principle of Mathematical Induction",
       content: (
         <div className="flex flex-col gap-6 pb-12">
           <p className="editorial-body text-base text-[#475569] leading-relaxed">
@@ -542,7 +542,7 @@ export default function IntroLessonPage() {
     },
     {
       id: 3,
-      title: "1.4 · Practice Set",
+      title: "1.4 Practice Set",
       content: (
         <div className="flex flex-col gap-6 pb-12">
           <p className="editorial-body text-base text-[#475569] leading-relaxed">
@@ -606,7 +606,7 @@ export default function IntroLessonPage() {
     },
     {
       id: 4,
-      title: "1.3 · Well-Ordered Sets",
+      title: "1.3 Well-Ordered Sets",
       content: (
         <div className="flex flex-col gap-6 pb-12">
           <p className="editorial-body text-base text-[#475569] leading-relaxed">
@@ -648,7 +648,7 @@ export default function IntroLessonPage() {
               <div className="mt-8 bg-white border border-[#E2E8F0] rounded-xl p-4 hover:border-[#111111]/30 transition-colors cursor-pointer group flex items-center justify-between">
                 <div>
                   <span className="font-sans text-[10px] font-bold uppercase tracking-widest text-[#64748b]">Up next — Weeks 2–3</span>
-                  <h4 className="font-serif text-lg font-bold text-[#111111] group-hover:text-[#2563EB] transition-colors mt-1">Chapter 2 · Complex Numbers</h4>
+                  <h4 className="font-serif text-lg font-bold text-[#111111] group-hover:text-[#2563EB] transition-colors mt-1">Chapter 2: Complex Numbers</h4>
                   <p className="font-sans text-xs text-[#64748b] mt-1">Booklet content for this chapter is in progress.</p>
                 </div>
                 <ChevronRight size={20} className="text-[#CBD5E1] group-hover:text-[#2563EB] transition-colors" />

@@ -373,8 +373,8 @@ export default function AdminEmailPage() {
                   <span>Review additional/custom recipients</span><span>{selectedRecipients.length + manualEmails.length}</span>
                 </div>
                 <ul className="max-h-28 space-y-1 overflow-auto text-xs text-[#666666]">
-                  {selectedRecipients.map((recipient) => <li key={recipient.studentId}>{recipient.fullName} · {recipient.email}</li>)}
-                  {manualEmails.map((email) => <li key={email}>External email · {email}</li>)}
+                  {selectedRecipients.map((recipient) => <li key={recipient.studentId}>{recipient.fullName}, {recipient.email}</li>)}
+                  {manualEmails.map((email) => <li key={email}>External email, {email}</li>)}
                 </ul>
               </div>
             ) : null}
@@ -413,7 +413,7 @@ export default function AdminEmailPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{campaign.subject}</p>
-                      <p className="mt-1 text-xs text-[#666666]">{formatDate(campaign.created_at)} · {campaign.recipients.length} recipients</p>
+                      <p className="mt-1 text-xs text-[#666666]">{formatDate(campaign.created_at)}, {campaign.recipients.length} recipients</p>
                     </div>
                     <span className="shrink-0 rounded-full bg-[#FFF4CC] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide">{statusLabel(campaign.status)}</span>
                   </div>

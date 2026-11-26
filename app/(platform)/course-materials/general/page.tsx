@@ -137,7 +137,7 @@ export default function GeneralCoursesPage() {
                     ) : null}
                     <span className="min-w-0 flex-1 basis-[220px]">
                       <span className="block text-[18px] font-bold">{course.courseTitle}</span>
-                      {course.credit ? <span className="mt-0.5 block text-[12.5px] font-semibold text-[#E9BC3A]/90">Credit · {course.credit}</span> : null}
+                      {course.credit ? <span className="mt-0.5 block text-[12.5px] font-semibold text-[#E9BC3A]/90">Credit: {course.credit}</span> : null}
                     </span>
                     {off ? (
                       <span className="shrink-0 rounded-full border border-dashed border-[#6F6753] px-3 py-1.5 text-[13px] font-bold text-[#B8AE95]">Not available at the moment</span>

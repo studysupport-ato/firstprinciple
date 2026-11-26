@@ -311,7 +311,7 @@ function RepPanel() {
       <div style={{ marginTop: 14, display: "flex", gap: 8 }}>
         {([1, 2] as const).map((s) => (
           s === 2 && REP_SEMESTER_2_LOCKED ? (
-            <span key={s} title="Semester 2 opens later" style={{ height: 38, padding: "0 16px", borderRadius: 999, border: "2px dashed rgba(26,24,20,.3)", color: "rgba(26,24,20,.5)", fontSize: 13, fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 6 }}><Lock size={13} aria-hidden /> Semester 2 · opens later</span>
+            <span key={s} title="Semester 2 opens later" style={{ height: 38, padding: "0 16px", borderRadius: 999, border: "2px dashed rgba(26,24,20,.3)", color: "rgba(26,24,20,.5)", fontSize: 13, fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 6 }}><Lock size={13} aria-hidden /> Semester 2, opens later</span>
           ) : (
           <button key={s} type="button" onClick={() => setSemester(s)} style={{ height: 38, padding: "0 16px", border: 0, borderRadius: 999, background: semester === s ? INK : "rgba(26,24,20,.12)", color: semester === s ? GOLD : INK, fontFamily: "inherit", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Semester {s}</button>
           )

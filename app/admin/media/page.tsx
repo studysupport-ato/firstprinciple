@@ -240,7 +240,7 @@ export default function AdminMediaPage() {
             <button type="button" onClick={() => openAsset(row.asset)} className="block truncate text-sm font-medium text-[#111111] hover:text-[#2563EB]">
               {row.asset.name}
             </button>
-            <div className="truncate text-xs text-[#666666]">{row.asset.source.kind} · {row.asset.source.url}</div>
+            <div className="truncate text-xs text-[#666666]">{row.asset.source.kind}, {row.asset.source.url}</div>
           </div>
         </div>
       ),
@@ -382,9 +382,9 @@ export default function AdminMediaPage() {
               <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[#666666]">
                 <AdminStatusBadge status={selected.status} />
                 <span>{TYPE_LABELS[selected.type]}</span>
-                <span>·</span>
+                <span>/</span>
                 <span>{selected.source.kind}</span>
-                <span>·</span>
+                <span>/</span>
                 <span>updated {new Date(selected.updatedAt).toLocaleDateString()}</span>
               </div>
             </div>
@@ -477,7 +477,7 @@ export default function AdminMediaPage() {
               </div>
               <div className="space-y-4">
                 <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-                  <div><dt className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#666666]">Source</dt><dd className="mt-1 break-all text-[#111111]">{selected.source.kind} · {selected.source.url}</dd></div>
+                  <div><dt className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#666666]">Source</dt><dd className="mt-1 break-all text-[#111111]">{selected.source.kind}, {selected.source.url}</dd></div>
                   <div><dt className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#666666]">Dimensions</dt><dd className="mt-1 text-[#111111]">{selected.width && selected.height ? `${selected.width} × ${selected.height}` : "—"}</dd></div>
                   <div><dt className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#666666]">Duration</dt><dd className="mt-1 text-[#111111]">{formatDuration(selected.duration)}</dd></div>
                   <div><dt className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#666666]">File size</dt><dd className="mt-1 text-[#111111]">{formatBytes(selected.fileSize)}</dd></div>
@@ -501,7 +501,7 @@ export default function AdminMediaPage() {
                     <AdminStatusBadge status={ref.blockType} />
                     <span className="text-[#111111]">{ref.lessonTitle}</span>
                     <span className="text-xs text-[#666666]">in</span>
-                    <span className="text-[#666666]">{ref.courseTitle || ref.courseId} · {ref.weekTitle || ref.weekId}</span>
+                    <span className="text-[#666666]">{ref.courseTitle || ref.courseId}, {ref.weekTitle || ref.weekId}</span>
                     <a href={`/admin/lessons/${ref.lessonId}`} className="text-xs font-semibold text-[#2563EB] hover:underline">Open lesson</a>
                   </li>
                 ))}

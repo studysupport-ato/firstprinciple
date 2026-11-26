@@ -7,7 +7,7 @@ import { SKILLS_TRAINING } from "@/lib/site/skillsTraining";
 import { isAdminVisitor } from "@/lib/site/isAdminVisitor";
 
 export const metadata: Metadata = {
-  title: "Back2Basics × Innovation Centre · Back2Basics with Kwamina",
+  title: "Back2Basics × Innovation Centre | Back2Basics with Kwamina",
   description: "Certified courses with the Innovation Centre, College of Engineering, at a discounted price.",
 };
 

@@ -168,7 +168,7 @@ export default function AdminFlagsPage() {
       className={`min-h-10 rounded-full px-3.5 text-[13.5px] transition ${kind === value ? "border-[1.5px] border-[#111111] bg-white font-bold" : "border border-[#D6D0C4] font-semibold hover:border-[#111111]"}`}
     >
       {label}
-      {value !== "all" ? ` · ${kindCount(value)}` : ""}
+      {value !== "all" ? ` (${kindCount(value)})` : ""}
     </button>
   );
 
@@ -194,8 +194,8 @@ export default function AdminFlagsPage() {
 
       <div className="mb-5 flex flex-wrap items-center gap-2.5">
         <div role="tablist" aria-label="Status" className="flex gap-1 rounded-full bg-[#EDEBE5] p-1">
-          {tabButton("open", `Open · ${counts.open}`)}
-          {tabButton("in_progress", `In progress · ${counts.in_progress}`)}
+          {tabButton("open", `Open (${counts.open})`)}
+          {tabButton("in_progress", `In progress (${counts.in_progress})`)}
           {tabButton("done", "Fixed or closed")}
         </div>
         <div role="group" aria-label="Kind" className="flex flex-wrap gap-1.5">
@@ -239,7 +239,7 @@ export default function AdminFlagsPage() {
                   <span className="flex min-w-0 flex-1 flex-col gap-1.5">
                     <span className="flex flex-wrap items-center gap-1.5">
                       <span className={`rounded-md px-2 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.06em] ${KIND_STYLE[group.type]}`}>{FLAG_KIND_LABEL[group.type]}</span>
-                      <span className="text-[12.5px] font-bold text-[#666666]">{group.location}</span>
+                      <span className="text-[12.5px] font-bold text-[#666666]">{group.location.split(" · ").join(", ")}</span>
                     </span>
                     <span className="text-[15.5px] font-bold">{group.title}</span>
                     {group.reports[0]?.note ? <span className="truncate text-[13.5px] text-[#555555]">“{group.reports[0].note}”</span> : null}
@@ -247,7 +247,7 @@ export default function AdminFlagsPage() {
                   <span className="flex shrink-0 flex-col items-end gap-1.5">
                     <span className="rounded-full bg-[#FFF1EA] px-2.5 py-1 text-[12.5px] font-extrabold text-[#8F3414]">{group.topReason}</span>
                     <span className="text-[12.5px] text-[#666666]">
-                      {group.reports.length} {group.reports.length === 1 ? "report" : "reports"} · {ago(group.latest)}
+                      {group.reports.length} {group.reports.length === 1 ? "report" : "reports"}, {ago(group.latest)}
                     </span>
                   </span>
                 </button>
@@ -259,7 +259,7 @@ export default function AdminFlagsPage() {
             <aside aria-label="Selected flag" className="flex min-w-0 max-w-[580px] flex-[1_1_420px] flex-col gap-4 rounded-[20px] bg-[#1A1814] p-5 text-[#F6EFDC]">
               <div className="flex flex-col gap-1.5">
                 <span className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-[#E9BC3A]">
-                  {FLAG_KIND_LABEL[selected.type]} · {selected.location}
+                  {FLAG_KIND_LABEL[selected.type]}, {selected.location.split(" · ").join(", ")}
                 </span>
                 <h2 className="text-[22px] font-extrabold leading-tight">{selected.title}</h2>
                 {selected.link ? (

@@ -23,7 +23,7 @@ export function VideoBlock({ assetId, src, title }: VideoBlockData) {
     <div className="space-y-2">
       <video src={assetUrl(assetId, src)} title={title} controls poster={poster} className="w-full rounded-2xl border border-[#E5E5E5]" />
       <p className="font-sans text-xs text-[#666666]"><EducationalText text={title} />
-        {durationLabel ? <span className="text-[#999999]"> · {durationLabel}</span> : null}
+        {durationLabel ? <span className="text-[#999999]">, {durationLabel}</span> : null}
       </p>
     </div>
   );

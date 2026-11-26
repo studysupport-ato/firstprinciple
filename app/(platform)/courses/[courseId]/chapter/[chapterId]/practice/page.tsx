@@ -62,6 +62,6 @@ function topicBankNavigation(courseId: string, topic: string | undefined, subtop
   return {
     returnHref: `/questions?${params.toString()}`,
     returnLabel: "Back to topics",
-    title: [topic, subtopic].filter(Boolean).join(" · ") || undefined,
+    title: [topic, subtopic].filter(Boolean).join(", ") || undefined,
   };
 }

@@ -89,7 +89,7 @@ function thumb(videoId: string) {
  */
 export function CourseDetail({ course, materials, backLabel, onBack, bookmarks, toggleBookmark }: CourseDetailProps) {
   // Where a flagged video or playlist sits, for the admin inbox.
-  const flagWhere = [course.courseCode, course.courseTitle].filter(Boolean).join(" · ") || "Course materials";
+  const flagWhere = [course.courseCode, course.courseTitle].filter(Boolean).join(", ") || "Course materials";
   const byTab = useMemo(() => {
     const map = new Map<TabKey, MaterialRow[]>();
     for (const tab of TABS) map.set(tab.key, materials.filter((m) => m.type === tab.type));
@@ -348,7 +348,7 @@ function VideosPanel({ videos: given, topics, bookmarks, toggleBookmark, where }
           <div className="px-1.5 pb-1 pt-4">
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#E9BC3A]">
               {current ? <TopicTag topic={topicOf(current, topics)} /> : null}
-              Video · {position + 1} of {playable.length}
+              Video {position + 1} of {playable.length}
             </p>
             <h2 className="mt-1.5 text-[22px] font-black leading-tight">{current?.courseTitle}</h2>
             {current?.description && current.description !== current.courseTitle ? (
@@ -379,7 +379,7 @@ function VideosPanel({ videos: given, topics, bookmarks, toggleBookmark, where }
       }
       list={
         <>
-          <p className="px-1.5 pb-2 pt-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#F6EFDC]/55">Videos · {videos.length}</p>
+          <p className="px-1.5 pb-2 pt-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#F6EFDC]/55">Videos: {videos.length}</p>
           {groups.map((group) => (
             <div key={group.topic?.id ?? NO_TOPIC}>
               <ListTopicHeading group={group} show={topics.length > 0} />
@@ -563,13 +563,13 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark, w
                     <span className="flex items-baseline justify-between gap-3">
                       {num ? <span className="text-[40px] font-black leading-[0.9] tracking-[-0.03em] text-[#E9BC3A]">{num}</span> : <ListVideo className="h-7 w-7 text-[#E9BC3A]" />}
                       <span className="text-right text-[11px] font-bold text-[#F6EFDC]/55">
-                        {videos.length} videos{minutes ? ` · ${hoursAndMinutes(minutes)}` : ""}
+                        {videos.length} videos{minutes ? `, ${hoursAndMinutes(minutes)}` : ""}
                       </span>
                     </span>
                     <span className="text-[16px] font-black leading-tight">{name}</span>
                     <span className="mt-auto flex items-center gap-2 border-t border-[#2E2A22] pt-2.5">
                       <span className="text-[11px] font-bold text-[#F6EFDC]/60">
-                        {off ? "Not available at the moment" : lessons || worked ? `${lessons} lessons · ${worked} worked examples` : channelOf(playlist)}
+                        {off ? "Not available at the moment" : lessons || worked ? `${lessons} lessons, ${worked} worked examples` : channelOf(playlist)}
                       </span>
                       <span className="flex-1" />
                       {!off ? <span className="text-[12px] font-black text-[#E9BC3A]">Open →</span> : null}
@@ -717,15 +717,15 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark, w
           <div className="px-1.5 pb-1 pt-4">
             <p className="text-[12px] font-extrabold text-[#E9BC3A]">
               {openTitle.num ? `Chapter ${openTitle.num}` : open.courseTitle}
-              {structured && currentParts ? ` · ${currentParts.sub}` : ""}
+              {structured && currentParts ? `, ${currentParts.sub}` : ""}
             </p>
             <h2 className="mt-1.5 text-[22px] font-black leading-tight">{current ? label(current) : open.courseTitle}</h2>
             <div className="mt-2 flex flex-wrap items-center gap-2.5">
               <KindTag kind={current?.kind} long />
               <span className="text-[14px] text-[#F6EFDC]/68">
                 {current?.channel || openChannel ? `Video by ${current?.channel || openChannel}` : ""}
-                {current?.minutes ? ` · ${current.minutes} min` : ""}
-                {videos.length ? ` · ${index + 1} of ${videos.length}` : ""}
+                {current?.minutes ? `, ${current.minutes} min` : ""}
+                {videos.length ? `, ${index + 1} of ${videos.length}` : ""}
               </span>
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-2.5">
@@ -774,7 +774,7 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark, w
                   {structured
                     ? label(videos[nextAt]) === videoParts(videos[nextAt].title).name
                       ? videoParts(videos[nextAt].title).sub
-                      : `${videoParts(videos[nextAt].title).sub} · ${label(videos[nextAt])}`
+                      : `${videoParts(videos[nextAt].title).sub}, ${label(videos[nextAt])}`
                     : label(videos[nextAt])}
                   {videos[nextAt].channel ? ` — ${videos[nextAt].channel}` : ""}
                 </span>
@@ -788,8 +788,8 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark, w
             <p className="text-[11px] font-black tracking-[0.12em] text-[#E9BC3A]">{openTitle.num ? `CHAPTER ${openTitle.num}` : "PLAYLIST"}</p>
             <p className="mt-1 text-[19px] font-black leading-tight">{openTitle.name}</p>
             <p className="mt-1 text-[12px] text-[#F6EFDC]/60">
-              {videos.length} videos{totalMinutes ? ` · ${hoursAndMinutes(totalMinutes)}` : ""}
-              {hasKinds ? ` · ${workedCount} worked examples` : openChannel ? ` · ${openChannel}` : ""}
+              {videos.length} videos{totalMinutes ? `, ${hoursAndMinutes(totalMinutes)}` : ""}
+              {hasKinds ? `, ${workedCount} worked examples` : openChannel ? `, ${openChannel}` : ""}
             </p>
             {openState?.status === "ready" && openState.data.source === "feed" ? (
               <p className="mt-1 text-[11px] text-[#F6EFDC]/45">Showing the newest {videos.length}. The full list is on YouTube.</p>
@@ -870,7 +870,7 @@ function PlaylistsPanel({ playlists: given, topics, bookmarks, toggleBookmark, w
                               <span className="line-clamp-2 block text-[13px] font-extrabold leading-tight">{label(video)}</span>
                               <span className="mt-0.5 block truncate text-[11px] text-[#F6EFDC]/55">
                                 {video.channel ?? openChannel}
-                                {video.minutes ? ` · ${video.minutes} min` : ""}
+                                {video.minutes ? `, ${video.minutes} min` : ""}
                               </span>
                             </span>
                             <KindTag kind={video.kind} />

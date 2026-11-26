@@ -167,7 +167,7 @@ export function Hero() {
         >
           <BrandLogo className="h-7 w-28 rounded-sm" priority />
           <span className="font-sans text-[11px] tracking-[0.22em] uppercase text-white/70 font-semibold">
-            BACK2BASICS WITH KWAMINA · MATH 151
+            BACK2BASICS WITH KWAMINA / MATH 151
           </span>
         </motion.div>
 

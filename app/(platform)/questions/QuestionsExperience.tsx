@@ -153,7 +153,7 @@ export default function QuestionsExperience({
                         onClick={() => setSelectedCourseId(course.id)}
                         className="group flex items-center justify-between gap-4 rounded-[24px] bg-[#1A1814] p-6 text-left shadow-[0_2px_14px_rgba(0,0,0,0.22)] transition-transform duration-300 hover:-translate-y-1 md:px-7 md:py-6"
                       >
-                        <CourseCardBody code={course.code} title={course.title} meta={`${topicCount} topics · ${qCount} questions`} />
+                        <CourseCardBody code={course.code} title={course.title} meta={`${topicCount} topics, ${qCount} questions`} />
                         <ArrowBadge />
                       </button>
                     );
@@ -178,7 +178,7 @@ export default function QuestionsExperience({
                             {course.title}
                           </div>
                           <div className="mt-1 text-[13px] font-medium text-[#F6EFDC]/60">
-                            {course.chapterIds?.length || 0} lessons · {qCount} questions
+                            {course.chapterIds?.length || 0} lessons, {qCount} questions
                           </div>
                         </div>
                       </div>
@@ -243,7 +243,7 @@ export default function QuestionsExperience({
                     {label}
                   </div>
                   <div className="mt-1 text-[13px] font-medium text-[#F6EFDC]/55">
-                    {courseCount} courses · {questionCount} questions
+                    {courseCount} courses, {questionCount} questions
                   </div>
                 </div>
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#8F6500] text-[#F6EFDC] transition group-hover:bg-[#A37400]">
@@ -358,7 +358,7 @@ function TopicBankView({
           ← {course.code} topics
         </button>
         <p className="mb-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#1A1814]/70">
-          {course.code} · {course.title}
+          {course.code}, {course.title}
         </p>
         <h1 className="font-sans text-[clamp(3rem,7vw,5rem)] font-black leading-[1.0] tracking-[-0.03em] text-[#1A1814]">{group}</h1>
         <p className="mt-3 text-[18px] font-medium text-[#26231C]/80">
@@ -388,11 +388,11 @@ function TopicBankView({
         ← {backLabel}
       </button>
       <p className="mb-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#1A1814]/70">
-        Question Bank · {course.code}
+        Question Bank, {course.code}
       </p>
       <h1 className="font-sans text-[clamp(3rem,7vw,5rem)] font-black leading-[1.0] tracking-[-0.03em] text-[#1A1814]">{course.title}</h1>
       <p className="mt-3 text-[18px] font-medium text-[#26231C]/80">
-        {topicTotal} topics · {inBank.length} questions. Choose a topic to practise.
+        {topicTotal} topics, {inBank.length} questions. Choose a topic to practise.
       </p>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

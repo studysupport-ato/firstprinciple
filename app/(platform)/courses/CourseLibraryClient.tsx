@@ -170,7 +170,7 @@ export default function CourseLibraryClient({
             {/* ── TOP BREADCRUMB ── */}
             <div className="mb-[20px] flex items-center gap-2 text-[12px] font-black uppercase tracking-[0.12em] text-[#1A1814]">
               <span className="opacity-55">Learning space</span>
-              <span className="opacity-55">·</span>
+              <span className="opacity-55">/</span>
               <span>Courses</span>
             </div>
 
@@ -208,7 +208,7 @@ export default function CourseLibraryClient({
                           <EducationalText text={course.title} />
                         </div>
                         <div className="mt-1 text-[12px] font-bold uppercase tracking-[0.08em] text-[#F6EFDC]/40">
-                          {course.code}{course.weeks > 0 ? ` · ${course.weeks} weeks` : ""}
+                          {course.code}{course.weeks > 0 ? `, ${course.weeks} weeks` : ""}
                         </div>
                         {course.comingSoon ? (
                           <div className="mt-2 text-[13px] font-semibold text-[#F6EFDC]/50">Coming soon</div>

@@ -8,7 +8,7 @@ import { listProgrammes, listWeeks } from "@/lib/site/skillsProgrammes";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Skills Workshop · Back2Basics with Kwamina",
+  title: "Skills Workshop | Back2Basics with Kwamina",
   description: "Free Arduino Skills Training with IEEE, and certified courses with the Innovation Centre, College of Engineering.",
 };
 

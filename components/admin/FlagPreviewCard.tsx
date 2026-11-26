@@ -36,8 +36,8 @@ export function FlagPreviewCard({ targetKey }: { targetKey: string }) {
           {preview.kind === "lesson"
             ? preview.step !== null
               ? `Step ${preview.step} of ${preview.stepCount}`
-              : `Lesson · first step`
-            : `Question${preview.status !== "published" ? ` · ${preview.status}` : ""}`}
+              : `Lesson, first step`
+            : `Question${preview.status !== "published" ? `, ${preview.status}` : ""}`}
         </span>
         <span className="flex gap-3 text-[12.5px] font-bold">
           {preview.kind === "lesson" && preview.studentLink ? (
