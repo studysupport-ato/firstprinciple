@@ -75,7 +75,7 @@ export const math151Lessons: Lesson[] = [
     id: "math151-cross-product",
     courseId: "math-151",
     chapterId: "vector-algebra",
-    weekId: "math151-week-4",
+    weekId: "math151-week-5",
     title: "The Cross Product",
     description: "Build a perpendicular vector from two vectors in 3D space and interpret the geometric meaning of its direction.",
     order: 4,
